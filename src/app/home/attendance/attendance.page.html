@@ -1,0 +1,175 @@
+<!-- 
+
+
+<ion-content [fullscreen]="true" class="attendance-content">
+  <div class="header-banner">
+    <div class="header-decor">
+      <ion-icon name="paw" class="paw-1"></ion-icon>
+      <ion-icon name="paw" class="paw-2"></ion-icon>
+      <ion-icon name="leaf" class="leaf-1"></ion-icon>
+    </div>
+
+    <div class="header-nav-row">
+      <div class="nav-left">
+        <ion-button (click)="goBack()" class="back-btn" mode="md">
+          <ion-icon name="arrow-back-outline"></ion-icon>
+        </ion-button>
+        <div class="title-group">
+          <h1>Beat Attendance</h1>
+          <p class="subtitle">Panna Site Operation</p>
+        </div>
+      </div>
+      <div class="live-badge">
+        <span>Live</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <div class="form-card">
+      
+      <div class="id-capture-wrapper">
+        <div class="id-box" (click)="captureImage()">
+          <ion-icon name="camera-outline"></ion-icon>
+          <span class="label">Capture ID</span>
+          <div class="check-badge">
+            <ion-icon name="checkmark-circle"></ion-icon>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-tile">
+          <label>Ranger</label>
+          <p>Nikhil</p>
+        </div>
+        <div class="info-tile">
+          <label>Region</label>
+          <p>Washim</p>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label class="group-label">Select Geofence</label>
+        <div class="custom-select">
+          <ion-select interface="action-sheet" placeholder="Select Site" mode="md">
+            <ion-select-option value="panna">Panna Site</ion-select-option>
+            <ion-select-option value="buffer">Buffer Zone</ion-select-option>
+            <ion-select-option value="east">East Beat</ion-select-option>
+          </ion-select>
+          <ion-icon name="chevron-down-outline" class="select-arrow"></ion-icon>
+        </div>
+      </div>
+
+      <div class="toggle-container">
+        <button [class.active]="isEntry" (click)="setMode(true)" class="toggle-btn">
+          <div class="dot" *ngIf="isEntry"></div>
+          <span>ENTRY</span>
+        </button>
+        <button [class.active]="!isEntry" (click)="setMode(false)" class="toggle-btn">
+          <div class="dot" *ngIf="!isEntry"></div>
+          <span>EXIT</span>
+        </button>
+      </div>
+
+      <button class="submit-btn" (click)="submitAttendance()">
+        <ion-icon name="finger-print-outline"></ion-icon>
+        <span>MARK ATTENDANCE</span>
+      </button>
+    </div>
+
+    <div class="gps-notice">
+      <div class="icon-box">
+        <ion-icon name="location"></ion-icon>
+      </div>
+      <p>GPS coordinates are active. Ensure you are within the designated geofence to avoid rejection.</p>
+    </div>
+  </div>
+</ion-content> -->
+
+
+<ion-content [fullscreen]="true" class="attendance-content">
+  <div class="header-banner">
+    <div class="header-decor">
+      <ion-icon name="paw" class="paw-1"></ion-icon>
+      <ion-icon name="paw" class="paw-2"></ion-icon>
+      <ion-icon name="leaf" class="leaf-1"></ion-icon>
+    </div>
+
+    <div class="header-nav-row">
+      <div class="nav-left">
+        <ion-button (click)="goBack()" class="back-btn" mode="md">
+          <ion-icon name="arrow-back-outline"></ion-icon>
+        </ion-button>
+        <div class="title-group">
+          <h1>Beat Attendance</h1>
+          <p class="subtitle">Panna Site Operation</p>
+        </div>
+      </div>
+      <div class="live-badge">
+        <span>Live</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <div class="form-card">
+      
+      <div class="id-capture-wrapper">
+        <div class="id-box" (click)="captureImage()">
+          <ion-icon name="camera-outline"></ion-icon>
+          <span class="label">Capture ID</span>
+          <div class="check-badge">
+            <ion-icon name="checkmark-circle"></ion-icon>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-tile">
+          <label>Ranger</label>
+          <p>{{ rangerName }}</p>
+        </div>
+        <div class="info-tile">
+          <label>Region</label>
+          <p>Washim</p>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label class="group-label">Select Geofence</label>
+        <div class="custom-select">
+          <ion-select interface="action-sheet" placeholder="Select Site" mode="md">
+            <ion-select-option value="panna">Panna Site</ion-select-option>
+            <ion-select-option value="buffer">Buffer Zone</ion-select-option>
+            <ion-select-option value="east">East Beat</ion-select-option>
+          </ion-select>
+          <ion-icon name="chevron-down-outline" class="select-arrow"></ion-icon>
+        </div>
+      </div>
+
+      <div class="toggle-container">
+        <button [class.active]="isEntry" (click)="setMode(true)" class="toggle-btn">
+          <div class="dot" *ngIf="isEntry"></div>
+          <span>ENTRY</span>
+        </button>
+        <button [class.active]="!isEntry" (click)="setMode(false)" class="toggle-btn">
+          <div class="dot" *ngIf="!isEntry"></div>
+          <span>EXIT</span>
+        </button>
+      </div>
+
+      <button class="submit-btn" (click)="submitAttendance()">
+        <ion-icon name="finger-print-outline"></ion-icon>
+        <span>MARK ATTENDANCE</span>
+      </button>
+    </div>
+
+    <div class="gps-notice">
+      <div class="icon-box">
+        <ion-icon name="location"></ion-icon>
+      </div>
+      <p>GPS coordinates are active. Ensure you are within the designated geofence to avoid rejection.</p>
+    </div>
+  </div>
+</ion-content>

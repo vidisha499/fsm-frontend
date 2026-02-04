@@ -1,0 +1,264 @@
+// /* Header Styling */
+// .custom-header {
+//   background: #061A13; /* Deep Dark Green */
+//   padding: 55px 24px 45px;
+//   border-radius: 0 0 40px 40px;
+//   position: relative;
+//   overflow: hidden;
+// }
+
+// .header-decor {
+//   .paw-bg, .leaf-bg {
+//     position: absolute;
+//     color: rgba(255, 255, 255, 0.03);
+//     z-index: 1;
+//   }
+//   .paw-bg { font-size: 80px; top: 10%; right: 5%; transform: rotate(15deg); }
+//   .leaf-bg { font-size: 60px; bottom: 10%; left: -5%; transform: rotate(-20deg); }
+// }
+
+// .header-content { position: relative; z-index: 2; }
+
+// .header-nav-row {
+//   display: flex;
+//   align-items: center;
+//   justify-content: space-between;
+// }
+
+// .nav-left { display: flex; align-items: center; gap: 15px; }
+
+// .page-title {
+//   margin: 0;
+//   font-size: 24px;
+//   font-weight: 800;
+//   color: #ffffff;
+//   letter-spacing: -0.5px;
+// }
+
+// .sub-title {
+//   margin: 0;
+//   font-size: 10px;
+//   font-weight: 800;
+//   color: #86EFAC; /* Lime Green */
+//   letter-spacing: 1.5px;
+//   text-transform: uppercase;
+// }
+
+// .styled-back-btn {
+//   --background: #86EFAC;
+//   --color: #061A13;
+//   --border-radius: 14px;
+//   width: 40px;
+//   height: 40px;
+//   margin: 0;
+// }
+
+// /* Filter Inputs */
+// .filter-box {
+//   flex: 1;
+//   background: #ffffff;
+//   border-radius: 14px;
+//   padding: 12px;
+//   display: flex;
+//   align-items: center;
+//   gap: 8px;
+//   box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+  
+//   i { font-size: 14px; }
+//   &.blue-accent { border-left: 4px solid #3b82f6; i { color: #3b82f6; } }
+//   &.orange-accent { border-left: 4px solid #f59e0b; i { color: #f59e0b; } }
+// }
+
+// .date-input {
+//   width: 100%;
+//   border: none;
+//   outline: none;
+//   font-size: 12px;
+//   font-weight: 800;
+//   color: #475569;
+//   background: transparent;
+// }
+
+// /* Log Cards */
+// .log-card {
+//   background: #ffffff;
+//   padding: 18px;
+//   border-radius: 22px;
+//   display: flex;
+//   align-items: center;
+//   justify-content: space-between;
+//   border-left: 5px solid #10b981;
+//   box-shadow: 0 8px 20px rgba(0,0,0,0.03);
+//   transition: transform 0.2s;
+
+//   &:active { transform: scale(0.98); }
+// }
+
+// .icon-box {
+//   width: 44px;
+//   height: 44px;
+//   border-radius: 14px;
+//   display: flex;
+//   align-items: center;
+//   justify-content: center;
+  
+//   &.green-tint {
+//     background: #f0fdf4;
+//     i { color: #059669; font-size: 18px; }
+//   }
+// }
+
+// .log-name { margin: 0; font-weight: 800; color: #1e293b; font-size: 15px; }
+// .log-meta { margin: 2px 0 0 0; font-size: 11px; color: #94a3b8; font-weight: 600; }
+
+// .status-badge {
+//   background: #d1fae5;
+//   color: #065f46;
+//   font-size: 9px;
+//   font-weight: 900;
+//   padding: 6px 12px;
+//   border-radius: 10px;
+//   letter-spacing: 0.5px;
+// }
+
+// /* FAB Button */
+// .fab-btn {
+//   position: fixed;
+//   bottom: 100px;
+//   right: 20px;
+//   background: #061A13;
+//   color: #86EFAC;
+//   width: 54px;
+//   height: 54px;
+//   border-radius: 18px;
+//   border: none;
+//   box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+//   display: flex;
+//   align-items: center;
+//   justify-content: center;
+//   z-index: 999;
+//   font-size: 20px;
+// }
+
+
+// Container and Background
+#patrol-list-page {
+  --ion-background-color: #f3f4f6;
+}
+
+// Filter Section (Date Selectors)
+.filter-card {
+  flex: 1;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease;
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  input[type="date"] {
+    width: 100%;
+    border: none;
+    outline: none;
+    font-size: 12px;
+    font-weight: 800;
+    color: #475569;
+    background: transparent;
+    font-family: inherit;
+  }
+}
+
+// Individual Log Cards
+.log-entry-card {
+  background: #ffffff;
+  padding: 18px;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-left: 5px solid #10b981; // Green accent for completed patrols
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03);
+  margin-bottom: 4px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+  }
+
+  .icon-thumb {
+    width: 44px;
+    height: 44px;
+    background: #f0fdf4;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+}
+
+// Status Badge
+.status-pill {
+  background: #d1fae5;
+  color: #065f46;
+  font-size: 9px;
+  font-weight: 900;
+  padding: 6px 12px;
+  border-radius: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+// Floating Action Button (FAB)
+.floating-action-btn {
+  position: fixed;
+  bottom: 40px;
+  right: 25px;
+  background: #061a13; // Dark forest green
+  color: #6dcd40; // Neon green accent
+  width: 60px;
+  height: 60px;
+  border-radius: 20px;
+  border: none;
+  box-shadow: 0 12px 24px rgba(6, 26, 19, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  z-index: 1000;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  &:active {
+    transform: scale(0.85);
+    background: #0a291e;
+  }
+
+  i {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  }
+}
+
+// Navigation Back Button
+.back-btn-style {
+  background: #6dcd40;
+  border: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  color: #061a13;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  
+  &:active {
+    opacity: 0.8;
+  }
+}

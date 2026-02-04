@@ -1,0 +1,60 @@
+<ion-content [fullscreen]="true" class="enroll-content" scrollY="false">
+  <div class="background-image"></div>
+  <div class="vignette-overlay"></div>
+
+  <div class="enroll-container">
+    <div class="brand-section">
+      <div class="logo-wrapper">
+        <div class="leaf-icon">
+          <i class="fas fa-leaf"></i>
+        </div>
+      </div>
+      <h1 class="fsm-logo-text">PUGARCH <span class="highlight">FSM</span></h1>
+      <p class="auth-tag"><span class="pulse-dot"></span> NEW RANGER ENROLLMENT</p>
+    </div>
+
+    <div class="enroll-card">
+      <h2 class="form-title">Create Account</h2>
+
+      <div class="input-group">
+        <label>FULL NAME / USERNAME</label>
+        <div class="field">
+          <i class="fas fa-user"></i>
+          <input type="text" [(ngModel)]="ranger.username" placeholder="Enter Ranger Name">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>MOBILE NUMBER</label>
+        <div class="field">
+          <i class="fas fa-phone-alt"></i>
+          <input type="tel" [(ngModel)]="ranger.phone" placeholder="Enter Mobile Number">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>EMAIL ADDRESS</label>
+        <div class="field">
+          <i class="fas fa-envelope"></i>
+          <input type="email" [(ngModel)]="ranger.email" placeholder="ranger@forest.com">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>SET PASSWORD</label>
+        <div class="field">
+          <i class="fas fa-lock"></i>
+          <input type="password" [(ngModel)]="ranger.password" placeholder="••••••••">
+        </div>
+      </div>
+
+      <button class="enroll-btn" (click)="onSignUp()">
+        ENROLL NOW <i class="fas fa-check-circle"></i>
+      </button>
+
+      <div class="login-redirect">
+        ALREADY A RANGER? <a (click)="navToLogin()">LOG IN</a>
+      </div>
+    </div>
+  </div>
+</ion-content>

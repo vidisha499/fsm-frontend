@@ -1,0 +1,7 @@
+{
+  "name": "Forest-Management-App",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}

@@ -1,0 +1,198 @@
+<!-- <ion-content [fullscreen]="true">
+  <div id="patrol-list-page" style="min-height: 100vh; background: #F3F4F6; font-family: 'Segoe UI', Roboto, sans-serif; padding-bottom: 120px; position: relative; overflow-x: hidden;">
+
+    <div style="background: #061A13; padding: 55px 24px 45px; border-radius: 0 0 40px 40px; position: relative; overflow: hidden;">
+      <ion-icon name="paw" style="position: absolute; top: 10%; right: 10%; font-size: 80px; color: rgba(255,255,255,0.03); transform: rotate(15deg); pointer-events: none;"></ion-icon>
+      <ion-icon name="leaf" style="position: absolute; bottom: 10%; left: -5%; font-size: 60px; color: rgba(134, 239, 172, 0.04); transform: rotate(-20deg); pointer-events: none;"></ion-icon>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 2;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <button (click)="goBack()" style="background: #6dcd40; border: none; width: 42px; height: 42px; border-radius: 14px; color: #061A13; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+            <i class="fas fa-arrow-left" style="font-size: 16px;"></i>
+          </button>
+          <div>
+            <h1 style="margin: 0; font-size: 24px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">Patrol Logs</h1>
+            <p style="margin: 0; font-size: 10px; color: #6dcd40; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px;">PANNA SITE OPERATION</p>
+          </div>
+        </div>
+        <i class="fas fa-route" style="color: rgba(134, 239, 172, 0.3); font-size: 24px;"></i>
+      </div>
+    </div>
+
+    <div style="padding: 20px; margin-top: -25px; position: relative; z-index: 5;">
+        
+        <div style="display: flex; gap: 12px; margin-bottom: 25px;">
+            <div class="filter-card" style="border-left: 4px solid #3b82f6;">
+                <i class="fas fa-calendar-alt" style="color: #3b82f6; font-size: 12px;"></i>
+                <input type="date" style="width: 100%; border: none; outline: none; font-size: 12px; font-weight: 800; color: #475569; background: transparent;">
+            </div>
+            <div class="filter-card" style="border-left: 4px solid #f59e0b;">
+                <i class="fas fa-calendar-check" style="color: #f59e0b; font-size: 12px;"></i>
+                <input type="date" style="width: 100%; border: none; outline: none; font-size: 12px; font-weight: 800; color: #475569; background: transparent;">
+            </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            
+            <div class="log-entry-card">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div class="icon-thumb">
+                        <i class="fas fa-hiking" style="color: #059669; font-size: 18px;"></i>
+                    </div>
+                    <div>
+                        <p style="margin: 0; font-weight: 800; color: #1e293b; font-size: 15px;">Main Beat Patrol</p>
+                        <p style="margin: 2px 0 0 0; font-size: 11px; color: #94a3b8; font-weight: 600;">8/31/25, 8:40 PM - 8:45 PM</p>
+                    </div>
+                </div>
+                <span class="status-pill">COMPLETED</span>
+            </div>
+
+            <div class="log-entry-card">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div class="icon-thumb">
+                        <i class="fas fa-binoculars" style="color: #059669; font-size: 18px;"></i>
+                    </div>
+                    <div>
+                        <p style="margin: 0; font-weight: 800; color: #1e293b; font-size: 15px;">West Range Patrol</p>
+                        <p style="margin: 2px 0 0 0; font-size: 11px; color: #94a3b8; font-weight: 600;">8/31/25, 5:59 PM - 6:17 PM</p>
+                    </div>
+                </div>
+                <span class="status-pill">COMPLETED</span>
+            </div>
+        </div>
+
+        <button (click)="startNewPatrol()" class="floating-action-btn">
+          <i class="fas fa-plus"></i>
+        </button>
+    </div>
+  </div>
+</ion-content>
+
+<style>
+  .filter-card {
+    flex: 1; 
+    background: #ffffff; 
+    border-radius: 16px; 
+    padding: 14px; 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+  }
+
+  .log-entry-card {
+    background: #ffffff; 
+    padding: 18px; 
+    border-radius: 24px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between; 
+    border-left: 5px solid #10b981; 
+    box-shadow: 0 10px 25px rgba(0,0,0,0.03);
+  }
+
+  .icon-thumb {
+    width: 44px; 
+    height: 44px; 
+    background: #f0fdf4; 
+    border-radius: 14px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+  }
+
+  .status-pill {
+    background: #d1fae5; 
+    color: #065f46; 
+    font-size: 9px; 
+    font-weight: 900; 
+    padding: 6px 12px; 
+    border-radius: 10px;
+    letter-spacing: 0.5px;
+  }
+
+  .floating-action-btn {
+    position: fixed; 
+    bottom: 40px; 
+    right: 25px; 
+    background: #061A13; 
+    color: #6dcd40; 
+    width: 56px; 
+    height: 56px; 
+    border-radius: 18px; 
+    border: none; 
+    box-shadow: 0 12px 24px rgba(0,0,0,0.2); 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-size: 22px;
+    z-index: 1000;
+  }
+
+  .floating-action-btn:active {
+    transform: scale(0.9);
+  }
+</style> -->
+
+
+<ion-content [fullscreen]="true">
+  <div id="patrol-list-page" style="min-height: 100vh; background: #F3F4F6; font-family: 'Segoe UI', Roboto, sans-serif; padding-bottom: 120px; position: relative; overflow-x: hidden;">
+
+    <div style="background: #061A13; padding: 55px 24px 45px; border-radius: 0 0 40px 40px; position: relative; overflow: hidden;">
+      <ion-icon name="paw" style="position: absolute; top: 10%; right: 10%; font-size: 80px; color: rgba(255,255,255,0.03); transform: rotate(15deg); pointer-events: none;"></ion-icon>
+      
+      <div style="display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 2;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <button (click)="goBack()" style="background: #6dcd40; border: none; width: 42px; height: 42px; border-radius: 14px; color: #061A13; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+            <i class="fas fa-arrow-left"></i>
+          </button>
+          <div>
+            <h1 style="margin: 0; font-size: 24px; font-weight: 800; color: #ffffff;">Patrol Logs</h1>
+            <p style="margin: 0; font-size: 10px; color: #6dcd40; font-weight: 800; letter-spacing: 1.5px;">PANNA SITE OPERATION</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding: 20px; margin-top: -25px; position: relative; z-index: 5;">
+        
+      <div style="display: flex; gap: 12px; margin-bottom: 25px;">
+          <div class="filter-card" style="border-left: 4px solid #3b82f6;">
+              <i class="fas fa-calendar-alt" style="color: #3b82f6;"></i>
+              <input type="date" style="width: 100%; border: none; background: transparent;">
+          </div>
+          <div class="filter-card" style="border-left: 4px solid #f59e0b;">
+              <i class="fas fa-calendar-check" style="color: #f59e0b;"></i>
+              <input type="date" style="width: 100%; border: none; background: transparent;">
+          </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+          
+          <div class="log-entry-card" *ngFor="let log of patrolLogs">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                  <div class="icon-thumb">
+                      <i [class]="log.patrol_name.includes('West') ? 'fas fa-binoculars' : 'fas fa-hiking'" style="color: #059669; font-size: 18px;"></i>
+                  </div>
+                  <div>
+                      <p style="margin: 0; font-weight: 800; color: #1e293b; font-size: 15px;">{{ log.patrol_name }}</p>
+                      <p style="margin: 2px 0 0 0; font-size: 11px; color: #94a3b8; font-weight: 600;">
+                        {{ formatDateTime(log.start_time, log.end_time) }}
+                      </p>
+                  </div>
+              </div>
+              <span class="status-pill">{{ log.status }}</span>
+          </div>
+
+          <div *ngIf="patrolLogs.length === 0" style="text-align: center; padding: 40px; color: #94a3b8;">
+            <i class="fas fa-folder-open" style="font-size: 40px; margin-bottom: 10px; opacity: 0.5;"></i>
+            <p>No patrol logs found for this session.</p>
+          </div>
+      </div>
+
+      <button (click)="startNewPatrol()" class="floating-action-btn">
+        <i class="fas fa-plus"></i>
+      </button>
+    </div>
+  </div>
+</ion-content>

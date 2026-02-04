@@ -1,0 +1,180 @@
+<!-- <ion-content [fullscreen]="true">
+  <div id="new-incident-page" style="min-height: 100vh; background: #F3F4F6; font-family: 'Segoe UI', Roboto, sans-serif; padding-bottom: 60px;">
+    
+    <div class="header-banner">
+      <div class="header-decor">
+        <ion-icon name="paw" class="paw-1"></ion-icon>
+        <ion-icon name="leaf" class="leaf-1"></ion-icon>
+      </div>
+
+      <div class="header-nav-row">
+        <div class="nav-left">
+          <ion-button (click)="goBack()" class="back-btn" mode="md">
+            <ion-icon name="arrow-back-outline"></ion-icon>
+          </ion-button>
+          <h1 class="page-title">Report Incident</h1>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding: 25px 20px; margin-top: -20px; position: relative; z-index: 10;">
+      
+      <div style="background: #ffffff; border-radius: 28px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.02);">
+        
+        <div style="width: 100%; height: 140px; background: #F9FAFB; border: 2px dashed #D1D5DB; border-radius: 24px; margin-bottom: 25px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;">
+          <div style="background: #DCFCE7; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+            <i class="fas fa-camera" style="color: #059669; font-size: 20px;"></i>
+          </div>
+          <span style="font-size: 11px; font-weight: 800; color: #6B7280; text-transform: uppercase; letter-spacing: 1px;">Add Evidence Photo</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 18px;">
+          
+          <div class="input-group">
+            <label class="input-label" style="color: #EF4444;">Response Priority</label>
+            <div class="input-wrapper">
+              <i class="fas fa-bolt" style="color: #EF4444;"></i>
+              <select class="styled-select">
+                <option>High Priority</option>
+                <option>Medium Priority</option>
+                <option>Low Priority</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label" style="color: #3B82F6;">Incident Category</label>
+            <div class="input-wrapper">
+              <i class="fas fa-layer-group" style="color: #3B82F6;"></i>
+              <select class="styled-select">
+                <option>Fire Warning</option>
+                <option>Illegal Encroachment</option>
+                <option>Animal Disturbance</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="background: #F9FAFB; border-radius: 20px; padding: 20px; border: 1px solid #F3F4F6;">
+            <label class="input-label" style="color: #059669; margin-bottom: 15px;">Root Cause Checklist</label>
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              <label class="radio-item">
+                <input type="radio" name="cause" checked> <span>Short Circuit</span>
+              </label>
+              <label class="radio-item">
+                <input type="radio" name="cause"> <span>Manual Error</span>
+              </label>
+              <label class="radio-item">
+                <input type="radio" name="cause"> <span>External Interference</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label" style="color: #F59E0B;">Field Observations</label>
+            <div class="input-wrapper" style="align-items: flex-start; padding-top: 15px; height: auto;">
+              <i class="fas fa-pen-nib" style="color: #F59E0B; margin-top: 2px;"></i>
+              <textarea placeholder="Describe the situation..." rows="4" class="styled-textarea"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <button (click)="submitReport()" class="submit-protocol-btn">
+          Submit Protocol <i class="fas fa-paper-plane"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</ion-content> -->
+
+<ion-content [fullscreen]="true">
+  <div id="new-incident-page" style="min-height: 100vh; background: #F3F4F6; font-family: 'Segoe UI', Roboto, sans-serif; padding-bottom: 60px;">
+    
+    <div class="header-banner">
+      <div class="header-decor">
+        <ion-icon name="paw" class="paw-1"></ion-icon>
+        <ion-icon name="leaf" class="leaf-1"></ion-icon>
+      </div>
+
+      <div class="header-nav-row">
+        <div class="nav-left">
+          <ion-button (click)="goBack()" class="back-btn" mode="md">
+            <ion-icon name="arrow-back-outline"></ion-icon>
+          </ion-button>
+          <h1 class="page-title">Report Incident</h1>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding: 25px 20px; margin-top: -20px; position: relative; z-index: 10;">
+      
+      <div style="background: #ffffff; border-radius: 28px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.02);">
+        
+        <div style="width: 100%; height: 140px; background: #F9FAFB; border: 2px dashed #D1D5DB; border-radius: 24px; margin-bottom: 25px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;">
+          <div style="background: #DCFCE7; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+            <i class="fas fa-camera" style="color: #059669; font-size: 20px;"></i>
+          </div>
+          <span style="font-size: 11px; font-weight: 800; color: #6B7280; text-transform: uppercase; letter-spacing: 1px;">Add Evidence Photo</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 18px;">
+          
+          <div class="input-group">
+            <label class="input-label" style="color: #EF4444;">Response Priority</label>
+            <div class="input-wrapper">
+              <i class="fas fa-bolt" style="color: #EF4444;"></i>
+              <select class="styled-select" [(ngModel)]="incidentData.priority">
+                <option value="High Priority">High Priority</option>
+                <option value="Medium Priority">Medium Priority</option>
+                <option value="Low Priority">Low Priority</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label" style="color: #3B82F6;">Incident Category</label>
+            <div class="input-wrapper">
+              <i class="fas fa-layer-group" style="color: #3B82F6;"></i>
+              <select class="styled-select" [(ngModel)]="incidentData.criteria">
+                <option value="Fire Warning">Fire Warning</option>
+                <option value="Illegal Encroachment">Illegal Encroachment</option>
+                <option value="Animal Disturbance">Animal Disturbance</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="background: #F9FAFB; border-radius: 20px; padding: 20px; border: 1px solid #F3F4F6;">
+            <label class="input-label" style="color: #059669; margin-bottom: 15px;">Root Cause Checklist</label>
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              <label class="radio-item">
+                <input type="radio" name="cause" value="Short Circuit" [(ngModel)]="incidentData.cause"> <span>Short Circuit</span>
+              </label>
+              <label class="radio-item">
+                <input type="radio" name="cause" value="Manual Error" [(ngModel)]="incidentData.cause"> <span>Manual Error</span>
+              </label>
+              <label class="radio-item">
+                <input type="radio" name="cause" value="External Interference" [(ngModel)]="incidentData.cause"> <span>External Interference</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label" style="color: #F59E0B;">Field Observations</label>
+            <div class="input-wrapper" style="align-items: flex-start; padding-top: 15px; height: auto;">
+              <i class="fas fa-pen-nib" style="color: #F59E0B; margin-top: 2px;"></i>
+              <textarea 
+                [(ngModel)]="incidentData.observation" 
+                placeholder="Describe the situation..." 
+                rows="4" 
+                class="styled-textarea">
+              </textarea>
+            </div>
+          </div>
+        </div>
+
+        <button (click)="submitReport()" class="submit-protocol-btn">
+          Submit Protocol <i class="fas fa-paper-plane"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</ion-content>

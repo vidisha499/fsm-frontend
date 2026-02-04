@@ -1,0 +1,54 @@
+<ion-content [fullscreen]="true" class="incident-content">
+  <div class="header-banner">
+    <div class="header-decor">
+      <ion-icon name="paw" class="paw-1"></ion-icon>
+      <ion-icon name="leaf" class="leaf-1"></ion-icon>
+    </div>
+    <div class="header-nav-row">
+      <div class="nav-left">
+        <ion-button (click)="goBack()" class="back-btn" mode="md">
+          <ion-icon name="arrow-back-outline"></ion-icon>
+        </ion-button>
+        <h1 class="page-title">Incidents</h1>
+      </div>
+      <div class="segment-wrapper">
+        <ion-segment [(ngModel)]="statusFilter" mode="ios">
+          <ion-segment-button value="pending"><ion-label>PENDING</ion-label></ion-segment-button>
+          <ion-segment-button value="resolved"><ion-label>RESOLVED</ion-label></ion-segment-button>
+        </ion-segment>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <div class="incident-list">
+      
+      <div class="incident-card" *ngFor="let item of incidents">
+        <div class="card-info">
+          <div class="type-tag">{{ item.incident_criteria }}</div>
+          <h2 class="site-name">{{ item.response_priority }}</h2>
+          <p class="meta">Reported by: {{ item.ranger_name }} • {{ formatDate(item.created_at) }}</p>
+          <p class="obs-text">{{ item.field_observation }}</p>
+        </div>
+
+        <div class="card-actions" style="display: flex; align-items: center;">
+          <ion-button fill="clear" color="danger" (click)="confirmDelete(item.id)">
+            <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+          </ion-button>
+          <ion-icon name="chevron-forward-outline" class="arrow"></ion-icon>
+        </div>
+      </div>
+
+      <div *ngIf="incidents.length === 0" style="text-align: center; margin-top: 50px; color: #999;">
+        <p>No incidents found.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="custom-fab">
+    <ion-fab-button routerLink="/new-incident">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>

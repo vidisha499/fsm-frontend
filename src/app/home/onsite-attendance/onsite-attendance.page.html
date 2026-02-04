@@ -1,0 +1,94 @@
+<ion-content [fullscreen]="true" class="onsite-content">
+  <div class="header-banner">
+    <div class="header-decor">
+      <ion-icon name="paw" class="paw-1"></ion-icon>
+      <ion-icon name="paw" class="paw-2"></ion-icon>
+      <ion-icon name="leaf" class="leaf-1"></ion-icon>
+    </div>
+
+    <div class="header-nav-row">
+      <div class="nav-left">
+        <ion-button (click)="goBack()" class="back-btn" mode="md">
+          <ion-icon name="arrow-back-outline"></ion-icon>
+        </ion-button>
+        <div class="title-group">
+          <h1>On-Site Attendance</h1>
+          <p class="subtitle">Location Verification</p>
+        </div>
+      </div>
+      <div class="live-badge">
+        <span>Live GPS</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <div class="form-card">
+      
+      <div class="gps-tracker-bar">
+        <div class="gps-content">
+          <div class="location-pulse">
+            <div class="ping"></div>
+            <ion-icon name="location"></ion-icon>
+          </div>
+          <span class="label">GPS Active Tracking</span>
+        </div>
+      </div>
+
+      <div class="photo-section">
+        <div class="capture-box" (click)="takePhoto()">
+          <ion-icon name="camera-outline"></ion-icon>
+          <div class="plus-badge">
+            <ion-icon name="add"></ion-icon>
+          </div>
+        </div>
+        <p class="capture-hint">Tap to capture photo</p>
+      </div>
+
+      <div class="type-toggle">
+        <div class="toggle-option" [class.active]="locationType === 'site'" (click)="locationType = 'site'">
+          <span>SITE</span>
+        </div>
+        <div class="toggle-option" [class.active]="locationType === 'current'" (click)="locationType = 'current'">
+          <span>CURRENT</span>
+        </div>
+      </div>
+
+      <div class="form-body">
+        <div class="input-group">
+          <label class="group-label">Ranger Profile</label>
+          <div class="readonly-input">
+            {{ rangerName }}
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="group-label dark">Select Geofence</label>
+          <div class="select-wrapper">
+            <ion-select interface="action-sheet" placeholder="Select Geofence" mode="md">
+              <ion-select-option value="a">Other Beat A</ion-select-option>
+              <ion-select-option value="b">Other Beat B</ion-select-option>
+            </ion-select>
+            <ion-icon name="chevron-down-outline" class="select-arrow"></ion-icon>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="group-label dark">Attendance Type</label>
+          <div class="select-wrapper">
+            <ion-select interface="action-sheet" value="entry" mode="md">
+              <ion-select-option value="entry">Entry</ion-select-option>
+              <ion-select-option value="exit">Exit</ion-select-option>
+            </ion-select>
+            <ion-icon name="chevron-down-outline" class="select-arrow"></ion-icon>
+          </div>
+        </div>
+      </div>
+
+      <button class="mark-btn" (click)="submit()">
+        <ion-icon name="checkmark-circle"></ion-icon>
+        <span>MARK ATTENDANCE</span>
+      </button>
+    </div>
+  </div>
+</ion-content>

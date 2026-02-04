@@ -1,0 +1,107 @@
+<!-- <ion-content [fullscreen]="true" class="login-content" scrollY="false">
+  <div class="background-image"></div>
+  <div class="vignette-overlay"></div>
+
+  <div class="login-container">
+    <div class="brand-section">
+      <div class="logo-wrapper">
+        <div class="leaf-icon">
+          <i class="fas fa-leaf"></i>
+        </div>
+      </div>
+      <h1 class="fsm-logo-text">PUGARCH <span class="highlight">FSM</span></h1>
+      <p class="auth-tag"><span class="pulse-dot"></span> AUTHORIZED ACCESS ONLY</p>
+    </div>
+
+    <div class="login-card">
+      <h2 class="form-title">Ranger Login</h2>
+
+      <div class="input-group">
+        <label>MOBILE NUMBER</label>
+        <div class="field">
+          <i class="fas fa-phone-alt"></i>
+          <input type="tel" placeholder="Enter Mobile Number">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>SECURITY PASSWORD</label>
+        <div class="field">
+          <i class="fas fa-lock"></i>
+          <input [type]="isPasswordVisible ? 'text' : 'password'" placeholder="••••••••">
+          <i class="fas" 
+             [ngClass]="isPasswordVisible ? 'fa-eye-slash' : 'fa-eye'" 
+             (click)="isPasswordVisible = !isPasswordVisible"
+             class="eye-toggle">
+          </i>
+        </div>
+      </div>
+
+      <div class="forgot-link">
+        <a (click)="forgotPassword()">FORGOT PASSWORD?</a>
+      </div>
+
+      <button class="login-btn" (click)="login()">
+        LOG IN <i class="fas fa-arrow-right"></i>
+      </button>
+
+      <div class="enroll-section">
+        NEW RANGER? <a (click)="enroll()">ENROLL NOW</a>
+      </div>
+    </div>
+  </div>
+</ion-content> -->
+
+<ion-content [fullscreen]="true" class="login-content" scrollY="false">
+  <div class="background-image"></div>
+  <div class="vignette-overlay"></div>
+
+  <div class="login-container">
+    <div class="brand-section">
+      <div class="logo-wrapper">
+        <div class="leaf-icon">
+          <i class="fas fa-leaf"></i>
+        </div>
+      </div>
+      <h1 class="fsm-logo-text">PUGARCH <span class="highlight">FSM</span></h1>
+      <p class="auth-tag"><span class="pulse-dot"></span> AUTHORIZED ACCESS ONLY</p>
+    </div>
+
+    <div class="login-card">
+      <h2 class="form-title">Ranger Login</h2>
+
+      <div class="input-group">
+        <label>MOBILE NUMBER</label>
+        <div class="field">
+          <i class="fas fa-phone-alt"></i>
+          <input type="tel" [(ngModel)]="loginData.phone" placeholder="Enter Mobile Number">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>SECURITY PASSWORD</label>
+        <div class="field">
+          <i class="fas fa-lock"></i>
+          <input [type]="isPasswordVisible ? 'text' : 'password'" [(ngModel)]="loginData.password" placeholder="••••••••">
+          <i class="fas" 
+             [ngClass]="isPasswordVisible ? 'fa-eye-slash' : 'fa-eye'" 
+             (click)="isPasswordVisible = !isPasswordVisible"
+             class="eye-toggle">
+          </i>
+        </div>
+      </div>
+
+      <div class="forgot-link">
+        <a (click)="forgotPassword()">FORGOT PASSWORD?</a>
+      </div>
+
+      <button class="login-btn" (click)="login()">
+        LOG IN <i class="fas fa-arrow-right"></i>
+      </button>
+
+      <div class="enroll-section">
+        NEW RANGER? <a (click)="enroll()">ENROLL NOW</a>
+      </div>
+    </div>
+  </div>
+</ion-content>
