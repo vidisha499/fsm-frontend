@@ -60,6 +60,9 @@
 
 import { Component, Renderer2, OnInit } from '@angular/core'; // Added OnInit
 import { Router } from '@angular/router';
+import { DataService } from '../data.service';
+
+
 
 @Component({
   selector: 'app-home',
@@ -75,7 +78,7 @@ export class HomePage implements OnInit { // Implemented OnInit
   // 1. Create a variable to store the name
   rangerName: string = 'Ranger'; 
 
-  constructor(private router: Router, private renderer: Renderer2) {}
+  constructor(private router: Router, private renderer: Renderer2 ,  private dataService: DataService ) {}
 
   // 2. Load the name when the component initializes
   ngOnInit() {
