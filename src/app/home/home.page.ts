@@ -38,15 +38,7 @@ export class HomePage implements OnInit {
     this.loadRangerData();
   }
 
-//   ionViewWillEnter() {
-//  this.dataService.getRangerProfile(currentRangerId).subscribe(profile => {
-//    this.rangerName = profile.username;
-//    this.rangerPhone = profile.phoneNo;
-// });
-//     this.loadRangerData();
-//   }
 
-// home.page.ts
 
 ionViewWillEnter() {
   // ✅ 1. Define the variable locally so it can be used
@@ -72,16 +64,7 @@ ionViewWillEnter() {
   this.loadRangerData();
 }
 
-  // loadRangerData() {
-  //   this.rangerId = localStorage.getItem('ranger_id') || '';
-  //   const storedName = localStorage.getItem('ranger_name');
-  //   const storedPhone = localStorage.getItem('ranger_phone');
-  //   const storedLang = localStorage.getItem('app_language');
 
-  //   if (storedName) this.rangerName = storedName;
-  //   if (storedPhone) this.rangerPhone = storedPhone;
-  //   if (storedLang) this.selectedLanguage = storedLang;
-  // }
 
   loadRangerData() {
   // ✅ Match the keys used in LoginPage
@@ -119,22 +102,7 @@ ionViewWillEnter() {
     this.updateRangerProfile();
   }
 
-  // updateRangerProfile() {
-  //   const updatedData = {
-  //     id: this.rangerId,
-  //     name: this.rangerName,
-  //     phone: this.rangerPhone,
-  //     password: this.rangerPassword // Now included
-  //   };
 
-  //   this.dataService.updateRanger(updatedData).subscribe((res: any) => {
-  //     if(res.success) {
-  //       localStorage.setItem('ranger_name', this.rangerName);
-  //       localStorage.setItem('ranger_phone', this.rangerPhone);
-  //       alert('Protocol Updated Successfully!');
-  //     }
-  //   });
-  // }
 
   updateRangerProfile() {
     const updatedData = {
@@ -186,19 +154,7 @@ ionViewWillEnter() {
     }
   }
 
-  goToPage(path: string) {
-    this.toggleMenu(false);
-    setTimeout(() => {
-      if (path === 'home') this.currentPage = 'home';
-      else if (path === 'settings') this.currentPage = 'settings';
-      else if (path === 'login') {
-        localStorage.clear();
-        this.router.navigate(['/login']);
-      } else {
-        this.router.navigate(['/', path]).catch(err => console.error(err));
-      }
-    }, 150);
-  }
+
 
   async showToast(msg: string) {
   const toast = await this.toastController.create({
@@ -209,4 +165,25 @@ ionViewWillEnter() {
   });
   await toast.present();
 }
+
+// ... existing imports ...
+
+  goToPage(path: string) {
+    this.toggleMenu(false);
+    setTimeout(() => {
+      if (path === 'home') {
+        this.currentPage = 'home';
+      } else if (path === 'settings') {
+        this.currentPage = 'settings';
+      } else if (path === 'login') {
+        // 🔥 FIX: Do NOT use localStorage.clear()! 
+        // It deletes your saved categories. Only remove user session.
+        localStorage.removeItem('ranger_id');
+        localStorage.removeItem('ranger_username');
+        this.router.navigate(['/login']);
+      } else {
+        this.router.navigate(['/', path]).catch(err => console.error(err));
+      }
+    }, 150);
+  }
 }

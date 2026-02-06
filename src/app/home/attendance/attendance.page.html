@@ -2,7 +2,6 @@
   <div class="header-banner">
     <div class="header-decor">
       <ion-icon name="paw" class="paw-1"></ion-icon>
-      <ion-icon name="paw" class="paw-2"></ion-icon>
       <ion-icon name="leaf" class="leaf-1"></ion-icon>
     </div>
 
@@ -16,87 +15,49 @@
           <p class="subtitle">Panna Site Operation</p>
         </div>
       </div>
-      <div class="live-badge">
-        <span>Live</span>
-      </div>
+      <div class="live-badge"><span>Live</span></div>
     </div>
   </div>
 
   <div class="main-container">
     <div class="form-card">
       
-      <!-- <div class="id-capture-wrapper">
-        <div class="id-box" (click)="captureImage()">
-          <ion-icon name="camera-outline"></ion-icon>
-          <span class="label">Capture ID</span>
-          <div class="check-badge">
+      <div class="id-capture-wrapper">
+        <div class="id-box" (click)="presentImageSourceOptions()">
+          <ng-container *ngIf="!capturedPhoto">
+            <ion-icon name="camera-outline"></ion-icon>
+            <span class="label">Capture ID</span>
+          </ng-container>
+          <img *ngIf="capturedPhoto" [src]="capturedPhoto" class="preview-img" />
+          <div class="check-badge" *ngIf="capturedPhoto">
             <ion-icon name="checkmark-circle"></ion-icon>
           </div>
         </div>
-      </div> -->
+      </div>
 
-      <div class="id-capture-wrapper">
-  <div class="id-box" (click)="captureImage()">
-    <ion-icon name="camera-outline"></ion-icon>
-    <span class="label">Capture ID</span>
-    
-    <div class="check-badge" *ngIf="capturedPhoto">
-      <ion-icon name="checkmark-circle"></ion-icon>
-    </div>
-  </div>
-</div>
+      <div class="map-wrapper">
+        <label class="group-label">Live Tracking</label>
+        <div class="map-container">
+          <capacitor-google-map #map id="map"></capacitor-google-map>
+        </div>
+      </div>
 
-      <!-- <div class="info-grid">
+      <div class="info-grid">
         <div class="info-tile">
           <label>Ranger</label>
           <p>{{ rangerName }}</p>
-        </div> -->
-
-        <!-- <div class="info-tile">
-  <label>Ranger</label>
-  <ion-input [(ngModel)]="rangerName" class="editable-input"></ion-input>
-</div> -->
-
-        <!-- <div class="info-tile">
-          <label>Region</label>
-          <p>Washim</p>
         </div>
-      </div> -->
-
-      <!-- <div class="info-tile">
-  <label>Region</label>
-  <ion-input 
-    [(ngModel)]="rangerRegion" 
-    
-    placeholder="Enter Region">
-  </ion-input>
-</div> -->
-
-<div class="info-grid">
-  <div class="info-tile">
-    <label>Ranger</label>
-    <p>{{ rangerName }}</p>
-  </div>
-  <div class="info-tile">
-    <label>Region</label>
-    <p>{{ rangerRegion }}</p>
-  </div>
-</div>
+        <div class="info-tile">
+          <label>Region</label>
+          <p>{{ rangerRegion }}</p>
+        </div>
+      </div>
 
       <div class="input-group">
-        <label class="group-label">Select Geofence</label>
-        <div class="custom-select">
-          <!-- <ion-select interface="action-sheet" placeholder="Select Site" mode="md">
-            <ion-select-option value="panna">Panna Site</ion-select-option>
-            <ion-select-option value="buffer">Buffer Zone</ion-select-option>
-            <ion-select-option value="east">East Beat</ion-select-option>
-          </ion-select> -->
-          <ion-select [(ngModel)]="selectedSite" interface="action-sheet" placeholder="Select Site" mode="md">
-  <ion-select-option value="panna">Panna Site</ion-select-option>
-  <ion-select-option value="buffer">Buffer Zone</ion-select-option>
-  <ion-select-option value="east">East Beat</ion-select-option>
-</ion-select>
-          <ion-icon name="chevron-down-outline" class="select-arrow"></ion-icon>
+        <label class="group-label">Detected Geofence</label>
+        <div class="location-display-box">
+          <ion-icon name="checkmark-circle" color="success"></ion-icon>
+          <span class="location-text">{{ currentAddress }}</span>
         </div>
       </div>
 
@@ -118,10 +79,8 @@
     </div>
 
     <div class="gps-notice">
-      <div class="icon-box">
-        <ion-icon name="location"></ion-icon>
-      </div>
-      <p>GPS coordinates are active. Ensure you are within the designated geofence to avoid rejection.</p>
+      <div class="icon-box"><ion-icon name="location"></ion-icon></div>
+      <p>GPS TRACKING ACTIVE. SYSTEM IS LOGGING: {{ currentAddress }}</p>
     </div>
   </div>
-</ion-content>
+</ion-content>  
