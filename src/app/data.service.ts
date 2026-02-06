@@ -73,6 +73,22 @@ getRangerProfile(id: string) {
   return this.http.get(`${this.baseUrl}/api/rangers/${id}`);
 }
 
+// Add this inside your DataService class
+resetPassword(phoneNo: string, otp: string, newPass: string) {
+  // This calls the @Post('reset-password') in your NestJS RangersController
+  return this.http.post(`${this.baseUrl}/api/rangers/reset-password`, { 
+    phoneNo, 
+    otp, 
+    newPass 
+  });
+}
+
+verifyOtp(phoneNo: string, otp: string) {
+  return this.http.post(`${this.baseUrl}/api/rangers/verify-otp`, { phoneNo, otp });
+}
+
+
+
 
 }
 
