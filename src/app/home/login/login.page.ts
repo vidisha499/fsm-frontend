@@ -79,7 +79,7 @@
 // }
 
 import { Component, OnInit } from '@angular/core';
-import { NavController, ToastController } from '@ionic/angular';
+import { AlertController, NavController, ToastController } from '@ionic/angular';
 import { DataService } from 'src/app/data.service';
 
 @Component({
@@ -92,6 +92,8 @@ export class LoginPage implements OnInit {
 
   // Controls password visibility
   isPasswordVisible: boolean = false;
+  isModalOpen: boolean = false;
+  recoveryCode: string = '';
 
   // Form data
   loginData = {
@@ -102,15 +104,16 @@ export class LoginPage implements OnInit {
   constructor(
     private navCtrl: NavController,
     private toastCtrl: ToastController,
-    private dataService: DataService // ✅ Use DataService for backend calls
+    private dataService: DataService ,
+    private alertController: AlertController,// ✅ Use DataService for backend calls
   ) {}
 
   ngOnInit() {}
 
-  // Forgot password action
-  async forgotPassword() {
-    this.presentToast('Password reset link sent to registered mobile.', 'primary');
-  }
+  // // Forgot password action
+  // async forgotPassword() {
+  //   this.presentToast('Password reset link sent to registered mobile.', 'primary');
+  // }
 
   // Login method
   async login() {
@@ -131,8 +134,11 @@ export class LoginPage implements OnInit {
       next: async (res: any) => {
         if (res && res.id) {
           // Save data for persistence
+          localStorage.clear();
           this.dataService.saveRangerId(res.id.toString());
           localStorage.setItem('ranger_username', res.username);
+          // ADD THIS LINE so the phone number shows up on the home page
+      localStorage.setItem('ranger_phone', payload.phoneNo);
 
           this.presentToast(`Welcome, Ranger ${res.username}`, 'success');
           this.navCtrl.navigateRoot('/home'); // Navigate to home page
@@ -160,4 +166,73 @@ export class LoginPage implements OnInit {
   enroll() {
     this.navCtrl.navigateForward('/enroll'); 
   }
+
+  // Action for the Forgot Password button
+  async forgotPassword() {
+    const alert = await this.alertController.create({
+      header: 'Reset Password',
+      message: 'Enter your registered Phone Number to notify admin.',
+      inputs: [
+        {
+          name: 'phoneNo',
+          type: 'tel',
+          placeholder: 'Phone Number'
+        }
+      ],
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Send Request',
+          handler: (data) => {
+            this.sendResetRequest(data.phoneNo);
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  // sendResetRequest(phoneNo: string) {
+  //   if (!phoneNo) {
+  //     this.presentToast('Please enter a phone number', 'warning');
+  //     return;
+  //   }
+
+  //   this.dataService.requestPasswordReset(phoneNo).subscribe({
+  //     next: (res: any) => {
+  //       // ✅ Changed showToast to presentToast to match your method name
+  //       this.presentToast('Reset request sent to admin!', 'success');
+  //     },
+  //     error: (err) => {
+  //       this.presentToast('Error: ' + (err.error?.message || 'Server unreachable'), 'danger');
+  //     }
+  //   });
+  // }
+
+// --- ADD THIS METHOD FOR THE COPY BUTTON ---
+  async copyCode() {
+    await navigator.clipboard.writeText(this.recoveryCode);
+    this.presentToast('Code copied to clipboard!', 'success');
+  }
+
+  // --- UPDATE THIS METHOD TO OPEN THE MODAL ---
+// login.page.ts
+sendResetRequest(phoneNo: string) {
+  this.dataService.requestPasswordReset(phoneNo).subscribe({
+    next: (res: any) => {
+      // LOG THIS to your console to see exactly what the server sent
+      console.log('Server Response:', res); 
+
+      // This line assigns the code to the UI variable
+      this.recoveryCode = res.recoveryCode; 
+      
+      this.isModalOpen = true;
+      this.presentToast('Verification successful!', 'success');
+    },
+    error: (err) => {
+      console.error('Reset Error:', err);
+      this.presentToast('Error: ' + (err.error?.message || 'Check connection'), 'danger');
+    }
+  });
+}
 }

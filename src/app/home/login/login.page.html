@@ -70,13 +70,21 @@
     <div class="login-card">
       <h2 class="form-title">Ranger Login</h2>
 
-      <div class="input-group">
+      <!-- <div class="input-group">
         <label>MOBILE NUMBER</label>
         <div class="field">
           <i class="fas fa-phone-alt"></i>
           <input type="tel" [(ngModel)]="loginData.phone" placeholder="Enter Mobile Number">
         </div>
-      </div>
+      </div> -->
+      <div class="input-group">
+  <label>MOBILE NUMBER</label>
+  <div class="field">
+    <i class="fas fa-phone-alt"></i>
+    <span class="country-prefix">+91</span> 
+    <input type="tel" [(ngModel)]="loginData.phone" placeholder="Enter Mobile Number">
+  </div>
+</div>
 
       <div class="input-group">
         <label>SECURITY PASSWORD</label>
@@ -104,4 +112,37 @@
       </div>
     </div>
   </div>
+
+
+<ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false">
+  <ng-template>
+    <ion-content class="ion-padding">
+      <div class="verified-card">
+        <img src="assets/icon/success-illustration.png" class="success-img" />
+        
+        <h2>You're all verified!</h2>
+        <p>If you lose your phone, this code is your failsafe to access your account.</p>
+        
+        <label style="align-self: flex-start; font-size: 12px; color: #666;">Recovery code</label>
+        <div class="code-box">
+  <ion-input [(ngModel)]="recoveryCode" readonly></ion-input>
+
+          <!-- <ion-input [value]="recoveryCode" readonly></ion-input> -->
+          <ion-button fill="clear" (click)="copyCode()">
+            <ion-icon name="copy-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+        </div>
+
+        <div class="warning-box">
+          <ion-icon name="warning-outline"></ion-icon>
+          <span>Save this code somewhere safe and accessible</span>
+        </div>
+        
+        <ion-button expand="block" (click)="isModalOpen = false" mode="ios">
+          CONTINUE
+        </ion-button>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>
 </ion-content>
