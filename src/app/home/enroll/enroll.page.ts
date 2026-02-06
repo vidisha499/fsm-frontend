@@ -39,8 +39,8 @@ export class EnrollPage implements OnInit {
       password: this.ranger.password
     };
 
-    // Correct URL to match backend
-    this.http.post('http://localhost:3000/rangers', signupPayload).subscribe({
+    // FIXED: URL now includes /api to match NestJS Global Prefix
+    this.http.post('http://localhost:3000/api/rangers', signupPayload).subscribe({
       next: async (res) => {
         this.presentToast('Enrollment Successful! Please login.', 'success');
         this.navCtrl.navigateBack('/login');

@@ -1,88 +1,9 @@
-
-
-// import { Component } from '@angular/core';
-// import { NavController, ToastController } from '@ionic/angular';
-// import { HttpClient } from '@angular/common/http'; // Import HttpClient
-
-// @Component({
-//   selector: 'app-onsite',
-//   templateUrl: './onsite-attendance.page.html',
-//   styleUrls: ['./onsite-attendance.page.scss'],
-//   standalone: false
-// })
-// export class OnsiteAttendancePage {
-//   public locationType: string = 'site';
-//   public capturedPhoto: string = 'onsite_photo.jpg'; // Placeholder
-
-//   constructor(
-//     private navCtrl: NavController,
-//     private toastCtrl: ToastController,
-//     private http: HttpClient // Inject HttpClient
-//   ) {}
-
-//   goBack() {
-//     this.navCtrl.back();
-//   }
-
-//   async takePhoto() {
-//     console.log('Opening Camera...');
-//     // Add Capacitor Camera logic here if needed
-//   }
-
-//   async submit() {
-//     // 1. Retrieve Ranger details from storage
-//     const rangerId = localStorage.getItem('ranger_id');
-//     const rangerName = localStorage.getItem('ranger_name');
-
-//     if (!rangerId) {
-//       this.presentToast('Error: No Ranger ID found. Please login again.', 'danger');
-//       return;
-//     }
-
-//     // 2. Prepare the data payload matching your backend route
-//     const onsiteData = {
-//       ranger_id: rangerId,
-//       type: this.locationType, // 'site' or other from your logic
-//       photo: this.capturedPhoto,
-//       ranger: rangerName,
-//       geofence: 'Panna Site Sector 2', // Can be dynamic
-//       attendance_type: 'On-Site'
-//     };
-
-//     // 3. Call the backend API
-//     this.http.post('http://localhost:3000/api/onsite/mark', onsiteData)
-//       .subscribe({
-//         next: async (res: any) => {
-//           await this.presentToast('On-Site Attendance Logged!', 'success');
-          
-//           // Return to previous page after success
-//           setTimeout(() => {
-//             this.navCtrl.back();
-//           }, 2000);
-//         },
-//         error: async (err) => {
-//           console.error('Onsite Sync Error:', err);
-//           this.presentToast('Database Sync Failed!', 'danger');
-//         }
-//       });
-//   }
-
-//   // Helper for consistent toasts
-//   async presentToast(message: string, color: string) {
-//     const toast = await this.toastCtrl.create({
-//       message: message,
-//       duration: 2000,
-//       color: color,
-//       position: 'bottom',
-//       mode: 'ios'
-//     });
-//     await toast.present();
-//   }
-// }
-
-import { Component, OnInit } from '@angular/core'; // Added OnInit
+import { Component, OnInit, ElementRef, ViewChild, OnDestroy } from '@angular/core';
 import { NavController, ToastController } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { Geolocation } from '@capacitor/geolocation';
+import { GoogleMap } from '@capacitor/google-maps'; // ✅ Import Google Maps
 
 @Component({
   selector: 'app-onsite',
@@ -90,10 +11,14 @@ import { HttpClient } from '@angular/common/http';
   styleUrls: ['./onsite-attendance.page.scss'],
   standalone: false
 })
-export class OnsiteAttendancePage implements OnInit { // Implemented OnInit
+export class OnsiteAttendancePage implements OnInit, OnDestroy {
+  @ViewChild('map') mapRef!: ElementRef<HTMLElement>;
+  newMap!: GoogleMap;
+
   public locationType: string = 'site';
-  public capturedPhoto: string = 'onsite_photo.jpg';
-  public rangerName: string = 'Ranger'; // 1. Variable to hold the dynamic name
+  public capturedPhoto: string | undefined = undefined;
+  public rangerName: string = 'Ranger';
+  public currentCoords: any;
 
   constructor(
     private navCtrl: NavController,
@@ -101,29 +26,66 @@ export class OnsiteAttendancePage implements OnInit { // Implemented OnInit
     private http: HttpClient
   ) {}
 
-  // 2. Load the name from storage on initialization
   ngOnInit() {
     const storedName = localStorage.getItem('ranger_name');
-    if (storedName) {
-      this.rangerName = storedName;
+    if (storedName) this.rangerName = storedName;
+  }
+
+  // Use ionViewDidEnter to ensure the element is ready
+  async ionViewDidEnter() {
+    await this.createMap();
+  }
+
+  async createMap() {
+    try {
+      const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+      this.currentCoords = position.coords;
+
+      this.newMap = await GoogleMap.create({
+        id: 'my-cool-map',
+        element: this.mapRef.nativeElement,
+        apiKey: 'YOUR_GOOGLE_MAPS_API_KEY_HERE', // 🔑 Replace with your API Key
+        config: {
+          center: {
+            lat: this.currentCoords.latitude,
+            lng: this.currentCoords.longitude,
+          },
+          zoom: 15,
+        },
+      });
+
+      // Add a marker at your location
+      await this.newMap.addMarker({
+        coordinate: {
+          lat: this.currentCoords.latitude,
+          lng: this.currentCoords.longitude,
+        },
+        title: 'You are here',
+      });
+    } catch (e) {
+      console.error('Google Maps Error', e);
     }
   }
 
-  goBack() {
-    this.navCtrl.back();
-  }
-
   async takePhoto() {
-    console.log('Opening Camera...');
+    try {
+      const image = await Camera.getPhoto({
+        quality: 30,
+        resultType: CameraResultType.Base64,
+        source: CameraSource.Camera
+      });
+      if (image.base64String) {
+        this.capturedPhoto = `data:image/jpeg;base64,${image.base64String}`;
+      }
+    } catch (error) {
+      this.presentToast('Camera cancelled.', 'warning');
+    }
   }
 
   async submit() {
     const rangerId = localStorage.getItem('ranger_id');
-    // Use the class variable for the payload
-    const rangerName = this.rangerName;
-
-    if (!rangerId) {
-      this.presentToast('Error: No Ranger ID found. Please login again.', 'danger');
+    if (!this.capturedPhoto) {
+      this.presentToast('Please take a photo first.', 'warning');
       return;
     }
 
@@ -131,34 +93,34 @@ export class OnsiteAttendancePage implements OnInit { // Implemented OnInit
       ranger_id: rangerId,
       type: this.locationType,
       photo: this.capturedPhoto,
-      ranger: rangerName,
-      geofence: 'Panna Site Sector 2', 
-      attendance_type: 'On-Site'
+      ranger: this.rangerName,
+      geofence: 'Panna Site Sector 2',
+      latitude: this.currentCoords?.latitude,
+      longitude: this.currentCoords?.longitude
     };
 
     this.http.post('http://localhost:3000/api/onsite/mark', onsiteData)
       .subscribe({
-        next: async (res: any) => {
-          await this.presentToast('On-Site Attendance Logged!', 'success');
-          setTimeout(() => {
-            this.navCtrl.back();
-          }, 2000);
+        next: () => {
+          this.presentToast('On-Site Attendance Logged!', 'success');
+          setTimeout(() => this.navCtrl.back(), 2000);
         },
-        error: async (err) => {
-          console.error('Onsite Sync Error:', err);
-          this.presentToast('Database Sync Failed!', 'danger');
-        }
+        error: () => this.presentToast('Sync Failed!', 'danger')
       });
   }
 
   async presentToast(message: string, color: string) {
-    const toast = await this.toastCtrl.create({
-      message: message,
-      duration: 2000,
-      color: color,
-      position: 'bottom',
-      mode: 'ios'
-    });
+    const toast = await this.toastCtrl.create({ message, duration: 2000, color, position: 'bottom' });
     await toast.present();
+  }
+
+  ngOnDestroy() {
+    if (this.newMap) {
+      this.newMap.destroy();
+    }
+  }
+
+  goBack() {
+    this.navCtrl.back();
   }
 }

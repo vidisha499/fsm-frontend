@@ -1,89 +1,7 @@
-
-
-// import { Component } from '@angular/core';
-// import { NavController, ToastController } from '@ionic/angular';
-// import { HttpClient } from '@angular/common/http'; // Added HttpClient
-
-// @Component({
-//   selector: 'app-attendance',
-//   templateUrl: './attendance.page.html',
-//   styleUrls: ['./attendance.page.scss'],
-//   standalone: false
-// })
-// export class AttendancePage {
-//   public isEntry: boolean = true;
-//   public capturedPhoto: string = 'camera_capture.jpg'; // Placeholder for photo logic
-
-//   constructor(
-//     private navCtrl: NavController,
-//     private toastCtrl: ToastController,
-//     private http: HttpClient // Injected HttpClient
-//   ) {}
-
-//   goBack() {
-//     this.navCtrl.back();
-//   }
-
-//   setMode(entry: boolean) {
-//     this.isEntry = entry;
-//   }
-
-//   async captureImage() {
-//     console.log('Opening Camera...');
-//     // When you implement Capacitor Camera, update this.capturedPhoto with the result
-//   }
-
-//   async submitAttendance() {
-//     // 1. Get user details from localStorage
-//     const rangerId = localStorage.getItem('ranger_id');
-//     const rangerName = localStorage.getItem('ranger_name');
-
-//     if (!rangerId) {
-//       this.presentToast('Error: No Ranger ID found. Please log in again.', 'danger');
-//       return;
-//     }
-
-//     // 2. Prepare the data payload
-//     const attendanceData = {
-//       ranger_id: rangerId,
-//       photo: this.capturedPhoto,
-//       ranger: rangerName,
-//       geofence: 'Panna Sector 4.2' // You can make this dynamic later
-//     };
-
-//     // 3. ACTUAL API CALL
-//     this.http.post('http://localhost:3000/api/attendance/beat-attendance', attendanceData)
-//       .subscribe({
-//         next: async (res: any) => {
-//           await this.presentToast('Attendance Marked Successfully!', 'success');
-          
-//           // Only navigate back if the database actually saved it
-//           setTimeout(() => {
-//             this.navCtrl.back();
-//           }, 2100);
-//         },
-//         error: async (err) => {
-//           console.error('API Error:', err);
-//           this.presentToast('Database Sync Failed. Check Connection.', 'danger');
-//         }
-//       });
-//   }
-
-//   async presentToast(message: string, color: string) {
-//     const toast = await this.toastCtrl.create({
-//       message: message,
-//       duration: 2000,
-//       position: 'bottom',
-//       color: color,
-//       mode: 'ios'
-//     });
-//     toast.present();
-//   }
-// }
-
-import { Component, OnInit } from '@angular/core'; // Added OnInit
+import { Component, OnInit } from '@angular/core';
 import { NavController, ToastController } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 
 @Component({
   selector: 'app-attendance',
@@ -91,10 +9,11 @@ import { HttpClient } from '@angular/common/http';
   styleUrls: ['./attendance.page.scss'],
   standalone: false
 })
-export class AttendancePage implements OnInit { // Implemented OnInit
+export class AttendancePage implements OnInit {
   public isEntry: boolean = true;
-  public capturedPhoto: string = 'camera_capture.jpg';
-  public rangerName: string = 'Ranger'; // Variable to hold the name
+  public capturedPhoto: string | undefined = undefined;
+  public rangerName: string = 'Ranger';
+  public selectedGeofence: string = 'Panna Site';
 
   constructor(
     private navCtrl: NavController,
@@ -103,65 +22,76 @@ export class AttendancePage implements OnInit { // Implemented OnInit
   ) {}
 
   ngOnInit() {
-    // Load name from storage when page opens
     const storedName = localStorage.getItem('ranger_name');
     if (storedName) {
       this.rangerName = storedName;
     }
   }
 
-  goBack() {
-    this.navCtrl.back();
-  }
+  goBack() { this.navCtrl.back(); }
+  setMode(entry: boolean) { this.isEntry = entry; }
 
-  setMode(entry: boolean) {
-    this.isEntry = entry;
-  }
+async captureImage() {
+  try {
+    const image = await Camera.getPhoto({
+      quality: 30, // Low quality to prevent "413 Request Entity Too Large"
+      allowEditing: false, // Set to true if you want rangers to crop the photo
+      resultType: CameraResultType.Base64,
+      source: CameraSource.Camera, // ✅ FORCES the native camera to open
+      promptLabelHeader: 'Capture Attendance Photo',
+      promptLabelPhoto: 'From Gallery', // Optional: if you want to allow gallery
+      promptLabelPicture: 'Take Photo'  // Optional: labels for the prompt
+    });
 
-  async captureImage() {
-    console.log('Opening Camera...');
+    if (image.base64String) {
+      this.capturedPhoto = `data:image/jpeg;base64,${image.base64String}`;
+      this.presentToast('Photo captured successfully!', 'success');
+    }
+  } catch (error) {
+    console.error('Camera error:', error);
+    // This catches when the user cancels or denies permission
+    this.presentToast('Camera access was cancelled.', 'warning');
   }
+}
 
   async submitAttendance() {
     const rangerId = localStorage.getItem('ranger_id');
-    // Use the variable we already loaded
-    const rangerName = this.rangerName;
 
-    if (!rangerId) {
-      this.presentToast('Error: No Ranger ID found. Please log in again.', 'danger');
+    if (!this.capturedPhoto) {
+      this.presentToast('Please capture a photo first!', 'warning');
       return;
     }
 
     const attendanceData = {
-      ranger_id: rangerId,
-      photo: this.capturedPhoto,
-      ranger: rangerName,
-      geofence: 'Panna Sector 4.2',
-      type: this.isEntry ? 'ENTRY' : 'EXIT' // Added type to distinguish Entry/Exit
+      ranger_id: Number(rangerId), // Ensure it's a number
+      photo: this.capturedPhoto, 
+      ranger: this.rangerName,
+      geofence: this.selectedGeofence,
+      // Ensure your backend entity has a column for 'type' if you send this:
+      type: this.isEntry ? 'ENTRY' : 'EXIT' 
     };
 
+    // Note: localhost:3000 only works on browser. 
+    // Use your IP address if testing on a real phone!
     this.http.post('http://localhost:3000/api/attendance/beat-attendance', attendanceData)
       .subscribe({
-        next: async (res: any) => {
-          await this.presentToast('Attendance Marked Successfully!', 'success');
-          setTimeout(() => {
-            this.navCtrl.back();
-          }, 2100);
+        next: (res) => {
+          this.presentToast('Attendance saved successfully!', 'success');
+          setTimeout(() => this.navCtrl.back(), 1500);
         },
-        error: async (err) => {
-          console.error('API Error:', err);
-          this.presentToast('Database Sync Failed. Check Connection.', 'danger');
+        error: (err) => {
+          console.error(err);
+          this.presentToast('Upload failed. Check server limits.', 'danger');
         }
       });
   }
 
   async presentToast(message: string, color: string) {
     const toast = await this.toastCtrl.create({
-      message: message,
+      message,
       duration: 2000,
-      position: 'bottom',
-      color: color,
-      mode: 'ios'
+      color,
+      position: 'bottom'
     });
     toast.present();
   }
