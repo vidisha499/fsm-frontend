@@ -33,27 +33,46 @@ export class DataService {
   // --- INCIDENTS ---
   getIncidentsByRanger() {
     const id = this.getRangerId();
-    return this.http.get(`${this.baseUrl}/incidents/my-reports/${id}`);
+    return this.http.get(`${this.baseUrl}/api/incidents/my-reports/${id}`);
   }
 
   reportNewIncident(incidentData: any) {
-    return this.http.post(`${this.baseUrl}/incidents`, incidentData);
+    return this.http.post(`${this.baseUrl}/api/incidents`, incidentData);
   }
 
   // --- PATROLS ---
   startActivePatrol(rangerId: number) {
-    return this.http.post(`${this.baseUrl}/patrols/active`, { rangerId });
+    return this.http.post(`${this.baseUrl}/api/patrols/active`, { rangerId });
   }
 
   getOngoingPatrols() {
-    return this.http.get(`${this.baseUrl}/patrols/active`);
+    return this.http.get(`${this.baseUrl}/api/patrols/active`);
   }
 
   updatePatrolStats(patrolId: number, data: any) {
-    return this.http.patch(`${this.baseUrl}/patrols/active/${patrolId}`, data);
+    return this.http.patch(`${this.baseUrl}/api/patrols/active/${patrolId}`, data);
   }
 
   getCompletedPatrolLogs() {
-    return this.http.get(`${this.baseUrl}/patrols/logs`);
+    return this.http.get(`${this.baseUrl}/api/patrols/logs`);
   }
+
+ updateRanger(data: any) {
+  // ✅ This matches your NestJS Controller: @Controller('rangers') @Post('update')
+  return this.http.post(`${this.baseUrl}/api/rangers/update`, data);
 }
+
+// Inside DataService class
+requestPasswordReset(phoneNo: string) {
+  // This must match your NestJS route /api/rangers/forgot-password
+  return this.http.post(`${this.baseUrl}/api/rangers/forgot-password`, { phoneNo });
+}
+// data.service.ts
+getRangerProfile(id: string) {
+  // This calls your @Get(':id') endpoint in the RangersController
+  return this.http.get(`${this.baseUrl}/api/rangers/${id}`);
+}
+
+
+}
+

@@ -143,3 +143,71 @@
   font-weight: 600;
   a { color: #2e7d32; font-weight: 800; text-decoration: none; margin-left: 4px; border-bottom: 2px solid #2e7d32; }
 }
+.verified-card {
+  background: white;
+  padding: 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  h2 {
+    font-weight: bold;
+    color: #1a1a1b;
+    margin-top: 10px;
+  }
+
+  p {
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+}
+
+.code-box {
+  width: 100%;
+  border: 2px solid #3880ff; // The blue border from your image
+  border-radius: 10px;
+  background: #f4f7ff;
+  display: flex;
+  align-items: center;
+  padding: 5px 15px;
+  margin-bottom: 20px;
+
+  ion-input {
+    font-family: monospace;
+    font-weight: bold;
+    letter-spacing: 1px;
+    --padding-start: 0;
+  }
+}
+
+.warning-box {
+  background: #fff5f2;
+  border-left: 4px solid #ff4961;
+  padding: 15px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: #8a2a2a;
+  
+  ion-icon {
+    color: #ff4961;
+    margin-right: 10px;
+    font-size: 20px;
+  }
+}
+.field {
+  display: flex;
+  align-items: center;
+  /* ... your existing styles ... */
+}
+
+.country-prefix {
+  padding-left: 10px;
+  font-weight: bold;
+  color: #666; /* Grey color to match icons */
+  border-right: 1px solid #ddd; /* Optional: adds a divider line */
+  margin-right: 10px;
+}

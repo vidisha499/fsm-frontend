@@ -1,6 +1,3 @@
-
-
-
 <div id="side-menu-overlay" (click)="toggleMenu(false)"
     class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9998] hidden transition-opacity duration-300">
 </div>
@@ -12,16 +9,27 @@
                 url('https://images.unsplash.com/photo-1473448912268-2022ce9509d8?auto=format&fit=crop&q=80&w=1000'); 
                 background-size: cover; background-position: center; padding: 30px 24px; border-radius: 0 0 40px 0; 
                 box-shadow: 0 10px 20px rgba(0,0,0,0.15);">
-        
+
         <div class="flex items-center space-x-4 mb-6">
             <div class="relative">
-                <img src="https://placehold.co/56x56/10b981/FFF?text=R" alt="User"
+                <img src="https://placehold.co/56x56/10b981/FFF?text=N" alt="User"
                     class="w-14 h-14 rounded-2xl border-2 border-emerald-400 shadow-lg">
-                <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-emerald-900 rounded-full"></div>
+                <div
+                    class="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-emerald-900 rounded-full">
+                </div>
             </div>
-            <div>
-                <p class="font-extrabold text-lg text-white leading-tight">Ranger {{ rangerName }}</p>
+            <!-- <div>
+                <p class="font-extrabold text-lg text-white leading-tight">Ranger Nikhil</p>
                 <p class="text-[10px] text-emerald-200 font-black uppercase tracking-[0.15em] mt-1">Washim Division</p>
+            </div> -->
+            <div>
+                <p class="font-extrabold text-lg text-white leading-tight">
+                    {{ rangerName || 'Pending Name' }}
+                </p>
+
+                <p class="text-[10px] text-emerald-200 font-black uppercase tracking-[0.15em] mt-1">
+                    {{ rangerDivision || 'Assign Division' }}
+                </p>
             </div>
         </div>
 
@@ -35,56 +43,69 @@
     </div>
 
     <nav class="flex-grow p-5 space-y-3 overflow-y-auto bg-[#f8fafc]">
-        <a (click)="goToPage('home')" class="flex items-center space-x-4 p-3 rounded-2xl bg-white shadow-sm border border-emerald-100 text-emerald-700 cursor-pointer">
-            <div class="w-10 h-10 flex items-center justify-center bg-emerald-400 rounded-xl shadow-lg shadow-emerald-100">
+        <a (click)="goToPage('home')"
+            class="flex items-center space-x-4 p-3 rounded-2xl bg-white shadow-sm border border-emerald-100 text-emerald-700 cursor-pointer">
+            <div
+                class="w-10 h-10 flex items-center justify-center bg-emerald-400 rounded-xl shadow-lg shadow-emerald-100">
                 <i class="fas fa-th-large text-white text-sm"></i>
             </div>
             <span class="font-black text-sm uppercase">Dashboard</span>
         </a>
 
-        <a (click)="goToPage('attendance')" class="flex items-center space-x-4 p-3 rounded-2xl bg-white shadow-sm border border-transparent text-slate-600 hover:text-blue-600 transition-all cursor-pointer">
+        <a (click)="goToPage('attendance')"
+            class="flex items-center space-x-4 p-3 rounded-2xl bg-white shadow-sm border border-transparent text-slate-600 hover:text-blue-600 transition-all cursor-pointer">
             <div class="w-10 h-10 flex items-center justify-center bg-pink-100 rounded-xl">
                 <i class="fas fa-calendar-check text-pink-600"></i>
             </div>
             <span class="font-bold text-sm">Attendance Request</span>
         </a>
 
-        <a (click)="goToPage('updates')" class="flex items-center space-x-4 p-3 rounded-2xl bg-white shadow-sm border border-transparent text-slate-600 hover:text-purple-600 transition-all cursor-pointer">
+
+        <a (click)="goToPage('updates')"
+            class="flex items-center space-x-4 p-3 rounded-2xl bg-white shadow-sm border border-transparent text-slate-600 hover:text-purple-600 transition-all cursor-pointer">
             <div class="w-10 h-10 flex items-center justify-center bg-purple-100 rounded-xl">
                 <i class="fas fa-newspaper text-purple-600"></i>
             </div>
             <span class="font-bold text-sm">Daily Updates</span>
         </a>
 
-        <a (click)="goToPage('visits')" class="flex items-center space-x-4 p-3 rounded-2xl bg-white shadow-sm border border-transparent text-slate-600 hover:text-indigo-600 transition-all cursor-pointer">
+        <a (click)="goToPage('visits')"
+            class="flex items-center space-x-4 p-3 rounded-2xl bg-white shadow-sm border border-transparent text-slate-600 hover:text-indigo-600 transition-all cursor-pointer">
             <div class="w-10 h-10 flex items-center justify-center bg-indigo-100 rounded-xl">
                 <i class="fas fa-briefcase text-indigo-600"></i>
             </div>
             <span class="font-bold text-sm">Client Visits</span>
         </a>
 
-        <a (click)="goToPage('location')" class="flex items-center space-x-4 p-3 rounded-2xl bg-white shadow-sm border border-transparent text-slate-600 hover:text-emerald-600 transition-all cursor-pointer">
+        <a (click)="goToPage('location')"
+            class="flex items-center space-x-4 p-3 rounded-2xl bg-white shadow-sm border border-transparent text-slate-600 hover:text-emerald-600 transition-all cursor-pointer">
             <div class="w-10 h-10 flex items-center justify-center bg-emerald-100 rounded-xl">
                 <i class="fas fa-map-marker-alt text-emerald-600"></i>
             </div>
             <span class="font-bold text-sm">Current Location</span>
         </a>
 
-        <a (click)="goToPage('settings')" class="flex items-center space-x-4 p-3 rounded-2xl bg-white shadow-sm border border-transparent text-slate-600 hover:text-slate-900 transition-all cursor-pointer">
+
+        <a (click)="goToPage('settings')"
+            class="flex items-center space-x-4 p-3 rounded-2xl bg-white shadow-sm border border-transparent text-slate-600 hover:text-slate-900 transition-all cursor-pointer">
             <div class="w-10 h-10 flex items-center justify-center bg-slate-100 rounded-xl">
                 <i class="fas fa-cog text-slate-600"></i>
             </div>
             <span class="font-bold text-sm">Account Settings</span>
         </a>
 
-        <a (click)="goToPage('language')" class="flex items-center space-x-4 p-3 rounded-2xl bg-white shadow-sm border border-transparent text-slate-600 hover:text-amber-600 transition-all cursor-pointer">
+
+
+        <a (click)="toggleLanguageModal(true)"
+            class="flex items-center space-x-4 p-3 rounded-2xl bg-white shadow-sm border border-transparent text-slate-600 hover:text-amber-600 transition-all cursor-pointer">
             <div class="w-10 h-10 flex items-center justify-center bg-amber-100 rounded-xl">
                 <i class="fas fa-language text-amber-600"></i>
             </div>
             <span class="font-bold text-sm">Change Language</span>
         </a>
 
-        <a (click)="goToPage('login')" class="flex items-center space-x-4 p-3 rounded-2xl bg-white shadow-sm border border-red-50 text-red-500 transition-all cursor-pointer">
+        <a (click)="goToPage('login')"
+            class="flex items-center space-x-4 p-3 rounded-2xl bg-white shadow-sm border border-red-50 text-red-500 transition-all cursor-pointer">
             <div class="w-10 h-10 flex items-center justify-center bg-red-100 rounded-xl">
                 <i class="fas fa-power-off text-red-600"></i>
             </div>
@@ -98,20 +119,43 @@
 </div>
 
 <ion-content [fullscreen]="true" style="--background: #fdfdfd;">
-    
-    <div *ngIf="currentPage === 'home'" id="dashboard-page" style="padding-bottom: 100px; min-height: 100vh; font-family: 'Segoe UI', sans-serif;">
-        <div style="position: relative; height: 240px; background: url('https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80'); background-size: cover; background-position: center; clip-path: ellipse(110% 100% at 50% 0%);">
-            <div style="position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.7));"></div>
-            <div style="position: relative; padding: 40px 25px; display: flex; justify-content: space-between; align-items: flex-start;">
-                <button (click)="toggleMenu(true)" 
-                        style="background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); color: white; width: 45px; height: 45px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+
+    <div *ngIf="currentPage === 'home'" id="dashboard-page"
+        style="padding-bottom: 100px; min-height: 100vh; font-family: 'Segoe UI', sans-serif;">
+        <div
+            style="position: relative; height: 240px; background: url('https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80'); background-size: cover; background-position: center; clip-path: ellipse(110% 100% at 50% 0%);">
+            <div
+                style="position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.7));">
+            </div>
+            <div
+                style="position: relative; padding: 40px 25px; display: flex; justify-content: space-between; align-items: flex-start;">
+                <button (click)="toggleMenu(true)"
+                    style="background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); color: white; width: 45px; height: 45px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
                     <ion-icon name="menu-outline" style="font-size: 24px;"></ion-icon>
                 </button>
+                <!-- <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end;">
+                    <div class="tracking-pill">
+                        <div class="active-dot"></div><span>Tracking Active</span>
+                    </div>
+                    <p
+                        style="margin: 0; font-size: 28px; font-weight: 900; color: white; letter-spacing: -0.5px; text-shadow: 0 2px 10px rgba(0,0,0,0.3);">
+                        Ranger Nikhil</p>
+                </div> -->
+
                 <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end;">
-                    <div class="tracking-pill"><div class="active-dot"></div><span>Tracking Active</span></div>
-                    <p style="margin: 0; font-size: 28px; font-weight: 900; color: white; letter-spacing: -0.5px; text-shadow: 0 2px 10px rgba(0,0,0,0.3);">
-                        Ranger {{ rangerName }}
+                    <div class="tracking-pill">
+                        <div class="active-dot"></div>
+                        <span>Tracking Active</span>
+                    </div>
+
+                    <p
+                        style="margin: 0; font-size: 28px; font-weight: 900; color: white; letter-spacing: -0.5px; text-shadow: 0 2px 10px rgba(0,0,0,0.3);">
+                        {{ rangerName || 'Ranger Nikhil' }}
                     </p>
+
+                    <!-- <p style="margin: 0; font-size: 10px; font-weight: 800; color: #10b981; text-transform: uppercase; letter-spacing: 2px; margin-top: 2px;">
+        {{ rangerDivision || 'Washim Division' }}
+    </p> -->
                 </div>
             </div>
         </div>
@@ -138,11 +182,11 @@
                         <i class="fas fa-paw watermark"></i>
                     </div>
                     <div class="module-card card-yellow" (click)="goToPage('patrol-logs')">
-                        <div class="icon-bg" ><i class="fas fa-hiking"></i></div>
+                        <div class="icon-bg"><i class="fas fa-hiking"></i></div>
                         <p>Patrol<br>Missions</p>
                         <i class="fas fa-paw watermark"></i>
                     </div>
-                    <div class="module-card card-red" (click)="goToPage('incidents')" >
+                    <div class="module-card card-red" (click)="goToPage('incidents')">
                         <div class="icon-bg"><i class="fas fa-radiation"></i></div>
                         <p>Alert<br>Incident</p>
                         <i class="fas fa-fire watermark"></i>
@@ -151,10 +195,12 @@
             </div>
         </div>
 
-        <div style="margin-top: 40px;">
-            <h3 class="section-title">Trail History</h3>
+
+        <div style="margin-top: 40px; " >
+            <h3 class="section-title"  style="margin-left: 20px;">Trail History</h3>
             <div class="history-white-card">
                 <div class="dashed-line"></div>
+
                 <div class="history-item">
                     <div class="status-dot dot-green"></div>
                     <div>
@@ -162,6 +208,7 @@
                         <p class="h-sub">10:13 PM • Area A-12</p>
                     </div>
                 </div>
+
                 <div class="history-item">
                     <div class="status-dot dot-red"></div>
                     <div>
@@ -171,136 +218,239 @@
                 </div>
             </div>
         </div>
+
     </div>
 </ion-content>
 
-<div *ngIf="currentPage === 'settings'" class="settings-view" 
-     style="position: fixed; inset: 0; z-index: 99999; display: flex; flex-direction: column; font-family: 'Inter', sans-serif; 
+
+
+<div *ngIf="currentPage === 'settings'" class="settings-view" style="position: fixed; inset: 0; z-index: 99999; display: flex; flex-direction: column; font-family: 'Inter', sans-serif; 
             background: #F4F7F6; animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);">
-    
+
     <div style="padding: 60px 25px 30px; background: white; border-bottom: 1px solid #E2E8F0;">
         <div style="display: flex; align-items: center; justify-content: space-between;">
-            <div (click)="goToPage('home')" 
-                 style="width: 40px; height: 40px; background: #F8FAFC; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid #EDF2F7;">
+            <div (click)="goToPage('home')"
+                style="width: 40px; height: 40px; background: #F8FAFC; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid #EDF2F7;">
                 <i class="fas fa-chevron-left" style="color: #64748B;"></i>
             </div>
             <div style="text-align: right;">
-                <h1 style="margin: 0; font-size: 22px; font-weight: 800; color: #1E293B; letter-spacing: -0.5px;">Settings</h1>
-                <span style="color: #10B981; font-size: 10px; font-weight: 700; letter-spacing: 1px;">TERMINAL v4.2</span>
+                <h1 style="margin: 0; font-size: 22px; font-weight: 800; color: #1E293B; letter-spacing: -0.5px;">
+                    Settings</h1>
+                <span style="color: #10B981; font-size: 10px; font-weight: 700; letter-spacing: 1px;">TERMINAL
+                    v4.2</span>
             </div>
         </div>
     </div>
 
-    <div style="flex: 1; overflow-y: auto; padding: 25px 20px;">
-        <div style="display: flex; background: #E2E8F0; border-radius: 14px; padding: 4px; margin-bottom: 30px;">
-            <button (click)="activeTab = 'info'" 
+
+        <div style="flex: 1; overflow-y: auto; padding: 25px 20px;">
+
+    <div style="display: flex; background: #E2E8F0; border-radius: 14px; padding: 4px; margin-bottom: 30px;">
+        <button (click)="activeTab = 'info'" 
                 [style.background]="activeTab === 'info' ? 'white' : 'transparent'"
                 [style.color]="activeTab === 'info' ? '#065431' : '#64748B'"
-                [style.box-shadow]="activeTab === 'info' ? '0 4px 10px rgba(0,0,0,0.05)' : 'none'"
-                style="flex: 1; border: none; padding: 12px; border-radius: 10px; font-weight: 800; font-size: 11px; text-transform: uppercase; transition: 0.3s; cursor: pointer;">
-                Account
-            </button>
-            <button (click)="activeTab = 'pass'" 
+                style="flex: 1; border: none; padding: 12px; border-radius: 10px; font-weight: 800; font-size: 11px; text-transform: uppercase; cursor: pointer;">
+            Account
+        </button>
+        <button (click)="activeTab = 'pass'" 
                 [style.background]="activeTab === 'pass' ? 'white' : 'transparent'"
                 [style.color]="activeTab === 'pass' ? '#065431' : '#64748B'"
-                [style.box-shadow]="activeTab === 'pass' ? '0 4px 10px rgba(0,0,0,0.05)' : 'none'"
-                style="flex: 1; border: none; padding: 12px; border-radius: 10px; font-weight: 800; font-size: 11px; text-transform: uppercase; transition: 0.3s; cursor: pointer;">
-                Security
-            </button>
-        </div>
+                style="flex: 1; border: none; padding: 12px; border-radius: 10px; font-weight: 800; font-size: 11px; text-transform: uppercase; cursor: pointer;">
+            Security
+        </button>
+    </div>
 
-        <div *ngIf="activeTab === 'info'" class="fade-in">
-            <div class="clean-card">
-                <div class="icon-circle" style="background: #ECFDF5;"><i class="fas fa-user" style="color: #10B981;"></i></div>
-                <div style="flex: 1;">
-                    <label>Personnel Name</label>
-                    <input type="text" [value]="rangerName" readonly>
-                </div>
-            </div>
-            <div class="clean-card">
-                <div class="icon-circle" style="background: #EFF6FF;"><i class="fas fa-satellite" style="color: #3B82F6;"></i></div>
-                <div style="flex: 1;">
-                    <label>Division</label>
-                    <input type="text" value="Washim Division 4.2" readonly>
-                </div>
-            </div>
-            <div class="clean-card">
-                <div class="icon-circle" style="background: #FFF7ED;"><i class="fas fa-phone-alt" style="color: #F59E0B;"></i></div>
-                <div style="flex: 1;">
-                    <label>Comm Line</label>
-                    <input type="text" value="Duty Active" readonly>
-                </div>
+    <div *ngIf="activeTab === 'info'" class="fade-in">
+        <div class="clean-card">
+            <div class="icon-circle" style="background: #ECFDF5;"><i class="fas fa-user" style="color: #10B981;"></i></div>
+            <div style="flex: 1;">
+                <label>Personnel Name</label>
+                <input type="text" [(ngModel)]="rangerName" placeholder="Enter Name">
             </div>
         </div>
 
-        <div *ngIf="activeTab === 'pass'" class="fade-in">
-            <div class="clean-card">
-                <div class="icon-circle" style="background: #F8FAFC;"><i class="fas fa-key" style="color: #64748B;"></i></div>
-                <div style="flex: 1;">
-                    <label>Current Password</label>
-                    <input type="password" value="********" readonly>
-                </div>
+        <div class="clean-card">
+            <div class="icon-circle" style="background: #EFF6FF;"><i class="fas fa-satellite" style="color: #3B82F6;"></i></div>
+            <div style="flex: 1;">
+                <label>Division</label>
+                <input type="text" [(ngModel)]="rangerDivision" placeholder="Enter Division">
             </div>
-            <div class="clean-card">
-                <div class="icon-circle" style="background: #FEF2F2;"><i class="fas fa-shield-alt" style="color: #EF4444;"></i></div>
-                <div style="flex: 1;">
-                    <label>New Access Key</label>
-                    <input type="password" placeholder="Set New Key">
-                </div>
+        </div>
+
+        <div class="clean-card">
+            <div class="icon-circle" style="background: #FFF7ED;"><i class="fas fa-phone-alt" style="color: #F59E0B;"></i></div>
+            <div style="flex: 1;">
+                <label>Comm Line</label>
+                <input type="text" [(ngModel)]="rangerPhone" placeholder="Enter Phone Number">
             </div>
         </div>
     </div>
 
-    <div style="padding: 20px 25px 40px; background: white; border-top: 1px solid #EDF2F7;">
-        <button style="width: 100%; background: #065431; color: white; border: none; padding: 20px; border-radius: 16px; font-weight: 800; font-size: 14px; letter-spacing: 1px; box-shadow: 0 10px 20px rgba(6, 84, 49, 0.2);">
+   <div *ngIf="activeTab === 'pass'" class="fade-in">
+    <div class="clean-card">
+        <div class="icon-circle" style="background: #F8FAFC;"><i class="fas fa-key" style="color: #64748B;"></i></div>
+        <div style="flex: 1; position: relative;">
+            <label>Current Password</label>
+            <input [type]="showPassword ? 'text' : 'password'"  style="width: 100%;">
+            <i class="fas" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword" 
+               (click)="showPassword = !showPassword"
+               style="position: absolute; right: 10px; top: 30px; color: #64748B; cursor: pointer;"></i>
+        </div>
+    </div>
+
+    <div class="clean-card">
+        <div class="icon-circle" style="background: #FEF2F2;"><i class="fas fa-shield-alt" style="color: #EF4444;"></i></div>
+        <div style="flex: 1; position: relative;">
+            <label>New Access Key</label>
+            <input [type]="showNewPassword ? 'text' : 'password'" [(ngModel)]="rangerPassword" placeholder="Set New Key" style="width: 100%;">
+            <i class="fas" [class.fa-eye]="!showNewPassword" [class.fa-eye-slash]="showNewPassword" 
+               (click)="showNewPassword = !showNewPassword"
+               style="position: absolute; right: 10px; top: 30px; color: #64748B; cursor: pointer;"></i>
+        </div>
+    </div>
+</div>
+
+    </div>
+    <!-- <button (click)="updateProtocol()"
+        style="z-index: 100002; position: relative; width: 100%; background: #065431; color: white; ">
+        UPDATE PROTOCOL
+    </button> -->
+
+     <div style="padding: 20px 25px 40px; background: white; border-top: 1px solid #EDF2F7;">
+        <button (click)="updateProtocol()" style="width: 100%; background: #065431; color: white; border: none; padding: 20px; border-radius: 16px; font-weight: 800; font-size: 14px; letter-spacing: 1px; box-shadow: 0 10px 20px rgba(6, 84, 49, 0.2);">
             UPDATE PROTOCOL
         </button>
     </div>
 </div>
+ 
 
-<style>
-.clean-card {
-    background: white;
-    padding: 18px;
-    border-radius: 18px;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-    border: 1px solid #EDF2F7;
-}
-.icon-circle {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-}
-.clean-card label {
-    display: block;
-    font-size: 9px;
-    font-weight: 800;
-    color: #94A3B8;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    margin-bottom: 2px;
-}
-.clean-card input {
-    width: 100%;
-    border: none;
-    background: transparent;
-    font-size: 16px;
-    font-weight: 700;
-    color: #1E293B;
-    outline: none;
-}
-.fade-in { animation: fadeIn 0.3s ease-in; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-</style>
+
+<div *ngIf="showLanguageModal" class="fixed inset-0 flex items-center justify-center p-4 z-[10001]">
+
+    <div (click)="toggleLanguageModal(false)" class="absolute inset-0 backdrop-blur-md bg-slate-900/40"></div>
+
+    <div class="relative bg-white rounded-[32px] p-7 w-[310px] shadow-2xl border border-white">
+
+        <div style="text-align: center; margin-bottom: 25px;">
+            <div
+                style="width: 50px; height: 50px; background: #fffbeb; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; border: 1px solid #fef3c7;">
+                <i class="fas fa-globe-americas" style="color: #d97706; font-size: 20px;"></i>
+            </div>
+            <h3 style="margin: 0; font-size: 18px; font-weight: 800; color: #1e293b;">Choose Language</h3>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+
+            <label (click)="setLanguage('English')"
+                [style.border-color]="selectedLanguage === 'English' ? '#fbbf24' : 'transparent'"
+                [style.background]="selectedLanguage === 'English' ? '#fff9eb' : '#f8fafc'"
+                style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-radius: 20px; cursor: pointer; border: 2px solid; transition: 0.2s;">
+                <span [style.color]="selectedLanguage === 'English' ? '#92400e' : '#475569'"
+                    style="font-size: 15px; font-weight: 700;">English</span>
+                <div *ngIf="selectedLanguage === 'English'"
+                    style="width: 18px; height: 18px; border-radius: 50%; background:  #fbbf24; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-check" style="color: white; font-size: 10px;"></i>
+                </div>
+                <div *ngIf="selectedLanguage !== 'English'"
+                    style="width: 18px; height: 18px; border-radius: 50%; border: 2px solid #e2e8f0;"></div>
+            </label>
+
+            <label (click)="setLanguage('Hindi')"
+                [style.border-color]="selectedLanguage === 'Hindi' ? '#fbbf24' : 'transparent'"
+                [style.background]="selectedLanguage === 'Hindi' ? '#fff9eb' : '#f8fafc'"
+                style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-radius: 20px; cursor: pointer; border: 2px solid; transition: 0.2s;">
+                <span [style.color]="selectedLanguage === 'Hindi' ? '#92400e' : '#475569'"
+                    style="font-size: 15px; font-weight: 700;">हिन्दी</span>
+                <div *ngIf="selectedLanguage === 'Hindi'"
+                    style="width: 18px; height: 18px; border-radius: 50%; background: #fbbf24; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-check" style="color: white; font-size: 10px;"></i>
+                </div>
+                <div *ngIf="selectedLanguage !== 'Hindi'"
+                    style="width: 18px; height: 18px; border-radius: 50%; border: 2px solid #e2e8f0;"></div>
+            </label>
+
+            <label (click)="setLanguage('Marathi')"
+                [style.border-color]="selectedLanguage === 'Marathi' ? '#fbbf24' : 'transparent'"
+                [style.background]="selectedLanguage === 'Marathi' ? '#fff9eb' : '#f8fafc'"
+                style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-radius: 20px; cursor: pointer; border: 2px solid; transition: 0.2s;">
+                <span [style.color]="selectedLanguage === 'Marathi' ? '#92400e' : '#475569'"
+                    style="font-size: 15px; font-weight: 700;">मराठी</span>
+                <div *ngIf="selectedLanguage === 'Marathi'"
+                    style="width: 18px; height: 18px; border-radius: 50%; background: #fbbf24; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-check" style="color: white; font-size: 10px;"></i>
+                </div>
+                <div *ngIf="selectedLanguage !== 'Marathi'"
+                    style="width: 18px; height: 18px; border-radius: 50%; border: 2px solid #e2e8f0;"></div>
+            </label>
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 25px;">
+            <button (click)="toggleLanguageModal(false)"
+                style="flex: 1; padding: 14px; border-radius: 16px; background: #f1f5f9; color: #64748b; font-weight: 700; border: none;">Cancel</button>
+            <button (click)="confirmLanguage()"
+                style="flex: 1; padding: 14px; border-radius: 16px; background: linear-gradient(to right, #5ac78b, #0a6817); color: white; font-weight: 700; border: none;">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<!-- <div *ngIf="showSplash" id="splash-screen"
+    class="fixed inset-0 z-[10005] flex flex-col justify-center items-center text-white">
+
+    <div class="animate-bounce-slow">
+        <i class="fas fa-leaf text-6xl mb-4 text-emerald-400"></i>
+    </div>
+
+    <h1 style="font-size: 32px; font-weight: 900; letter-spacing: -1px; margin: 0;">PugArch FSM</h1>
+    <p
+        style="font-size: 14px; opacity: 0.8; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; margin-top: 5px;">
+        Forest Management System
+    </p>
+
+    <div
+        style="width: 140px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 10px; margin-top: 30px; overflow: hidden;">
+        <div class="loading-progress"></div>
+    </div>
+</div>  -->
+
+
+<!-- <div class="nav-fixed-wrap" *ngIf="currentPage === 'home'" 
+     style="position: fixed; bottom: 0; left: 0; width: 100%; z-index: 9999; display: flex; justify-content: center; padding-bottom: 20px; pointer-events: none;">
+    
+    <div style="position: absolute; width: 40%; height: 50px; background: #0d9488; filter: blur(40px); opacity: 0.4; bottom: 20px; left: 10%; z-index: -1;"></div>
+    <div style="position: absolute; width: 40%; height: 50px; background: #fbbf24; filter: blur(40px); opacity: 0.2; bottom: 20px; right: 10%; z-index: -1;"></div>
+
+    <div class="custom-nav-bar" 
+         style="background: linear-gradient(135deg, #065431 0%, #052c1e 100%); display: flex; justify-content: space-around; align-items: center; padding: 0 10px; border-radius: 40px; box-shadow: 0 15px 35px rgba(0,0,0,0.5); position: relative; height: 70px; width: 92%; pointer-events: auto; border: 1px solid rgba(255,255,255,0.08);">
+        
+        <div class="nav-tab" style="display: flex; flex-direction: column; align-items: center; gap: 4px; color: #ffffff; flex: 1; cursor: pointer;">
+            <i class="fas fa-home" style="font-size: 18px; filter: drop-shadow(0 0 5px rgba(255,255,255,0.3));"></i>
+            <span style="font-size: 9px; font-weight: 800; letter-spacing: 0.5px;">HOME</span>
+        </div>
+
+        <div class="nav-tab" (click)="goToPage('patrol-logs')" style="display: flex; flex-direction: column; align-items: center; gap: 4px; color:#ffffff; flex: 1; cursor: pointer;">
+            <i class="fas fa-shoe-prints" style="font-size: 18px;"></i>
+            <span style="font-size: 9px; font-weight: 800;">PATROL</span>
+        </div>
+
+        <div class="sos-anchor" style="position: relative; top: -10px; flex: 1; display: flex; justify-content: center; align-items: center;">
+            <div class="sos-circle" 
+                 style="background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%); width: 66px; height: 66px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #ffffff; box-shadow: 0 10px 25px rgba(239, 68, 68, 0.5); border: 6px solid #065431;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 20px;"></i>
+                <span style="font-size: 10px; font-weight: 900; margin-top: 2px;">SOS</span>
+            </div>
+        </div>
+
+        <div class="nav-tab" (click)="goToPage('incidents')" style="display: flex; flex-direction: column; align-items: center; gap: 4px; color: #ffffff; flex: 1; cursor: pointer; ">
+            <i class="fas fa-binoculars" style="font-size: 18px;"></i>
+            <span style="font-size: 9px; font-weight: 800;">ALERTS</span>
+        </div>
+
+        <div class="nav-tab" (click)="goToPage('settings')" style="display: flex; flex-direction: column; align-items: center; gap: 4px; color: #ffffff  ; flex: 1; cursor: pointer;">
+            <i class="fas fa-user-shield" style="font-size: 18px;"></i>
+            <span style="font-size: 9px; font-weight: 800;">RANGER</span>
+        </div>
+    </div>
+</div> -->
 
 <div class="nav-fixed-wrap" *ngIf="currentPage === 'home'">
     <div class="custom-nav-bar">

@@ -10,10 +10,12 @@ import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
   standalone: false
 })
 export class AttendancePage implements OnInit {
+  // ✅ All properties must be declared here
   public isEntry: boolean = true;
-  public capturedPhoto: string | undefined = undefined;
-  public rangerName: string = 'Ranger';
-  public selectedGeofence: string = 'Panna Site';
+  public capturedPhoto: string = '';
+  public rangerName: string = 'Loading...';
+  public rangerRegion: string = 'Washim'; // Added missing property
+  public selectedSite: string = 'panna';
 
   constructor(
     private navCtrl: NavController,
@@ -22,76 +24,84 @@ export class AttendancePage implements OnInit {
   ) {}
 
   ngOnInit() {
-    const storedName = localStorage.getItem('ranger_name');
-    if (storedName) {
-      this.rangerName = storedName;
-    }
+    // Load data from storage
+    this.rangerName = localStorage.getItem('ranger_username') || 'Ranger';
+    const storedRegion = localStorage.getItem('ranger_region');
+    this.rangerRegion = storedRegion ? storedRegion : 'Washim';
   }
 
-  goBack() { this.navCtrl.back(); }
-  setMode(entry: boolean) { this.isEntry = entry; }
+  goBack() {
+    this.navCtrl.back();
+  }
 
+  setMode(entry: boolean) {
+    this.isEntry = entry;
+  }
+
+  
+
+ // attendance.page.ts
 async captureImage() {
   try {
     const image = await Camera.getPhoto({
-      quality: 30, // Low quality to prevent "413 Request Entity Too Large"
-      allowEditing: false, // Set to true if you want rangers to crop the photo
+      quality: 90,
+      allowEditing: false,
       resultType: CameraResultType.Base64,
-      source: CameraSource.Camera, // ✅ FORCES the native camera to open
-      promptLabelHeader: 'Capture Attendance Photo',
-      promptLabelPhoto: 'From Gallery', // Optional: if you want to allow gallery
-      promptLabelPicture: 'Take Photo'  // Optional: labels for the prompt
+      // ✅ Change this from 'Prompt' to 'Camera' to force the lens to open
+      source: CameraSource.Camera 
     });
 
     if (image.base64String) {
       this.capturedPhoto = `data:image/jpeg;base64,${image.base64String}`;
-      this.presentToast('Photo captured successfully!', 'success');
     }
   } catch (error) {
-    console.error('Camera error:', error);
-    // This catches when the user cancels or denies permission
-    this.presentToast('Camera access was cancelled.', 'warning');
+    console.warn('Camera closed');
   }
 }
-
   async submitAttendance() {
     const rangerId = localStorage.getItem('ranger_id');
 
-    if (!this.capturedPhoto) {
-      this.presentToast('Please capture a photo first!', 'warning');
+    if (!rangerId) {
+      this.presentToast('Error: No Ranger ID found.', 'danger');
       return;
     }
 
+    if (!this.capturedPhoto) {
+      this.presentToast('Please capture ID photo first!', 'warning');
+      return;
+    }
+
+    // ✅ Fixed Syntax: Using commas (,) not semicolons (;) inside objects
     const attendanceData = {
-      ranger_id: Number(rangerId), // Ensure it's a number
-      photo: this.capturedPhoto, 
-      ranger: this.rangerName,
-      geofence: this.selectedGeofence,
-      // Ensure your backend entity has a column for 'type' if you send this:
-      type: this.isEntry ? 'ENTRY' : 'EXIT' 
+      ranger_id: Number(rangerId),
+      photo: this.capturedPhoto,
+      rangerName: this.rangerName,
+      region: this.rangerRegion,
+      geofence: this.selectedSite,
+      type: this.isEntry ? 'ENTRY' : 'EXIT',
+      timestamp: new Date()
     };
 
-    // Note: localhost:3000 only works on browser. 
-    // Use your IP address if testing on a real phone!
-    this.http.post('http://localhost:3000/api/attendance/beat-attendance', attendanceData)
+    this.http.post('http://localhost:3000/api/attendance', attendanceData)
       .subscribe({
-        next: (res) => {
-          this.presentToast('Attendance saved successfully!', 'success');
-          setTimeout(() => this.navCtrl.back(), 1500);
+        next: async (res: any) => {
+          await this.presentToast('Attendance Marked Successfully!', 'success');
+          setTimeout(() => this.navCtrl.back(), 2000);
         },
-        error: (err) => {
-          console.error(err);
-          this.presentToast('Upload failed. Check server limits.', 'danger');
+        error: async (err) => {
+          console.error('API Error:', err);
+          this.presentToast('Database Sync Failed.', 'danger');
         }
       });
   }
 
   async presentToast(message: string, color: string) {
     const toast = await this.toastCtrl.create({
-      message,
+      message: message,
       duration: 2000,
-      color,
-      position: 'bottom'
+      position: 'bottom',
+      color: color,
+      mode: 'ios'
     });
     toast.present();
   }
