@@ -86,7 +86,7 @@
   </div>
 </div>
 
-      <div class="input-group">
+      <!-- <div class="input-group">
         <label>SECURITY PASSWORD</label>
         <div class="field">
           <i class="fas fa-lock"></i>
@@ -96,6 +96,16 @@
              (click)="isPasswordVisible = !isPasswordVisible"
              class="eye-toggle">
           </i>
+        </div>
+      </div> -->
+
+      <div class="input-group">
+        <label>SECURITY PASSWORD</label>
+        <div class="field">
+          <i class="fas fa-lock"></i>
+          <input [type]="isPasswordVisible ? 'text' : 'password'" [(ngModel)]="loginData.password" placeholder="••••••••">
+          <i class="fas" [ngClass]="isPasswordVisible ? 'fa-eye-slash' : 'fa-eye'" 
+             (click)="isPasswordVisible = !isPasswordVisible" class="eye-toggle"></i>
         </div>
       </div>
 
@@ -112,37 +122,77 @@
       </div>
     </div>
   </div>
-
-
-<ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false">
+<ion-modal [isOpen]="isResetModalOpen" class="reset-modal">
   <ng-template>
-    <ion-content class="ion-padding">
-      <div class="verified-card">
-        <img src="assets/icon/success-illustration.png" class="success-img" />
+    <div class="login-container modal-style">
+      <div class="login-card">
+        <h2 class="form-title">Reset Password</h2>
         
-        <h2>You're all verified!</h2>
-        <p>If you lose your phone, this code is your failsafe to access your account.</p>
-        
-        <label style="align-self: flex-start; font-size: 12px; color: #666;">Recovery code</label>
-        <div class="code-box">
-  <ion-input [(ngModel)]="recoveryCode" readonly></ion-input>
-
-          <!-- <ion-input [value]="recoveryCode" readonly></ion-input> -->
-          <ion-button fill="clear" (click)="copyCode()">
-            <ion-icon name="copy-outline" slot="icon-only"></ion-icon>
-          </ion-button>
+        <div *ngIf="!isOtpVerified" class="animate__animated animate__fadeIn">
+          <p style="color: #ccc; text-align: center; font-size: 0.85em; margin-bottom: 15px;">
+            Enter the 6-digit code sent to your email.
+          </p>
+          <div class="input-group">
+            <label>OTP CODE</label>
+            <div class="field">
+              <i class="fas fa-key"></i>
+              <input type="text" [(ngModel)]="resetData.otp" placeholder="Enter 6-digit OTP">
+            </div>
+            <div class="resend-wrapper">
+              <p *ngIf="resendCountdown > 0" class="timer-text">Resend in <b>{{ resendCountdown }}s</b></p>
+              <a *ngIf="resendCountdown === 0" (click)="resendOtp()" class="resend-link">RESEND OTP</a>
+            </div>
+          </div>
+          <button class="login-btn" (click)="verifyOtpOnly()" style="margin-top: 20px;">
+            VERIFY OTP <i class="fas fa-check-circle"></i>
+          </button>
         </div>
 
-        <div class="warning-box">
-          <ion-icon name="warning-outline"></ion-icon>
-          <span>Save this code somewhere safe and accessible</span>
+        <!-- <div *ngIf="isOtpVerified" class="animate__animated animate__fadeIn">
+          <p style="color: #2dd36f; text-align: center; font-size: 0.9em; margin-bottom: 20px;">
+            <i class="fas fa-check-circle"></i> OTP Verified. Set your new password.
+          </p> -->
+
+          <div *ngIf="isOtpVerified" class="animate__animated animate__zoomIn">
+  
+  <div style="text-align: center; margin-bottom: 20px;">
+    <div class="success-icon-wrapper">
+      <i class="fas fa-check-circle verified-check"></i>
+    </div>
+    <h3 style="color: #2dd36f; margin-top: 10px; font-size: 1.1em;">Verified!</h3>
+    <p style="color: #ccc; font-size: 0.8em;">Set your new security password below</p>
+  </div>
+
+         
+
+          <div class="input-group">
+    <label>NEW PASSWORD</label>
+    <div class="field">
+      <i class="fas fa-lock"></i>
+      <input [type]="showNewPassword ? 'text' : 'password'" [(ngModel)]="resetData.newPassword" placeholder="••••••••">
+      <i class="fas" [ngClass]="showNewPassword ? 'fa-eye-slash' : 'fa-eye'" (click)="toggleNewPassword()" class="eye-toggle"></i>
+    </div>
+  </div>
+
+          <div class="input-group">
+            <label>CONFIRM PASSWORD</label>
+            <div class="field">
+              <i class="fas fa-check-circle"></i>
+              <input [type]="showConfirmPassword ? 'text' : 'password'" [(ngModel)]="resetData.confirmPassword" placeholder="Confirm Password">
+              <i class="fas" [ngClass]="showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'" (click)="toggleConfirmPassword()" class="eye-toggle"></i>
+            </div>
+          </div>
+
+          <button class="login-btn" (click)="handlePasswordReset()">
+            UPDATE PASSWORD <i class="fas fa-save"></i>
+          </button>
         </div>
-        
-        <ion-button expand="block" (click)="isModalOpen = false" mode="ios">
-          CONTINUE
-        </ion-button>
+
+        <div class="forgot-link" style="text-align: center; margin-top: 15px;">
+          <a (click)="closeResetModal()" style="color: #ff4d4d; cursor: pointer;">CANCEL</a>
+        </div>
       </div>
-    </ion-content>
+    </div>
   </ng-template>
 </ion-modal>
 </ion-content>
