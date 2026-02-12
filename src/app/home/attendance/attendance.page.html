@@ -61,16 +61,6 @@
         </div>
       </div>
 
-      <div class="toggle-container">
-        <button [class.active]="isEntry" (click)="setMode(true)" class="toggle-btn">
-          <div class="dot" *ngIf="isEntry"></div>
-          <span>ENTRY</span>
-        </button>
-        <button [class.active]="!isEntry" (click)="setMode(false)" class="toggle-btn">
-          <div class="dot" *ngIf="!isEntry"></div>
-          <span>EXIT</span>
-        </button>
-      </div>
 
       <button class="submit-btn" (click)="submitAttendance()">
         <ion-icon name="finger-print-outline"></ion-icon>

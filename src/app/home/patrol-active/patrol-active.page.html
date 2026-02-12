@@ -1,10 +1,8 @@
+
 <ion-content [fullscreen]="true">
   <div id="patrol-progress-page" style="min-height: 100vh; background: #F3F4F6; font-family: 'Segoe UI', Roboto, sans-serif; padding-bottom: 60px;">
     
     <div style="background: #061A13; padding: 50px 24px 40px; border-radius: 0 0 40px 40px; position: relative; overflow: hidden;">
-      <ion-icon name="paw" style="position: absolute; top: 10%; right: 5%; font-size: 60px; color: rgba(255,255,255,0.03); transform: rotate(20deg);"></ion-icon>
-      <ion-icon name="leaf" style="position: absolute; bottom: 10%; left: 5%; font-size: 40px; color: rgba(16, 185, 129, 0.05); transform: rotate(-15deg);"></ion-icon>
-
       <div style="display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 2;">
         <div>
           <h1 style="margin: 0; font-size: 24px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">Patrol Active</h1>
@@ -13,95 +11,89 @@
             <p style="margin: 0; font-size: 16px; font-weight: 700; font-family: 'Courier New', monospace; color: #86EFAC;">{{ timerDisplay }}</p>
           </div>
         </div>
-        
-        <button (click)="endPatrol()" 
-                style="background: #ef4444; color: white; border: none; padding: 12px 20px; border-radius: 14px; font-weight: 800; font-size: 12px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); cursor: pointer; text-transform: uppercase;">
-          End Trip
-        </button>
+        <button (click)="endPatrol()" style="background: #ef4444; color: white; border: none; padding: 12px 20px; border-radius: 14px; font-weight: 800; font-size: 12px; text-transform: uppercase;">End Trip</button>
       </div>
     </div>
 
     <div style="height: 300px; position: relative; margin: -25px 20px 0 20px; z-index: 5; overflow: hidden; border-radius: 28px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); border: 4px solid #ffffff;">
       <div id="map" style="height: 100%; width: 100%;"></div>
-      
-      <div style="position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); z-index: 1000; background: rgba(255,255,255,0.95); padding: 8px 16px; border-radius: 50px; border: 1.5px solid #86EFAC; display: flex; align-items: center; gap: 8px;">
-        <i class="fas fa-location-crosshairs fa-spin" style="color: #3b82f6; font-size: 12px;"></i>
-        <span style="font-size: 10px; font-weight: 900; color: #1e293b; text-transform: uppercase;">Live GPS Active</span>
-      </div>
-
-      <button (click)="recenterMap()" 
-              style="position: absolute; top: 15px; right: 15px; z-index: 1000; background: white; border: none; width: 42px; height: 42px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); color: #061A13;">
-        <i class="fas fa-crosshairs"></i>
-      </button>
+      <button (click)="recenterMap()" style="position: absolute; top: 15px; right: 15px; z-index: 1000; background: white; border: none; width: 42px; height: 42px; border-radius: 12px; color: #061A13;"><i class="fas fa-crosshairs"></i></button>
     </div>
 
     <div style="padding: 25px 20px;">
       <div style="background: #ffffff; border-radius: 28px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.02);">
-        
-        <h2 style="font-size: 11px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+        <h2 style="font-size: 11px; font-weight: 900; color: #94a3b8; text-transform: uppercase; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
             <i class="fas fa-clipboard-list" style="color: #10b981;"></i> Field Observations
         </h2>
-
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
-            <div class="log-item" style="border-bottom: 4px solid #f59e0b;"><i class="fas fa-paw"></i><p>Animal</p></div>
-            <div class="log-item" style="border-bottom: 4px solid #3b82f6;"><i class="fas fa-droplet"></i><p>Water</p></div>
-            <div class="log-item" style="border-bottom: 4px solid #8b5cf6;"><i class="fas fa-person-hiking"></i><p>Impact</p></div>
-            <div class="log-item" style="border-bottom: 4px solid #1e293b;"><i class="fas fa-skull"></i><p>Death</p></div>
-            <div class="log-item" style="border-bottom: 4px solid #ef4444;"><i class="fas fa-tree"></i><p>Felling</p></div>
-            <div class="log-item" style="border-bottom: 4px solid #10b981;"><i class="fas fa-circle-plus"></i><p>Other</p></div>
-        </div>
-
-        <div style="margin-top: 30px;">
-            <button style="width: 100%; background: #061A13; color: #86EFAC; border: none; padding: 20px; border-radius: 20px; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); text-transform: uppercase; letter-spacing: 1px;">
-                <i class="fas fa-camera" style="font-size: 18px;"></i> Quick Photo Log
-            </button>
+            <div class="log-item" (click)="openObservation('Animal')" style="border-bottom: 4px solid #f59e0b;"><i class="fas fa-paw"></i><p>Animal</p></div>
+            <div class="log-item" (click)="openObservation('Water')" style="border-bottom: 4px solid #3b82f6;"><i class="fas fa-droplet"></i><p>Water</p></div>
+            <div class="log-item" (click)="openObservation('Impact')" style="border-bottom: 4px solid #8b5cf6;"><i class="fas fa-person-hiking"></i><p>Impact</p></div>
+            <div class="log-item" (click)="openObservation('Death')" style="border-bottom: 4px solid #1e293b;"><i class="fas fa-skull"></i><p>Death</p></div>
+            <div class="log-item" (click)="openObservation('Felling')" style="border-bottom: 4px solid #ef4444;"><i class="fas fa-tree"></i><p>Felling</p></div>
+            <div class="log-item" (click)="openObservation('Other')" style="border-bottom: 4px solid #10b981;"><i class="fas fa-circle-plus"></i><p>Other</p></div>
         </div>
       </div>
+      
+        <div style="margin-top: 30px;">
+    <button (click)="takeQuickPhoto()" 
+            style="width: 100%; background: #061A13; color: #86EFAC; border: none; padding: 20px; border-radius: 20px; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); text-transform: uppercase; letter-spacing: 1px;">
+        <i class="fas fa-camera" style="font-size: 18px;"></i> Quick Photo Log
+    </button>
+</div>
     </div>
   </div>
+  
+
+  <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false" style="--height: 90%; --border-radius: 30px 30px 0 0;">
+    <ng-template>
+      <ion-header class="ion-no-border">
+        <ion-toolbar style="--background: #ffffff; padding: 10px;">
+          <ion-title style="font-size: 18px; font-weight: 800; color: #111;">{{ currentType }} Log – New Entry</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="isModalOpen = false" style="font-weight: 700; color: #ef4444;">CANCEL</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="ion-padding" style="--background: #ffffff;">
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px;">Log Type</label>
+            <ion-select [(ngModel)]="sightingData.type" interface="popover" style="background: #F3F4F6; border-radius: 14px; padding: 10px;">
+              <ion-select-option value="Direct">Direct Observation</ion-select-option>
+              <ion-select-option value="Indirect">Indirect (Evidence)</ion-select-option>
+            </ion-select>
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px;">
+              {{ currentType === 'Felling' ? 'Tree Species' : currentType === 'Water' ? 'Water Source Name' : 'Species/Details' }}
+            </label>
+            <ion-input [(ngModel)]="sightingData.species" placeholder="Enter details..." style="background: #F3F4F6; border-radius: 14px; --padding-start: 15px;"></ion-input>
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px;">Count / Quantity</label>
+            <ion-input type="number" [(ngModel)]="sightingData.count" style="background: #F3F4F6; border-radius: 14px; --padding-start: 15px;"></ion-input>
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px;">Notes</label>
+            <ion-textarea [(ngModel)]="sightingData.notes" placeholder="Describe the findings..." rows="3" style="background: #F3F4F6; border-radius: 14px; --padding-start: 15px;"></ion-textarea>
+          </div>
+
+          <button (click)="takeQuickPhoto()" style="background: white; border: 2px dashed #10b981; color: #10b981; padding: 15px; border-radius: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px;">
+            <i class="fas fa-camera"></i> ATTACH PHOTO
+          </button>
+
+          <button (click)="saveObservation()" style="width: 100%; background: #10b981; color: white; border: none; padding: 20px; border-radius: 18px; font-weight: 800; font-size: 16px; margin-top: 10px; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2);">
+            SAVE {{ currentType.toUpperCase() }} LOG
+          </button>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
 </ion-content>
-
-<style>
-  /* Pulse Animation for Active Timer */
-  .pulse-dot {
-    width: 10px;
-    height: 10px;
-    background: #ef4444;
-    border-radius: 50%;
-    animation: pulse 1.5s infinite;
-  }
-
-  @keyframes pulse {
-    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-  }
-
-  /* Observation Item Styles */
-  .log-item {
-    background: #F9FAFB;
-    border-radius: 18px;
-    padding: 15px 5px;
-    text-align: center;
-    transition: all 0.2s ease;
-  }
-
-  .log-item i {
-    font-size: 18px;
-    color: #1F2937;
-    margin-bottom: 5px;
-  }
-
-  .log-item p {
-    margin: 0;
-    font-size: 10px;
-    font-weight: 800;
-    color: #4B5563;
-    text-transform: uppercase;
-  }
-
-  .log-item:active {
-    background: #E5E7EB;
-    transform: scale(0.95);
-  }
-</style>

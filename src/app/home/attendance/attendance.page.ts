@@ -28,7 +28,6 @@ export class AttendancePage implements OnInit, OnDestroy {
   private markerId: string | null = null;
 
   private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw';
-  // FIXED: Pointing to localhost for browser testing, using the /api prefix
   private apiUrl: string = 'http://localhost:3000/api/attendance/beat-attendance';
 
   constructor(
@@ -88,11 +87,21 @@ export class AttendancePage implements OnInit, OnDestroy {
     this.watchId = await Geolocation.watchPosition(
       { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 },
       (position) => {
-        if (position) {
+        if (position && position.coords) {
           this.currentLat = position.coords.latitude;
           this.currentLng = position.coords.longitude;
+          
           this.updateAddress(this.currentLat, this.currentLng);
           this.updateMarker();
+
+          // Move the camera to track the user live
+          if (this.newMap) {
+            this.newMap.setCamera({
+              coordinate: { lat: this.currentLat, lng: this.currentLng },
+              zoom: 17,
+              animate: true
+            });
+          }
         }
       }
     );
@@ -100,11 +109,18 @@ export class AttendancePage implements OnInit, OnDestroy {
 
   async updateMarker() {
     if (!this.newMap) return;
-    if (this.markerId) await this.newMap.removeMarkers([this.markerId]);
+
+    // Remove old marker to prevent a trail of pins
+    if (this.markerId) {
+      await this.newMap.removeMarkers([this.markerId]);
+    }
+
+    // Add a marker to show the live location
     const result = await this.newMap.addMarker({
       coordinate: { lat: this.currentLat, lng: this.currentLng },
-      title: 'Your Location',
+      title: 'Your Location'
     });
+    
     this.markerId = result;
   }
 
@@ -135,7 +151,7 @@ export class AttendancePage implements OnInit, OnDestroy {
   async captureImage(source: CameraSource) {
     try {
       const photo = await Camera.getPhoto({
-        quality: 40, // Lower quality to prevent payload size issues
+        quality: 40,
         allowEditing: false,
         source: source,
         resultType: CameraResultType.Base64,
@@ -149,8 +165,6 @@ export class AttendancePage implements OnInit, OnDestroy {
     }
   }
 
-  setMode(entry: boolean) { this.isEntry = entry; }
-
   async submitAttendance() {
     const rangerId = localStorage.getItem('ranger_id');
     
@@ -159,12 +173,11 @@ export class AttendancePage implements OnInit, OnDestroy {
       return;
     }
 
-    // FIXED: Keys now match the beat_attendance SQL table columns
     const attendanceData = {
       ranger_id: Number(rangerId),
-      ranger: this.rangerName,     // Matches 'ranger' column
-      photo: this.capturedPhoto,   // Matches 'photo' column
-      geofence: this.currentAddress, // Matches 'geofence' column
+      ranger: this.rangerName,
+      photo: this.capturedPhoto,
+      geofence: this.currentAddress,
       type: this.isEntry ? 'ENTRY' : 'EXIT',
       latitude: this.currentLat,
       longitude: this.currentLng
@@ -177,7 +190,7 @@ export class AttendancePage implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('Sync Error Details:', err);
-        this.presentToast('Database Sync Failed. Check Console.', 'danger');
+        this.presentToast('Database Sync Failed.', 'danger');
       }
     });
   }

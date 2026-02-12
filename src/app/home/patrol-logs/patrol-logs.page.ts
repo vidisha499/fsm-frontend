@@ -1,78 +1,6 @@
-
-
-// import { Component, OnInit } from '@angular/core';
-// import { Router } from '@angular/router';
-// import { NavController, AlertController, ToastController } from '@ionic/angular';
-// import { HttpClient } from '@angular/common/http';
-
-// @Component({
-//   selector: 'app-patrol-logs',
-//   templateUrl: './patrol-logs.page.html',
-//   styleUrls: ['./patrol-logs.page.scss'],
-//   standalone: false
-// })
-// export class PatrolLogsPage implements OnInit {
-//   public patrolLogs: any[] = [];
-//   private apiUrl = 'http://localhost:3000/api/patrol';
-
-//   constructor(
-//     private navCtrl: NavController,
-//     private router: Router,
-//     private http: HttpClient,
-//     private alertCtrl: AlertController,
-//     private toastCtrl: ToastController
-//   ) { }
-
-//   ngOnInit() { }
-
-//   ionViewWillEnter() {
-//     this.loadPatrolLogs();
-//   }
-
-//   loadPatrolLogs() {
-//     const rangerId = localStorage.getItem('ranger_id');
-//     if (!rangerId) return;
-
-//     this.http.get(`${this.apiUrl}/my-logs/${rangerId}`)
-//       .subscribe({
-//         next: (data: any) => { this.patrolLogs = data; },
-//         error: (err) => { console.error('Error fetching patrol logs', err); }
-//       });
-//   }
-
-//   // --- POP UP LOGIC ---
-//   async startNewPatrol() {
-//     const alert = await this.alertCtrl.create({
-//       header: 'Start Trip?',
-//       message: 'Do you want to begin a new patrol session?',
-//       buttons: [
-//         { text: 'Cancel', role: 'cancel' },
-//         {
-//           text: 'OK',
-//           handler: () => {
-//             // Save the start time in localStorage to use it later when ending the trip
-//             localStorage.setItem('patrol_start_time', new Date().toISOString());
-//             this.router.navigate(['/patrol-active']);
-//           }
-//         }
-//       ]
-//     });
-//     await alert.present();
-//   }
-
-//   goBack() { this.navCtrl.back(); }
-
-//   formatDateTime(start: string, end: string) {
-//     if (!start || !end) return 'Time N/A';
-//     const s = new Date(start);
-//     const e = new Date(end);
-//     return `${s.toLocaleDateString()}, ${s.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${e.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
-//   }
-// }
-
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { NavController, AlertController, ToastController } from '@ionic/angular';
+import { NavController, ToastController, AlertController } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
 
 @Component({
@@ -83,15 +11,17 @@ import { HttpClient } from '@angular/common/http';
 })
 export class PatrolLogsPage implements OnInit {
   public patrolLogs: any[] = [];
-  // FIXED: Changed 'patrol' to 'patrols' to match index.mjs
+  public isModalOpen = false;
+  public selectedMethod = '';
+  public selectedType = '';
   private apiUrl = 'http://localhost:3000/api/patrols';
 
   constructor(
     private navCtrl: NavController,
     private router: Router,
     private http: HttpClient,
-    private alertCtrl: AlertController,
-    private toastCtrl: ToastController
+    private toastCtrl: ToastController,
+    private alertCtrl: AlertController
   ) { }
 
   ngOnInit() { }
@@ -101,28 +31,78 @@ export class PatrolLogsPage implements OnInit {
   }
 
   loadPatrolLogs() {
-    const rangerId = localStorage.getItem('ranger_id');
-    if (!rangerId) return;
-
-    // This correctly requests only THIS ranger's logs
-    this.http.get(`${this.apiUrl}/my-logs/${rangerId}`)
+    this.http.get(`${this.apiUrl}/logs`)
       .subscribe({
         next: (data: any) => { this.patrolLogs = data; },
-        error: (err) => { console.error('Error fetching patrol logs', err); }
+        error: (err) => { console.error('Error fetching logs', err); }
       });
   }
 
-  async startNewPatrol() {
+  setOpen(isOpen: boolean) {
+    this.isModalOpen = isOpen;
+    if (isOpen) {
+      this.selectedMethod = '';
+      this.selectedType = '';
+    }
+  }
+
+  /**
+   * Validates selections and navigates.
+   * Modal is closed explicitly here to ensure it disappears.
+   */
+  async savePatrol() {
+    // 1. Validation check
+    if (!this.selectedMethod || !this.selectedType) {
+      const toast = await this.toastCtrl.create({
+        message: 'Please select both Method and Type before starting.',
+        duration: 2000,
+        color: 'warning',
+        position: 'bottom'
+      });
+      await toast.present();
+      return; 
+    }
+
+    // 2. Prepare data
+    const patrolName = `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`;
+    localStorage.setItem('temp_patrol_name', patrolName);
+    
+    // 3. Close the modal FIRST
+    // This triggers the dismissal of the ion-modal UI component
+    this.isModalOpen = false;
+
+    // 4. Navigate to the active patrol page
+    // We use a slight delay or the router promise to ensure smooth transition
+    this.router.navigate(['/patrol-active']).then(() => {
+      // Optional: Reset selections for when the user eventually returns
+      this.selectedMethod = '';
+      this.selectedType = '';
+    });
+  }
+
+  async deleteLog(id: number, event: Event) {
+    event.stopPropagation();
     const alert = await this.alertCtrl.create({
-      header: 'Start Trip?',
-      message: 'Do you want to begin a new patrol session?',
+      header: 'Delete Log',
+      message: 'Are you sure you want to delete this patrol record?',
       buttons: [
         { text: 'Cancel', role: 'cancel' },
         {
-          text: 'OK',
+          text: 'Delete',
+          role: 'destructive',
           handler: () => {
-            localStorage.setItem('patrol_start_time', new Date().toISOString());
-            this.router.navigate(['/patrol-active']);
+            this.http.delete(`${this.apiUrl}/logs/${id}`).subscribe({
+              next: async () => {
+                this.patrolLogs = this.patrolLogs.filter(log => log.id !== id);
+                const toast = await this.toastCtrl.create({
+                  message: 'Log deleted successfully',
+                  duration: 2000,
+                  color: 'success'
+                });
+                await toast.present();
+              },
+              error: (err) => console.error('Delete failed', err)
+            });
           }
         }
       ]
@@ -131,11 +111,4 @@ export class PatrolLogsPage implements OnInit {
   }
 
   goBack() { this.navCtrl.back(); }
-
-  formatDateTime(start: string, end: string) {
-    if (!start || !end) return 'Time N/A';
-    const s = new Date(start);
-    const e = new Date(end);
-    return `${s.toLocaleDateString()}, ${s.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${e.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
-  }
 }
