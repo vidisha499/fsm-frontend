@@ -1,4 +1,4 @@
-<ion-content [fullscreen]="true" class="attendance-content">
+ <!-- <ion-content [fullscreen]="true" class="attendance-content">
   <div class="header-banner">
     <div class="header-decor">
       <ion-icon name="paw" class="paw-1"></ion-icon>
@@ -73,4 +73,93 @@
       <p>GPS TRACKING ACTIVE. SYSTEM IS LOGGING: {{ currentAddress }}</p>
     </div>
   </div>
-</ion-content>  
+</ion-content>   -->
+
+
+<ion-content [fullscreen]="true" class="attendance-content">
+  <div class="header-banner">
+    <div class="header-decor">
+      <ion-icon name="paw" class="paw-1"></ion-icon>
+      <ion-icon name="leaf" class="leaf-1"></ion-icon>
+    </div>
+
+    <div class="header-nav-row">
+      <div class="nav-left">
+        <ion-button (click)="goBack()" class="back-btn" mode="md">
+          <ion-icon name="arrow-back-outline"></ion-icon>
+        </ion-button>
+        <div class="title-group">
+          <h1>{{ 'ATTENDANCE.TITLE' | translate }}</h1>
+          <!-- <p class="subtitle">Panna Site Operation</p> -->
+           <p class="subtitle">{{ 'ATTENDANCE.SUBTITLE' | translate }}</p>
+        </div>
+      </div>
+      <div class="live-badge"><span>{{ 'ATTENDANCE.LIVE' | translate }}</span></div>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <div class="form-card">
+      
+      <div class="id-capture-wrapper">
+        <div class="id-box" (click)="presentImageSourceOptions()">
+          <ng-container *ngIf="!capturedPhoto">
+            <ion-icon name="camera-outline"></ion-icon>
+            <span class="label">{{ 'ATTENDANCE.CAPTURE_ID' | translate }}</span>
+          </ng-container>
+          <img *ngIf="capturedPhoto" [src]="capturedPhoto" class="preview-img" />
+          <div class="check-badge" *ngIf="capturedPhoto">
+            <ion-icon name="checkmark-circle"></ion-icon>
+          </div>
+        </div>
+      </div>
+
+      <div class="map-wrapper">
+        <label class="group-label">{{ 'ATTENDANCE.LIVE_TRACKING' | translate }}</label>
+        <div class="map-container">
+          <capacitor-google-map #map id="map"></capacitor-google-map>
+        </div>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-tile">
+          <label>{{ 'ATTENDANCE.RANGER' | translate }}</label>
+          <p>{{ rangerName }}</p>
+        </div>
+        <div class="info-tile">
+          <label>{{ 'ATTENDANCE.REGION' | translate }}</label>
+          <p>{{ rangerRegion }}</p>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label class="group-label">{{ 'ATTENDANCE.DETECTED_GEOFENCE' | translate }}</label>
+        <div class="location-display-box">
+          <ion-icon name="checkmark-circle" color="success"></ion-icon>
+          <span class="location-text">{{ currentAddress }}</span>
+        </div>
+      </div>
+
+      <div class="toggle-container">
+        <button [class.active]="isEntry" (click)="setMode(true)" class="toggle-btn">
+          <div class="dot" *ngIf="isEntry"></div>
+          <span>{{ 'ATTENDANCE.ENTRY' | translate }}</span>
+        </button>
+        <button [class.active]="!isEntry" (click)="setMode(false)" class="toggle-btn">
+          <div class="dot" *ngIf="!isEntry"></div>
+          <span>{{ 'ATTENDANCE.EXIT' | translate }}</span>
+        </button>
+      </div>
+
+      <button class="submit-btn" (click)="submitAttendance()">
+        <ion-icon name="finger-print-outline"></ion-icon>
+        <span>{{ 'ATTENDANCE.MARK_BUTTON' | translate }}</span>
+      </button>
+    </div>
+
+    <div class="gps-notice">
+      <div class="icon-box"><ion-icon name="location"></ion-icon></div>
+      <p>{{ 'ATTENDANCE.GPS_NOTICE' | translate:{address: currentAddress} }}</p>
+    </div>
+  </div>
+</ion-content>

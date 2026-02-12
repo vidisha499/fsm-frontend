@@ -4,6 +4,7 @@ import { Geolocation } from '@capacitor/geolocation';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { HttpClient } from '@angular/common/http';
 import * as L from 'leaflet';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-patrol-active',
@@ -51,7 +52,8 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     private navCtrl: NavController, 
     private alertCtrl: AlertController,
     private toastCtrl: ToastController,
-    private http: HttpClient 
+    private http: HttpClient ,
+    private translate: TranslateService
   ) { }
 
   ngOnInit() {

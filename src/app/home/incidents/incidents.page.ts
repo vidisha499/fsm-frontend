@@ -42,12 +42,14 @@
 import { Component } from '@angular/core';
 import { NavController, AlertController, ToastController } from '@ionic/angular'; // Added Alert and Toast
 import { HttpClient } from '@angular/common/http';
+import { TranslateModule } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-incident',
   templateUrl: './incidents.page.html',
   styleUrls: ['./incidents.page.scss'],
-  standalone: false
+  standalone: false,
+  
 })
 export class IncidentsPage {
   public statusFilter: string = 'pending';
@@ -93,7 +95,9 @@ export class IncidentsPage {
   }
 
   deleteIncident(id: number) {
-    this.http.delete(`http://localhost:3000/api/incidents/delete/${id}`)
+    // this.http.delete(`http://localhost:3000/api/incidents/delete/${id}`)
+    // Remove the '/delete' part of the string
+this.http.delete(`http://localhost:3000/api/incidents/${id}`)
       .subscribe({
         next: async (res: any) => {
           // Remove from local array to update UI immediately

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 
 import { IonicModule } from '@ionic/angular';
 
+import { TranslateModule } from '@ngx-translate/core'
 import { PatrolActivePageRoutingModule } from './patrol-active-routing.module';
 
 import { PatrolActivePage } from './patrol-active.page';
@@ -13,7 +14,8 @@ import { PatrolActivePage } from './patrol-active.page';
     CommonModule,
     FormsModule,
     IonicModule,
-    PatrolActivePageRoutingModule
+    PatrolActivePageRoutingModule,
+   TranslateModule
   ],
   declarations: [PatrolActivePage]
 })

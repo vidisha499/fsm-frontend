@@ -86,6 +86,7 @@
   </div>
 </ion-content> -->
 
+<!-- 
 <ion-content [fullscreen]="true">
   <div id="new-incident-page" style="min-height: 100vh; background: #F3F4F6; font-family: 'Segoe UI', Roboto, sans-serif; padding-bottom: 60px;">
     
@@ -109,11 +110,22 @@
       
       <div style="background: #ffffff; border-radius: 28px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.02);">
         
-        <div style="width: 100%; height: 140px; background: #F9FAFB; border: 2px dashed #D1D5DB; border-radius: 24px; margin-bottom: 25px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;">
-          <div style="background: #DCFCE7; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
-            <i class="fas fa-camera" style="color: #059669; font-size: 20px;"></i>
-          </div>
-          <span style="font-size: 11px; font-weight: 800; color: #6B7280; text-transform: uppercase; letter-spacing: 1px;">Add Evidence Photo</span>
+        <div (click)="takePhoto()" 
+             style="width: 100%; height: 180px; background: #F9FAFB; border: 2px dashed #D1D5DB; border-radius: 24px; margin-bottom: 25px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; position: relative;">
+          
+          <ng-container *ngIf="!capturedPhoto">
+            <div style="background: #DCFCE7; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+              <i class="fas fa-camera" style="color: #059669; font-size: 20px;"></i>
+            </div>
+            <span style="font-size: 11px; font-weight: 800; color: #6B7280; text-transform: uppercase; letter-spacing: 1px;">Add Evidence Photo</span>
+          </ng-container>
+
+          <ng-container *ngIf="capturedPhoto">
+            <img [src]="capturedPhoto" style="width: 100%; height: 100%; object-fit: cover;" />
+            <div style="position: absolute; bottom: 0; background: rgba(0,0,0,0.5); width: 100%; padding: 8px; text-align: center;">
+                <span style="color: white; font-size: 10px; font-weight: bold; text-transform: uppercase;">Tap to Retake</span>
+            </div>
+          </ng-container>
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 18px;">
@@ -174,7 +186,116 @@
         <button (click)="submitReport()" class="submit-protocol-btn">
           Submit Protocol <i class="fas fa-paper-plane"></i>
         </button>
+
+      </div> </div> </div> </ion-content> -->
+
+      <ion-content [fullscreen]="true">
+  <div id="new-incident-page" style="min-height: 100vh; background: #F3F4F6; font-family: 'Segoe UI', Roboto, sans-serif; padding-bottom: 60px;">
+    
+    <div class="header-banner">
+      <div class="header-decor">
+        <ion-icon name="paw" class="paw-1"></ion-icon>
+        <ion-icon name="leaf" class="leaf-1"></ion-icon>
+      </div>
+
+      <div class="header-nav-row">
+        <div class="nav-left">
+          <ion-button (click)="goBack()" class="back-btn" mode="md">
+            <ion-icon name="arrow-back-outline"></ion-icon>
+          </ion-button>
+          <h1 class="page-title">{{ 'REPORT.TITLE' | translate }}</h1>
+        </div>
       </div>
     </div>
-  </div>
+
+    <div style="padding: 25px 20px; margin-top: -20px; position: relative; z-index: 10;">
+      <div style="background: #ffffff; border-radius: 28px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.02);">
+        
+        <div (click)="takePhoto()" 
+             style="width: 100%; height: 180px; background: #F9FAFB; border: 2px dashed #D1D5DB; border-radius: 24px; margin-bottom: 25px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; position: relative;">
+          
+          <ng-container *ngIf="!capturedPhoto">
+            <div style="background: #DCFCE7; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+              <i class="fas fa-camera" style="color: #059669; font-size: 20px;"></i>
+            </div>
+            <span style="font-size: 11px; font-weight: 800; color: #6B7280; text-transform: uppercase; letter-spacing: 1px;">
+              {{ 'REPORT.ADD_PHOTO' | translate }}
+            </span>
+          </ng-container>
+
+          <ng-container *ngIf="capturedPhoto">
+            <img [src]="capturedPhoto" style="width: 100%; height: 100%; object-fit: cover;" />
+            <div style="position: absolute; bottom: 0; background: rgba(0,0,0,0.5); width: 100%; padding: 8px; text-align: center;">
+                <span style="color: white; font-size: 10px; font-weight: bold; text-transform: uppercase;">
+                  {{ 'REPORT.RETAKE' | translate }}
+                </span>
+            </div>
+          </ng-container>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 18px;">
+          
+          <div class="input-group">
+            <label class="input-label" style="color: #EF4444;">{{ 'REPORT.PRIORITY_LABEL' | translate }}</label>
+            <div class="input-wrapper">
+              <i class="fas fa-bolt" style="color: #EF4444;"></i>
+              <select class="styled-select" [(ngModel)]="incidentData.priority">
+                <option value="High Priority">{{ 'REPORT.P_HIGH' | translate }}</option>
+                <option value="Medium Priority">{{ 'REPORT.P_MED' | translate }}</option>
+                <option value="Low Priority">{{ 'REPORT.P_LOW' | translate }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label" style="color: #3B82F6;">{{ 'REPORT.CATEGORY_LABEL' | translate }}</label>
+            <div class="input-wrapper">
+              <i class="fas fa-layer-group" style="color: #3B82F6;"></i>
+              <select class="styled-select" [(ngModel)]="incidentData.criteria">
+                <option value="Fire Warning">{{ 'REPORT.C_FIRE' | translate }}</option>
+                <option value="Illegal Encroachment">{{ 'REPORT.C_ILLEGAL' | translate }}</option>
+                <option value="Animal Disturbance">{{ 'REPORT.C_ANIMAL' | translate }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="background: #F9FAFB; border-radius: 20px; padding: 20px; border: 1px solid #F3F4F6;">
+            <label class="input-label" style="color: #059669; margin-bottom: 15px;">{{ 'REPORT.CHECKLIST_TITLE' | translate }}</label>
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              <label class="radio-item">
+                <input type="radio" name="cause" value="Short Circuit" [(ngModel)]="incidentData.cause"> 
+                <span>{{ 'REPORT.CAUSE_SHORT' | translate }}</span>
+              </label>
+              <label class="radio-item">
+                <input type="radio" name="cause" value="Manual Error" [(ngModel)]="incidentData.cause"> 
+                <span>{{ 'REPORT.CAUSE_MANUAL' | translate }}</span>
+              </label>
+              <label class="radio-item">
+                <input type="radio" name="cause" value="External Interference" [(ngModel)]="incidentData.cause"> 
+                <span>{{ 'REPORT.CAUSE_EXT' | translate }}</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label" style="color: #F59E0B;">{{ 'REPORT.OBS_LABEL' | translate }}</label>
+            <div class="input-wrapper" style="align-items: flex-start; padding-top: 15px; height: auto;">
+              <i class="fas fa-pen-nib" style="color: #F59E0B; margin-top: 2px;"></i>
+              <textarea 
+                [(ngModel)]="incidentData.observation" 
+                [placeholder]="'REPORT.OBS_PH' | translate" 
+                rows="4" 
+                class="styled-textarea">
+              </textarea>
+            </div>
+          </div>
+        </div>
+
+        <button (click)="submitReport()" class="submit-protocol-btn">
+          {{ 'REPORT.SUBMIT_BTN' | translate }} <i class="fas fa-paper-plane"></i>
+        </button>
+
+      </div> 
+    </div> 
+  </div> 
 </ion-content>

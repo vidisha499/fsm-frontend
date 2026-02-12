@@ -7,13 +7,15 @@ import { IonicModule } from '@ionic/angular';
 import { NewIncidentPageRoutingModule } from './new-incident-routing.module';
 
 import { NewIncidentPage } from './new-incident.page';
+import { TranslateModule } from '@ngx-translate/core';
 
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
     IonicModule,
-    NewIncidentPageRoutingModule
+    NewIncidentPageRoutingModule,
+    TranslateModule
   ],
   declarations: [NewIncidentPage]
 })

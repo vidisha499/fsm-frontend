@@ -28,13 +28,15 @@ import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { IncidentsPageRoutingModule } from './incidents-routing.module';
 import { IncidentsPage } from './incidents.page';
+import { TranslateModule } from '@ngx-translate/core';
 
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
     IonicModule,
-    IncidentsPageRoutingModule
+    IncidentsPageRoutingModule,
+    TranslateModule
   ],
   declarations: [IncidentsPage]
 })

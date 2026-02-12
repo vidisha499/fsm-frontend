@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { NavController, ToastController, AlertController } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-patrol-logs',
@@ -21,7 +22,8 @@ export class PatrolLogsPage implements OnInit {
     private router: Router,
     private http: HttpClient,
     private toastCtrl: ToastController,
-    private alertCtrl: AlertController
+    private alertCtrl: AlertController,
+    private translate: TranslateService
   ) { }
 
   ngOnInit() { }
