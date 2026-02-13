@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { LoadingController, AlertController, NavController, ToastController } from '@ionic/angular';
 import { DataService } from 'src/app/data.service';
+import { TranslateService } from '@ngx-translate/core'
 
 @Component({
   selector: 'app-login',
@@ -28,6 +29,7 @@ export class LoginPage implements OnInit {
     private dataService: DataService,
     private alertController: AlertController,
     private loadingCtrl: LoadingController,
+    private translate: TranslateService
   ) {}
 
   ngOnInit() {}
@@ -47,41 +49,96 @@ export class LoginPage implements OnInit {
     }, 1000);
   }
 
-  // --- Login Logic with Loader ---
   async login() {
-    if (!this.loginData.phone || !this.loginData.password) {
-      this.presentToast('Please enter both phone and password', 'warning');
-      return;
-    }
-
-    const loading = await this.loadingCtrl.create({
-      message: 'Authenticating...',
-      spinner: 'crescent',
-      mode: 'ios'
-    });
-    await loading.present();
-
-    const payload = { 
-      phoneNo: this.loginData.phone.trim(), 
-      password: this.loginData.password 
-    };
-
-    this.dataService.login(payload).subscribe({
-      next: (res: any) => {
-        loading.dismiss();
-        if (res?.id) {
-          localStorage.clear();
-          this.dataService.saveRangerId(res.id.toString());
-          localStorage.setItem('ranger_username', res.username);
-          this.navCtrl.navigateRoot('/home');
-        }
-      },
-      error: (err) => {
-        loading.dismiss();
-        this.presentToast('Invalid Credentials', 'danger');
-      }
-    });
+  if (!this.loginData.phone || !this.loginData.password) {
+    this.presentToast('Please enter both phone and password', 'warning');
+    return;
   }
+
+  const loading = await this.loadingCtrl.create({
+    message: 'Authenticating...',
+    spinner: 'crescent',
+    mode: 'ios'
+  });
+  await loading.present();
+
+  const payload = { 
+    phoneNo: this.loginData.phone.trim(), 
+    password: this.loginData.password 
+  };
+
+  this.dataService.login(payload).subscribe({
+    next: async (res: any) => {
+      if (res?.id) {
+        // 1. Capture the preferred language before clearing storage
+        const currentLang = localStorage.getItem('app_language_code') || 'en';
+        
+        // 2. Clear storage but immediately restore critical keys
+        localStorage.clear();
+        localStorage.setItem('app_language_code', currentLang);
+        localStorage.setItem('ranger_username', res.username);
+        this.dataService.saveRangerId(res.id.toString());
+
+        // 3. FORCE the translate service to reload the language.
+        // We subscribe to 'use' to ensure navigation only happens AFTER the file is loaded.
+        this.translate.use(currentLang).subscribe({
+          next: () => {
+            loading.dismiss();
+            this.navCtrl.navigateRoot('/home');
+          },
+          error: () => {
+            // Fallback: navigate even if translation fails so user isn't stuck
+            loading.dismiss();
+            this.navCtrl.navigateRoot('/home');
+          }
+        });
+      } else {
+        loading.dismiss();
+        this.presentToast('Login failed: Invalid response', 'danger');
+      }
+    },
+    error: (err) => {
+      loading.dismiss();
+      this.presentToast('Invalid Credentials', 'danger');
+    }
+  });
+}
+
+  // --- Login Logic with Loader ---
+  // async login() {
+  //   if (!this.loginData.phone || !this.loginData.password) {
+  //     this.presentToast('Please enter both phone and password', 'warning');
+  //     return;
+  //   }
+
+  //   const loading = await this.loadingCtrl.create({
+  //     message: 'Authenticating...',
+  //     spinner: 'crescent',
+  //     mode: 'ios'
+  //   });
+  //   await loading.present();
+
+  //   const payload = { 
+  //     phoneNo: this.loginData.phone.trim(), 
+  //     password: this.loginData.password 
+  //   };
+
+  //   this.dataService.login(payload).subscribe({
+  //     next: (res: any) => {
+  //       loading.dismiss();
+  //       if (res?.id) {
+  //         localStorage.clear();
+  //         this.dataService.saveRangerId(res.id.toString());
+  //         localStorage.setItem('ranger_username', res.username);
+  //         this.navCtrl.navigateRoot('/home');
+  //       }
+  //     },
+  //     error: (err) => {
+  //       loading.dismiss();
+  //       this.presentToast('Invalid Credentials', 'danger');
+  //     }
+  //   });
+  // }
 
   // --- Forgot Password Request with Loader ---
   async forgotPassword() {
@@ -201,4 +258,6 @@ export class LoginPage implements OnInit {
   }
 
   enroll() { this.navCtrl.navigateForward('/enroll'); }
+
+  
 }

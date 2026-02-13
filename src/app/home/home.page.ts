@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { DataService } from '../data.service';
 import { ToastController, LoadingController } from '@ionic/angular'; // Added LoadingController
 import { TranslateService } from '@ngx-translate/core';
+import { ChangeDetectorRef } from '@angular/core';
 
 @Component({
   selector: 'app-home',
@@ -44,7 +45,8 @@ export class HomePage implements OnInit {
     private dataService: DataService,
     private toastController: ToastController,
     private loadingController: LoadingController, // Injected
-    private translate: TranslateService
+    public translate: TranslateService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
@@ -62,23 +64,49 @@ export class HomePage implements OnInit {
     this.selectedLanguage = reverseMap[savedLangCode] || 'English';
   }
 
-  ionViewWillEnter() {
-    const currentRangerId = this.dataService.getRangerId();
-    if (currentRangerId) {
-      this.dataService.getRangerProfile(currentRangerId).subscribe({
-        next: (profile: any) => {
-          this.rangerId = profile.id;
-          this.rangerName = profile.username;
-          this.rangerPhone = profile.phoneNo;
+  // ionViewWillEnter() {
+  //   const currentRangerId = this.dataService.getRangerId();
+  //   if (currentRangerId) {
+  //     this.dataService.getRangerProfile(currentRangerId).subscribe({
+  //       next: (profile: any) => {
+  //         this.rangerId = profile.id;
+  //         this.rangerName = profile.username;
+  //         this.rangerPhone = profile.phoneNo;
 
-          localStorage.setItem('ranger_username', profile.username);
-          localStorage.setItem('ranger_phone', profile.phoneNo);
-        },
-        error: (err) => console.error('Could not load profile', err)
-      });
-    }
-    this.loadRangerData();
+  //         localStorage.setItem('ranger_username', profile.username);
+  //         localStorage.setItem('ranger_phone', profile.phoneNo);
+  //       },
+  //       error: (err) => console.error('Could not load profile', err)
+  //     });
+  //   }
+  //   this.loadRangerData();
+  // }
+
+  ionViewWillEnter() {
+  // 1. Listen for language changes to force the UI to update
+  this.translate.onLangChange.subscribe(() => {
+    this.cdr.detectChanges(); 
+  });
+
+  const currentRangerId = this.dataService.getRangerId();
+  if (currentRangerId) {
+    this.dataService.getRangerProfile(currentRangerId).subscribe({
+      next: (profile: any) => {
+        this.rangerId = profile.id;
+        this.rangerName = profile.username;
+        this.rangerPhone = profile.phoneNo;
+
+        localStorage.setItem('ranger_username', profile.username);
+        localStorage.setItem('ranger_phone', profile.phoneNo);
+        
+        // Force refresh after profile loads to ensure names/titles are translated
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('Could not load profile', err)
+    });
   }
+  this.loadRangerData();
+}
 
   loadRangerData() {
     this.rangerId = localStorage.getItem('ranger_id') || '';

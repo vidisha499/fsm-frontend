@@ -1,4 +1,11 @@
-<div id="side-menu-overlay" (click)="toggleMenu(false)"
+<div *ngIf="!translate.currentLang" class="fixed inset-0 z-[10002] bg-white flex flex-col items-center justify-center">
+    <ion-spinner name="crescent" color="success"></ion-spinner>
+    <p class="mt-4 text-slate-500 font-bold animate-pulse">Initializing System...</p>
+</div>
+
+<ng-container *ngIf="translate.currentLang">
+    
+    <div id="side-menu-overlay" (click)="toggleMenu(false)"
     class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9998] hidden transition-opacity duration-300">
 </div>
 
