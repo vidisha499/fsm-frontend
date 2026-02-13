@@ -314,11 +314,49 @@
             </div>
         </div>
 
+<<<<<<< Updated upstream
     </div> -->
     <!-- <button (click)="updateProtocol()"
         style="z-index: 100002; position: relative; width: 100%; background: #065431; color: white; ">
         UPDATE PROTOCOL
     </button> -->
+=======
+        <div class="clean-card">
+            <div class="icon-circle" style="background: #FFF7ED;"><i class="fas fa-phone-alt" style="color: #F59E0B;"></i></div>
+            <div style="flex: 1;">
+                <label>Comm Line</label>
+                <input type="text" [(ngModel)]="rangerPhone" placeholder="Enter Phone Number">
+            </div>
+        </div>
+    </div>
+
+   <div *ngIf="activeTab === 'pass'" class="fade-in">
+    <div class="clean-card">
+        <div class="icon-circle" style="background: #F8FAFC;"><i class="fas fa-key" style="color: #64748B;"></i></div>
+        <div style="flex: 1; position: relative;">
+            <label>Current Password</label>
+            <input [type]="showPassword ? 'text' : 'password'"  style="width: 100%;">
+            <i class="fas" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword" 
+               (click)="showPassword = !showPassword"
+               style="position: absolute; right: 10px; top: 30px; color: #64748B; cursor: pointer;"></i>
+        </div>
+    </div>
+
+    <div class="clean-card">
+        <div class="icon-circle" style="background: #FEF2F2;"><i class="fas fa-shield-alt" style="color: #EF4444;"></i></div>
+        <div style="flex: 1; position: relative;">
+            <label>New Access Key</label>
+            <input [type]="showNewPassword ? 'text' : 'password'" [(ngModel)]="rangerPassword" placeholder="Set New Key" style="width: 100%;">
+            <i class="fas" [class.fa-eye]="!showNewPassword" [class.fa-eye-slash]="showNewPassword" 
+               (click)="showNewPassword = !showNewPassword"
+               style="position: absolute; right: 10px; top: 30px; color: #64748B; cursor: pointer;"></i>
+        </div>
+    </div>
+</div>
+
+    </div>
+    
+>>>>>>> Stashed changes
 
     <!-- <div style="padding: 20px 25px 40px; background: white; border-top: 1px solid #EDF2F7;">
         <button (click)="updateProtocol()"
