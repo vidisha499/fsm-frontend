@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { NavController, ToastController, AlertController } from '@ionic/angular';
+import { NavController, ToastController, AlertController, LoadingController, Platform } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
 import { TranslateService } from '@ngx-translate/core';
 
@@ -23,8 +23,15 @@ export class PatrolLogsPage implements OnInit {
     private http: HttpClient,
     private toastCtrl: ToastController,
     private alertCtrl: AlertController,
-    private translate: TranslateService
-  ) { }
+    private loadingCtrl: LoadingController, // 1. Inject LoadingController
+    private translate: TranslateService,
+    private platform: Platform
+  ) {
+    // Set Dynamic API URL for Browser vs Mobile
+    this.apiUrl = this.platform.is('hybrid') 
+      ? 'http://10.60.250.89:3000/api/patrols' 
+      : 'http://localhost:3000/api/patrols';
+  }
 
   ngOnInit() { }
 
@@ -32,11 +39,25 @@ export class PatrolLogsPage implements OnInit {
     this.loadPatrolLogs();
   }
 
-  loadPatrolLogs() {
+  async loadPatrolLogs() {
+    // 2. Add loader for fetching data
+    const loader = await this.loadingCtrl.create({
+      message: 'Loading patrol history...',
+      spinner: 'crescent'
+    });
+    await loader.present();
+
     this.http.get(`${this.apiUrl}/logs`)
       .subscribe({
-        next: (data: any) => { this.patrolLogs = data; },
-        error: (err) => { console.error('Error fetching logs', err); }
+        next: (data: any) => { 
+          this.patrolLogs = data; 
+          loader.dismiss(); // Stop loader on success
+        },
+        error: (err) => { 
+          console.error('Error fetching logs', err); 
+          loader.dismiss(); // Stop loader on error
+          this.presentToast('Could not load logs. Check connection.', 'danger');
+        }
       });
   }
 
@@ -48,35 +69,20 @@ export class PatrolLogsPage implements OnInit {
     }
   }
 
-  /**
-   * Validates selections and navigates.
-   * Modal is closed explicitly here to ensure it disappears.
-   */
   async savePatrol() {
-    // 1. Validation check
     if (!this.selectedMethod || !this.selectedType) {
-      const toast = await this.toastCtrl.create({
-        message: 'Please select both Method and Type before starting.',
-        duration: 2000,
-        color: 'warning',
-        position: 'bottom'
-      });
-      await toast.present();
+      this.presentToast('Please select both Method and Type before starting.', 'warning');
       return; 
     }
 
-    // 2. Prepare data
     const patrolName = `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`;
     localStorage.setItem('temp_patrol_name', patrolName);
     
-    // 3. Close the modal FIRST
-    // This triggers the dismissal of the ion-modal UI component
     this.isModalOpen = false;
 
-    // 4. Navigate to the active patrol page
-    // We use a slight delay or the router promise to ensure smooth transition
+    // Navigation usually doesn't need a loader as it's instant, 
+    // but the next page (PatrolActive) will handle its own initialization.
     this.router.navigate(['/patrol-active']).then(() => {
-      // Optional: Reset selections for when the user eventually returns
       this.selectedMethod = '';
       this.selectedType = '';
     });
@@ -93,23 +99,45 @@ export class PatrolLogsPage implements OnInit {
           text: 'Delete',
           role: 'destructive',
           handler: () => {
-            this.http.delete(`${this.apiUrl}/logs/${id}`).subscribe({
-              next: async () => {
-                this.patrolLogs = this.patrolLogs.filter(log => log.id !== id);
-                const toast = await this.toastCtrl.create({
-                  message: 'Log deleted successfully',
-                  duration: 2000,
-                  color: 'success'
-                });
-                await toast.present();
-              },
-              error: (err) => console.error('Delete failed', err)
-            });
+            this.processDelete(id); // Move logic to separate function for cleaner loader handling
           }
         }
       ]
     });
     await alert.present();
+  }
+
+  private async processDelete(id: number) {
+    // 3. Add loader for the delete request
+    const loader = await this.loadingCtrl.create({
+      message: 'Deleting log...',
+      spinner: 'circular',
+      mode: 'ios'
+    });
+    await loader.present();
+
+    this.http.delete(`${this.apiUrl}/logs/${id}`).subscribe({
+      next: async () => {
+        loader.dismiss(); // Stop loader
+        this.patrolLogs = this.patrolLogs.filter(log => log.id !== id);
+        this.presentToast('Log deleted successfully', 'success');
+      },
+      error: (err) => {
+        loader.dismiss(); // Stop loader
+        console.error('Delete failed', err);
+        this.presentToast('Delete failed. Please try again.', 'danger');
+      }
+    });
+  }
+
+  async presentToast(message: string, color: string) {
+    const toast = await this.toastCtrl.create({
+      message,
+      duration: 2000,
+      color,
+      position: 'bottom'
+    });
+    await toast.present();
   }
 
   goBack() { this.navCtrl.back(); }

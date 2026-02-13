@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, AfterViewInit } from '@angular/core';
-import { NavController, AlertController, ToastController } from '@ionic/angular';
+import { NavController, AlertController, ToastController, LoadingController, Platform } from '@ionic/angular';
 import { Geolocation } from '@capacitor/geolocation';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { HttpClient } from '@angular/common/http';
@@ -40,7 +40,6 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
   lastLatLng: L.LatLng | null = null;
   observationCounts: any = { Animal: 0, Water: 0, Impact: 0, Death: 0, Felling: 0, Other: 0 };
 
-  // Define the custom location symbol (Blue Dot)
   private locationIcon = L.divIcon({
     className: 'user-location-marker',
     html: '<div class="blue-dot"></div>',
@@ -52,9 +51,16 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     private navCtrl: NavController, 
     private alertCtrl: AlertController,
     private toastCtrl: ToastController,
-    private http: HttpClient ,
-    private translate: TranslateService
-  ) { }
+    private loadingCtrl: LoadingController, // 1. Injected LoadingController
+    private http: HttpClient,
+    private translate: TranslateService,
+    private platform: Platform
+  ) { 
+    // Handle API URL for Mobile vs Web
+    this.apiUrl = this.platform.is('hybrid') 
+      ? 'http://10.60.250.89:3000/api/patrols' 
+      : 'http://localhost:3000/api/patrols';
+  }
 
   ngOnInit() {
     this.patrolStartTime = new Date().toISOString();
@@ -74,6 +80,7 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     const rangerId = localStorage.getItem('ranger_id');
     if (!rangerId) return;
 
+    // Optional: Add a subtle loader for session init if needed
     this.http.post(`${this.apiUrl}/active`, { rangerId: Number(rangerId) })
       .subscribe({
         next: (res: any) => { this.activePatrolId = res.id; },
@@ -87,8 +94,15 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     this.sightingData = { type: 'Direct', species: '', count: 1, male: false, female: false, unknown: true, notes: '' };
   }
 
-  saveObservation() {
+  async saveObservation() {
     if (!this.activePatrolId) return;
+
+    // Show loader for saving detailed observation
+    const loader = await this.loadingCtrl.create({
+      message: 'Saving observation...',
+      spinner: 'crescent'
+    });
+    await loader.present();
 
     const payload = { 
       type: this.currentType, 
@@ -108,6 +122,7 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
 
     this.http.patch(`${this.apiUrl}/active/${this.activePatrolId}`, payload).subscribe({
       next: async () => {
+        loader.dismiss();
         this.observationCounts[this.currentType]++;
         this.isModalOpen = false;
         const toast = await this.toastCtrl.create({ 
@@ -117,22 +132,31 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
         });
         await toast.present();
       },
-      error: (err) => console.error("Error saving detailed log", err)
+      error: (err) => {
+        loader.dismiss();
+        console.error("Error saving detailed log", err);
+      }
     });
   }
 
   async takeQuickPhoto() {
     try {
-      const image = await Camera.getPhoto({ quality: 90, resultType: CameraResultType.Base64, source: CameraSource.Camera });
+      const image = await Camera.getPhoto({ quality: 50, resultType: CameraResultType.Base64, source: CameraSource.Camera });
       if (image.base64String && this.activePatrolId) {
-        this.http.patch(`${this.apiUrl}/active/${this.activePatrolId}`, { photo: image.base64String }).subscribe();
+        // Subtle loader for photo upload
+        const loader = await this.loadingCtrl.create({ message: 'Uploading photo...', duration: 5000 });
+        await loader.present();
+
+        this.http.patch(`${this.apiUrl}/active/${this.activePatrolId}`, { photo: image.base64String }).subscribe({
+          next: () => loader.dismiss(),
+          error: () => loader.dismiss()
+        });
       }
     } catch (e) { console.error("Camera failed", e); }
   }
 
   async initMap() {
     try {
-      // Use high accuracy for a precise symbol placement
       const coordinates = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
       const lat = coordinates.coords.latitude;
       const lng = coordinates.coords.longitude;
@@ -144,9 +168,7 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
         subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] 
       }).addTo(this.map);
 
-      // Initialize the marker with the custom symbol
       this.marker = L.marker([lat, lng], { icon: this.locationIcon }).addTo(this.map);
-      
       this.startTracking();
     } catch (e) { console.error("Map failed", e); }
   }
@@ -158,18 +180,14 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     }, (position) => {
       if (position && this.map) {
         const current = L.latLng(position.coords.latitude, position.coords.longitude);
-        
-        // Update distance calculation
         if (this.lastLatLng) { 
           this.totalDistanceKm += (this.lastLatLng.distanceTo(current) / 1000); 
         }
         this.lastLatLng = current;
-
-        // Move the symbol and pan the map
         this.marker.setLatLng(current);
         this.map.panTo(current);
 
-        // Sync with server every minute
+        // Background sync (No loader needed here as it's transparent to user)
         if (this.seconds % 60 === 0 && this.activePatrolId) {
           this.http.patch(`${this.apiUrl}/active/${this.activePatrolId}`, { 
             liveLatitude: current.lat, 
@@ -210,7 +228,13 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     await alert.present();
   }
 
-  private processEndPatrol() {
+  private async processEndPatrol() {
+    const loader = await this.loadingCtrl.create({
+      message: 'Finalizing patrol logs...',
+      spinner: 'dots'
+    });
+    await loader.present();
+
     const rangerId = localStorage.getItem('ranger_id');
     const savedPatrolName = localStorage.getItem('temp_patrol_name') || "PANNA SITE OPERATION";
 
@@ -228,10 +252,20 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
 
     this.http.post(`${this.apiUrl}/logs`, patrolData).subscribe({
       next: () => { 
+        loader.dismiss();
         localStorage.removeItem('temp_patrol_name');
         this.navCtrl.navigateRoot('/home/patrol-logs'); 
       },
-      error: (err) => { console.error("End Patrol Error:", err); }
+      error: (err) => { 
+        loader.dismiss();
+        console.error("End Patrol Error:", err); 
+        this.presentToast('Failed to save final log. Please check connection.', 'danger');
+      }
     });
+  }
+
+  async presentToast(message: string, color: string) {
+    const toast = await this.toastCtrl.create({ message, duration: 2000, color, position: 'bottom' });
+    await toast.present();
   }
 }

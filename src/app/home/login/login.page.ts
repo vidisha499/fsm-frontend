@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { LoadingController,AlertController, NavController, ToastController } from '@ionic/angular';
+import { LoadingController, AlertController, NavController, ToastController } from '@ionic/angular';
 import { DataService } from 'src/app/data.service';
 
 @Component({
@@ -9,14 +9,12 @@ import { DataService } from 'src/app/data.service';
   standalone: false
 })
 export class LoginPage implements OnInit {
-  // --- UI State Variables ---
   isPasswordVisible = false;
   showNewPassword = false;
   showConfirmPassword = false;
   isResetModalOpen = false;
   isOtpVerified = false;
 
-  // --- Timer & Data Variables ---
   resendCountdown = 0;
   timerInterval: any;
   tempPhone = '';
@@ -34,15 +32,11 @@ export class LoginPage implements OnInit {
 
   ngOnInit() {}
 
-  
-
-  // --- Password Toggle Methods ---
   toggleNewPassword() { this.showNewPassword = !this.showNewPassword; }
   toggleConfirmPassword() { this.showConfirmPassword = !this.showConfirmPassword; }
 
-  // --- Resend Timer Logic ---
   startResendTimer() {
-    this.resendCountdown = 30; // 30 second wait time
+    this.resendCountdown = 30;
     if (this.timerInterval) clearInterval(this.timerInterval);
     this.timerInterval = setInterval(() => {
       if (this.resendCountdown > 0) {
@@ -53,85 +47,28 @@ export class LoginPage implements OnInit {
     }, 1000);
   }
 
-  // --- Forgot Password Flow ---
-  async forgotPassword() {
-    const alert = await this.alertController.create({
-      header: 'Forgot Password',
-      message: 'Enter your phone number to receive an OTP via email.',
-      inputs: [{ name: 'phoneNo', type: 'tel', placeholder: 'Enter Mobile Number' }],
-      buttons: [
-        { text: 'Cancel', role: 'cancel' },
-        { 
-          text: 'Send OTP', 
-          handler: (data) => this.sendResetRequest(data.phoneNo) 
-        }
-      ]
-    });
-    await alert.present();
-  }
-
-  sendResetRequest(phoneNo: string) {
-    if (!phoneNo) {
-      this.presentToast('Phone number is required', 'warning');
+  // --- Login Logic with Loader ---
+  async login() {
+    if (!this.loginData.phone || !this.loginData.password) {
+      this.presentToast('Please enter both phone and password', 'warning');
       return;
     }
-    this.dataService.requestPasswordReset(phoneNo).subscribe({
-      next: () => {
-        this.presentToast('OTP sent to your email!', 'success');
-        this.tempPhone = phoneNo;
-        this.isResetModalOpen = true; // Opens the custom modal
-        this.startResendTimer();
-      },
-      error: (err) => this.presentToast(err.error?.message || 'Phone not found', 'danger')
+
+    const loading = await this.loadingCtrl.create({
+      message: 'Authenticating...',
+      spinner: 'crescent',
+      mode: 'ios'
     });
-  }
+    await loading.present();
 
-  resendOtp() {
-    if (this.resendCountdown === 0) {
-      this.sendResetRequest(this.tempPhone);
-    }
-  }
-// 3. Update the handlePasswordReset method
-async handlePasswordReset() {
-  if (this.resetData.newPassword !== this.resetData.confirmPassword) {
-    this.presentToast('Passwords do not match!', 'warning');
-    return;
-  }
-
-  // Create and show the loading spinner
-  const loading = await this.loadingCtrl.create({
-    message: 'Updating password...',
-    spinner: 'circles'
-  });
-  await loading.present();
-
-  this.dataService.resetPassword(this.tempPhone, this.resetData.otp, this.resetData.newPassword).subscribe({
-    next: () => {
-      loading.dismiss(); // Stop the spinner
-      this.closeResetModal();
-      this.presentToast('Password updated! Please login.', 'success');
-    },
-    error: (err) => {
-      loading.dismiss(); // Stop the spinner even on error
-      this.presentToast(err.error?.message || 'Invalid OTP or Link expired', 'danger');
-    }
-  });
-}
-
-  // closeResetModal() {
-  //   this.isResetModalOpen = false;
-  //   if (this.timerInterval) clearInterval(this.timerInterval);
-  //   this.resetData = { otp: '', newPassword: '', confirmPassword: '' };
-  // }
-
-  // --- Login Logic ---
-  async login() {
     const payload = { 
       phoneNo: this.loginData.phone.trim(), 
       password: this.loginData.password 
     };
+
     this.dataService.login(payload).subscribe({
       next: (res: any) => {
+        loading.dismiss();
         if (res?.id) {
           localStorage.clear();
           this.dataService.saveRangerId(res.id.toString());
@@ -139,8 +76,121 @@ async handlePasswordReset() {
           this.navCtrl.navigateRoot('/home');
         }
       },
-      error: () => this.presentToast('Invalid Credentials', 'danger')
+      error: (err) => {
+        loading.dismiss();
+        this.presentToast('Invalid Credentials', 'danger');
+      }
     });
+  }
+
+  // --- Forgot Password Request with Loader ---
+  async forgotPassword() {
+    const alert = await this.alertController.create({
+      header: 'Forgot Password',
+      message: 'Enter your phone number to receive an OTP.',
+      inputs: [{ name: 'phoneNo', type: 'tel', placeholder: 'Enter Mobile Number' }],
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        { 
+          text: 'Send OTP', 
+          handler: (data) => { this.sendResetRequest(data.phoneNo); } 
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  async sendResetRequest(phoneNo: string) {
+    if (!phoneNo) {
+      this.presentToast('Phone number is required', 'warning');
+      return;
+    }
+
+    const loading = await this.loadingCtrl.create({
+      message: 'Sending OTP...',
+      mode: 'ios'
+    });
+    await loading.present();
+
+    this.dataService.requestPasswordReset(phoneNo).subscribe({
+      next: () => {
+        loading.dismiss();
+        this.presentToast('OTP sent to your email!', 'success');
+        this.tempPhone = phoneNo;
+        this.isResetModalOpen = true;
+        this.startResendTimer();
+      },
+      error: (err) => {
+        loading.dismiss();
+        this.presentToast(err.error?.message || 'Phone not found', 'danger');
+      }
+    });
+  }
+
+  // --- Verify OTP with Loader ---
+  async verifyOtpOnly() {
+    if (!this.resetData.otp || this.resetData.otp.length < 4) {
+      this.presentToast('Please enter a valid OTP', 'warning');
+      return;
+    }
+
+    const loading = await this.loadingCtrl.create({
+      message: 'Verifying...',
+      spinner: 'crescent'
+    });
+    await loading.present();
+
+    this.dataService.verifyOtp(this.tempPhone, this.resetData.otp).subscribe({
+      next: (res: any) => {
+        loading.dismiss();
+        this.isOtpVerified = true; 
+        this.presentToast('OTP Verified! Set new password.', 'success');
+      },
+      error: (err) => {
+        loading.dismiss();
+        this.presentToast(err.error?.message || 'Invalid OTP', 'danger');
+      }
+    });
+  }
+
+  // --- Final Password Reset with Loader ---
+  async handlePasswordReset() {
+    if (this.resetData.newPassword !== this.resetData.confirmPassword) {
+      this.presentToast('Passwords do not match!', 'warning');
+      return;
+    }
+
+    const loading = await this.loadingCtrl.create({
+      message: 'Updating password...',
+      spinner: 'circles'
+    });
+    await loading.present();
+
+    this.dataService.resetPassword(this.tempPhone, this.resetData.otp, this.resetData.newPassword).subscribe({
+      next: () => {
+        loading.dismiss();
+        this.closeResetModal();
+        this.presentToast('Password updated! Please login.', 'success');
+      },
+      error: (err) => {
+        loading.dismiss();
+        this.presentToast(err.error?.message || 'Error updating password', 'danger');
+      }
+    });
+  }
+
+  // --- Utilities ---
+  resendOtp() {
+    if (this.resendCountdown === 0) {
+      this.sendResetRequest(this.tempPhone);
+    }
+  }
+
+  closeResetModal() {
+    this.isResetModalOpen = false;
+    this.isOtpVerified = false;
+    this.resetData = { otp: '', newPassword: '', confirmPassword: '' };
+    if (this.timerInterval) clearInterval(this.timerInterval);
   }
 
   async presentToast(message: string, color: string) {
@@ -151,40 +201,4 @@ async handlePasswordReset() {
   }
 
   enroll() { this.navCtrl.navigateForward('/enroll'); }
-
- async verifyOtpOnly() {
-  if (!this.resetData.otp || this.resetData.otp.length < 4) {
-    this.presentToast('Please enter a valid OTP', 'warning');
-    return;
-  }
-
-  const loading = await this.loadingCtrl.create({
-    message: 'Verifying OTP...',
-    spinner: 'crescent'
-  });
-  await loading.present();
-
-  this.dataService.verifyOtp(this.tempPhone, this.resetData.otp).subscribe({
-    next: async (res: any) => {
-      // Small delay so the user can see the "Verified" state transition
-      setTimeout(() => {
-        loading.dismiss();
-        this.isOtpVerified = true; 
-        this.presentToast('OTP Verified! Set your new password.', 'success');
-      }, 500);
-    },
-    error: (err) => {
-      loading.dismiss();
-      const errorMsg = err.error?.message || 'Invalid OTP. Please try again.';
-      this.presentToast(errorMsg, 'danger');
-    }
-  });
-}
-// Reset everything when closing the modal
-closeResetModal() {
-  this.isResetModalOpen = false;
-  this.isOtpVerified = false; // Reset the flow
-  this.resetData = { otp: '', newPassword: '', confirmPassword: '' };
-  if (this.timerInterval) clearInterval(this.timerInterval);
-}
 }

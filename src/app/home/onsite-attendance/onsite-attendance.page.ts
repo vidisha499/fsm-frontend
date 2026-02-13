@@ -1,5 +1,5 @@
 import { Component, OnInit, ElementRef, ViewChild, OnDestroy } from '@angular/core';
-import { NavController, ToastController, ActionSheetController } from '@ionic/angular';
+import { NavController, ToastController, ActionSheetController, LoadingController, Platform } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Geolocation } from '@capacitor/geolocation';
@@ -22,7 +22,6 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
   public currentAddress: string = 'Detecting location...';
   public currentCoords: any;
 
-  // Use your existing API Key
   private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw';
   private apiUrl: string = 'http://localhost:3000/api/onsite-attendance';
 
@@ -30,12 +29,18 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
     private navCtrl: NavController,
     private toastCtrl: ToastController,
     private actionSheetCtrl: ActionSheetController,
-    private http: HttpClient
+    private loadingCtrl: LoadingController, // 1. Injected LoadingController
+    private http: HttpClient,
+    private platform: Platform
   ) {}
 
   ngOnInit() {
-    // Get the ranger name saved during login
     this.rangerName = localStorage.getItem('ranger_username') || 'Unknown Ranger';
+
+    // 2. Set dynamic API URL based on platform
+    this.apiUrl = this.platform.is('hybrid') 
+      ? 'http://10.60.250.89:3000/api/onsite-attendance' 
+      : 'http://localhost:3000/api/onsite-attendance';
   }
 
   async ionViewDidEnter() {
@@ -62,7 +67,6 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
         title: 'Current Location',
       });
 
-      // Fetch the address for the Geofence field
       this.fetchAddress(this.currentCoords.latitude, this.currentCoords.longitude);
 
     } catch (e) {
@@ -98,7 +102,7 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
   async captureImage(source: CameraSource) {
     try {
       const image = await Camera.getPhoto({
-        quality: 40,
+        quality: 40, // Lower quality for faster upload
         resultType: CameraResultType.Base64,
         source: source
       });
@@ -117,7 +121,14 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
       return;
     }
 
-    // Body matched to your onsite_attendance SQL columns
+    // 3. Create and show Loader
+    const loader = await this.loadingCtrl.create({
+      message: 'Logging On-Site Attendance...',
+      spinner: 'circular',
+      mode: 'ios'
+    });
+    await loader.present();
+
     const onsiteData = {
       ranger_id: Number(rangerId),
       type: 'ON-SITE',
@@ -129,10 +140,14 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
 
     this.http.post(this.apiUrl, onsiteData).subscribe({
       next: () => {
+        // 4. Dismiss loader on success
+        loader.dismiss();
         this.presentToast('On-Site Attendance Logged!', 'success');
         this.navCtrl.back();
       },
       error: (err) => {
+        // 5. Dismiss loader on error
+        loader.dismiss();
         console.error('Submission Error:', err);
         this.presentToast('Database Sync Failed.', 'danger');
       }

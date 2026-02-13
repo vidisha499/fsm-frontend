@@ -1,83 +1,62 @@
-
-
-// import { Component, OnInit } from '@angular/core';
-// import { NavController } from '@ionic/angular';
-// import { Router } from '@angular/router';
-
-// @Component({
-//   selector: 'app-incident',
-//   templateUrl: './incidents.page.html',
-//   styleUrls: ['./incidents.page.scss'],
-//   standalone: false
-// })
-// export class IncidentsPage implements OnInit {
-//   public statusFilter: string = 'pending';
-//   public isModalOpen: boolean = false;
-
-//   constructor(
-//     private navCtrl: NavController,
-//     private router: Router
-    
-//   ) {}
-
-//   ngOnInit() { }
-
-//   goBack() {
-//     this.navCtrl.back();
-//   }
-
-//   triggerCamera() {
-//     console.log('Capture incident photo...');
-//     // Add logic for Capacitor Camera here
-//   }
-
-
-
-// goToNewIncident() {
-//   // You can add logic here before navigating
-//   this.router.navigate(['/new-incident']);
-// }
-// }
-
 import { Component } from '@angular/core';
-import { NavController, AlertController, ToastController } from '@ionic/angular'; // Added Alert and Toast
+import { NavController, AlertController, ToastController, LoadingController, Platform } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
-import { TranslateModule } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-incident',
   templateUrl: './incidents.page.html',
   styleUrls: ['./incidents.page.scss'],
   standalone: false,
-  
 })
 export class IncidentsPage {
   public statusFilter: string = 'pending';
-  public incidents: any[] = []; 
+  public incidents: any[] = [];
+  
+  // Dynamic API URL logic
+  private apiUrl: string = 'http://localhost:3000/api/incidents';
 
   constructor(
     private navCtrl: NavController,
     private http: HttpClient,
     private alertCtrl: AlertController,
-    private toastCtrl: ToastController
-  ) {}
+    private toastCtrl: ToastController,
+    private loadingCtrl: LoadingController, // 1. Inject LoadingController
+    private platform: Platform
+  ) {
+    // Set API URL based on platform
+    this.apiUrl = this.platform.is('hybrid') 
+      ? 'http://10.60.250.89:3000/api/incidents' 
+      : 'http://localhost:3000/api/incidents';
+  }
 
   ionViewWillEnter() {
     this.loadIncidents();
   }
 
-  loadIncidents() {
+  async loadIncidents() {
     const rangerId = localStorage.getItem('ranger_id');
     if (!rangerId) return;
 
-    this.http.get(`http://localhost:3000/api/incidents/my-reports/${rangerId}`)
+    // Optional: Add loader for fetching as well
+    const loader = await this.loadingCtrl.create({
+      message: 'Fetching reports...',
+      spinner: 'crescent'
+    });
+    await loader.present();
+
+    this.http.get(`${this.apiUrl}/my-reports/${rangerId}`)
       .subscribe({
-        next: (data: any) => { this.incidents = data; },
-        error: (err) => { console.error('Fetch failed', err); }
+        next: (data: any) => { 
+          this.incidents = data; 
+          loader.dismiss(); 
+        },
+        error: (err) => { 
+          console.error('Fetch failed', err); 
+          loader.dismiss();
+        }
       });
   }
 
-  // --- DELETE LOGIC ---
   async confirmDelete(incidentId: number) {
     const alert = await this.alertCtrl.create({
       header: 'Confirm Delete',
@@ -94,13 +73,21 @@ export class IncidentsPage {
     await alert.present();
   }
 
-  deleteIncident(id: number) {
-    // this.http.delete(`http://localhost:3000/api/incidents/delete/${id}`)
-    // Remove the '/delete' part of the string
-this.http.delete(`http://localhost:3000/api/incidents/${id}`)
+  async deleteIncident(id: number) {
+    // 2. Create and show loader
+    const loader = await this.loadingCtrl.create({
+      message: 'Deleting report...',
+      spinner: 'circular',
+      mode: 'ios'
+    });
+    await loader.present();
+
+    this.http.delete(`${this.apiUrl}/${id}`)
       .subscribe({
         next: async (res: any) => {
-          // Remove from local array to update UI immediately
+          // 3. Dismiss loader on success
+          await loader.dismiss();
+          
           this.incidents = this.incidents.filter(item => item.id !== id);
           
           const toast = await this.toastCtrl.create({
@@ -111,13 +98,25 @@ this.http.delete(`http://localhost:3000/api/incidents/${id}`)
           });
           toast.present();
         },
-        error: (err) => { console.error('Delete failed', err); }
+        error: async (err) => { 
+          // 4. Dismiss loader on error
+          await loader.dismiss();
+          console.error('Delete failed', err); 
+          
+          const toast = await this.toastCtrl.create({
+            message: 'Failed to delete record. Check connection.',
+            duration: 2000,
+            color: 'warning'
+          });
+          toast.present();
+        }
       });
   }
 
   goBack() { this.navCtrl.back(); }
 
   formatDate(dateString: string) {
+    if (!dateString) return '';
     const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
     return new Date(dateString).toLocaleDateString(undefined, options);
   }

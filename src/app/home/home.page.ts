@@ -1,7 +1,7 @@
 import { Component, Renderer2, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { DataService } from '../data.service';
-import { ToastController } from '@ionic/angular';
+import { ToastController, LoadingController } from '@ionic/angular'; // Added LoadingController
 import { TranslateService } from '@ngx-translate/core';
 
 @Component({
@@ -43,6 +43,7 @@ export class HomePage implements OnInit {
     private renderer: Renderer2,
     private dataService: DataService,
     private toastController: ToastController,
+    private loadingController: LoadingController, // Injected
     private translate: TranslateService
   ) {}
 
@@ -120,12 +121,44 @@ export class HomePage implements OnInit {
     this.selectedLanguage = lang;
   }
 
+  /**
+   * ✅ Confirms language, shows loader, and refreshes app
+   */
   async confirmLanguage() {
     const langCode = this.languageMap[this.selectedLanguage] || 'en';
+    
+    // Create professional loader
+    const loader = await this.loadingController.create({
+      message: this.selectedLanguage === 'Hindi' ? 'भाषा बदली जा रही है...' : 
+               this.selectedLanguage === 'Marathi' ? 'भाषा बदलत आहे...' : 
+               'Applying Language...',
+      spinner: 'crescent',
+      mode: 'ios'
+    });
 
-    this.translate.use(langCode).subscribe(() => {
-      localStorage.setItem('app_language_code', langCode);
-      this.showLanguageModal = false;
+    await loader.present();
+
+    // Use the translation service
+    this.translate.use(langCode).subscribe({
+      next: () => {
+        localStorage.setItem('app_language_code', langCode);
+        this.showLanguageModal = false;
+
+        // Small timeout to allow the loader to be visible before refresh
+        setTimeout(() => {
+          loader.dismiss();
+          window.location.reload(); // Refresh the app to apply all UI changes
+        }, 1200);
+      },
+      error: async () => {
+        await loader.dismiss();
+        const toast = await this.toastController.create({
+          message: 'Error changing language',
+          duration: 2000,
+          color: 'danger'
+        });
+        await toast.present();
+      }
     });
   }
 
@@ -134,7 +167,14 @@ export class HomePage implements OnInit {
     this.updateRangerProfile();
   }
 
-  updateRangerProfile() {
+  async updateRangerProfile() {
+    // Added loader for profile updates as well
+    const loader = await this.loadingController.create({
+      message: 'Updating Protocol...',
+      duration: 5000 // Fallback
+    });
+    await loader.present();
+
     const updatedData = {
       id: this.rangerId,
       name: this.rangerName,
@@ -144,6 +184,7 @@ export class HomePage implements OnInit {
 
     this.dataService.updateRanger(updatedData).subscribe({
       next: async (res: any) => {
+        await loader.dismiss();
         if (res.success) {
           localStorage.setItem('ranger_username', this.rangerName);
           localStorage.setItem('ranger_phone', this.rangerPhone);
@@ -155,6 +196,7 @@ export class HomePage implements OnInit {
         }
       },
       error: async (err) => {
+        await loader.dismiss();
         const toast = await this.toastController.create({
           message: err.error?.message || 'Update failed',
           duration: 3000,
