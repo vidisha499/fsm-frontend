@@ -15,7 +15,10 @@ export class PatrolLogsPage implements OnInit {
   public isModalOpen = false;
   public selectedMethod = '';
   public selectedType = '';
-  private apiUrl = 'http://localhost:3000/api/patrols';
+
+  // 1. Updated Vercel URL
+  private vercelUrl: string = 'https://fsm-backend-ica4fcwv2-vidishas-projects-1763fd56.vercel.app/api/patrols';
+  private apiUrl: string = '';
 
   constructor(
     private navCtrl: NavController,
@@ -23,14 +26,12 @@ export class PatrolLogsPage implements OnInit {
     private http: HttpClient,
     private toastCtrl: ToastController,
     private alertCtrl: AlertController,
-    private loadingCtrl: LoadingController, // 1. Inject LoadingController
+    private loadingCtrl: LoadingController,
     private translate: TranslateService,
     private platform: Platform
   ) {
-    // Set Dynamic API URL for Browser vs Mobile
-    this.apiUrl = this.platform.is('hybrid') 
-      ? 'http://10.60.250.89:3000/api/patrols' 
-      : 'http://localhost:3000/api/patrols';
+    // 2. Set API URL to Vercel for all platforms
+    this.apiUrl = this.vercelUrl;
   }
 
   ngOnInit() { }
@@ -40,10 +41,11 @@ export class PatrolLogsPage implements OnInit {
   }
 
   async loadPatrolLogs() {
-    // 2. Add loader for fetching data
+    // Show loader for fetching data from Vercel
     const loader = await this.loadingCtrl.create({
-      message: 'Loading patrol history...',
-      spinner: 'crescent'
+      message: 'Fetching patrol history...',
+      spinner: 'crescent',
+      mode: 'ios'
     });
     await loader.present();
 
@@ -51,12 +53,12 @@ export class PatrolLogsPage implements OnInit {
       .subscribe({
         next: (data: any) => { 
           this.patrolLogs = data; 
-          loader.dismiss(); // Stop loader on success
+          loader.dismiss(); 
         },
         error: (err) => { 
           console.error('Error fetching logs', err); 
-          loader.dismiss(); // Stop loader on error
-          this.presentToast('Could not load logs. Check connection.', 'danger');
+          loader.dismiss(); 
+          this.presentToast('Could not load logs. Is the server live?', 'danger');
         }
       });
   }
@@ -80,8 +82,6 @@ export class PatrolLogsPage implements OnInit {
     
     this.isModalOpen = false;
 
-    // Navigation usually doesn't need a loader as it's instant, 
-    // but the next page (PatrolActive) will handle its own initialization.
     this.router.navigate(['/patrol-active']).then(() => {
       this.selectedMethod = '';
       this.selectedType = '';
@@ -92,14 +92,14 @@ export class PatrolLogsPage implements OnInit {
     event.stopPropagation();
     const alert = await this.alertCtrl.create({
       header: 'Delete Log',
-      message: 'Are you sure you want to delete this patrol record?',
+      message: 'Are you sure you want to remove this record from the database?',
       buttons: [
         { text: 'Cancel', role: 'cancel' },
         {
           text: 'Delete',
           role: 'destructive',
           handler: () => {
-            this.processDelete(id); // Move logic to separate function for cleaner loader handling
+            this.processDelete(id);
           }
         }
       ]
@@ -108,9 +108,8 @@ export class PatrolLogsPage implements OnInit {
   }
 
   private async processDelete(id: number) {
-    // 3. Add loader for the delete request
     const loader = await this.loadingCtrl.create({
-      message: 'Deleting log...',
+      message: 'Deleting log from Vercel...',
       spinner: 'circular',
       mode: 'ios'
     });
@@ -118,12 +117,12 @@ export class PatrolLogsPage implements OnInit {
 
     this.http.delete(`${this.apiUrl}/logs/${id}`).subscribe({
       next: async () => {
-        loader.dismiss(); // Stop loader
+        loader.dismiss();
         this.patrolLogs = this.patrolLogs.filter(log => log.id !== id);
         this.presentToast('Log deleted successfully', 'success');
       },
       error: (err) => {
-        loader.dismiss(); // Stop loader
+        loader.dismiss();
         console.error('Delete failed', err);
         this.presentToast('Delete failed. Please try again.', 'danger');
       }
@@ -133,9 +132,10 @@ export class PatrolLogsPage implements OnInit {
   async presentToast(message: string, color: string) {
     const toast = await this.toastCtrl.create({
       message,
-      duration: 2000,
+      duration: 2500,
       color,
-      position: 'bottom'
+      position: 'bottom',
+      mode: 'ios'
     });
     await toast.present();
   }

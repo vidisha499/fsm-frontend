@@ -17,10 +17,13 @@ export class EnrollPage implements OnInit {
     password: ''
   };
 
+  // Replace this with your specific Vercel URL
+  private vercelUrl: string = 'https://fsm-backend-ica4fcwv2-vidishas-projects-1763fd56.vercel.app/api/rangers';
+
   constructor(
     private navCtrl: NavController,
     private toastCtrl: ToastController,
-    private loadingCtrl: LoadingController, // 1. Inject LoadingController
+    private loadingCtrl: LoadingController,
     private http: HttpClient,
     private platform: Platform
   ) { }
@@ -33,15 +36,13 @@ export class EnrollPage implements OnInit {
       return;
     }
 
-    // 2. Create and show the loader
     const loader = await this.loadingCtrl.create({
-      message: 'Creating account...',
+      message: 'Creating account on Vercel...',
       spinner: 'crescent',
       mode: 'ios'
     });
     await loader.present();
 
-    // Map frontend keys to backend Entity names
     const signupPayload = {
       username: this.ranger.username,
       phoneNo: this.ranger.phone, 
@@ -49,23 +50,19 @@ export class EnrollPage implements OnInit {
       password: this.ranger.password
     };
 
-    // Determine API URL based on platform (Browser vs Mobile)
-    const apiUrl = this.platform.is('hybrid') 
-      ? 'http://10.60.250.89:3000/api/rangers' 
-      : 'http://localhost:3000/api/rangers';
+    // Use Vercel URL for all platforms to ensure connectivity
+    const apiUrl = this.vercelUrl;
 
     this.http.post(apiUrl, signupPayload).subscribe({
       next: async (res) => {
-        // 3. Dismiss loader on success
         await loader.dismiss();
         this.presentToast('Enrollment Successful! Please login.', 'success');
         this.navCtrl.navigateBack('/login');
       },
       error: async (err) => {
-        // 4. Dismiss loader on error
         await loader.dismiss();
         console.error('Signup error:', err);
-        this.presentToast('Enrollment failed. Mobile or Email may exist.', 'danger');
+        this.presentToast('Enrollment failed. Server might be sleeping or user exists.', 'danger');
       }
     });
   }

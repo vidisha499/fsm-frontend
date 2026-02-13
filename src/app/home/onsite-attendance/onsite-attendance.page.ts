@@ -23,13 +23,16 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
   public currentCoords: any;
 
   private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw';
-  private apiUrl: string = 'http://localhost:3000/api/onsite-attendance';
+  
+  // 1. Updated Vercel URL for Onsite Attendance
+  private vercelUrl: string = 'https://fsm-backend-ica4fcwv2-vidishas-projects-1763fd56.vercel.app/api/onsite-attendance';
+  private apiUrl: string = '';
 
   constructor(
     private navCtrl: NavController,
     private toastCtrl: ToastController,
     private actionSheetCtrl: ActionSheetController,
-    private loadingCtrl: LoadingController, // 1. Injected LoadingController
+    private loadingCtrl: LoadingController,
     private http: HttpClient,
     private platform: Platform
   ) {}
@@ -37,10 +40,8 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
   ngOnInit() {
     this.rangerName = localStorage.getItem('ranger_username') || 'Unknown Ranger';
 
-    // 2. Set dynamic API URL based on platform
-    this.apiUrl = this.platform.is('hybrid') 
-      ? 'http://10.60.250.89:3000/api/onsite-attendance' 
-      : 'http://localhost:3000/api/onsite-attendance';
+    // 2. Set API URL to Vercel for all platforms
+    this.apiUrl = this.vercelUrl;
   }
 
   async ionViewDidEnter() {
@@ -102,7 +103,7 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
   async captureImage(source: CameraSource) {
     try {
       const image = await Camera.getPhoto({
-        quality: 40, // Lower quality for faster upload
+        quality: 40, // Keeping low quality for Vercel efficiency
         resultType: CameraResultType.Base64,
         source: source
       });
@@ -121,9 +122,8 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
       return;
     }
 
-    // 3. Create and show Loader
     const loader = await this.loadingCtrl.create({
-      message: 'Logging On-Site Attendance...',
+      message: 'Logging On-Site Attendance to Vercel...',
       spinner: 'circular',
       mode: 'ios'
     });
@@ -138,27 +138,32 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
       attendance_type: this.attendanceType.toUpperCase()
     };
 
+    // 3. Post to Vercel API
     this.http.post(this.apiUrl, onsiteData).subscribe({
       next: () => {
-        // 4. Dismiss loader on success
         loader.dismiss();
         this.presentToast('On-Site Attendance Logged!', 'success');
         this.navCtrl.back();
       },
       error: (err) => {
-        // 5. Dismiss loader on error
         loader.dismiss();
         console.error('Submission Error:', err);
-        this.presentToast('Database Sync Failed.', 'danger');
+        this.presentToast('Sync Failed. Check Vercel logs.', 'danger');
       }
     });
   }
 
   async presentToast(message: string, color: string) {
-    const toast = await this.toastCtrl.create({ message, duration: 2000, color, position: 'bottom' });
+    const toast = await this.toastCtrl.create({ 
+      message, 
+      duration: 2500, 
+      color, 
+      position: 'bottom',
+      mode: 'ios'
+    });
     await toast.present();
   }
-
+ 
   ngOnDestroy() {
     if (this.newMap) this.newMap.destroy();
   }

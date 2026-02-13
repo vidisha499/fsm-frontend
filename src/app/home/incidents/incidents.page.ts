@@ -12,21 +12,20 @@ export class IncidentsPage {
   public statusFilter: string = 'pending';
   public incidents: any[] = [];
   
-  // Dynamic API URL logic
-  private apiUrl: string = 'http://localhost:3000/api/incidents';
+  // 1. Updated Vercel link
+  private vercelUrl: string = 'https://fsm-backend-ica4fcwv2-vidishas-projects-1763fd56.vercel.app/api/incidents';
+  private apiUrl: string = '';
 
   constructor(
     private navCtrl: NavController,
     private http: HttpClient,
     private alertCtrl: AlertController,
     private toastCtrl: ToastController,
-    private loadingCtrl: LoadingController, // 1. Inject LoadingController
+    private loadingCtrl: LoadingController,
     private platform: Platform
   ) {
-    // Set API URL based on platform
-    this.apiUrl = this.platform.is('hybrid') 
-      ? 'http://10.60.250.89:3000/api/incidents' 
-      : 'http://localhost:3000/api/incidents';
+    // 2. Consistent URL logic across all platforms
+    this.apiUrl = this.vercelUrl;
   }
 
   ionViewWillEnter() {
@@ -37,10 +36,10 @@ export class IncidentsPage {
     const rangerId = localStorage.getItem('ranger_id');
     if (!rangerId) return;
 
-    // Optional: Add loader for fetching as well
     const loader = await this.loadingCtrl.create({
-      message: 'Fetching reports...',
-      spinner: 'crescent'
+      message: 'Fetching reports from Vercel...',
+      spinner: 'crescent',
+      mode: 'ios'
     });
     await loader.present();
 
@@ -53,6 +52,7 @@ export class IncidentsPage {
         error: (err) => { 
           console.error('Fetch failed', err); 
           loader.dismiss();
+          this.presentToast('Could not load reports. Is the server live?', 'warning');
         }
       });
   }
@@ -60,7 +60,7 @@ export class IncidentsPage {
   async confirmDelete(incidentId: number) {
     const alert = await this.alertCtrl.create({
       header: 'Confirm Delete',
-      message: 'Are you sure you want to remove this report?',
+      message: 'Are you sure you want to remove this report from the database?',
       buttons: [
         { text: 'Cancel', role: 'cancel' },
         {
@@ -74,7 +74,6 @@ export class IncidentsPage {
   }
 
   async deleteIncident(id: number) {
-    // 2. Create and show loader
     const loader = await this.loadingCtrl.create({
       message: 'Deleting report...',
       spinner: 'circular',
@@ -85,30 +84,14 @@ export class IncidentsPage {
     this.http.delete(`${this.apiUrl}/${id}`)
       .subscribe({
         next: async (res: any) => {
-          // 3. Dismiss loader on success
           await loader.dismiss();
-          
           this.incidents = this.incidents.filter(item => item.id !== id);
-          
-          const toast = await this.toastCtrl.create({
-            message: 'Incident deleted successfully',
-            duration: 2000,
-            color: 'danger',
-            position: 'bottom'
-          });
-          toast.present();
+          this.presentToast('Incident deleted successfully', 'danger');
         },
         error: async (err) => { 
-          // 4. Dismiss loader on error
           await loader.dismiss();
           console.error('Delete failed', err); 
-          
-          const toast = await this.toastCtrl.create({
-            message: 'Failed to delete record. Check connection.',
-            duration: 2000,
-            color: 'warning'
-          });
-          toast.present();
+          this.presentToast('Failed to delete record. Check server connection.', 'warning');
         }
       });
   }
@@ -119,5 +102,17 @@ export class IncidentsPage {
     if (!dateString) return '';
     const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
     return new Date(dateString).toLocaleDateString(undefined, options);
+  }
+
+  // Helper for consistent feedback
+  async presentToast(message: string, color: string) {
+    const toast = await this.toastCtrl.create({
+      message,
+      duration: 2500,
+      color,
+      position: 'bottom',
+      mode: 'ios'
+    });
+    toast.present();
   }
 }

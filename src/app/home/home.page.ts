@@ -1,7 +1,7 @@
 import { Component, Renderer2, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { DataService } from '../data.service';
-import { ToastController, LoadingController } from '@ionic/angular'; // Added LoadingController
+import { ToastController, LoadingController, Platform } from '@ionic/angular'; 
 import { TranslateService } from '@ngx-translate/core';
 import { ChangeDetectorRef } from '@angular/core';
 
@@ -32,7 +32,9 @@ export class HomePage implements OnInit {
   showPassword: boolean = false;
   showNewPassword: boolean = false;
 
-  // Language label → code map
+  // 1. Vercel Configuration
+  private vercelBaseUrl: string = 'https://fsm-backend-ica4fcwv2-vidishas-projects-1763fd56.vercel.app/api';
+
   private languageMap: { [key: string]: string } = {
     'English': 'en',
     'Hindi': 'hi',
@@ -44,17 +46,22 @@ export class HomePage implements OnInit {
     private renderer: Renderer2,
     private dataService: DataService,
     private toastController: ToastController,
-    private loadingController: LoadingController, // Injected
+    private loadingController: LoadingController,
     public translate: TranslateService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private platform: Platform
   ) {}
 
   ngOnInit() {
     this.loadRangerData();
     this.initLanguage();
+
+    // 2. Ensure DataService is using Vercel URL
+    if (this.dataService) {
+      (this.dataService as any).apiUrl = `${this.vercelBaseUrl}/rangers`;
+    }
   }
 
-  // ✅ Initialize Language
   private initLanguage() {
     const savedLangCode = localStorage.getItem('app_language_code') || 'en';
     this.translate.setDefaultLang('en');
@@ -64,49 +71,31 @@ export class HomePage implements OnInit {
     this.selectedLanguage = reverseMap[savedLangCode] || 'English';
   }
 
-  // ionViewWillEnter() {
-  //   const currentRangerId = this.dataService.getRangerId();
-  //   if (currentRangerId) {
-  //     this.dataService.getRangerProfile(currentRangerId).subscribe({
-  //       next: (profile: any) => {
-  //         this.rangerId = profile.id;
-  //         this.rangerName = profile.username;
-  //         this.rangerPhone = profile.phoneNo;
-
-  //         localStorage.setItem('ranger_username', profile.username);
-  //         localStorage.setItem('ranger_phone', profile.phoneNo);
-  //       },
-  //       error: (err) => console.error('Could not load profile', err)
-  //     });
-  //   }
-  //   this.loadRangerData();
-  // }
-
   ionViewWillEnter() {
-  // 1. Listen for language changes to force the UI to update
-  this.translate.onLangChange.subscribe(() => {
-    this.cdr.detectChanges(); 
-  });
-
-  const currentRangerId = this.dataService.getRangerId();
-  if (currentRangerId) {
-    this.dataService.getRangerProfile(currentRangerId).subscribe({
-      next: (profile: any) => {
-        this.rangerId = profile.id;
-        this.rangerName = profile.username;
-        this.rangerPhone = profile.phoneNo;
-
-        localStorage.setItem('ranger_username', profile.username);
-        localStorage.setItem('ranger_phone', profile.phoneNo);
-        
-        // Force refresh after profile loads to ensure names/titles are translated
-        this.cdr.detectChanges();
-      },
-      error: (err) => console.error('Could not load profile', err)
+    // Listen for language changes
+    this.translate.onLangChange.subscribe(() => {
+      this.cdr.detectChanges(); 
     });
+
+    const currentRangerId = this.dataService.getRangerId();
+    if (currentRangerId) {
+      // 3. Fetching profile from Vercel
+      this.dataService.getRangerProfile(currentRangerId).subscribe({
+        next: (profile: any) => {
+          this.rangerId = profile.id;
+          this.rangerName = profile.username;
+          this.rangerPhone = profile.phoneNo;
+
+          localStorage.setItem('ranger_username', profile.username);
+          localStorage.setItem('ranger_phone', profile.phoneNo);
+          
+          this.cdr.detectChanges();
+        },
+        error: (err) => console.error('Vercel Profile Load Error:', err)
+      });
+    }
+    this.loadRangerData();
   }
-  this.loadRangerData();
-}
 
   loadRangerData() {
     this.rangerId = localStorage.getItem('ranger_id') || '';
@@ -117,7 +106,6 @@ export class HomePage implements OnInit {
     if (storedPhone) this.rangerPhone = storedPhone;
   }
 
-  // ✅ SOS Logic
   toggleSOSModal(status: boolean) {
     this.showSOSModal = status;
   }
@@ -125,22 +113,17 @@ export class HomePage implements OnInit {
   async triggerEmergency() {
     this.showSOSModal = false;
 
+    // In a real scenario, you would do an http.post to /api/sos here
     const toast = await this.toastController.create({
       message: '🚨 EMERGENCY ALERT SENT TO HQ!',
       duration: 4000,
       position: 'top',
-      color: 'danger'
+      color: 'danger',
+      mode: 'ios'
     });
-
     await toast.present();
-
-    console.log("SOS Dispatch:", {
-      id: this.rangerId,
-      name: this.rangerName
-    });
   }
 
-  // ✅ Language Modal
   toggleLanguageModal(status: boolean) {
     this.showLanguageModal = status;
   }
@@ -149,13 +132,9 @@ export class HomePage implements OnInit {
     this.selectedLanguage = lang;
   }
 
-  /**
-   * ✅ Confirms language, shows loader, and refreshes app
-   */
   async confirmLanguage() {
     const langCode = this.languageMap[this.selectedLanguage] || 'en';
     
-    // Create professional loader
     const loader = await this.loadingController.create({
       message: this.selectedLanguage === 'Hindi' ? 'भाषा बदली जा रही है...' : 
                this.selectedLanguage === 'Marathi' ? 'भाषा बदलत आहे...' : 
@@ -166,40 +145,32 @@ export class HomePage implements OnInit {
 
     await loader.present();
 
-    // Use the translation service
     this.translate.use(langCode).subscribe({
       next: () => {
         localStorage.setItem('app_language_code', langCode);
         this.showLanguageModal = false;
 
-        // Small timeout to allow the loader to be visible before refresh
         setTimeout(() => {
           loader.dismiss();
-          window.location.reload(); // Refresh the app to apply all UI changes
+          window.location.reload(); 
         }, 1200);
       },
       error: async () => {
         await loader.dismiss();
-        const toast = await this.toastController.create({
-          message: 'Error changing language',
-          duration: 2000,
-          color: 'danger'
-        });
-        await toast.present();
+        this.showToast('Error changing language');
       }
     });
   }
 
-  // ✅ Profile Update
   updateProtocol() {
     this.updateRangerProfile();
   }
 
   async updateRangerProfile() {
-    // Added loader for profile updates as well
     const loader = await this.loadingController.create({
-      message: 'Updating Protocol...',
-      duration: 5000 // Fallback
+      message: 'Updating Vercel Profile...',
+      spinner: 'dots',
+      mode: 'ios'
     });
     await loader.present();
 
@@ -213,29 +184,28 @@ export class HomePage implements OnInit {
     this.dataService.updateRanger(updatedData).subscribe({
       next: async (res: any) => {
         await loader.dismiss();
-        if (res.success) {
-          localStorage.setItem('ranger_username', this.rangerName);
-          localStorage.setItem('ranger_phone', this.rangerPhone);
+        // Adjust based on your backend response structure
+        localStorage.setItem('ranger_username', this.rangerName);
+        localStorage.setItem('ranger_phone', this.rangerPhone);
 
-          const msg = await this.translate.get('SETTINGS.UPDATE_SUCCESS').toPromise();
-          await this.showToast(msg || 'Updated Successfully');
-
-          this.rangerPassword = '';
-        }
+        const msg = await this.translate.get('SETTINGS.UPDATE_SUCCESS').toPromise();
+        await this.showToast(msg || 'Updated Successfully');
+        this.rangerPassword = '';
       },
       error: async (err) => {
         await loader.dismiss();
+        console.error("Update Error:", err);
         const toast = await this.toastController.create({
           message: err.error?.message || 'Update failed',
           duration: 3000,
-          color: 'danger'
+          color: 'danger',
+          mode: 'ios'
         });
         await toast.present();
       }
     });
   }
 
-  // ✅ Side Menu
   toggleMenu(isOpen: boolean) {
     const menu = document.getElementById('side-menu');
     const overlay = document.getElementById('side-menu-overlay');
@@ -254,12 +224,12 @@ export class HomePage implements OnInit {
     const toast = await this.toastController.create({
       message: msg,
       duration: 2000,
-      color: 'success'
+      color: 'success',
+      mode: 'ios'
     });
     await toast.present();
   }
 
-  // ✅ Navigation
   goToPage(path: string) {
     this.toggleMenu(false);
 
@@ -267,7 +237,9 @@ export class HomePage implements OnInit {
       if (path === 'home') this.currentPage = 'home';
       else if (path === 'settings') this.currentPage = 'settings';
       else if (path === 'login') {
+        const lang = localStorage.getItem('app_language_code');
         localStorage.clear();
+        if (lang) localStorage.setItem('app_language_code', lang);
         this.router.navigate(['/login']);
       } else {
         this.router.navigate(['/', path]);

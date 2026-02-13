@@ -1,24 +1,15 @@
-// import { Injectable } from '@angular/core';
-
-// @Injectable({
-//   providedIn: 'root',
-// })
-// export class Data {
-  
-// }
-
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 
 @Injectable({ providedIn: 'root' })
 export class DataService {
-  private baseUrl = 'http://localhost:3000'; 
+  // 1. Updated to your Vercel URL
+  private baseUrl = 'https://fsm-backend-ica4fcwv2-vidishas-projects-1763fd56.vercel.app'; 
 
   constructor(private http: HttpClient) {}
 
   // --- AUTH ---
   login(credentials: { phoneNo: string; password: string }) {
-    // return this.http.post(`${this.baseUrl}/api/rangers/login`, credentials);
     return this.http.post(`${this.baseUrl}/api/rangers/login`, credentials);
   }
 
@@ -57,39 +48,29 @@ export class DataService {
     return this.http.get(`${this.baseUrl}/api/patrols/logs`);
   }
 
- updateRanger(data: any) {
-  // ✅ This matches your NestJS Controller: @Controller('rangers') @Post('update')
-  return this.http.post(`${this.baseUrl}/api/rangers/update`, data);
+  // --- RANGER PROFILE & UPDATES ---
+  updateRanger(data: any) {
+    return this.http.post(`${this.baseUrl}/api/rangers/update`, data);
+  }
+
+  getRangerProfile(id: string) {
+    return this.http.get(`${this.baseUrl}/api/rangers/${id}`);
+  }
+
+  // --- PASSWORD RESET & OTP ---
+  requestPasswordReset(phoneNo: string) {
+    return this.http.post(`${this.baseUrl}/api/rangers/forgot-password`, { phoneNo });
+  }
+
+  verifyOtp(phoneNo: string, otp: string) {
+    return this.http.post(`${this.baseUrl}/api/rangers/verify-otp`, { phoneNo, otp });
+  }
+
+  resetPassword(phoneNo: string, otp: string, newPass: string) {
+    return this.http.post(`${this.baseUrl}/api/rangers/reset-password`, { 
+      phoneNo, 
+      otp, 
+      newPass 
+    });
+  }
 }
-
-// Inside DataService class
-requestPasswordReset(phoneNo: string) {
-  // This must match your NestJS route /api/rangers/forgot-password
-  return this.http.post(`${this.baseUrl}/api/rangers/forgot-password`, { phoneNo });
-}
-// data.service.ts
-getRangerProfile(id: string) {
-  // This calls your @Get(':id') endpoint in the RangersController
-  return this.http.get(`${this.baseUrl}/api/rangers/${id}`);
-}
-
-// Add this inside your DataService class
-resetPassword(phoneNo: string, otp: string, newPass: string) {
-  // This calls the @Post('reset-password') in your NestJS RangersController
-  return this.http.post(`${this.baseUrl}/api/rangers/reset-password`, { 
-    phoneNo, 
-    otp, 
-    newPass 
-  });
-}
-
-verifyOtp(phoneNo: string, otp: string) {
-  return this.http.post(`${this.baseUrl}/api/rangers/verify-otp`, { phoneNo, otp });
-}
-
-
-
-
-
-}
-

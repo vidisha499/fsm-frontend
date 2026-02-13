@@ -1,20 +1,28 @@
-
-
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 
 @Injectable({ providedIn: 'root' })
 export class DataService {
-  // FIXED: Base URL now includes /api for all requests
-  private baseUrl = 'http://localhost:3000/api'; 
+  
+  // 1. UPDATED: Pointing to your live Vercel Production URL
+  // All components using this service will now automatically use this link.
+  private baseUrl = 'https://fsm-backend-ica4fcwv2-vidishas-projects-1763fd56.vercel.app/api'; 
 
   constructor(private http: HttpClient) {}
 
   // --- 1. AUTH & STORAGE ---
   
   login(credentials: { phoneNo: string; password: string }) {
-    // Note: Use 'phoneNo' to match your backend controller logic
     return this.http.post(`${this.baseUrl}/rangers/login`, credentials);
+  }
+
+  // Helper method for profile updates
+  getRangerProfile(id: string) {
+    return this.http.get(`${this.baseUrl}/rangers/profile/${id}`);
+  }
+
+  updateRanger(data: any) {
+    return this.http.put(`${this.baseUrl}/rangers/update`, data);
   }
 
   saveRangerId(id: string) {
@@ -47,7 +55,7 @@ export class DataService {
   }
 
   updatePatrolStats(patrolId: number, data: any) {
-    // This will persist your categories to the database
+    // This persists your observation categories to the Neon database via Vercel
     return this.http.patch(`${this.baseUrl}/patrols/active/${patrolId}`, data);
   }
 

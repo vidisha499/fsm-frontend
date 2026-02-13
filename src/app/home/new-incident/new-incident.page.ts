@@ -1,7 +1,6 @@
-
 import { HttpClient } from '@angular/common/http'; 
 import { Component, OnInit } from '@angular/core';
-import { NavController, ToastController } from '@ionic/angular';
+import { NavController, ToastController, LoadingController } from '@ionic/angular';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 
 @Component({
@@ -20,11 +19,14 @@ export class NewIncidentPage implements OnInit {
     observation: ''
   };
 
-  // 2. Update your constructor to include 'private http: HttpClient'
+  // 1. Updated Vercel URL
+  private apiUrl: string = 'https://fsm-backend-ica4fcwv2-vidishas-projects-1763fd56.vercel.app/api/incidents';
+
   constructor(
     private navCtrl: NavController,
     private toastCtrl: ToastController,
-    private http: HttpClient 
+    private http: HttpClient,
+    private loadingCtrl: LoadingController // Added for better UX
   ) { }
 
   ngOnInit() { }
@@ -33,7 +35,6 @@ export class NewIncidentPage implements OnInit {
     this.navCtrl.back();
   }
 
-  // 3. Keep ONLY THIS ONE submitReport function. Delete any other copies!
   async submitReport() {
     const rangerId = localStorage.getItem('ranger_id');
     
@@ -41,6 +42,14 @@ export class NewIncidentPage implements OnInit {
       this.presentToast('Session expired. Please login.', 'danger');
       return;
     }
+
+    // 2. Add a loader so the user knows the "heavy" photo is uploading to Vercel
+    const loader = await this.loadingCtrl.create({
+      message: 'Uploading report to server...',
+      spinner: 'crescent',
+      mode: 'ios'
+    });
+    await loader.present();
 
     const payload = {
       rangerId: +rangerId,
@@ -51,15 +60,17 @@ export class NewIncidentPage implements OnInit {
       fieldObservation: this.incidentData.observation
     };
 
-    // Note: We use (err: any) to fix the 'implicitly has an any type' error
-    this.http.post('http://localhost:3000/api/incidents', payload).subscribe({
+    // 3. Using the Vercel URL instead of localhost
+    this.http.post(this.apiUrl, payload).subscribe({
       next: () => {
+        loader.dismiss();
         this.presentToast('Incident reported successfully!', 'success');
         this.navCtrl.back();
       },
       error: (err: any) => { 
+        loader.dismiss();
         console.error('Upload failed', err);
-        this.presentToast('Server Error: Could not save incident.', 'danger');
+        this.presentToast('Upload Failed: Check internet or Vercel logs.', 'danger');
       }
     });
   }
@@ -69,7 +80,8 @@ export class NewIncidentPage implements OnInit {
       message: message,
       duration: 3000,
       color: color,
-      position: 'bottom'
+      position: 'bottom',
+      mode: 'ios'
     });
     toast.present();
   }
@@ -77,13 +89,12 @@ export class NewIncidentPage implements OnInit {
   async takePhoto() {
     try {
       const image = await Camera.getPhoto({
-        quality: 90,
+        quality: 50, // Reduced quality slightly to speed up Vercel upload
         allowEditing: false,
-        resultType: CameraResultType.Base64, // Get image as a string
-        source: CameraSource.Prompt // Asks user: Gallery or Camera?
+        resultType: CameraResultType.Base64,
+        source: CameraSource.Prompt
       });
 
-      // Save for preview and payload
       this.capturedPhoto = `data:image/jpeg;base64,${image.base64String}`;
     } catch (error) {
       console.error('Camera closed or failed', error);

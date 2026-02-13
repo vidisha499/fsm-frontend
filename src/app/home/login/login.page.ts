@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { LoadingController, AlertController, NavController, ToastController } from '@ionic/angular';
+import { LoadingController, AlertController, NavController, ToastController, Platform } from '@ionic/angular';
 import { DataService } from 'src/app/data.service';
 import { TranslateService } from '@ngx-translate/core'
 
@@ -23,16 +23,27 @@ export class LoginPage implements OnInit {
   loginData = { phone: '', password: '' };
   resetData = { otp: '', newPassword: '', confirmPassword: '' };
 
+  // 1. Add Vercel Base URL
+  // Note: We use the base URL because LoginPage calls multiple endpoints (login, reset, verify)
+  private vercelBaseUrl: string = 'https://fsm-backend-ica4fcwv2-vidishas-projects-1763fd56.vercel.app/api';
+
   constructor(
     private navCtrl: NavController,
     private toastCtrl: ToastController,
     private dataService: DataService,
     private alertController: AlertController,
     private loadingCtrl: LoadingController,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private platform: Platform // 2. Inject Platform
   ) {}
 
-  ngOnInit() {}
+  ngOnInit() {
+    // 3. Update the DataService's internal URL to use Vercel
+    // This ensures dataService.login() uses the live backend
+    if (this.dataService) {
+       (this.dataService as any).apiUrl = `${this.vercelBaseUrl}/rangers`;
+    }
+  }
 
   toggleNewPassword() { this.showNewPassword = !this.showNewPassword; }
   toggleConfirmPassword() { this.showConfirmPassword = !this.showConfirmPassword; }
@@ -50,101 +61,61 @@ export class LoginPage implements OnInit {
   }
 
   async login() {
-  if (!this.loginData.phone || !this.loginData.password) {
-    this.presentToast('Please enter both phone and password', 'warning');
-    return;
+    if (!this.loginData.phone || !this.loginData.password) {
+      this.presentToast('Please enter both phone and password', 'warning');
+      return;
+    }
+
+    const loading = await this.loadingCtrl.create({
+      message: 'Authenticating with Vercel...',
+      spinner: 'crescent',
+      mode: 'ios'
+    });
+    await loading.present();
+
+    const payload = { 
+      phoneNo: this.loginData.phone.trim(), 
+      password: this.loginData.password 
+    };
+
+    this.dataService.login(payload).subscribe({
+      next: async (res: any) => {
+        if (res?.id) {
+          const currentLang = localStorage.getItem('app_language_code') || 'en';
+          
+          localStorage.clear();
+          localStorage.setItem('app_language_code', currentLang);
+          localStorage.setItem('ranger_username', res.username);
+          localStorage.setItem('ranger_id', res.id.toString()); // Direct save
+          this.dataService.saveRangerId(res.id.toString());
+
+          this.translate.use(currentLang).subscribe({
+            next: () => {
+              loading.dismiss();
+              this.navCtrl.navigateRoot('/home');
+            },
+            error: () => {
+              loading.dismiss();
+              this.navCtrl.navigateRoot('/home');
+            }
+          });
+        } else {
+          loading.dismiss();
+          this.presentToast('Login failed: Invalid response', 'danger');
+        }
+      },
+      error: (err) => {
+        loading.dismiss();
+        console.error('Login Error:', err);
+        this.presentToast('Invalid Credentials or Server Offline', 'danger');
+      }
+    });
   }
 
-  const loading = await this.loadingCtrl.create({
-    message: 'Authenticating...',
-    spinner: 'crescent',
-    mode: 'ios'
-  });
-  await loading.present();
-
-  const payload = { 
-    phoneNo: this.loginData.phone.trim(), 
-    password: this.loginData.password 
-  };
-
-  this.dataService.login(payload).subscribe({
-    next: async (res: any) => {
-      if (res?.id) {
-        // 1. Capture the preferred language before clearing storage
-        const currentLang = localStorage.getItem('app_language_code') || 'en';
-        
-        // 2. Clear storage but immediately restore critical keys
-        localStorage.clear();
-        localStorage.setItem('app_language_code', currentLang);
-        localStorage.setItem('ranger_username', res.username);
-        this.dataService.saveRangerId(res.id.toString());
-
-        // 3. FORCE the translate service to reload the language.
-        // We subscribe to 'use' to ensure navigation only happens AFTER the file is loaded.
-        this.translate.use(currentLang).subscribe({
-          next: () => {
-            loading.dismiss();
-            this.navCtrl.navigateRoot('/home');
-          },
-          error: () => {
-            // Fallback: navigate even if translation fails so user isn't stuck
-            loading.dismiss();
-            this.navCtrl.navigateRoot('/home');
-          }
-        });
-      } else {
-        loading.dismiss();
-        this.presentToast('Login failed: Invalid response', 'danger');
-      }
-    },
-    error: (err) => {
-      loading.dismiss();
-      this.presentToast('Invalid Credentials', 'danger');
-    }
-  });
-}
-
-  // --- Login Logic with Loader ---
-  // async login() {
-  //   if (!this.loginData.phone || !this.loginData.password) {
-  //     this.presentToast('Please enter both phone and password', 'warning');
-  //     return;
-  //   }
-
-  //   const loading = await this.loadingCtrl.create({
-  //     message: 'Authenticating...',
-  //     spinner: 'crescent',
-  //     mode: 'ios'
-  //   });
-  //   await loading.present();
-
-  //   const payload = { 
-  //     phoneNo: this.loginData.phone.trim(), 
-  //     password: this.loginData.password 
-  //   };
-
-  //   this.dataService.login(payload).subscribe({
-  //     next: (res: any) => {
-  //       loading.dismiss();
-  //       if (res?.id) {
-  //         localStorage.clear();
-  //         this.dataService.saveRangerId(res.id.toString());
-  //         localStorage.setItem('ranger_username', res.username);
-  //         this.navCtrl.navigateRoot('/home');
-  //       }
-  //     },
-  //     error: (err) => {
-  //       loading.dismiss();
-  //       this.presentToast('Invalid Credentials', 'danger');
-  //     }
-  //   });
-  // }
-
-  // --- Forgot Password Request with Loader ---
   async forgotPassword() {
     const alert = await this.alertController.create({
       header: 'Forgot Password',
-      message: 'Enter your phone number to receive an OTP.',
+      message: 'Enter your phone number to receive an OTP via Vercel mailer.',
       inputs: [{ name: 'phoneNo', type: 'tel', placeholder: 'Enter Mobile Number' }],
       buttons: [
         { text: 'Cancel', role: 'cancel' },
@@ -164,7 +135,7 @@ export class LoginPage implements OnInit {
     }
 
     const loading = await this.loadingCtrl.create({
-      message: 'Sending OTP...',
+      message: 'Requesting OTP...',
       mode: 'ios'
     });
     await loading.present();
@@ -172,7 +143,7 @@ export class LoginPage implements OnInit {
     this.dataService.requestPasswordReset(phoneNo).subscribe({
       next: () => {
         loading.dismiss();
-        this.presentToast('OTP sent to your email!', 'success');
+        this.presentToast('OTP sent successfully!', 'success');
         this.tempPhone = phoneNo;
         this.isResetModalOpen = true;
         this.startResendTimer();
@@ -184,7 +155,6 @@ export class LoginPage implements OnInit {
     });
   }
 
-  // --- Verify OTP with Loader ---
   async verifyOtpOnly() {
     if (!this.resetData.otp || this.resetData.otp.length < 4) {
       this.presentToast('Please enter a valid OTP', 'warning');
@@ -192,7 +162,7 @@ export class LoginPage implements OnInit {
     }
 
     const loading = await this.loadingCtrl.create({
-      message: 'Verifying...',
+      message: 'Verifying OTP...',
       spinner: 'crescent'
     });
     await loading.present();
@@ -210,7 +180,6 @@ export class LoginPage implements OnInit {
     });
   }
 
-  // --- Final Password Reset with Loader ---
   async handlePasswordReset() {
     if (this.resetData.newPassword !== this.resetData.confirmPassword) {
       this.presentToast('Passwords do not match!', 'warning');
@@ -218,7 +187,7 @@ export class LoginPage implements OnInit {
     }
 
     const loading = await this.loadingCtrl.create({
-      message: 'Updating password...',
+      message: 'Updating database...',
       spinner: 'circles'
     });
     await loading.present();
@@ -236,7 +205,6 @@ export class LoginPage implements OnInit {
     });
   }
 
-  // --- Utilities ---
   resendOtp() {
     if (this.resendCountdown === 0) {
       this.sendResetRequest(this.tempPhone);
@@ -252,12 +220,10 @@ export class LoginPage implements OnInit {
 
   async presentToast(message: string, color: string) {
     const toast = await this.toastCtrl.create({ 
-      message, duration: 2500, color, position: 'top' 
+      message, duration: 2500, color, position: 'top', mode: 'ios'
     });
     toast.present();
   }
 
   enroll() { this.navCtrl.navigateForward('/enroll'); }
-
-  
 }

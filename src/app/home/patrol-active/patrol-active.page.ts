@@ -21,7 +21,10 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
   gpsWatchId: any; 
   patrolStartTime: string = '';
   activePatrolId: number | null = null;
-  private apiUrl = 'http://localhost:3000/api/patrols';
+
+  // 1. Updated Vercel URL
+  private vercelUrl: string = 'https://fsm-backend-ica4fcwv2-vidishas-projects-1763fd56.vercel.app/api/patrols';
+  private apiUrl: string = '';
 
   isModalOpen = false;
   currentType: string = ''; 
@@ -51,15 +54,13 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     private navCtrl: NavController, 
     private alertCtrl: AlertController,
     private toastCtrl: ToastController,
-    private loadingCtrl: LoadingController, // 1. Injected LoadingController
+    private loadingCtrl: LoadingController,
     private http: HttpClient,
     private translate: TranslateService,
     private platform: Platform
   ) { 
-    // Handle API URL for Mobile vs Web
-    this.apiUrl = this.platform.is('hybrid') 
-      ? 'http://10.60.250.89:3000/api/patrols' 
-      : 'http://localhost:3000/api/patrols';
+    // 2. Set API URL to Vercel for all platforms
+    this.apiUrl = this.vercelUrl;
   }
 
   ngOnInit() {
@@ -80,11 +81,11 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     const rangerId = localStorage.getItem('ranger_id');
     if (!rangerId) return;
 
-    // Optional: Add a subtle loader for session init if needed
+    // Connect to Vercel to start an active session
     this.http.post(`${this.apiUrl}/active`, { rangerId: Number(rangerId) })
       .subscribe({
         next: (res: any) => { this.activePatrolId = res.id; },
-        error: (err) => console.error('Failed to initialize session', err)
+        error: (err) => console.error('Failed to initialize Vercel session', err)
       });
   }
 
@@ -97,10 +98,10 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
   async saveObservation() {
     if (!this.activePatrolId) return;
 
-    // Show loader for saving detailed observation
     const loader = await this.loadingCtrl.create({
-      message: 'Saving observation...',
-      spinner: 'crescent'
+      message: 'Saving observation to Vercel...',
+      spinner: 'crescent',
+      mode: 'ios'
     });
     await loader.present();
 
@@ -125,31 +126,37 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
         loader.dismiss();
         this.observationCounts[this.currentType]++;
         this.isModalOpen = false;
-        const toast = await this.toastCtrl.create({ 
-          message: `${this.currentType} log saved`, 
-          duration: 2000, 
-          color: 'success' 
-        });
-        await toast.present();
+        this.presentToast(`${this.currentType} log saved`, 'success');
       },
       error: (err) => {
         loader.dismiss();
-        console.error("Error saving detailed log", err);
+        console.error("Error saving log to Vercel", err);
+        this.presentToast('Sync failed. Please check internet.', 'danger');
       }
     });
   }
 
   async takeQuickPhoto() {
     try {
-      const image = await Camera.getPhoto({ quality: 50, resultType: CameraResultType.Base64, source: CameraSource.Camera });
+      const image = await Camera.getPhoto({ 
+        quality: 40, // Keeping size small for Vercel
+        resultType: CameraResultType.Base64, 
+        source: CameraSource.Camera 
+      });
+
       if (image.base64String && this.activePatrolId) {
-        // Subtle loader for photo upload
-        const loader = await this.loadingCtrl.create({ message: 'Uploading photo...', duration: 5000 });
+        const loader = await this.loadingCtrl.create({ 
+          message: 'Uploading to Vercel...', 
+          mode: 'ios' 
+        });
         await loader.present();
 
         this.http.patch(`${this.apiUrl}/active/${this.activePatrolId}`, { photo: image.base64String }).subscribe({
           next: () => loader.dismiss(),
-          error: () => loader.dismiss()
+          error: (err) => {
+            loader.dismiss();
+            console.error("Photo upload failed", err);
+          }
         });
       }
     } catch (e) { console.error("Camera failed", e); }
@@ -187,7 +194,7 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
         this.marker.setLatLng(current);
         this.map.panTo(current);
 
-        // Background sync (No loader needed here as it's transparent to user)
+        // Periodic Live Sync to Vercel (every 60s)
         if (this.seconds % 60 === 0 && this.activePatrolId) {
           this.http.patch(`${this.apiUrl}/active/${this.activePatrolId}`, { 
             liveLatitude: current.lat, 
@@ -230,13 +237,14 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
 
   private async processEndPatrol() {
     const loader = await this.loadingCtrl.create({
-      message: 'Finalizing patrol logs...',
-      spinner: 'dots'
+      message: 'Finalizing Vercel logs...',
+      spinner: 'dots',
+      mode: 'ios'
     });
     await loader.present();
 
     const rangerId = localStorage.getItem('ranger_id');
-    const savedPatrolName = localStorage.getItem('temp_patrol_name') || "PANNA SITE OPERATION";
+    const savedPatrolName = localStorage.getItem('temp_patrol_name') || "SITE OPERATION";
 
     const patrolData = {
       rangerId: Number(rangerId),
@@ -250,6 +258,7 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
       siteLocation: 'PANNA SITE'
     };
 
+    // Post final log to Vercel
     this.http.post(`${this.apiUrl}/logs`, patrolData).subscribe({
       next: () => { 
         loader.dismiss();
@@ -259,13 +268,19 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
       error: (err) => { 
         loader.dismiss();
         console.error("End Patrol Error:", err); 
-        this.presentToast('Failed to save final log. Please check connection.', 'danger');
+        this.presentToast('Failed to save final log to Vercel.', 'danger');
       }
     });
   }
 
   async presentToast(message: string, color: string) {
-    const toast = await this.toastCtrl.create({ message, duration: 2000, color, position: 'bottom' });
+    const toast = await this.toastCtrl.create({ 
+      message, 
+      duration: 2500, 
+      color, 
+      position: 'bottom',
+      mode: 'ios'
+    });
     await toast.present();
   }
 }
