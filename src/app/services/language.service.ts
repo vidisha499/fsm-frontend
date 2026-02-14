@@ -1,13 +1,14 @@
 import { Injectable } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { firstValueFrom, BehaviorSubject } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class LanguageService {
   private readonly LANG_KEY = 'app_language_code';
-  
+  private vercelUrl: string = `${environment.apiUrl}/translations`;
   public isReady$ = new BehaviorSubject<boolean>(false);
 
   constructor(private translate: TranslateService) {

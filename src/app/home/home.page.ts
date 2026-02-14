@@ -33,7 +33,8 @@ export class HomePage implements OnInit {
   showNewPassword: boolean = false;
 
   // 1. Vercel Configuration
-  private vercelBaseUrl: string = 'https://fsm-backend-ica4fcwv2-vidishas-projects-1763fd56.vercel.app/api';
+  // private vercelBaseUrl: string = 'https://fsm-backend-ica4fcwv2-vidishas-projects-1763fd56.vercel.app/api';
+  private vercelBaseUrl: string = 'https://forest-backend-pi.vercel.app/api';
 
   private languageMap: { [key: string]: string } = {
     'English': 'en',

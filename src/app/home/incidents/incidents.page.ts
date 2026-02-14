@@ -13,7 +13,8 @@ export class IncidentsPage {
   public incidents: any[] = [];
   
   // 1. Updated Vercel link
-  private vercelUrl: string = 'https://fsm-backend-ica4fcwv2-vidishas-projects-1763fd56.vercel.app/api/incidents';
+  // private vercelUrl: string = 'https://fsm-backend-ica4fcwv2-vidishas-projects-1763fd56.vercel.app/api/incidents';
+  private vercelUrl: string = 'https://forest-backend-pi.vercel.app/api/incidents';
   private apiUrl: string = '';
 
   constructor(

@@ -20,7 +20,8 @@ export class NewIncidentPage implements OnInit {
   };
 
   // 1. Updated Vercel URL
-  private apiUrl: string = 'https://fsm-backend-ica4fcwv2-vidishas-projects-1763fd56.vercel.app/api/incidents';
+  // private apiUrl: string = 'https://fsm-backend-ica4fcwv2-vidishas-projects-1763fd56.vercel.app/api/incidents';
+  private apiUrl: string = 'https://forest-backend-pi.vercel.app/api/incidents';
 
   constructor(
     private navCtrl: NavController,

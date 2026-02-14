@@ -56,31 +56,13 @@ import { TranslateModule, TranslateLoader, TranslateService } from '@ngx-transla
 
 import { AppComponent } from './app.component';
 import { AppRoutingModule } from './app-routing.module';
+import { environment } from '../environments/environment';
 
-// Loader factory for backend translations
+
 export function HttpLoaderFactory(http: HttpClient) {
-  return new TranslateHttpLoader(http, 'http://localhost:3000/api/translations/', ''); 
+  // Use environment.apiUrl but add the specific route for translations
+  return new TranslateHttpLoader(http, `${environment.apiUrl}/translations/`, '.json');
 }
-
-// 2. New Initializer function to prevent the "Race Condition"
-// export function appInitializerFactory(translate: TranslateService) {
-//   return () => new Promise<void>((resolve) => {
-//     // Matches the key used in your LanguageService
-//     const savedLang = localStorage.getItem('app_language_code') || 'en';
-    
-//     translate.setDefaultLang('en');
-//     translate.use(savedLang).subscribe({
-//       next: () => {
-//         console.log(`Successfully loaded language: ${savedLang}`);
-//         resolve();
-//       },
-//       error: () => {
-//         console.error(`Could not load language: ${savedLang}, falling back to English.`);
-//         resolve(); // Still resolve so the app loads
-//       }
-//     });
-//   });
-// }
 
 export function appInitializerFactory(translate: TranslateService) {
   return () => {

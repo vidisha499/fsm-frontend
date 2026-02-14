@@ -5,6 +5,7 @@ import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Geolocation } from '@capacitor/geolocation';
 import { GoogleMap } from '@capacitor/google-maps';
 import { firstValueFrom } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-onsite',
@@ -25,7 +26,8 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
   private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw';
   
   // 1. Updated Vercel URL for Onsite Attendance
-  private vercelUrl: string = 'https://fsm-backend-ica4fcwv2-vidishas-projects-1763fd56.vercel.app/api/onsite-attendance';
+  // private vercelUrl: string = 'https://fsm-backend-ica4fcwv2-vidishas-projects-1763fd56.vercel.app/api/onsite-attendance';
+  private vercelUrl: string = `${environment.apiUrl}/onsite-attendance`;
   private apiUrl: string = '';
 
   constructor(

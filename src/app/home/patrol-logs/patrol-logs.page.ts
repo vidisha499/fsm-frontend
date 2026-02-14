@@ -17,7 +17,8 @@ export class PatrolLogsPage implements OnInit {
   public selectedType = '';
 
   // 1. Updated Vercel URL
-  private vercelUrl: string = 'https://fsm-backend-ica4fcwv2-vidishas-projects-1763fd56.vercel.app/api/patrols';
+  // private vercelUrl: string = 'https://fsm-backend-ica4fcwv2-vidishas-projects-1763fd56.vercel.app/api/patrols';
+  private vercelUrl: string = 'https://forest-backend-pi.vercel.app/api/patrols';
   private apiUrl: string = '';
 
   constructor(
