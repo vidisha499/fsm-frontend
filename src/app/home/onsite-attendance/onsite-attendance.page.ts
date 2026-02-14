@@ -6,6 +6,8 @@ import { Geolocation } from '@capacitor/geolocation';
 import { GoogleMap } from '@capacitor/google-maps';
 import { firstValueFrom } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { TranslateModule } from '@ngx-translate/core';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-onsite',
@@ -30,13 +32,15 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
   private vercelUrl: string = `${environment.apiUrl}/onsite-attendance`;
   private apiUrl: string = '';
 
+
   constructor(
     private navCtrl: NavController,
     private toastCtrl: ToastController,
     private actionSheetCtrl: ActionSheetController,
     private loadingCtrl: LoadingController,
     private http: HttpClient,
-    private platform: Platform
+    private platform: Platform,
+    private translate: TranslateService
   ) {}
 
   ngOnInit() {
@@ -118,6 +122,8 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
   }
 
   async submit() {
+    
+const message = await this.translate.get('ONSITE.SUCCESS_MSG').toPromise();
     const rangerId = localStorage.getItem('ranger_id');
     if (!this.capturedPhoto) {
       this.presentToast('Please capture or select a photo.', 'warning');

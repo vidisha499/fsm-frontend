@@ -54,6 +54,14 @@ import { TranslateService } from '@ngx-translate/core';
 export class AppComponent {
   constructor(private translate: TranslateService) {
     this.initLanguage();
+    this.initializeApp();
+  }
+
+  initializeApp() {
+    // Force light mode by removing any dark class and ensuring light is set
+    document.body.classList.toggle('dark', false);
+    
+    // Optional: If you use the Capacitor Dark Mode plugin, you can lock it here
   }
 
   initLanguage() {

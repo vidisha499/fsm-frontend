@@ -255,3 +255,19 @@
   50% { transform: scale(1.05); }
   100% { transform: scale(1); }
 }
+.field {
+  display: flex;
+  align-items: center;
+  
+  ion-icon {
+    color: #2e7d32; // Your Forest Green
+    font-size: 20px;
+    margin-right: 10px;
+  }
+
+  .eye-toggle {
+    margin-right: 0;
+    margin-left: 10px;
+    cursor: pointer;
+  }
+}

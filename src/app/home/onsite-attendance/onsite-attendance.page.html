@@ -1,4 +1,4 @@
-<ion-content [fullscreen]="true" class="onsite-content">
+<!-- <ion-content [fullscreen]="true" class="onsite-content">
   <div class="header-banner">
     <div class="header-decor">
       <ion-icon name="paw" class="paw-1"></ion-icon>
@@ -83,6 +83,97 @@
       <button class="mark-btn" (click)="submit()">
         <ion-icon name="checkmark-circle"></ion-icon>
         <span>MARK ATTENDANCE</span>
+      </button>
+    </div>
+  </div>
+</ion-content> -->
+
+<ion-content [fullscreen]="true" class="onsite-content">
+  <div class="header-banner">
+    <div class="header-decor">
+      <ion-icon name="paw" class="paw-1"></ion-icon>
+      <ion-icon name="paw" class="paw-2"></ion-icon>
+      <ion-icon name="leaf" class="leaf-1"></ion-icon>
+    </div>
+
+    <div class="header-nav-row">
+      <div class="nav-left">
+        <ion-button (click)="goBack()" class="back-btn" mode="md">
+          <ion-icon name="arrow-back-outline"></ion-icon>
+        </ion-button>
+        <div class="title-group">
+          <h1>{{ 'ONSITE.TITLE' | translate }}</h1>
+          <p class="subtitle">{{ 'ONSITE.SUBTITLE' | translate }}</p>
+        </div>
+      </div>
+      <div class="live-badge">
+        <span>{{ 'ONSITE.LIVE_GPS' | translate }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <div class="form-card">
+      
+      <div class="gps-tracker-bar" style="height: auto; padding: 10px;">
+        <div class="gps-content">
+          <div class="location-pulse">
+            <div class="ping"></div>
+          </div>
+        </div>
+        
+        <div class="map-wrapper" style="margin-top: 10px; position: relative;">
+          <capacitor-google-map #map style="display: block; width: 100%; height: 200px; border-radius: 15px; overflow: hidden; border: 1px solid #eee;"></capacitor-google-map>
+        </div>
+      </div>
+
+      <div class="photo-section">
+        <div class="capture-box" (click)="presentImageSourceOptions()"
+             [style.background-image]="capturedPhoto ? 'url(' + capturedPhoto + ')' : ''"
+             style="background-size: cover; background-position: center;">
+          
+          <ng-container *ngIf="!capturedPhoto">
+            <ion-icon name="camera-outline"></ion-icon>
+            <div class="plus-badge">
+              <ion-icon name="add"></ion-icon>
+            </div>
+          </ng-container>
+        </div>
+        <p class="capture-hint">
+          {{ (capturedPhoto ? 'ONSITE.PHOTO_READY' : 'ONSITE.TAP_CAPTURE') | translate }}
+        </p>
+      </div>
+
+      <div class="form-body">
+        <div class="input-group">
+          <label class="group-label">{{ 'ONSITE.LABEL_PROFILE' | translate }}</label>
+          <div class="readonly-input">
+            {{ rangerName }}
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="group-label dark">{{ 'ONSITE.LABEL_GEOFENCE' | translate }}</label>
+          <div class="readonly-input" style="font-size: 0.85rem; line-height: 1.2; min-height: 44px; display: flex; align-items: center;">
+            {{ currentAddress }}
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="group-label dark">{{ 'ONSITE.LABEL_TYPE' | translate }}</label>
+          <div class="select-wrapper">
+            <ion-select interface="action-sheet" [(ngModel)]="attendanceType" mode="md">
+              <ion-select-option value="entry">{{ 'ONSITE.ENTRY' | translate }}</ion-select-option>
+              <ion-select-option value="exit">{{ 'ONSITE.EXIT' | translate }}</ion-select-option>
+            </ion-select>
+            <ion-icon name="chevron-down-outline" class="select-arrow"></ion-icon>
+          </div>
+        </div>
+      </div>
+
+      <button class="mark-btn" (click)="submit()">
+        <ion-icon name="checkmark-circle"></ion-icon>
+        <span>{{ 'ONSITE.MARK_BTN' | translate }}</span>
       </button>
     </div>
   </div>
