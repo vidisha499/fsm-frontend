@@ -1,4 +1,5 @@
 <ion-content [fullscreen]="true" class="onsite-content">
+
   <div class="header-banner">
     <div class="header-decor">
       <ion-icon name="paw" class="paw-1"></ion-icon>
@@ -16,6 +17,7 @@
           <p class="subtitle">Location Verification</p>
         </div>
       </div>
+
       <div class="live-badge">
         <span>Live GPS</span>
       </div>
@@ -24,24 +26,14 @@
 
   <div class="main-container">
     <div class="form-card">
-      
-      <div class="gps-tracker-bar" style="height: auto; padding: 10px;">
-        <div class="gps-content">
-          <div class="location-pulse">
-            <div class="ping"></div>
-          </div>
-        </div>
-        
-        <div class="map-wrapper" style="margin-top: 10px; position: relative;">
-          <capacitor-google-map #map style="display: block; width: 100%; height: 200px; border-radius: 15px; overflow: hidden; border: 1px solid #eee;"></capacitor-google-map>
-        </div>
-      </div>
 
+      <!-- ✅ CAMERA FIRST (MOVED UP) -->
       <div class="photo-section">
-        <div class="capture-box" (click)="presentImageSourceOptions()"
+        <div class="capture-box"
+             (click)="presentImageSourceOptions()"
              [style.background-image]="capturedPhoto ? 'url(' + capturedPhoto + ')' : ''"
              style="background-size: cover; background-position: center;">
-          
+
           <ng-container *ngIf="!capturedPhoto">
             <ion-icon name="camera-outline"></ion-icon>
             <div class="plus-badge">
@@ -49,11 +41,30 @@
             </div>
           </ng-container>
         </div>
-        <p class="capture-hint">{{ capturedPhoto ? 'Photo Ready' : 'Tap to capture photo' }}</p>
+
+        <p class="capture-hint">
+          {{ capturedPhoto ? 'Photo Ready' : 'Tap to capture photo' }}
+        </p>
       </div>
 
+      <!-- ✅ MAP AFTER CAMERA (MOVED DOWN) -->
+      <div class="gps-tracker-bar" style="height: auto; padding: 10px;">
+        <div class="gps-content">
+          <div class="location-pulse">
+            <div class="ping"></div>
+          </div>
+        </div>
+
+        <div class="map-wrapper" style="margin-top: 10px; position: relative;">
+          <capacitor-google-map
+            #map
+            style="display: block; width: 100%; height: 200px; border-radius: 15px; overflow: hidden; border: 1px solid #eee;">
+          </capacitor-google-map>
+        </div>
+      </div>
 
       <div class="form-body">
+
         <div class="input-group">
           <label class="group-label">Ranger Profile</label>
           <div class="readonly-input">
@@ -63,7 +74,8 @@
 
         <div class="input-group">
           <label class="group-label dark">Current Geofence (Detected)</label>
-          <div class="readonly-input" style="font-size: 0.85rem; line-height: 1.2; min-height: 44px; display: flex; align-items: center;">
+          <div class="readonly-input"
+               style="font-size: 0.85rem; line-height: 1.2; min-height: 44px; display: flex; align-items: center;">
             {{ currentAddress }}
           </div>
         </div>
@@ -78,12 +90,15 @@
             <ion-icon name="chevron-down-outline" class="select-arrow"></ion-icon>
           </div>
         </div>
+
       </div>
 
       <button class="mark-btn" (click)="submit()">
         <ion-icon name="checkmark-circle"></ion-icon>
         <span>MARK ATTENDANCE</span>
       </button>
+
     </div>
   </div>
+
 </ion-content>

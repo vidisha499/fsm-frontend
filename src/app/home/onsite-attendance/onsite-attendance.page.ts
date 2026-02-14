@@ -14,21 +14,18 @@ import { environment } from 'src/environments/environment';
   standalone: false
 })
 export class OnsiteAttendancePage implements OnInit, OnDestroy {
-  @ViewChild('map') mapRef!: ElementRef<HTMLElement>;
+  @ViewChild('map') mapRef!: ElementRef;
   newMap!: GoogleMap;
 
   public attendanceType: string = 'entry';
   public capturedPhoto: string | undefined = undefined;
   public rangerName: string = 'Loading...';
   public currentAddress: string = 'Detecting location...';
-  public currentCoords: any;
+  public currentLat: number = 0;
+  public currentLng: number = 0;
 
   private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw';
-  
-  // 1. Updated Vercel URL for Onsite Attendance
-  // private vercelUrl: string = 'https://fsm-backend-ica4fcwv2-vidishas-projects-1763fd56.vercel.app/api/onsite-attendance';
-  private vercelUrl: string = `${environment.apiUrl}/onsite-attendance`;
-  private apiUrl: string = '';
+  private apiUrl: string = `${environment.apiUrl}/onsite-attendance`;
 
   constructor(
     private navCtrl: NavController,
@@ -40,135 +37,132 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    this.rangerName = localStorage.getItem('ranger_username') || 'Unknown Ranger';
-
-    // 2. Set API URL to Vercel for all platforms
-    this.apiUrl = this.vercelUrl;
+    this.rangerName = localStorage.getItem('ranger_username') || 'Ranger';
   }
 
   async ionViewDidEnter() {
-    await this.createMap();
+    await this.platform.ready();
+    await this.initMap();
+  }
+
+  async initMap() {
+    try {
+      const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+      this.currentLat = pos.coords.latitude;
+      this.currentLng = pos.coords.longitude;
+
+      await this.createMap();
+      this.fetchAddress(this.currentLat, this.currentLng);
+    } catch (e) {
+      this.presentToast('Location error. Check GPS.', 'danger');
+    }
   }
 
   async createMap() {
-    try {
-      const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
-      this.currentCoords = position.coords;
+    if (!this.mapRef) return;
 
-      this.newMap = await GoogleMap.create({
-        id: 'onsite-map-instance',
-        element: this.mapRef.nativeElement,
-        apiKey: this.googleApiKey,
-        config: {
-          center: { lat: this.currentCoords.latitude, lng: this.currentCoords.longitude },
-          zoom: 16,
-        },
-      });
+    this.newMap = await GoogleMap.create({
+      id: 'onsite-map-unique-id',
+      element: this.mapRef.nativeElement,
+      apiKey: this.googleApiKey,
+      config: {
+        center: { lat: this.currentLat, lng: this.currentLng },
+        zoom: 16,
+      },
+    });
 
-      await this.newMap.addMarker({
-        coordinate: { lat: this.currentCoords.latitude, lng: this.currentCoords.longitude },
-        title: 'Current Location',
-      });
-
-      this.fetchAddress(this.currentCoords.latitude, this.currentCoords.longitude);
-
-    } catch (e) {
-      console.error('Map Initialization Error:', e);
-      this.presentToast('Failed to load Map.', 'danger');
-    }
+    await this.newMap.addMarker({
+      coordinate: { lat: this.currentLat, lng: this.currentLng },
+      title: 'You are here',
+    });
   }
 
   async fetchAddress(lat: number, lng: number) {
     const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${this.googleApiKey}`;
     try {
       const data: any = await firstValueFrom(this.http.get(url));
-      if (data.results && data.results.length > 0) {
-        this.currentAddress = data.results[0].formatted_address;
-      }
+      this.currentAddress = data.results[0]?.formatted_address || 'Address Found';
     } catch (error) {
       this.currentAddress = `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
     }
   }
 
-  async presentImageSourceOptions() {
-    const actionSheet = await this.actionSheetCtrl.create({
-      header: 'Capture ID Photo',
-      buttons: [
-        { text: 'Take Photo', icon: 'camera', handler: () => this.captureImage(CameraSource.Camera) },
-        { text: 'Select from Gallery', icon: 'image', handler: () => this.captureImage(CameraSource.Photos) },
-        { text: 'Cancel', role: 'cancel' }
-      ]
-    });
-    await actionSheet.present();
-  }
-
   async captureImage(source: CameraSource) {
     try {
-      const image = await Camera.getPhoto({
-        quality: 40, // Keeping low quality for Vercel efficiency
-        resultType: CameraResultType.Base64,
-        source: source
-      });
-      if (image.base64String) {
-        this.capturedPhoto = `data:image/jpeg;base64,${image.base64String}`;
-      }
-    } catch (error) {
-      console.log('User cancelled image selection');
-    }
+      const image = await Camera.getPhoto({ quality: 40, resultType: CameraResultType.Base64, source });
+      if (image.base64String) this.capturedPhoto = `data:image/jpeg;base64,${image.base64String}`;
+    } catch (error) { console.log('User cancelled'); }
   }
 
   async submit() {
-    const rangerId = localStorage.getItem('ranger_id');
     if (!this.capturedPhoto) {
-      this.presentToast('Please capture or select a photo.', 'warning');
+      this.presentToast('Photo is required.', 'warning');
       return;
     }
 
     const loader = await this.loadingCtrl.create({
-      message: 'Logging On-Site Attendance to Vercel...',
+      message: 'Logging On-Site...',
       spinner: 'circular',
       mode: 'ios'
     });
     await loader.present();
 
     const onsiteData = {
-      ranger_id: Number(rangerId),
+      ranger_id: Number(localStorage.getItem('ranger_id')) || 1,
       type: 'ON-SITE',
       photo: this.capturedPhoto,
       ranger: this.rangerName,
       geofence: this.currentAddress, 
-      attendance_type: this.attendanceType.toUpperCase()
+      attendance_type: this.attendanceType.toUpperCase(),
+      latitude: this.currentLat,
+      longitude: this.currentLng
     };
 
-    // 3. Post to Vercel API
     this.http.post(this.apiUrl, onsiteData).subscribe({
       next: () => {
         loader.dismiss();
-        this.presentToast('On-Site Attendance Logged!', 'success');
-        this.navCtrl.back();
+        this.presentToast('Logged Successfully!', 'success');
+        this.navCtrl.navigateRoot('/home');
       },
       error: (err) => {
         loader.dismiss();
-        console.error('Submission Error:', err);
-        this.presentToast('Sync Failed. Check Vercel logs.', 'danger');
+        this.presentToast('Submission Failed.', 'danger');
       }
     });
   }
 
   async presentToast(message: string, color: string) {
-    const toast = await this.toastCtrl.create({ 
-      message, 
-      duration: 2500, 
-      color, 
-      position: 'bottom',
-      mode: 'ios'
-    });
-    await toast.present();
+    const toast = await this.toastCtrl.create({ message, duration: 2500, color, mode: 'ios' });
+    toast.present();
   }
  
-  ngOnDestroy() {
-    if (this.newMap) this.newMap.destroy();
+  async ngOnDestroy() {
+    if (this.newMap) await this.newMap.destroy();
   }
 
-  goBack() { this.navCtrl.back(); }
+  goBack() { this.navCtrl.navigateRoot('/home'); }
+
+  // Add this missing function to fix the HTML error
+  async presentImageSourceOptions() {
+    const actionSheet = await this.actionSheetCtrl.create({
+      header: 'Capture ID Photo',
+      buttons: [
+        { 
+          text: 'Take Photo', 
+          icon: 'camera', 
+          handler: () => this.captureImage(CameraSource.Camera) 
+        },
+        { 
+          text: 'Select from Gallery', 
+          icon: 'image', 
+          handler: () => this.captureImage(CameraSource.Photos) 
+        },
+        { 
+          text: 'Cancel', 
+          role: 'cancel' 
+        }
+      ]
+    });
+    await actionSheet.present();
+  }
 }

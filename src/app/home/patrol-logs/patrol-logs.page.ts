@@ -141,5 +141,8 @@ export class PatrolLogsPage implements OnInit {
     await toast.present();
   }
 
-  goBack() { this.navCtrl.back(); }
+ goBack() {
+  // navigateRoot ensures /home becomes the top of the stack
+  this.navCtrl.navigateRoot('/home'); 
+}
 }

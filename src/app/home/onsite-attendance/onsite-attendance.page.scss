@@ -116,3 +116,14 @@
 @keyframes ping {
   75%, 100% { transform: scale(2); opacity: 0; }
 }
+
+ion-content {
+  --background: transparent !important;
+  background: transparent !important;
+}
+
+#map, #onsite-map-instance {
+  width: 100%;
+  height: 300px; // Ensure this is NOT 0
+  display: block;
+}
