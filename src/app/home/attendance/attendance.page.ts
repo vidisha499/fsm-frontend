@@ -204,6 +204,7 @@ import { Geolocation } from '@capacitor/geolocation';
 import { GoogleMap } from '@capacitor/google-maps';
 import { firstValueFrom } from 'rxjs';
 import { TranslateService } from '@ngx-translate/core';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-attendance',
@@ -229,7 +230,8 @@ export class AttendancePage implements OnInit, OnDestroy {
   private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw';
   
   // Update this to your specific Vercel URL
-  private vercelUrl: string = 'https://fsm-backend-ica4fcwv2-vidishas-projects-1763fd56.vercel.app/api/attendance/beat-attendance';
+  // private vercelUrl: string = 'https://fsm-backend-ica4fcwv2-vidishas-projects-1763fd56.vercel.app/api/attendance/beat-attendance';
+  private vercelUrl: string = `${environment.apiUrl}/attendance/beat-attendance`;
   private apiUrl: string = '';
 
   constructor(
