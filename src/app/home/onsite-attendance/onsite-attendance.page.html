@@ -13,13 +13,13 @@
           <ion-icon name="arrow-back-outline"></ion-icon>
         </ion-button>
         <div class="title-group">
-          <h1>On-Site Attendance</h1>
-          <p class="subtitle">Location Verification</p>
+          <h1>{{ 'ONSITE.TITLE' | translate }}</h1>
+          <p class="subtitle">{{ 'ONSITE.SUBTITLE' | translate }}</p>
         </div>
       </div>
 
       <div class="live-badge">
-        <span>Live GPS</span>
+        <span>{{ 'ONSITE.LIVE_GPS' | translate }}</span>
       </div>
     </div>
   </div>
@@ -27,7 +27,6 @@
   <div class="main-container">
     <div class="form-card">
 
-      <!-- ✅ CAMERA FIRST (MOVED UP) -->
       <div class="photo-section">
         <div class="capture-box"
              (click)="presentImageSourceOptions()"
@@ -43,11 +42,10 @@
         </div>
 
         <p class="capture-hint">
-          {{ capturedPhoto ? 'Photo Ready' : 'Tap to capture photo' }}
+          {{ (capturedPhoto ? 'ONSITE.PHOTO_READY' : 'ONSITE.TAP_CAPTURE') | translate }}
         </p>
       </div>
 
-      <!-- ✅ MAP AFTER CAMERA (MOVED DOWN) -->
       <div class="gps-tracker-bar" style="height: auto; padding: 10px;">
         <div class="gps-content">
           <div class="location-pulse">
@@ -66,14 +64,14 @@
       <div class="form-body">
 
         <div class="input-group">
-          <label class="group-label">Ranger Profile</label>
+          <label class="group-label">{{ 'ONSITE.LABEL_PROFILE' | translate }}</label>
           <div class="readonly-input">
             {{ rangerName }}
           </div>
         </div>
 
         <div class="input-group">
-          <label class="group-label dark">Current Geofence (Detected)</label>
+          <label class="group-label dark">{{ 'ONSITE.LABEL_GEOFENCE' | translate }}</label>
           <div class="readonly-input"
                style="font-size: 0.85rem; line-height: 1.2; min-height: 44px; display: flex; align-items: center;">
             {{ currentAddress }}
@@ -81,11 +79,11 @@
         </div>
 
         <div class="input-group">
-          <label class="group-label dark">Attendance Type</label>
+          <label class="group-label dark">{{ 'ONSITE.LABEL_TYPE' | translate }}</label>
           <div class="select-wrapper">
             <ion-select interface="action-sheet" [(ngModel)]="attendanceType" mode="md">
-              <ion-select-option value="entry">Entry</ion-select-option>
-              <ion-select-option value="exit">Exit</ion-select-option>
+              <ion-select-option value="entry">{{ 'ONSITE.ENTRY' | translate }}</ion-select-option>
+              <ion-select-option value="exit">{{ 'ONSITE.EXIT' | translate }}</ion-select-option>
             </ion-select>
             <ion-icon name="chevron-down-outline" class="select-arrow"></ion-icon>
           </div>
@@ -95,7 +93,7 @@
 
       <button class="mark-btn" (click)="submit()">
         <ion-icon name="checkmark-circle"></ion-icon>
-        <span>MARK ATTENDANCE</span>
+        <span>{{ 'ONSITE.MARK_BTN' | translate }}</span>
       </button>
 
     </div>

@@ -22,13 +22,15 @@ import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { OnsiteAttendancePageRoutingModule } from './onsite-attendance-routing.module';
 import { OnsiteAttendancePage } from './onsite-attendance.page';
+import { TranslateModule } from '@ngx-translate/core';
 
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
     IonicModule,
-    OnsiteAttendancePageRoutingModule
+    OnsiteAttendancePageRoutingModule,
+    TranslateModule
   ],
   declarations: [OnsiteAttendancePage],
   // ✅ Add this schemas array to allow capacitor-google-map

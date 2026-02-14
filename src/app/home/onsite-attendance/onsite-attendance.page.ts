@@ -6,6 +6,7 @@ import { Geolocation } from '@capacitor/geolocation';
 import { GoogleMap } from '@capacitor/google-maps';
 import { firstValueFrom } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-onsite',
@@ -33,7 +34,8 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
     private actionSheetCtrl: ActionSheetController,
     private loadingCtrl: LoadingController,
     private http: HttpClient,
-    private platform: Platform
+    private platform: Platform,
+    private translate: TranslateService
   ) {}
 
   ngOnInit() {
@@ -96,7 +98,8 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
 
   async submit() {
     if (!this.capturedPhoto) {
-      this.presentToast('Photo is required.', 'warning');
+      const photoWarning = await firstValueFrom(this.translate.get('ONSITE.PHOTO_REQUIRED_MSG'));
+      this.presentToast(photoWarning || 'Photo is required.', 'warning');
       return;
     }
 
@@ -119,12 +122,13 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
     };
 
     this.http.post(this.apiUrl, onsiteData).subscribe({
-      next: () => {
+      next: async () => {
         loader.dismiss();
-        this.presentToast('Logged Successfully!', 'success');
+        const successMsg = await firstValueFrom(this.translate.get('ONSITE.SUCCESS_MSG'));
+        this.presentToast(successMsg || 'Logged Successfully!', 'success');
         this.navCtrl.navigateRoot('/home');
       },
-      error: (err) => {
+      error: () => {
         loader.dismiss();
         this.presentToast('Submission Failed.', 'danger');
       }
@@ -142,7 +146,6 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
 
   goBack() { this.navCtrl.navigateRoot('/home'); }
 
-  // Add this missing function to fix the HTML error
   async presentImageSourceOptions() {
     const actionSheet = await this.actionSheetCtrl.create({
       header: 'Capture ID Photo',

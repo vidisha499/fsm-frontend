@@ -16,13 +16,7 @@
     <div class="login-card">
       <h2 class="form-title">Ranger Login</h2>
 
-      <!-- <div class="input-group">
-        <label>MOBILE NUMBER</label>
-        <div class="field">
-          <i class="fas fa-phone-alt"></i>
-          <input type="tel" [(ngModel)]="loginData.phone" placeholder="Enter Mobile Number">
-        </div>
-      </div> -->
+    
       <div class="input-group">
   <label>MOBILE NUMBER</label>
   <div class="field">
@@ -32,19 +26,7 @@
   </div>
 </div>
 
-      <!-- <div class="input-group">
-        <label>SECURITY PASSWORD</label>
-        <div class="field">
-          <i class="fas fa-lock"></i>
-          <input [type]="isPasswordVisible ? 'text' : 'password'" [(ngModel)]="loginData.password" placeholder="••••••••">
-          <i class="fas" 
-             [ngClass]="isPasswordVisible ? 'fa-eye-slash' : 'fa-eye'" 
-             (click)="isPasswordVisible = !isPasswordVisible"
-             class="eye-toggle">
-          </i>
-        </div>
-      </div> -->
-
+     
       <div class="input-group">
         <label>SECURITY PASSWORD</label>
         <div class="field">
@@ -94,10 +76,6 @@
           </button>
         </div>
 
-        <!-- <div *ngIf="isOtpVerified" class="animate__animated animate__fadeIn">
-          <p style="color: #2dd36f; text-align: center; font-size: 0.9em; margin-bottom: 20px;">
-            <i class="fas fa-check-circle"></i> OTP Verified. Set your new password.
-          </p> -->
 
           <div *ngIf="isOtpVerified" class="animate__animated animate__zoomIn">
   
