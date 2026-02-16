@@ -24,6 +24,9 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
   public currentAddress: string = 'Detecting location...';
   public currentLat: number = 0;
   public currentLng: number = 0;
+  
+  // Animation aur UI state control ke liye
+  public isSubmitting: boolean = false;
 
   private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw';
   private apiUrl: string = `${environment.apiUrl}/onsite-attendance`;
@@ -39,6 +42,7 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
+    // Ranger ka naam local storage se fetch karna
     this.rangerName = localStorage.getItem('ranger_username') || 'Ranger';
   }
 
@@ -91,24 +95,28 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
 
   async captureImage(source: CameraSource) {
     try {
-      const image = await Camera.getPhoto({ quality: 40, resultType: CameraResultType.Base64, source });
-      if (image.base64String) this.capturedPhoto = `data:image/jpeg;base64,${image.base64String}`;
-    } catch (error) { console.log('User cancelled'); }
+      const image = await Camera.getPhoto({ 
+        quality: 40, 
+        resultType: CameraResultType.Base64, 
+        source 
+      });
+      if (image.base64String) {
+        this.capturedPhoto = `data:image/jpeg;base64,${image.base64String}`;
+      }
+    } catch (error) { 
+      console.log('User cancelled camera'); 
+    }
   }
 
   async submit() {
+    // 1. Photo validation
     if (!this.capturedPhoto) {
-      const photoWarning = await firstValueFrom(this.translate.get('ONSITE.PHOTO_REQUIRED_MSG'));
-      this.presentToast(photoWarning || 'Photo is required.', 'warning');
+      this.presentToast('Please capture a photo first.', 'warning');
       return;
     }
 
-    const loader = await this.loadingCtrl.create({
-      message: 'Logging On-Site...',
-      spinner: 'circular',
-      mode: 'ios'
-    });
-    await loader.present();
+    // 2. Slider Animation Start (Knob move karega aur text change hoga)
+    this.isSubmitting = true;
 
     const onsiteData = {
       ranger_id: Number(localStorage.getItem('ranger_id')) || 1,
@@ -121,34 +129,52 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
       longitude: this.currentLng
     };
 
+    // 3. API Call with delay for smooth animation
     this.http.post(this.apiUrl, onsiteData).subscribe({
       next: async () => {
-        loader.dismiss();
-        const successMsg = await firstValueFrom(this.translate.get('ONSITE.SUCCESS_MSG'));
-        this.presentToast(successMsg || 'Logged Successfully!', 'success');
-        this.navCtrl.navigateRoot('/home');
+        // Animation finish hone ka wait karein (800ms)
+        setTimeout(async () => {
+          this.presentToast('ATTENDANCE MARKED & SYNCED', 'success');
+          
+          // Home page par redirect karein
+          setTimeout(() => {
+            this.navCtrl.navigateRoot('/home');
+          }, 1200);
+        }, 800);
       },
-      error: () => {
-        loader.dismiss();
-        this.presentToast('Submission Failed.', 'danger');
+      error: (err) => {
+        console.error('Submission error:', err);
+        this.isSubmitting = false; // Error par slider reset karein
+        this.presentToast('Submission Failed. Please try again.', 'danger');
       }
     });
   }
 
   async presentToast(message: string, color: string) {
-    const toast = await this.toastCtrl.create({ message, duration: 2500, color, mode: 'ios' });
+    const toast = await this.toastCtrl.create({ 
+      message, 
+      duration: 2500, 
+      color, 
+      mode: 'ios',
+      position: 'bottom'
+    });
     toast.present();
   }
- 
+  
   async ngOnDestroy() {
-    if (this.newMap) await this.newMap.destroy();
+    if (this.newMap) {
+      await this.newMap.destroy();
+    }
   }
 
-  goBack() { this.navCtrl.navigateRoot('/home'); }
+  goBack() { 
+    this.navCtrl.navigateRoot('/home'); 
+  }
 
   async presentImageSourceOptions() {
     const actionSheet = await this.actionSheetCtrl.create({
       header: 'Capture ID Photo',
+      mode: 'ios',
       buttons: [
         { 
           text: 'Take Photo', 

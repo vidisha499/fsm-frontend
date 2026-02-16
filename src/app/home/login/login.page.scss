@@ -271,3 +271,32 @@
     cursor: pointer;
   }
 }
+
+.field {
+  display: flex;
+  align-items: center;
+
+  ion-icon {
+    color: #2e7d32;          // Forest green
+    font-size: 16px;         // 🔹 Reduced from default 24px
+    min-width: 16px;         // Keeps alignment consistent
+    margin-right: 8px;       // Slightly tighter spacing
+  }
+
+  input {
+    flex: 1;
+  }
+
+  .eye-toggle {
+    font-size: 18px;         // 🔹 Slightly bigger than left icon (better UX)
+    color: #8a8a8a;
+    margin-left: 8px;
+    cursor: pointer;
+    transition: color 0.2s ease, transform 0.15s ease;
+
+    &:hover {
+      color: #2e7d32;
+      transform: scale(1.05);
+    }
+  }
+}

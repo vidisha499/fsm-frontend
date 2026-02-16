@@ -1,8 +1,11 @@
+
+
+
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { NavController, ToastController, AlertController, LoadingController, Platform } from '@ionic/angular';
+import { NavController, ToastController, AlertController, LoadingController } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
-import { TranslateService } from '@ngx-translate/core';
+import * as L from 'leaflet';
 
 @Component({
   selector: 'app-patrol-logs',
@@ -15,11 +18,12 @@ export class PatrolLogsPage implements OnInit {
   public isModalOpen = false;
   public selectedMethod = '';
   public selectedType = '';
+  public isDetailModalOpen = false;
+  public selectedPatrol: any = null;
+  public isSubmitting = false; // Slider animation state
+  private detailMap!: L.Map;
 
-  // 1. Updated Vercel URL
-  // private vercelUrl: string = 'https://fsm-backend-ica4fcwv2-vidishas-projects-1763fd56.vercel.app/api/patrols';
-  private vercelUrl: string = 'https://forest-backend-pi.vercel.app/api/patrols';
-  private apiUrl: string = '';
+  private apiUrl: string = 'https://forest-backend-pi.vercel.app/api/patrols';
 
   constructor(
     private navCtrl: NavController,
@@ -27,122 +31,102 @@ export class PatrolLogsPage implements OnInit {
     private http: HttpClient,
     private toastCtrl: ToastController,
     private alertCtrl: AlertController,
-    private loadingCtrl: LoadingController,
-    private translate: TranslateService,
-    private platform: Platform
-  ) {
-    // 2. Set API URL to Vercel for all platforms
-    this.apiUrl = this.vercelUrl;
-  }
+    private loadingCtrl: LoadingController
+  ) {}
 
   ngOnInit() { }
-
-  ionViewWillEnter() {
-    this.loadPatrolLogs();
+  ionViewWillEnter() { 
+    this.loadPatrolLogs(); 
+    this.isSubmitting = false; 
   }
 
   async loadPatrolLogs() {
-    // Show loader for fetching data from Vercel
-    const loader = await this.loadingCtrl.create({
-      message: 'Fetching patrol history...',
-      spinner: 'crescent',
-      mode: 'ios'
-    });
+    const loader = await this.loadingCtrl.create({ message: 'Loading...', mode: 'ios' });
     await loader.present();
-
-    this.http.get(`${this.apiUrl}/logs`)
-      .subscribe({
-        next: (data: any) => { 
-          this.patrolLogs = data; 
-          loader.dismiss(); 
-        },
-        error: (err) => { 
-          console.error('Error fetching logs', err); 
-          loader.dismiss(); 
-          this.presentToast('Could not load logs. Is the server live?', 'danger');
-        }
-      });
-  }
-
-  setOpen(isOpen: boolean) {
-    this.isModalOpen = isOpen;
-    if (isOpen) {
-      this.selectedMethod = '';
-      this.selectedType = '';
-    }
-  }
-
-  async savePatrol() {
-    if (!this.selectedMethod || !this.selectedType) {
-      this.presentToast('Please select both Method and Type before starting.', 'warning');
-      return; 
-    }
-
-    const patrolName = `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`;
-    localStorage.setItem('temp_patrol_name', patrolName);
-    
-    this.isModalOpen = false;
-
-    this.router.navigate(['/patrol-active']).then(() => {
-      this.selectedMethod = '';
-      this.selectedType = '';
+    this.http.get(`${this.apiUrl}/logs`).subscribe({
+      next: (data: any) => { this.patrolLogs = data; loader.dismiss(); },
+      error: () => { loader.dismiss(); this.presentToast('Failed to load logs', 'danger'); }
     });
+  }
+
+  viewDetails(log: any) {
+    this.selectedPatrol = log;
+    this.isDetailModalOpen = true;
+  }
+
+  onDetailModalPresent() {
+    setTimeout(() => {
+      if (this.selectedPatrol?.route && this.selectedPatrol.route.length > 0) {
+        this.initDetailMap();
+      }
+    }, 400); 
+  }
+
+  initDetailMap() {
+    const coords = this.selectedPatrol.route;
+    if (this.detailMap) { this.detailMap.remove(); }
+    this.detailMap = L.map('detailMap', { zoomControl: false }).setView([coords[0].lat, coords[0].lng], 16);
+    L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] }).addTo(this.detailMap);
+    if (coords.length === 1) {
+      L.marker([coords[0].lat, coords[0].lng]).addTo(this.detailMap);
+    } else {
+      const polyline = L.polyline(coords, { color: '#3880ff', weight: 4 }).addTo(this.detailMap);
+      this.detailMap.fitBounds(polyline.getBounds(), { padding: [20, 20] });
+    }
+    setTimeout(() => { this.detailMap.invalidateSize(); }, 200);
   }
 
   async deleteLog(id: number, event: Event) {
     event.stopPropagation();
     const alert = await this.alertCtrl.create({
       header: 'Delete Log',
-      message: 'Are you sure you want to remove this record from the database?',
+      message: 'Remove this record?',
       buttons: [
         { text: 'Cancel', role: 'cancel' },
-        {
-          text: 'Delete',
-          role: 'destructive',
-          handler: () => {
-            this.processDelete(id);
-          }
-        }
+        { text: 'Delete', handler: () => { this.processDelete(id); } }
       ]
     });
     await alert.present();
   }
 
   private async processDelete(id: number) {
-    const loader = await this.loadingCtrl.create({
-      message: 'Deleting log from Vercel...',
-      spinner: 'circular',
-      mode: 'ios'
-    });
-    await loader.present();
-
     this.http.delete(`${this.apiUrl}/logs/${id}`).subscribe({
-      next: async () => {
-        loader.dismiss();
+      next: () => {
         this.patrolLogs = this.patrolLogs.filter(log => log.id !== id);
-        this.presentToast('Log deleted successfully', 'success');
-      },
-      error: (err) => {
-        loader.dismiss();
-        console.error('Delete failed', err);
-        this.presentToast('Delete failed. Please try again.', 'danger');
+        this.presentToast('Deleted', 'success');
       }
     });
   }
 
-  async presentToast(message: string, color: string) {
-    const toast = await this.toastCtrl.create({
-      message,
-      duration: 2500,
-      color,
-      position: 'bottom',
-      mode: 'ios'
-    });
-    await toast.present();
+  setOpen(isOpen: boolean) { 
+    this.isModalOpen = isOpen; 
+    if (!isOpen) this.isSubmitting = false;
   }
 
- goBack() {
-  // navigateRoot ensures /home becomes the top of the stack
-  this.navCtrl.navigateRoot('/home'); 
+ async savePatrol() {
+  if (!this.selectedMethod || !this.selectedType) {
+    this.presentToast('Select Method & Type', 'warning');
+    return;
+  }
+  
+  this.isSubmitting = true; 
+  const name = `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`;
+  localStorage.setItem('temp_patrol_name', name);
+
+  setTimeout(() => {
+    // Navigating se pehle modal close karein
+    this.isModalOpen = false;
+    
+    // Thoda sa gap taaki modal smoothly band ho jaye navigation se pehle
+    setTimeout(() => {
+      this.router.navigate(['/patrol-active']);
+    }, 100);
+  }, 800);
 }
+
+  async presentToast(message: string, color: string) {
+    const toast = await this.toastCtrl.create({ message, duration: 2000, color, mode: 'ios' });
+    await toast.present();
+  }
+  goBack() { this.navCtrl.navigateRoot('/home'); }
 }

@@ -1,4 +1,4 @@
-<ion-content [fullscreen]="true" class="login-content" scrollY="false">
+<!-- <ion-content [fullscreen]="true" class="login-content" scrollY="false">
   <div class="background-image"></div>
   <div class="vignette-overlay"></div>
 
@@ -92,7 +92,7 @@
           <div class="input-group">
     <label>NEW PASSWORD</label>
     <div class="field">
-      <i class="fas fa-lock"></i>
+      <ion-icon name="eye-outline"></ion-icon>
       <input [type]="showNewPassword ? 'text' : 'password'" [(ngModel)]="resetData.newPassword" placeholder="••••••••">
       <i class="fas" [ngClass]="showNewPassword ? 'fa-eye-slash' : 'fa-eye'" (click)="toggleNewPassword()" class="eye-toggle"></i>
     </div>
@@ -119,4 +119,158 @@
     </div>
   </ng-template>
 </ion-modal>
+</ion-content> -->
+
+<ion-content [fullscreen]="true" class="login-content" scrollY="false">
+  <div class="background-image"></div>
+  <div class="vignette-overlay"></div>
+
+  <div class="login-container">
+    <div class="brand-section">
+      <div class="logo-wrapper">
+        <div class="leaf-icon">
+          <ion-icon name="leaf-outline"></ion-icon>
+        </div>
+      </div>
+      <h1 class="fsm-logo-text">PUGARCH <span class="highlight">FSM</span></h1>
+      <p class="auth-tag"><span class="pulse-dot"></span> AUTHORIZED ACCESS ONLY</p>
+    </div>
+
+    <div class="login-card">
+      <h2 class="form-title">Ranger Login</h2>
+
+      <!-- MOBILE -->
+      <div class="input-group">
+        <label>MOBILE NUMBER</label>
+        <div class="field">
+          <ion-icon name="call-outline"></ion-icon>
+          <span class="country-prefix">+91</span>
+          <input type="tel" [(ngModel)]="loginData.phone" placeholder="Enter Mobile Number">
+        </div>
+      </div>
+
+      <!-- PASSWORD -->
+      <div class="input-group">
+        <label>SECURITY PASSWORD</label>
+        <div class="field">
+          <ion-icon name="lock-closed-outline"></ion-icon>
+          <input
+            [type]="isPasswordVisible ? 'text' : 'password'"
+            [(ngModel)]="loginData.password"
+            placeholder="••••••••">
+
+          <ion-icon
+            class="eye-toggle"
+            [name]="isPasswordVisible ? 'eye-off-outline' : 'eye-outline'"
+            (click)="isPasswordVisible = !isPasswordVisible">
+          </ion-icon>
+        </div>
+      </div>
+
+      <div class="forgot-link">
+        <a (click)="forgotPassword()">FORGOT PASSWORD?</a>
+      </div>
+
+      <button class="login-btn" (click)="login()">
+        LOG IN
+        <ion-icon name="arrow-forward-outline"></ion-icon>
+      </button>
+
+      <div class="enroll-section">
+        NEW RANGER? <a (click)="enroll()">ENROLL NOW</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESET PASSWORD MODAL -->
+  <ion-modal [isOpen]="isResetModalOpen" class="reset-modal">
+    <ng-template>
+      <div class="login-container modal-style">
+        <div class="login-card">
+          <h2 class="form-title">Reset Password</h2>
+
+          <!-- OTP SECTION -->
+          <div *ngIf="!isOtpVerified">
+            <p class="info-text">
+              Enter the 6-digit code sent to your email.
+            </p>
+
+            <div class="input-group">
+              <label>OTP CODE</label>
+              <div class="field">
+                <ion-icon name="key-outline"></ion-icon>
+                <input type="text" [(ngModel)]="resetData.otp" placeholder="Enter 6-digit OTP">
+              </div>
+
+              <div class="resend-wrapper">
+                <p *ngIf="resendCountdown > 0" class="timer-text">
+                  Resend in <b>{{ resendCountdown }}s</b>
+                </p>
+                <a *ngIf="resendCountdown === 0" (click)="resendOtp()" class="resend-link">
+                  RESEND OTP
+                </a>
+              </div>
+            </div>
+
+            <button class="login-btn" (click)="verifyOtpOnly()">
+              VERIFY OTP
+              <ion-icon name="checkmark-circle-outline"></ion-icon>
+            </button>
+          </div>
+
+          <!-- NEW PASSWORD SECTION -->
+          <div *ngIf="isOtpVerified">
+            <div class="success-area">
+              <ion-icon name="checkmark-circle" class="verified-check"></ion-icon>
+              <h3>Verified!</h3>
+              <p>Set your new security password below</p>
+            </div>
+
+            <div class="input-group">
+              <label>NEW PASSWORD</label>
+              <div class="field">
+                <ion-icon name="lock-closed-outline"></ion-icon>
+                <input
+                  [type]="showNewPassword ? 'text' : 'password'"
+                  [(ngModel)]="resetData.newPassword"
+                  placeholder="••••••••">
+
+                <ion-icon
+                  class="eye-toggle"
+                  [name]="showNewPassword ? 'eye-off-outline' : 'eye-outline'"
+                  (click)="toggleNewPassword()">
+                </ion-icon>
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label>CONFIRM PASSWORD</label>
+              <div class="field">
+                <ion-icon name="checkmark-circle-outline"></ion-icon>
+                <input
+                  [type]="showConfirmPassword ? 'text' : 'password'"
+                  [(ngModel)]="resetData.confirmPassword"
+                  placeholder="Confirm Password">
+
+                <ion-icon
+                  class="eye-toggle"
+                  [name]="showConfirmPassword ? 'eye-off-outline' : 'eye-outline'"
+                  (click)="toggleConfirmPassword()">
+                </ion-icon>
+              </div>
+            </div>
+
+            <button class="login-btn" (click)="handlePasswordReset()">
+              UPDATE PASSWORD
+              <ion-icon name="save-outline"></ion-icon>
+            </button>
+          </div>
+
+          <div class="forgot-link">
+            <a (click)="closeResetModal()" class="cancel-link">CANCEL</a>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
 </ion-content>
