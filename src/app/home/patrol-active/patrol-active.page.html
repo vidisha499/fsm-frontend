@@ -1,4 +1,4 @@
-
+<!-- 
 <ion-content [fullscreen]="true" class="premium-wrapper">
   <div class="ambient-glow glow-1"></div>
   <div class="ambient-glow glow-2"></div>
@@ -114,4 +114,151 @@
       
     </div>
   </div>
+</ion-content>  -->
+<ion-content [fullscreen]="true" class="premium-wrapper">
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
+  <div class="hero-header">
+    <div class="header-overlay"></div>
+    <div class="header-content">
+      <div class="top-row">
+        <div class="back-group">
+          <button (click)="handleEndTrip()" class="glass-btn"><i class="fas fa-arrow-left"></i></button>
+          <div class="title-meta">
+            <h1>{{ 'PATROL.ACTIVE' | translate }}</h1>
+            <p>PANNA SITE OPERATION</p>
+          </div>
+        </div>
+        <div class="live-badge-top">
+          <div class="auth-badge"><i class="fas fa-satellite-dish"></i><span>LIVE TRACKING</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-container">
+    <div class="main-card">
+      <div class="scanner-section">
+        <div class="camera-frame" (click)="takeQuickPhoto()">
+          <div class="corners"><span class="top-l"></span><span class="top-r"></span><span class="bot-l"></span><span class="bot-r"></span></div>
+          <div class="scanner-inner">
+            <div class="scan-line" *ngIf="!capturedPhoto"></div>
+            <img *ngIf="capturedPhoto" [src]="capturedPhoto" class="preview-img">
+            <div *ngIf="!capturedPhoto" class="placeholder-content">
+              <i class="fas fa-camera main-cam-icon"></i>
+              <span class="cam-text">CAMERA</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="map-wrapper">
+        <div class="map-container">
+          <div id="map"></div>
+          <button class="recenter-btn-glass" (click)="recenterMap()"><i class="fas fa-crosshairs"></i></button>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="input-pill"><label>DURATION</label><div class="pill-content"><i class="fas fa-clock"></i><span class="val">{{timerDisplay}}</span></div></div>
+        <div class="input-pill"><label>DISTANCE</label><div class="pill-content"><i class="fas fa-route"></i><span class="val">{{totalDistanceKm.toFixed(2)}} KM</span></div></div>
+      </div>
+
+      <div class="grid-layout">
+        <div class="grid-item-glass" (click)="openObservationModal('Animal')"><div class="icon-box animal"><i class="fas fa-paw"></i></div><span>Animal</span></div>
+        <div class="grid-item-glass" (click)="openObservationModal('Water')"><div class="icon-box water"><i class="fas fa-droplet"></i></div><span>Water</span></div>
+        <div class="grid-item-glass" (click)="openObservationModal('Impact')"><div class="icon-box impact"><i class="fas fa-person-hiking"></i></div><span>Impact</span></div>
+        <div class="grid-item-glass" (click)="openObservationModal('Death')"><div class="icon-box death"><i class="fas fa-skull"></i></div><span>Death</span></div>
+        <div class="grid-item-glass" (click)="openObservationModal('Felling')"><div class="icon-box felling"><i class="fas fa-hammer"></i></div><span>Felling</span></div>
+        <div class="grid-item-glass" (click)="openObservationModal('Other')"><div class="icon-box other"><i class="fas fa-circle-plus"></i></div><span>Other</span></div>
+      </div>
+
+      <div class="slider-wrapper">
+        <div class="slider-track-new" [class.finished]="isFinished">
+          <div class="slider-text-bg">{{ isFinished ? 'PATROL ENDED' : 'SLIDE TO END TRIP' }}</div>
+          <div class="slider-knob-left" (click)="handleEndTrip()" [class.sliding]="isSubmitting" [class.at-end]="isFinished">
+            <i class="fas fa-chevron-right" *ngIf="!isSubmitting && !isFinished"></i>
+            <ion-spinner name="crescent" *ngIf="isSubmitting"></ion-spinner>
+            <i class="fas fa-check" *ngIf="isFinished"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false" class="custom-obs-modal">
+    <ng-template>
+      <div class="modal-wrapper">
+        <div class="modal-header-premium">
+          <div class="drag-handle"></div>
+          <div class="header-top">
+            <h2>{{selectedType}} Log</h2>
+            <button (click)="isModalOpen = false">CANCEL</button>
+          </div>
+        </div>
+
+        <ion-content class="ion-padding">
+          <div class="form-container">
+            <div class="custom-input-group">
+              <label>Sighting Type</label>
+              <ion-select [(ngModel)]="obsData.sightingType" interface="popover" mode="ios">
+                <ion-select-option value="Direct">Direct</ion-select-option>
+                <ion-select-option value="Indirect">Indirect</ion-select-option>
+              </ion-select>
+            </div>
+
+            <div class="custom-input-group">
+              <label>Species</label>
+              <input type="text" [(ngModel)]="obsData.species" placeholder="Enter species name">
+            </div>
+
+            <div class="custom-input-group">
+              <label>Number of Animals</label>
+              <input type="number" [(ngModel)]="obsData.count">
+            </div>
+
+            <div class="gender-box">
+              <label>Gender</label>
+              <div class="checkbox-row">
+                <div class="check-item"><ion-checkbox [(ngModel)]="obsData.genderMale" mode="ios"></ion-checkbox> <span>Male</span></div>
+                <div class="check-item"><ion-checkbox [(ngModel)]="obsData.genderFemale" mode="ios"></ion-checkbox> <span>Female</span></div>
+                <div class="check-item"><ion-checkbox [(ngModel)]="obsData.genderUnknown" mode="ios"></ion-checkbox> <span>Unknown</span></div>
+              </div>
+            </div>
+
+            <div class="photo-section">
+              <label>Photos ({{obsData.photos.length}}/5)</label>
+              <button (click)="takeSightingPhoto()" class="add-photo-btn" [disabled]="obsData.photos.length >= 5">
+                <i class="fas fa-camera"></i> ADD PHOTO
+              </button>
+              
+              <div class="photo-preview-grid" *ngIf="obsData.photos.length > 0">
+                <div class="photo-square" *ngFor="let img of obsData.photos; let i = index">
+                  <img [src]="img">
+                  <div class="remove-btn" (click)="removePhoto(i)"><i class="fas fa-times"></i></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="custom-input-group" style="margin-top: 20px;">
+              <label>Notes</label>
+              <textarea [(ngModel)]="obsData.notes" rows="3" placeholder="Any extra details..."></textarea>
+            </div>
+          </div>
+        </ion-content>
+
+        <div class="modal-footer">
+          <div class="pill-slider-container" (click)="saveObservation()">
+            <div class="pill-track" [class.track-active]="isSaving">
+              <div class="pill-knob" [class.knob-animating]="isSaving">
+                <i class="fas" [class.fa-chevron-right]="!isSaving" [class.fa-cog]="isSaving"></i>
+              </div>
+              <span class="pill-text" [class.hide-text]="isSaving">SAVE LOG</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
 </ion-content>
