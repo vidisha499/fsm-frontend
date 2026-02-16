@@ -17,11 +17,14 @@
 // export class AttendancePage implements OnInit, OnDestroy {
 //   @ViewChild('map') mapRef!: ElementRef;
 //   newMap!: GoogleMap;
+<<<<<<< Updated upstream
 //   public isSubmitting: boolean = false;
 //   attendance: any = null;
 //   // currentTime: Date = new Date();
 //   created_at: new Date();
   
+=======
+>>>>>>> Stashed changes
 
 //   public isEntry: boolean = true;
 //   public capturedPhoto: string = ''; 
@@ -47,6 +50,7 @@
 //     private platform: Platform
 //   ) {}
 
+<<<<<<< Updated upstream
 
 
 //   ngOnInit() {
@@ -65,6 +69,11 @@
 //     this.attendance = {
 //       createdAt: new Date().toISOString() // Or the date from your DB
 //     };
+=======
+//   ngOnInit() {
+//     this.rangerName = localStorage.getItem('ranger_username') || 'Ranger';
+//     this.rangerRegion = localStorage.getItem('ranger_region') || 'Washim';
+>>>>>>> Stashed changes
 //   }
 
 //   async ionViewDidEnter() {
@@ -141,6 +150,7 @@
 
 //   setMode(val: boolean) { this.isEntry = val; }
 
+<<<<<<< Updated upstream
 // async submitAttendance() {
 //   if (!this.capturedPhoto) {
 //     this.presentToast('Please capture a photo', 'warning');
@@ -159,6 +169,23 @@
 
 //   const payload = {
 //         ranger_id: Number(localStorage.getItem('ranger_id')) || 1,
+=======
+//   async submitAttendance() {
+//     if (!this.capturedPhoto) {
+//       this.presentToast('Please capture a photo', 'warning');
+//       return;
+//     }
+
+//     const loader = await this.loadingCtrl.create({
+//       message: 'Syncing Attendance...',
+//       spinner: 'circular',
+//       mode: 'ios'
+//     });
+//     await loader.present();
+
+//     const payload = {
+//       ranger_id: Number(localStorage.getItem('ranger_id')) || 1,
+>>>>>>> Stashed changes
 //       rangerName: this.rangerName,
 //       region: this.rangerRegion,
 //       type: this.isEntry ? 'ENTRY' : 'EXIT',
@@ -166,6 +193,7 @@
 //       latitude: this.currentLat,
 //       longitude: this.currentLng,
 //       geofence: this.currentAddress
+<<<<<<< Updated upstream
    
 //   };
 
@@ -184,6 +212,22 @@
 //     }
 //   });
 // }
+=======
+//     };
+
+//     this.http.post(this.apiUrl, payload).subscribe({
+//       next: () => {
+//         loader.dismiss();
+//         this.presentToast('Attendance Success!', 'success');
+//         this.navCtrl.navigateRoot('/home');
+//       },
+//       error: (err) => {
+//         loader.dismiss();
+//         this.presentToast('Sync Failed. Check Internet.', 'danger');
+//       }
+//     });
+//   }
+>>>>>>> Stashed changes
 
 //   async presentImageSourceOptions() {
 //     const actionSheet = await this.actionSheetCtrl.create({
@@ -217,7 +261,10 @@
 //   }
 // }
 
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 import { Component, OnInit, ViewChild, ElementRef, OnDestroy } from '@angular/core';
 import { NavController, ToastController, ActionSheetController, Platform, LoadingController } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
@@ -254,7 +301,12 @@ export class AttendancePage implements OnInit, OnDestroy {
   private watchId: any = null;
   private markerId: string | null = null;
 
+<<<<<<< Updated upstream
   private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw'; 
+=======
+  // Google API Key fix: Make sure this key has "Geocoding API" enabled
+  private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw';
+>>>>>>> Stashed changes
   private apiUrl: string = `${environment.apiUrl}/attendance/beat-attendance`;
 
   constructor(
@@ -288,13 +340,22 @@ export class AttendancePage implements OnInit, OnDestroy {
       const permissions = await Geolocation.checkPermissions();
       if (permissions.location !== 'granted') await Geolocation.requestPermissions();
 
+<<<<<<< Updated upstream
       const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 });
+=======
+      const pos = await Geolocation.getCurrentPosition({ 
+        enableHighAccuracy: true,
+        timeout: 15000 
+      });
+      
+>>>>>>> Stashed changes
       this.currentLat = pos.coords.latitude;
       this.currentLng = pos.coords.longitude;
 
       await this.createMap();
       this.startLocationWatch();
-      this.updateAddress(this.currentLat, this.currentLng);
+      // Wait a bit to ensure GPS is stable before geocoding
+      setTimeout(() => this.updateAddress(this.currentLat, this.currentLng), 1000);
     } catch (e) {
       this.presentToast('Please enable GPS and permissions', 'warning');
     }
@@ -306,13 +367,24 @@ export class AttendancePage implements OnInit, OnDestroy {
       id: 'attendance-map-unique',
       element: this.mapRef.nativeElement,
       apiKey: this.googleApiKey,
+<<<<<<< Updated upstream
       config: { center: { lat: this.currentLat, lng: this.currentLng }, zoom: 17 }
+=======
+      config: { center: { lat: this.currentLat, lng: this.currentLng }, zoom: 17 },
+>>>>>>> Stashed changes
     });
     this.updateMarker();
   }
 
   async startLocationWatch() {
+<<<<<<< Updated upstream
     this.watchId = await Geolocation.watchPosition({ enableHighAccuracy: true, timeout: 10000 }, (pos) => {
+=======
+    this.watchId = await Geolocation.watchPosition({ 
+        enableHighAccuracy: true, 
+        timeout: 10000 
+    }, (pos) => {
+>>>>>>> Stashed changes
       if (pos) {
         this.currentLat = pos.coords.latitude;
         this.currentLng = pos.coords.longitude;
@@ -331,8 +403,14 @@ export class AttendancePage implements OnInit, OnDestroy {
     const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${this.googleApiKey}`;
     try {
       const data: any = await firstValueFrom(this.http.get(url));
-      this.currentAddress = data.results[0]?.formatted_address || 'Location detected';
-    } catch (err) { this.currentAddress = 'Location detected'; }
+      if (data.status === 'OK' && data.results.length > 0) {
+        this.currentAddress = data.results[0].formatted_address;
+      } else {
+        this.currentAddress = `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
+      }
+    } catch (err) { 
+      this.currentAddress = `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`; 
+    }
   }
 
   async submitAttendance() {
@@ -341,9 +419,13 @@ export class AttendancePage implements OnInit, OnDestroy {
       this.presentToast('Please capture a photo', 'warning');
       return;
     }
+<<<<<<< Updated upstream
 
     this.isSubmitting = true; 
     const loader = await this.loadingCtrl.create({ duration: 2000 });
+=======
+    const loader = await this.loadingCtrl.create({ message: 'Syncing Attendance...', mode: 'ios' });
+>>>>>>> Stashed changes
     await loader.present();
 
     const payload = {
@@ -367,8 +449,12 @@ export class AttendancePage implements OnInit, OnDestroy {
     this.attendance = null; 
     this.initMapAndTracking(); 
       },
+<<<<<<< Updated upstream
       error: (err) => {
         this.isSubmitting = false; 
+=======
+      error: () => {
+>>>>>>> Stashed changes
         loader.dismiss();
         this.presentToast('Failed to sync', 'danger');
       }
@@ -377,11 +463,24 @@ export class AttendancePage implements OnInit, OnDestroy {
 
   async presentImageSourceOptions() {
     const actionSheet = await this.actionSheetCtrl.create({
-      header: 'Capture Photo',
+      header: 'Select Photo Source',
+      mode: 'ios',
       buttons: [
-        { text: 'Camera', icon: 'camera', handler: () => this.captureImage(CameraSource.Camera) },
-        { text: 'Gallery', icon: 'image', handler: () => this.captureImage(CameraSource.Photos) },
-        { text: 'Cancel', role: 'cancel' }
+        { 
+          text: 'Camera', 
+          icon: 'camera-outline', 
+          handler: () => this.captureImage(CameraSource.Camera) 
+        },
+        { 
+          text: 'Gallery', 
+          icon: 'image-outline', 
+          handler: () => this.captureImage(CameraSource.Photos) 
+        },
+        { 
+          text: 'Cancel', 
+          role: 'cancel',
+          icon: 'close'
+        }
       ]
     });
     await actionSheet.present();
@@ -389,9 +488,19 @@ export class AttendancePage implements OnInit, OnDestroy {
 
   async captureImage(source: CameraSource) {
     try {
-      const photo = await Camera.getPhoto({ quality: 40, source, resultType: CameraResultType.Base64 });
-      if (photo.base64String) this.capturedPhoto = `data:image/jpeg;base64,${photo.base64String}`;
-    } catch (e) { console.log('Camera cancelled'); }
+      // ResultType.Base64 is required for your payload structure
+      const photo = await Camera.getPhoto({ 
+        quality: 50, 
+        source: source, 
+        resultType: CameraResultType.Base64,
+        saveToGallery: false 
+      });
+      if (photo.base64String) {
+        this.capturedPhoto = `data:image/jpeg;base64,${photo.base64String}`;
+      }
+    } catch (e) { 
+        console.log('User cancelled or camera error:', e); 
+    }
   }
 
   async presentToast(message: string, color: string) {
