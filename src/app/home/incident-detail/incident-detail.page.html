@@ -72,7 +72,7 @@
   <div class="ambient-glow glow-1"></div>
   <div class="ambient-glow glow-2"></div>
 
-  <div class="hero-header">
+  <!-- <div class="hero-header">
     <div class="header-overlay"></div>
     <div class="header-content">
       <div class="nav-bar">
@@ -84,7 +84,22 @@
       
       <h1>{{ 'INCIDENT.LABEL' | translate }}</h1>
     </div> 
-  </div>
+  </div> -->
+
+  <div class="hero-header">
+  <div class="header-overlay"></div>
+  <div class="header-content">
+    <div class="nav-bar">
+      <div class="left-section">
+        <button (click)="goBack()" class="glass-btn">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+        <h1>{{ 'INCIDENT.LABEL' | translate }}</h1>
+      </div>
+      
+      </div> 
+  </div> 
+</div>
 
   <div class="card-container">
     <div class="main-card">

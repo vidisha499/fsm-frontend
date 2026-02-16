@@ -152,16 +152,71 @@
       border-radius: 0 0 45px 45px;
     }
 
+    // .header-content {
+    //   position: relative; z-index: 2; padding: 40px 24px;
+    //   .nav-bar {
+    //     display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
+    //     .glass-btn { background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.2); width: 38px; height: 38px; border-radius: 10px; color: white; display: flex; align-items: center; justify-content: center; }
+    //     .auth-badge { background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.3); padding: 5px 12px; border-radius: 20px; color: var(--accent-gold); font-size: 10px; font-weight: 800; display: flex; align-items: center; gap: 6px; }
+    //   }
+    //   h1 { color: white; font-size: 24px; font-weight: 800; margin: 0; }
+    //   p { color: #ccfbf1; font-size: 11px; margin-top: 4px; }
+    // }
+
     .header-content {
-      position: relative; z-index: 2; padding: 40px 24px;
-      .nav-bar {
-        display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
-        .glass-btn { background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.2); width: 38px; height: 38px; border-radius: 10px; color: white; display: flex; align-items: center; justify-content: center; }
-        .auth-badge { background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.3); padding: 5px 12px; border-radius: 20px; color: var(--accent-gold); font-size: 10px; font-weight: 800; display: flex; align-items: center; gap: 6px; }
+  position: relative; 
+  z-index: 2; 
+  padding: 40px 24px;
+
+  .nav-bar {
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-bottom: 10px;
+
+    .left-section {
+      display: flex;
+      align-items: center;
+      gap: 12px; // Space between back button and title
+      margin-top: 10%;
+
+      h1 {
+        color: white; 
+        font-size: 22px; 
+        font-weight: 800; 
+        margin: 0;
+        
+        // --- Visual Centering Fix ---
+        margin-top: 6px; 
+        line-height: 1;
+        white-space: nowrap;
       }
-      h1 { color: white; font-size: 24px; font-weight: 800; margin: 0; }
-      p { color: #ccfbf1; font-size: 11px; margin-top: 4px; }
     }
+
+    .glass-btn { 
+      background: rgba(255, 255, 255, 0.15); 
+      border: 1px solid rgba(255, 255, 255, 0.2); 
+      width: 38px; 
+      height: 38px; 
+      border-radius: 10px; 
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .auth-badge { 
+      background: rgba(251, 191, 36, 0.15); 
+      border: 1px solid rgba(251, 191, 36, 0.3); 
+      padding: 8px; // Padding for the icon badge
+      border-radius: 12px; 
+      color: var(--accent-gold); 
+      display: flex; 
+      align-items: center; 
+    }
+  }
+}
   }
 
   .main-container {
@@ -260,11 +315,11 @@
   position: relative;
   
   // Ensure the container itself is always at 100% opacity
-  opacity: 1 !important;
+  // opacity: 1 !important;
 
   .slider-track {
     height: 64px;
-    background: #f1f7f9; 
+    background: #07191e; 
     border-radius: 32px;
     display: flex;
     align-items: center;
@@ -280,8 +335,9 @@
     text-align: center;
     font-weight: 800;
     font-size: 16px;
-    color: #1e293b; 
-    letter-spacing: -0.2px;
+    color: #fbfcff; 
+    letter-spacing: -0.6px;
+    margin-left: 10px;
   }
 
   .slider-handle {
@@ -289,7 +345,7 @@
     left: 6px;
     width: 52px;
     height: 52px;
-    background: #131d35; // The dark navy from your reference
+    background:  #0d9488; // The dark navy from your reference
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -300,44 +356,63 @@
     transition: all 0.6s cubic-bezier(0.65, 0, 0.35, 1);
   }
 
+  .end-check {
+    position: absolute;
+    right: 20px;
+    // Initial ghosted state
+    color: rgba(244, 239, 239, 0.929); // Light white/transparent initially
+    font-size: 18px;
+    z-index: 1;
+    transition: all 0.4s ease;
+  }
+
   // --- FIXED DISABLED STATE (REMOVED OPACITY) ---
   &.disabled {
     cursor: not-allowed;
     pointer-events: none;
     // opacity: 1 !important; // REMOVED THE FADING EFFECT
 
-    .slider-track {
-      background: #edf2f7 !important; // A solid, clear gray
-      border-color: #e2e8f0;
-    }
+    // .slider-track {
+    //   background: #edf2f7 !important; // A solid, clear gray
+    //   border-color: #e2e8f0;
+    // }
     
-    .slider-handle {
-      // background: #b8c5d6 !important; // A solid, darker gray (not faded)
-      box-shadow: none;
-      color: #ffffff;
-    }
+    // .slider-handle {
+    //   // background: #b8c5d6 !important; // A solid, darker gray (not faded)
+    //   box-shadow: none;
+    //   color: #ffffff;
+    // }
 
-    .slider-text {
-      // color: #708198 !important; // Darker gray text so it's sharp, not ghosted
-      opacity: 1 !important;
-      margin-left: 15%;
-    }
+    // .slider-text {
+    //   // color: #708198 !important; // Darker gray text so it's sharp, not ghosted
+    //   opacity: 1 !important;
+    //   margin-left: 15%;
+    // }
 
-    .end-check {
-      color: #d1d9e6;
-      margin-right: 5%;
-      opacity: 1 !important;
-    }
+    
   }
 
   // --- ACTIVE STATE ---
   &.active {
-    .slider-track { background: #e0f2f1; } // Subtle teal track background
+    .slider-track { 
+      background: #07191e; // Keep your dark track
+    } 
+
     .slider-handle {
-      left: calc(100% - 58px);
-      background: #0d9488; 
+      left: calc(100% - 58px) !important;
+      background: #0d9488 !important;
+      z-index: 2; // Handle slides UNDER the tick if z-index of tick is 3
     }
-    .slider-text { display: none; }
+
+    .slider-text { 
+      opacity: 0 !important; 
+    }
+
+    .end-check {
+      // opacity: 1 !important;
+      color: #ffffff !important; // FORCED WHITE
+      z-index: 3; // Ensures it sits ON TOP of the teal handle
+    }
   }
 }
 }

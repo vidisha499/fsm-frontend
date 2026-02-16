@@ -1,83 +1,10 @@
-<!-- <ion-content [fullscreen]="true">
-  <div class="premium-wrapper">
-    <div class="ambient-glow glow-1"></div>
-    <div class="ambient-glow glow-2"></div>
 
-    <div class="hero-header">
-      <div class="header-overlay"></div>
-      <div class="header-content">
-        <div class="nav-bar">
-          <button (click)="goBack()" class="glass-btn">
-            <ion-icon name="arrow-back-outline"></ion-icon>
-          </button>
-          <div class="auth-badge">
-            <i class="fas fa-shield-alt"></i>
-            <span>SECURE LOG</span>
-          </div>
-        </div>
-        <h1>{{ 'INCIDENTS.TITLE' | translate }}</h1>
-        
-      </div>
-    </div>
-
-    <div class="main-container">
-      <div class="status-tabs-wrapper">
-        <div class="status-tabs">
-          <div class="tab" [class.active]="statusFilter === 'pending'" (click)="statusFilter = 'pending'">
-            {{ 'INCIDENTS.STATUS_PENDING' | translate }}
-          </div>
-          <div class="tab" [class.active]="statusFilter === 'resolved'" (click)="statusFilter = 'resolved'">
-            {{ 'INCIDENTS.STATUS_RESOLVED' | translate }}
-          </div>
-        </div>
-      </div>
-
-      <div class="incident-list">
-        <div class="incident-row-compact" *ngFor="let item of incidents" (click)="viewDetails(item)">
-          
-          <div class="mini-thumb">
-            <img *ngIf="item.photo" [src]="item.photo">
-            <div *ngIf="!item.photo" class="placeholder-icon">
-                <ion-icon name="warning"></ion-icon>
-            </div>
-            <div class="priority-indicator" [attr.data-priority]="item.responsePriority"></div>
-          </div>
-
-          <div class="row-content">
-            <div class="top-line">
-              <span class="type-text">{{ item.incidentCriteria }}</span>
-              <span class="date-text">{{ formatDate(item.createdAt) }}</span>
-            </div>
-            <h2 class="priority-title">{{ item.responsePriority }} </h2>
-            <div class="reporter-line">
-              <ion-icon name="person-circle-outline"></ion-icon>
-              <span>{{ item.ranger?.name }}</span>
-            </div>
-          </div>
-
-          <div class="row-actions">
-            <ion-button fill="clear" color="danger" (click)="confirmDelete($event, item.id)">
-              <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
-            </ion-button>
-            <ion-icon name="chevron-forward" class="chevron"></ion-icon>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-      <ion-fab-button class="premium-fab" routerLink="/new-incident">
-        <ion-icon name="add"></ion-icon>
-      </ion-fab-button>
-    </ion-fab>
-  </div>
-</ion-content> -->
 
 <ion-content [fullscreen]="true">
   <div class="premium-wrapper">
     <div class="ambient-glow glow-1"></div>
     <div class="ambient-glow glow-2"></div>
-
+<!-- 
     <div class="hero-header">
       <div class="header-overlay"></div>
       <div class="header-content">
@@ -92,7 +19,26 @@
         </div>
         <h1>{{ 'INCIDENTS.TITLE' | translate }}</h1>
       </div>
+    </div> -->
+
+    <div class="hero-header">
+  <div class="header-overlay"></div>
+  <div class="header-content">
+    <div class="nav-bar">
+      <div class="left-section">
+        <button (click)="goBack()" class="glass-btn">
+          <ion-icon name="arrow-back-outline"></ion-icon>
+        </button>
+        <h1>{{ 'INCIDENTS.TITLE' | translate }}</h1>
+      </div>
+
+      <div class="auth-badge">
+        <i class="fas fa-shield-alt"></i>
+        <span>SECURE LOG</span>
+      </div>
     </div>
+  </div>
+</div>
 
     <div class="main-container">
       <div class="status-tabs-wrapper">

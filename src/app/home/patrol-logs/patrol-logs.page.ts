@@ -1,6 +1,3 @@
-
-
-
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { NavController, ToastController, AlertController, LoadingController } from '@ionic/angular';
@@ -20,7 +17,7 @@ export class PatrolLogsPage implements OnInit {
   public selectedType = '';
   public isDetailModalOpen = false;
   public selectedPatrol: any = null;
-  public isSubmitting = false; // Slider animation state
+  public isSubmitting = false;
   private detailMap!: L.Map;
 
   private apiUrl: string = 'https://forest-backend-pi.vercel.app/api/patrols';
@@ -56,43 +53,26 @@ export class PatrolLogsPage implements OnInit {
 
   onDetailModalPresent() {
     setTimeout(() => {
-      this.initDetailMap();
+      if (this.selectedPatrol?.route && this.selectedPatrol.route.length > 0) {
+        this.initDetailMap();
+      }
     }, 400); 
   }
 
   initDetailMap() {
-    const coords = this.selectedPatrol?.route || [];
+    const coords = this.selectedPatrol.route;
     if (this.detailMap) { this.detailMap.remove(); }
-
-    // Default View agar route nahi hai
-    const startPoint: L.LatLngExpression = (coords.length > 0) ? [coords[0].lat, coords[0].lng] : [21.1458, 79.0882];
-    
-    this.detailMap = L.map('detailMap', { zoomControl: false }).setView(startPoint, 16);
-    
-    L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { 
-      maxZoom: 20, 
-      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] 
-    }).addTo(this.detailMap);
-
-    if (coords.length > 1) {
-      // Travelled Route Draw karna
-      const path = coords.map((p: any) => [p.lat, p.lng]);
-      const polyline = L.polyline(path, { color: '#059669', weight: 5, opacity: 0.8 }).addTo(this.detailMap);
-      
-      // Route ke hisaab se map fit karna
-      this.detailMap.fitBounds(polyline.getBounds(), { padding: [20, 20] });
-      
-      // Start aur End points par marker lagana
-      L.circleMarker(path[0], { radius: 5, color: 'blue' }).addTo(this.detailMap).bindPopup('Start');
-      L.circleMarker(path[path.length - 1], { radius: 5, color: 'red' }).addTo(this.detailMap).bindPopup('End');
-    } else if (coords.length === 1) {
+    this.detailMap = L.map('detailMap', { zoomControl: false }).setView([coords[0].lat, coords[0].lng], 16);
+    L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] }).addTo(this.detailMap);
+    if (coords.length === 1) {
       L.marker([coords[0].lat, coords[0].lng]).addTo(this.detailMap);
+    } else {
+      const polyline = L.polyline(coords, { color: '#3880ff', weight: 4 }).addTo(this.detailMap);
+      this.detailMap.fitBounds(polyline.getBounds(), { padding: [20, 20] });
     }
-    
     setTimeout(() => { this.detailMap.invalidateSize(); }, 200);
   }
 
-  // ... Baki methods same rahenge (deleteLog, savePatrol, etc.) ...
   async deleteLog(id: number, event: Event) {
     event.stopPropagation();
     const alert = await this.alertCtrl.create({
@@ -120,44 +100,28 @@ export class PatrolLogsPage implements OnInit {
     if (!isOpen) this.isSubmitting = false;
   }
 
-<<<<<<< Updated upstream
- async savePatrol() {
-  if (!this.selectedMethod || !this.selectedType) {
-    this.presentToast('Select Method & Type', 'warning');
-    return;
-=======
   async savePatrol() {
     if (!this.selectedMethod || !this.selectedType) {
       this.presentToast('Select Method & Type', 'warning');
       return;
     }
+    
     this.isSubmitting = true; 
-    localStorage.setItem('temp_patrol_name', `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`);
+    const name = `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`;
+    localStorage.setItem('temp_patrol_name', name);
+
     setTimeout(() => {
       this.isModalOpen = false;
-      this.router.navigate(['/patrol-active']);
+      setTimeout(() => {
+        this.router.navigate(['/patrol-active']);
+      }, 100);
     }, 800);
->>>>>>> Stashed changes
   }
-  
-  this.isSubmitting = true; 
-  const name = `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`;
-  localStorage.setItem('temp_patrol_name', name);
-
-  setTimeout(() => {
-    // Navigating se pehle modal close karein
-    this.isModalOpen = false;
-    
-    // Thoda sa gap taaki modal smoothly band ho jaye navigation se pehle
-    setTimeout(() => {
-      this.router.navigate(['/patrol-active']);
-    }, 100);
-  }, 800);
-}
 
   async presentToast(message: string, color: string) {
     const toast = await this.toastCtrl.create({ message, duration: 2000, color, mode: 'ios' });
     await toast.present();
   }
+
   goBack() { this.navCtrl.navigateRoot('/home'); }
 }
