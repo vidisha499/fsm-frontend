@@ -1,120 +1,7 @@
-<!-- 
-<ion-content [fullscreen]="true" class="premium-wrapper">
-  <div class="ambient-glow glow-1"></div>
-  <div class="ambient-glow glow-2"></div>
 
-  <div class="hero-header">
-    <div class="header-overlay"></div>
-    <div class="header-content">
-      <div class="top-row">
-        <div class="back-group">
-          <button (click)="handleEndTrip()" class="glass-btn">
-            <i class="fas fa-arrow-left"></i>
-          </button>
-          <div class="title-meta">
-            <h1>{{ 'PATROL.ACTIVE' | translate }}</h1>
-            <p>PANNA SITE OPERATION</p>
-          </div>
-        </div>
-        
-        <div class="live-badge-top">
-          <div class="auth-badge">
-            <i class="fas fa-satellite-dish"></i>
-            <span>LIVE TRACKING</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
 
-  <div class="card-container">
-    <div class="main-card">
-      
-      <div class="scanner-section">
-        <div class="camera-frame" (click)="takeQuickPhoto()">
-          <div class="corners">
-            <span class="top-l"></span><span class="top-r"></span>
-            <span class="bot-l"></span><span class="bot-r"></span>
-          </div>
-          <div class="scanner-inner">
-            <div class="scan-line" *ngIf="!capturedPhoto"></div>
-            
-            <img *ngIf="capturedPhoto" [src]="capturedPhoto" class="preview-img">
-            <div *ngIf="!capturedPhoto" class="placeholder-content">
-              <i class="fas fa-camera main-cam-icon"></i>
-              <span class="cam-text">CAMERA</span>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <div class="map-wrapper">
-        <div class="map-container">
-          <div id="map"></div>
-          <button class="recenter-btn-glass" (click)="recenterMap()">
-            <i class="fas fa-crosshairs"></i>
-          </button>
-        </div>
-      </div>
 
-      <div class="form-grid">
-        <div class="input-pill">
-          <label>DURATION</label>
-          <div class="pill-content">
-            <i class="fas fa-clock"></i>
-            <span class="val">{{timerDisplay}}</span>
-          </div>
-        </div>
-        <div class="input-pill">
-          <label>DISTANCE</label>
-          <div class="pill-content">
-            <i class="fas fa-route"></i>
-            <span class="val">{{totalDistanceKm.toFixed(2)}} KM</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="grid-layout">
-        <div class="grid-item-glass" (click)="openObservation('Animal')">
-          <div class="icon-box animal"><i class="fas fa-paw"></i></div>
-          <span>Animal</span>
-        </div>
-        <div class="grid-item-glass" (click)="openObservation('Water')">
-          <div class="icon-box water"><i class="fas fa-droplet"></i></div>
-          <span>Water</span>
-        </div>
-        <div class="grid-item-glass" (click)="openObservation('Impact')">
-          <div class="icon-box impact"><i class="fas fa-person-hiking"></i></div>
-          <span>Impact</span>
-        </div>
-        <div class="grid-item-glass" (click)="openObservation('Death')">
-          <div class="icon-box death"><i class="fas fa-skull"></i></div>
-          <span>Death</span>
-        </div>
-        <div class="grid-item-glass" (click)="openObservation('Felling')">
-          <div class="icon-box felling"><i class="fas fa-hammer"></i></div>
-          <span>Felling</span>
-        </div>
-        <div class="grid-item-glass" (click)="openObservation('Other')">
-          <div class="icon-box other"><i class="fas fa-circle-plus"></i></div>
-          <span>Other</span>
-        </div>
-      </div>
-
-      <div class="slider-wrapper">
-        <div class="slider-track-new" [class.finished]="isFinished">
-          <div class="slider-text-bg">{{ isFinished ? 'PATROL ENDED' : 'SLIDE TO END TRIP' }}</div>
-          <div class="slider-knob-left" (click)="handleEndTrip()" [class.sliding]="isSubmitting" [class.at-end]="isFinished">
-            <i class="fas fa-chevron-right" *ngIf="!isSubmitting && !isFinished"></i>
-            <ion-spinner name="crescent" *ngIf="isSubmitting" class="wheel-spinner"></ion-spinner>
-            <i class="fas fa-check" *ngIf="isFinished"></i>
-          </div>
-        </div>
-      </div>
-      
-    </div>
-  </div>
-</ion-content>  -->
 <ion-content [fullscreen]="true" class="premium-wrapper">
   <div class="ambient-glow glow-1"></div>
   <div class="ambient-glow glow-2"></div>
@@ -184,6 +71,36 @@
           </div>
         </div>
       </div>
+
+      <div class="recent-logs-section" *ngIf="recentSightings.length > 0">
+        <div class="section-header">
+          <h3>SESSION LOGS</h3>
+          <span class="count-badge">{{recentSightings.length}}</span>
+        </div>
+        <div class="logs-list">
+          <div class="log-card" *ngFor="let log of recentSightings.slice().reverse()">
+            <div class="log-icon" [ngClass]="log.category.toLowerCase()">
+              <i class="fas" [ngClass]="{
+                'fa-paw': log.category === 'Animal',
+                'fa-droplet': log.category === 'Water',
+                'fa-person-hiking': log.category === 'Impact',
+                'fa-skull': log.category === 'Death',
+                'fa-hammer': log.category === 'Felling',
+                'fa-circle-plus': log.category === 'Other'
+              }"></i>
+            </div>
+            <div class="log-info">
+              <div class="log-main">
+                <span class="log-type">{{log.category}}</span>
+                <span class="log-species" *ngIf="log.species">• {{log.species}}</span>
+              </div>
+              <span class="log-meta">{{log.sighting_type}} Sighting ({{log.count}})</span>
+            </div>
+            <div class="log-time">{{log.timestamp | date:'HH:mm'}}</div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
