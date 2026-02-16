@@ -1,0 +1,170 @@
+<!-- <ion-header class="ion-no-border">
+  <ion-toolbar mode="md" class="forest-header">
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()" color="light">
+        <ion-icon name="chevron-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title color="light">Incident Details</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="detail-content">
+  <div *ngIf="incident; else noData" class="animate__animated animate__fadeIn">
+
+    <div class="header-bg">
+      <h1 class="main-title">{{ incident.incidentCriteria || incident.criteria }}</h1>
+      <div class="meta-row">
+        <ion-badge class="priority-badge"
+          [attr.data-priority]="(incident.responsePriority || incident.priority)?.toLowerCase()">
+          {{ incident.responsePriority || incident.priority }}
+        </ion-badge>
+        <span class="date-chip">{{ incident.createdAt | date:'MMM d, yyyy' }}</span>
+      </div>
+    </div>
+
+    <div class="info-container">
+
+      <div class="details-grid">
+       
+        <div class="grid-card">
+          <small>REPORTED BY</small>
+          <div class="val-group">
+            <ion-icon name="person-circle"></ion-icon>
+            <p>{{ currentRanger }}</p>
+          </div>
+        </div>
+        <div class="grid-card">
+          <small>DETECTED CAUSE</small>
+          <div class="val-group">
+            <ion-icon name="flash" style="color: #F59E0B;"></ion-icon>
+            <p>{{ incident.cause || 'Not Specified' }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-label">FIELD OBSERVATION</div>
+      <div class="observation-bubble">
+        <p>{{ incident.fieldObservation || incident.observation || 'No specific field notes recorded.' }}</p>
+      </div>
+
+      <div class="section-label">EVIDENCE PHOTO</div>
+      <div class="photo-frame">
+        <img [src]="incident.photo" alt="Incident Evidence" onerror="this.src='assets/placeholder-forest.png'">
+      </div>
+
+      <ion-button expand="block" class="action-btn" mode="ios">
+        <ion-icon name="checkmark-done-circle" slot="start"></ion-icon>
+        MARK AS RESOLVED
+      </ion-button>
+    </div>
+  </div>
+
+  <ng-template #noData>
+    <div class="loading-state">
+      <ion-spinner name="crescent"></ion-spinner>
+      <p>Fetching incident data...</p>
+    </div>
+  </ng-template>
+</ion-content> -->
+
+<ion-content [fullscreen]="true" class="premium-wrapper">
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
+  <div class="hero-header">
+    <div class="header-overlay"></div>
+    <div class="header-content">
+      <div class="nav-bar">
+        <button (click)="goBack()" class="glass-btn">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+       
+      </div>
+      
+      <h1>{{ 'INCIDENT.LABEL' | translate }}</h1>
+    </div> 
+  </div>
+
+  <div class="card-container">
+    <div class="main-card">
+      
+      <div class="detail-section">
+        <label class="group-label">
+          {{ 'INCIDENT.EVIDENCE_LABEL' | translate }} 
+          <span *ngIf="incident?.photos?.length">({{ incident.photos.length }})</span>
+        </label>
+
+        <div class="detail-photo-grid" *ngIf="incident?.photos?.length > 0; else singlePhotoFallback">
+          <div class="detail-photo-item" *ngFor="let photo of incident.photos" (click)="openZoom(photo)">
+            <img [src]="photo" />
+          </div>
+        </div>
+
+        <ng-template #singlePhotoFallback>
+          <div class="photo-frame" *ngIf="incident?.photo" (click)="openZoom(incident.photo)">
+            <img [src]="incident.photo">
+          </div>
+          <div class="no-photos-box" *ngIf="!incident?.photo">
+             <i class="fas fa-camera-slash"></i>
+             <p>No photos attached</p>
+          </div>
+        </ng-template>
+      </div>
+
+      <div class="form-grid">
+        <div class="input-pill">
+          <label>{{ 'INCIDENT.OBSERVATION_LABEL' | translate }}</label>
+          <div class="pill-content">
+            <i class="fas fa-pen-nib"></i> 
+            <div class="observation-box">
+              {{ incident?.observation || ('INCIDENT.NO_NOTES' | translate) }}
+            </div>
+          </div>
+        </div>
+
+        <div class="input-pill">
+          <label>{{ 'INCIDENT.CAUSE_LABEL' | translate }}</label>
+          <div class="pill-content">
+            <i class="fas fa-clipboard-list"></i>
+            <span class="val">{{ incident?.cause || ('INCIDENT.NO_CAUSE' | translate) }}</span>
+          </div>
+        </div>
+
+        <div class="input-pill">
+          <label>{{ 'INCIDENT.TYPE_LABEL' | translate }}</label>
+          <div class="pill-content">
+            <i class="fas fa-fire"></i>
+            <span class="val">{{ incident?.criteria || ('INCIDENT.UNCATEGORIZED' | translate) }}</span>
+          </div>
+        </div>
+
+        <div class="input-pill">
+          <label>{{ 'INCIDENT.PRIORITY_LABEL' | translate }}</label>
+          <div class="pill-content">
+            <i class="fas fa-exclamation-circle"></i>
+            <span class="val">{{ incident?.priority || ('INCIDENT.STANDARD_PRIORITY' | translate) }}</span>
+          </div>
+        </div>
+
+        <div class="input-pill">
+          <label>{{ 'INCIDENT.TIME_LABEL' | translate }}</label>
+          <div class="pill-content">
+            <i class="fas fa-calendar-day"></i>
+            <span class="val">{{ incident?.createdAt | date:'MMMM d, yyyy • h:mm a' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="zoom-overlay" *ngIf="selectedZoomImage" (click)="closeZoom()">
+    <div class="zoom-container">
+      <button class="close-zoom" (click)="closeZoom()">
+        <i class="fas fa-times"></i>
+      </button>
+      <img [src]="selectedZoomImage" (click)="$event.stopPropagation()" />
+    </div>
+  </div>
+
+</ion-content>

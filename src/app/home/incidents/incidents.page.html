@@ -1,128 +1,165 @@
-<!-- <ion-content [fullscreen]="true" class="incident-content">
-  <div class="header-banner">
-    <div class="header-decor">
-      <ion-icon name="paw" class="paw-1"></ion-icon>
-      <ion-icon name="leaf" class="leaf-1"></ion-icon>
-    </div>
-    <div class="header-nav-row">
-      <div class="nav-left">
-        <ion-button (click)="goBack()" class="back-btn" mode="md">
-          <ion-icon name="arrow-back-outline"></ion-icon>
-        </ion-button>
-        <h1 class="page-title">Incidents</h1>
+<!-- <ion-content [fullscreen]="true">
+  <div class="premium-wrapper">
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <div class="hero-header">
+      <div class="header-overlay"></div>
+      <div class="header-content">
+        <div class="nav-bar">
+          <button (click)="goBack()" class="glass-btn">
+            <ion-icon name="arrow-back-outline"></ion-icon>
+          </button>
+          <div class="auth-badge">
+            <i class="fas fa-shield-alt"></i>
+            <span>SECURE LOG</span>
+          </div>
+        </div>
+        <h1>{{ 'INCIDENTS.TITLE' | translate }}</h1>
+        
       </div>
-      <div class="segment-wrapper">
-        <ion-segment [(ngModel)]="statusFilter" mode="ios">
-          <ion-segment-button value="pending"><ion-label>PENDING</ion-label></ion-segment-button>
-          <ion-segment-button value="resolved"><ion-label>RESOLVED</ion-label></ion-segment-button>
-        </ion-segment>
-      </div>
     </div>
-  </div>
 
-  <div class="main-container">
-    <div class="incident-list">
-       -->
-      <!-- <div class="incident-card" *ngFor="let item of incidents">
-        <div class="card-info">
-          <div class="type-tag">{{ item.incident_criteria }}</div>
-          <h2 class="site-name">{{ item.response_priority }}</h2>
-          <p class="meta">Reported by: {{ item.ranger_name }} • {{ formatDate(item.created_at) }}</p>
-          <p class="obs-text">{{ item.field_observation }}</p>
-        </div> -->
-<!-- 
-        <div class="incident-card" *ngFor="let item of incidents">
-  <div class="card-info">
-    <div class="type-tag">{{ item.incidentCriteria }}</div>
-    <h2 class="site-name">{{ item.responsePriority }}</h2>
-    <p class="meta">Reported by: {{ item.ranger?.name }} • {{ formatDate(item.createdAt) }}</p>
-    <p class="obs-text">{{ item.fieldObservation }}</p>
-    
-    <img *ngIf="item.photo" [src]="item.photo" style="border-radius: 12px; margin-top: 10px; width: 100%;">
-  </div>
-
-
-        <div class="card-actions" style="display: flex; align-items: center;">
-          <ion-button fill="clear" color="danger" (click)="confirmDelete(item.id)">
-            <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
-          </ion-button>
-          <ion-icon name="chevron-forward-outline" class="arrow"></ion-icon>
+    <div class="main-container">
+      <div class="status-tabs-wrapper">
+        <div class="status-tabs">
+          <div class="tab" [class.active]="statusFilter === 'pending'" (click)="statusFilter = 'pending'">
+            {{ 'INCIDENTS.STATUS_PENDING' | translate }}
+          </div>
+          <div class="tab" [class.active]="statusFilter === 'resolved'" (click)="statusFilter = 'resolved'">
+            {{ 'INCIDENTS.STATUS_RESOLVED' | translate }}
+          </div>
         </div>
       </div>
 
-      <div *ngIf="incidents.length === 0" style="text-align: center; margin-top: 50px; color: #999;">
-        <p>No incidents found.</p>
+      <div class="incident-list">
+        <div class="incident-row-compact" *ngFor="let item of incidents" (click)="viewDetails(item)">
+          
+          <div class="mini-thumb">
+            <img *ngIf="item.photo" [src]="item.photo">
+            <div *ngIf="!item.photo" class="placeholder-icon">
+                <ion-icon name="warning"></ion-icon>
+            </div>
+            <div class="priority-indicator" [attr.data-priority]="item.responsePriority"></div>
+          </div>
+
+          <div class="row-content">
+            <div class="top-line">
+              <span class="type-text">{{ item.incidentCriteria }}</span>
+              <span class="date-text">{{ formatDate(item.createdAt) }}</span>
+            </div>
+            <h2 class="priority-title">{{ item.responsePriority }} </h2>
+            <div class="reporter-line">
+              <ion-icon name="person-circle-outline"></ion-icon>
+              <span>{{ item.ranger?.name }}</span>
+            </div>
+          </div>
+
+          <div class="row-actions">
+            <ion-button fill="clear" color="danger" (click)="confirmDelete($event, item.id)">
+              <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+            </ion-button>
+            <ion-icon name="chevron-forward" class="chevron"></ion-icon>
+          </div>
+        </div>
       </div>
-
     </div>
-  </div>
 
-  <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="custom-fab">
-    <ion-fab-button routerLink="/new-incident">
-      <ion-icon name="add"></ion-icon>
-    </ion-fab-button>
-  </ion-fab>
+    <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+      <ion-fab-button class="premium-fab" routerLink="/new-incident">
+        <ion-icon name="add"></ion-icon>
+      </ion-fab-button>
+    </ion-fab>
+  </div>
 </ion-content> -->
 
-<ion-content [fullscreen]="true" class="incident-content">
-  <div class="header-banner">
-    <div class="header-decor">
-      <ion-icon name="paw" class="paw-1"></ion-icon>
-      <ion-icon name="leaf" class="leaf-1"></ion-icon>
-    </div>
-    <div class="header-nav-row">
-      <div class="nav-left">
-        <ion-button (click)="goBack()" class="back-btn" mode="md">
-          <ion-icon name="arrow-back-outline"></ion-icon>
-        </ion-button>
-        <h1 class="page-title">{{ 'INCIDENTS.TITLE' | translate }}</h1>
-      </div>
-      <div class="segment-wrapper">
-        <ion-segment [(ngModel)]="statusFilter" mode="ios">
-          <ion-segment-button value="pending">
-            <ion-label>{{ 'INCIDENTS.STATUS_PENDING' | translate }}</ion-label>
-          </ion-segment-button>
-          <ion-segment-button value="resolved">
-            <ion-label>{{ 'INCIDENTS.STATUS_RESOLVED' | translate }}</ion-label>
-          </ion-segment-button>
-        </ion-segment>
-      </div>
-    </div>
-  </div>
+<ion-content [fullscreen]="true">
+  <div class="premium-wrapper">
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
 
-  <div class="main-container">
-    <div class="incident-list">
-      
-      <div class="incident-card" *ngFor="let item of incidents">
-        <div class="card-info">
-          <div class="type-tag">{{ item.incidentCriteria }}</div>
-          <h2 class="site-name">{{ item.responsePriority }}</h2>
-          <p class="meta">
-            {{ 'INCIDENTS.REPORTED_BY' | translate }}: {{ item.ranger?.name }} • {{ formatDate(item.createdAt) }}
-          </p>
-          <p class="obs-text">{{ item.fieldObservation }}</p>
+    <div class="hero-header">
+      <div class="header-overlay"></div>
+      <div class="header-content">
+        <div class="nav-bar">
+          <button (click)="goBack()" class="glass-btn">
+            <ion-icon name="arrow-back-outline"></ion-icon>
+          </button>
+          <div class="auth-badge">
+            <i class="fas fa-shield-alt"></i>
+            <span>SECURE LOG</span>
+          </div>
+        </div>
+        <h1>{{ 'INCIDENTS.TITLE' | translate }}</h1>
+      </div>
+    </div>
+
+    <div class="main-container">
+      <div class="status-tabs-wrapper">
+        <div class="status-tabs">
+          <div class="tab" [class.active]="statusFilter === 'pending'" (click)="statusFilter = 'pending'">
+            {{ 'INCIDENTS.STATUS_PENDING' | translate }}
+          </div>
+          <div class="tab" [class.active]="statusFilter === 'resolved'" (click)="statusFilter = 'resolved'">
+            {{ 'INCIDENTS.STATUS_RESOLVED' | translate }}
+          </div>
+        </div>
+      </div>
+
+      <div class="incident-list">
+        <div class="incident-row-compact animate__animated animate__fadeInUp" 
+             *ngFor="let item of incidents" 
+             (click)="viewDetails(item)">
           
-          <img *ngIf="item.photo" [src]="item.photo" style="border-radius: 12px; margin-top: 10px; width: 100%;">
+          <div class="mini-thumb">
+            <img *ngIf="item.photos && item.photos.length > 0" [src]="item.photos[0]">
+            
+            <div *ngIf="!item.photos || item.photos.length === 0" class="placeholder-icon">
+                <ion-icon name="image-outline"></ion-icon>
+            </div>
+            
+            <div class="priority-indicator" [attr.data-priority]="item.responsePriority"></div>
+          </div>
+
+          <div class="row-content">
+            <div class="top-line">
+              <span class="type-text">{{ item.incidentCriteria }}</span>
+              <span class="date-text">{{ formatDate(item.createdAt) }}</span>
+            </div>
+            
+            <h2 class="priority-title" [class.high-p]="item.responsePriority === 'High Priority'">
+              {{ item.responsePriority }}
+            </h2>
+
+            <div class="reporter-line">
+              <ion-icon name="person-circle-outline"></ion-icon>
+              <!-- <span>{{ item.ranger?.name || 'Assigned Ranger' }}</span> -->
+              
+              <span class="photo-badge" *ngIf="item.photos?.length > 1">
+                +{{ item.photos.length - 1 }}
+              </span>
+            </div>
+          </div>
+
+          <div class="row-actions">
+            <ion-button fill="clear" color="danger" (click)="confirmDelete($event, item.id)">
+              <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+            </ion-button>
+            <ion-icon name="chevron-forward" class="chevron"></ion-icon>
+          </div>
         </div>
 
-        <div class="card-actions" style="display: flex; align-items: center;">
-          <ion-button fill="clear" color="danger" (click)="confirmDelete(item.id)">
-            <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
-          </ion-button>
-          <ion-icon name="chevron-forward-outline" class="arrow"></ion-icon>
+        <div class="empty-state" *ngIf="incidents.length === 0">
+          <i class="fas fa-clipboard-check"></i>
+          <p>No reports found in this sector</p>
         </div>
       </div>
-
-      <div *ngIf="incidents.length === 0" style="text-align: center; margin-top: 50px; color: #999;">
-        <p>{{ 'INCIDENTS.NO_DATA' | translate }}</p>
-      </div>
-
     </div>
-  </div>
 
-  <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="custom-fab">
-    <ion-fab-button routerLink="/new-incident">
-      <ion-icon name="add"></ion-icon>
-    </ion-fab-button>
-  </ion-fab>
+    <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+      <ion-fab-button class="premium-fab" routerLink="/new-incident">
+        <ion-icon name="add"></ion-icon>
+      </ion-fab-button>
+    </ion-fab>
+  </div>
 </ion-content>

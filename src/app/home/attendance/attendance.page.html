@@ -1,4 +1,4 @@
-<ion-content [fullscreen]="true" class="attendance-content">
+<!-- <ion-content [fullscreen]="true" class="attendance-content">
   <div class="header-banner">
     <div class="header-decor">
       <ion-icon name="paw" class="paw-1"></ion-icon>
@@ -82,6 +82,161 @@
     <div class="gps-notice">
       <div class="icon-box"><ion-icon name="location"></ion-icon></div>
       <p>{{ 'ATTENDANCE.GPS_NOTICE' | translate:{address: currentAddress} }}</p>
+    </div>
+  </div>
+</ion-content> -->
+
+
+<ion-content [fullscreen]="true" class="premium-wrapper">
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
+  <div class="hero-header">
+    <div class="header-overlay"></div>
+    <div class="header-content">
+      <div class="nav-bar">
+        <button (click)="goBack()" class="glass-btn">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+        <div class="auth-badge">
+          <i class="fas fa-fingerprint"></i>
+          <span>{{ 'ATTENDANCE.LIVE' | translate }}</span>
+        </div>
+      </div>
+      <div class="title-section">
+        <h1>{{ 'ATTENDANCE.TITLE' | translate }}</h1>
+        <!-- <p>{{ 'ATTENDANCE.SUBTITLE' | translate }}</p> -->
+      </div>
+    </div>
+  </div>
+
+  <div class="card-container">
+    <div class="main-card">
+      
+      <div class="scanner-section">
+        <div class="camera-frame" (click)="presentImageSourceOptions()">
+          <div class="corners">
+            <span class="top-l"></span><span class="top-r"></span>
+            <span class="bot-l"></span><span class="bot-r"></span>
+          </div>
+          <div class="scanner-inner">
+            <img *ngIf="capturedPhoto" [src]="capturedPhoto" class="preview-img">
+            <div *ngIf="!capturedPhoto">
+              <div class="scan-line"></div>
+              <i class="fas fa-camera"></i>
+              <span class="label">{{ 'ATTENDANCE.CAPTURE_ID' | translate }}</span>
+            </div>
+          </div>
+        </div>
+        <p class="instruction">{{ capturedPhoto ? 'Identity Verified' : 'Scan identity to proceed' }}</p>
+      </div>
+
+      <div class="map-wrapper">
+        <label class="group-label">{{ 'ATTENDANCE.LIVE_TRACKING' | translate }}</label>
+        <div class="map-container">
+          <capacitor-google-map #map id="map"></capacitor-google-map>
+        </div>
+      </div>
+<!-- 
+      <div class="form-grid">
+        <div class="double-col">
+          <div class="input-pill readonly">
+            <label>{{ 'ATTENDANCE.RANGER' | translate }}</label>
+            <div class="pill-content">
+              <i class="fas fa-user-shield"></i>
+              <input type="text" [value]="rangerName" readonly>
+            </div>
+          </div>
+          <div class="input-pill readonly">
+            <label>{{ 'ATTENDANCE.REGION' | translate }}</label>
+            <div class="pill-content">
+              <i class="fas fa-earth-asia"></i>
+              <input type="text" [value]="rangerRegion" readonly>
+            </div>
+          </div>
+        </div>
+
+        <div class="input-pill interactive">
+          <label>{{ 'ATTENDANCE.DETECTED_GEOFENCE' | translate }}</label>
+          <div class="pill-content">
+            <i class="fas fa-location-dot" style="color: #0d9488;"></i>
+            <span class="location-text">{{ currentAddress }}</span>
+          </div>
+        </div> -->
+        <div class="form-grid">
+  <div class="input-pill readonly">
+    <label>{{ 'ATTENDANCE.RANGER' | translate }}</label>
+    <div class="pill-content">
+      <i class="fas fa-user-shield"></i>
+      <input type="text" [value]="rangerName" readonly>
+    </div>
+  </div>
+
+  <div class="input-pill readonly">
+    <label>{{ 'ATTENDANCE.REGION' | translate }}</label>
+    <div class="pill-content">
+      <i class="fas fa-earth-asia"></i>
+      <input type="text" [value]="rangerRegion" readonly>
+    </div>
+  </div>
+
+  <div class="input-pill interactive">
+    <label>{{ 'ATTENDANCE.DETECTED_GEOFENCE' | translate }}</label>
+    <div class="pill-content">
+      <i class="fas fa-location-dot" style="color: #0d9488;"></i>
+      <span class="location-text">{{ currentAddress }}</span>
+    </div>
+  </div>
+
+   <div class="input-pill interactive">
+          <label>{{ 'INCIDENT.TIME_LABEL' | translate }}</label>
+          <div class="pill-content">
+            <i class="fas fa-calendar-day"></i>
+            <span class="val">{{ (attendance?.created_at || currentTime) | date:'dd MMM yyyy • hh:mm a' }}</span>
+          </div>
+        </div>
+</div>
+
+
+
+        <!-- <div class="status-tabs">
+          <div class="tab" [class.active]="isEntry" (click)="setMode(true)">
+            {{ 'ATTENDANCE.ENTRY' | translate }}
+          </div>
+          <div class="tab" [class.active]="!isEntry" (click)="setMode(false)">
+            {{ 'ATTENDANCE.EXIT' | translate }}
+          </div>
+        </div> -->
+      <!-- </div> -->
+
+      <!-- <button class="mark-btn" (click)="submitAttendance()" [disabled]="isSubmitting">
+        <span class="btn-text" *ngIf="!isSubmitting">{{ 'ATTENDANCE.MARK_BUTTON' | translate }}</span>
+        <span class="btn-text" *ngIf="isSubmitting">SYNCING...</span>
+        
+        <div class="btn-check">
+          <i class="fas fa-fingerprint" *ngIf="!isSubmitting"></i>
+          <ion-spinner name="crescent" color="light" *ngIf="isSubmitting"></ion-spinner>
+        </div>
+      </button> -->
+
+      <div class="auto-slider-container" (click)="submitAttendance()" [class.active]="isSubmitting">
+  <div class="slider-track">
+    <div class="slider-handle">
+      <i class="fas fa-chevron-right" *ngIf="!isSubmitting"></i>
+      <ion-spinner name="crescent" color="light" *ngIf="isSubmitting"></ion-spinner>
+    </div>
+
+    <span class="slider-text">
+      {{ isSubmitting ? 'MARKING...' : ('ATTENDANCE.MARK_BUTTON' | translate) }}
+    </span>
+
+    <div class="end-check">
+      <i class="fas fa-check"></i>
+    </div>
+  </div>
+</div>
+      
+
     </div>
   </div>
 </ion-content>

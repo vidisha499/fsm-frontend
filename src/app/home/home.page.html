@@ -180,7 +180,7 @@
         </div>
         </div>
 </ion-content>
-
+<!-- 
 <div *ngIf="currentPage === 'settings'" class="settings-view" style="position: fixed; inset: 0; z-index: 99999; display: flex; flex-direction: column; font-family: 'Inter', sans-serif; 
             background: #F4F7F6; animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);">
 
@@ -269,6 +269,119 @@
             style="width: 100%; background: #065431; color: white; border: none; padding: 20px; border-radius: 16px; font-weight: 800; font-size: 14px; letter-spacing: 1px; box-shadow: 0 10px 20px rgba(6, 84, 49, 0.2);">
             {{ 'SETTINGS.BTN_UPDATE' | translate }}
         </button>
+    </div>
+</div> -->
+
+<div *ngIf="currentPage === 'settings'" class="settings-view premium-wrapper">
+    
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <div class="hero-header">
+        <div class="header-overlay"></div>
+        <div class="header-content">
+            <div class="nav-bar">
+                <div (click)="goToPage('home')" class="glass-btn">
+                    <i class="fas fa-chevron-left"></i>
+                </div>
+
+                <div (click)="toggleEdit()" class="glass-btn" [class.edit-active]="isEditMode">
+                    <i class="fas" [class.fa-edit]="!isEditMode" [class.fa-check]="isEditMode"></i>
+                </div>
+            </div>
+            
+            <div class="header-title-group">
+                <h1>{{ 'SETTINGS.TITLE' | translate }}</h1>
+                <p>Operational Protocol & Personal Profile</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-container">
+        <div class="main-card animate-scale-up">
+            
+            <div class="tab-switcher">
+                <button (click)="activeTab = 'info'" [class.active]="activeTab === 'info'">
+                    {{ 'SETTINGS.TAB_ACCOUNT' | translate }}
+                </button>
+                <button (click)="activeTab = 'pass'" [class.active]="activeTab === 'pass'">
+                    {{ 'SETTINGS.TAB_SECURITY' | translate }}
+                </button>
+            </div>
+
+            <div *ngIf="activeTab === 'info'" class="fade-in">
+           
+           <div class="profile-upload">
+    <div class="avatar-ring">
+        <div class="static-avatar">
+            <img *ngIf="profileImage && !profileImage.includes('fa-user-shield')" 
+                 [src]="profileImage" 
+                 class="user-photo">
+            <i *ngIf="!profileImage || profileImage.includes('fa-user-shield')" 
+               class="fas fa-user-shield"></i>
+        </div>
+        
+        <div class="cam-overlay" (click)="changeProfilePicture()">
+            <i class="fas fa-camera"></i>
+        </div>
+    </div>
+</div>
+                <div class="input-pill">
+                    <label>{{ 'SETTINGS.LABEL_NAME' | translate }}</label>
+                    <div class="pill-content">
+                        <i class="fas fa-id-badge"></i>
+                        <input type="text" [(ngModel)]="rangerName" [readonly]="!isEditMode">
+                    </div>
+                </div>
+
+                <div class="input-pill">
+                    <label>{{ 'SETTINGS.LABEL_DIVISION' | translate }}</label>
+                    <div class="pill-content">
+                        <i class="fas fa-satellite"></i>
+                        <input type="text" [(ngModel)]="rangerDivision" [readonly]="!isEditMode">
+                    </div>
+                </div>
+
+                <div class="input-pill">
+                    <label>{{ 'SETTINGS.LABEL_COMM' | translate }}</label>
+                    <div class="pill-content">
+                        <i class="fas fa-phone-alt"></i>
+                        <input type="text" [(ngModel)]="rangerPhone" [readonly]="!isEditMode">
+                    </div>
+                </div>
+            </div>
+
+            <div *ngIf="activeTab === 'pass'" class="fade-in">
+                <div class="input-pill">
+                    <label>{{ 'SETTINGS.LABEL_CURR_PASS' | translate }}</label>
+                    <div class="pill-content">
+                        <i class="fas fa-lock"></i>
+                        <input [type]="showPassword ? 'text' : 'password'" [readonly]="!isEditMode" placeholder="Enter Current Pin">
+                        <i *ngIf="isEditMode" class="fas" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword" 
+                           (click)="showPassword = !showPassword" style="cursor: pointer; opacity: 0.6;"></i>
+                    </div>
+                </div>
+
+                <div class="input-pill">
+                    <label>{{ 'SETTINGS.LABEL_NEW_KEY' | translate }}</label>
+                    <div class="pill-content">
+                        <i class="fas fa-shield-alt"></i>
+                        <input [type]="showNewPassword ? 'text' : 'password'" [(ngModel)]="rangerPassword" [readonly]="!isEditMode"
+                               [placeholder]="'SETTINGS.PH_NEW_KEY' | translate">
+                        <i *ngIf="isEditMode" class="fas" [class.fa-eye]="!showNewPassword" [class.fa-eye-slash]="showNewPassword" 
+                           (click)="showNewPassword = !showNewPassword" style="cursor: pointer; opacity: 0.6;"></i>
+                    </div>
+                </div>
+            </div>
+
+            <button *ngIf="isEditMode" (click)="updateProtocol()" class="update-btn-premium fade-in">
+                <span class="btn-text">{{ 'SETTINGS.BTN_UPDATE' | translate }}</span>
+                <div class="btn-check">
+                    <i class="fas fa-save"></i>
+                </div>
+            </button>
+
+        </div>
     </div>
 </div>
 

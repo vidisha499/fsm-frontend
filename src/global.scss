@@ -42,3 +42,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 
+:root {
+  /* Force the background to white and text to dark green/black */
+  --ion-background-color: #ffffff !important;
+  --ion-text-color: #000000 !important;
+  
+  /* Reset common UI elements that stay dark */
+  --ion-item-background: #ffffff !important;
+  --ion-card-background: #ffffff !important;
+  --ion-toolbar-background: #ffffff !important;
+  
+  /* Your Forest Theme Primary Colors */
+  --ion-color-primary: #2e7d32 !important; 
+}
+
+/* Force light mode on the body specifically */
+body {
+  background: #ffffff !important;
+  color: #000000 !important;
+}

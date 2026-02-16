@@ -42,7 +42,7 @@
 // }
 // }
 
-import { Component } from '@angular/core';
+import { Component , Renderer2 } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 
 @Component({
@@ -52,7 +52,11 @@ import { TranslateService } from '@ngx-translate/core';
   standalone: false,
 })
 export class AppComponent {
-  constructor(private translate: TranslateService) {
+  constructor(private translate: TranslateService,
+    private renderer: Renderer2
+  ) {
+    this.renderer.removeClass(document.body, 'dark');
+    this.renderer.addClass(document.body, 'light');
     this.initLanguage();
     this.initializeApp();
   }

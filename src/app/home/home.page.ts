@@ -1,9 +1,10 @@
 import { Component, Renderer2, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { DataService } from '../data.service';
-import { ToastController, LoadingController, Platform } from '@ionic/angular'; 
+import { ToastController, LoadingController, Platform , ActionSheetController} from '@ionic/angular'; 
 import { TranslateService } from '@ngx-translate/core';
 import { ChangeDetectorRef } from '@angular/core';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 
 @Component({
   selector: 'app-home',
@@ -15,6 +16,8 @@ export class HomePage implements OnInit {
 
   currentPage: 'home' | 'settings' | 'attendance' = 'home';
   activeTab: string = 'info';
+  isEditMode: boolean = false;
+ profileImage: string = '';
 
   // ✅ SOS State
   showSOSModal: boolean = false;
@@ -25,6 +28,8 @@ export class HomePage implements OnInit {
   rangerDivision: string = 'Washim Division 4.2';
   rangerPhone: string = '';
   rangerPassword: string = '';
+  // Navigation Logic
+  
 
   // UI State
   showLanguageModal: boolean = false;
@@ -50,7 +55,8 @@ export class HomePage implements OnInit {
     private loadingController: LoadingController,
     public translate: TranslateService,
     private cdr: ChangeDetectorRef,
-    private platform: Platform
+    private platform: Platform,
+    private actionSheetCtrl: ActionSheetController,
   ) {}
 
   ngOnInit() {
@@ -61,6 +67,8 @@ export class HomePage implements OnInit {
     if (this.dataService) {
       (this.dataService as any).apiUrl = `${this.vercelBaseUrl}/rangers`;
     }
+
+    
   }
 
   private initLanguage() {
@@ -72,31 +80,128 @@ export class HomePage implements OnInit {
     this.selectedLanguage = reverseMap[savedLangCode] || 'English';
   }
 
-  ionViewWillEnter() {
-    // Listen for language changes
-    this.translate.onLangChange.subscribe(() => {
-      this.cdr.detectChanges(); 
+
+  async changeProfilePicture() {
+  const actionSheet = await this.actionSheetCtrl.create({
+    header: 'CHANGE PROFILE PICTURE',
+    cssClass: 'premium-action-sheet',
+    buttons: [
+      { 
+        text: 'Take Picture', 
+        icon: 'camera-outline', 
+        handler: () => this.captureProfileImage(CameraSource.Camera) 
+      },
+      { 
+        text: 'From Photos', 
+        icon: 'image-outline', 
+        handler: () => this.captureProfileImage(CameraSource.Photos) 
+      },
+      { 
+        text: 'Cancel', 
+        icon: 'close-outline', 
+        role: 'cancel' 
+      }
+    ]
+  });
+  await actionSheet.present();
+}
+
+async captureProfileImage(source: CameraSource) {
+  try {
+    const image = await Camera.getPhoto({
+      quality: 90,
+      allowEditing: true,
+      resultType: CameraResultType.Base64,
+      source: source 
     });
 
-    const currentRangerId = this.dataService.getRangerId();
-    if (currentRangerId) {
-      // 3. Fetching profile from Vercel
-      this.dataService.getRangerProfile(currentRangerId).subscribe({
-        next: (profile: any) => {
-          this.rangerId = profile.id;
-          this.rangerName = profile.username;
-          this.rangerPhone = profile.phoneNo;
+    if (image.base64String) {
+      // 1. Update UI immediately
+      this.profileImage = `data:image/jpeg;base64,${image.base64String}`;
+      this.cdr.detectChanges();
+      
+      // 2. Sync to Database
+      const rId = this.dataService.getRangerId();
+      if (!rId) {
+        this.showToast('Error: Ranger ID not found');
+        return;
+      }
 
-          localStorage.setItem('ranger_username', profile.username);
-          localStorage.setItem('ranger_phone', profile.phoneNo);
-          
-          this.cdr.detectChanges();
-        },
-        error: (err) => console.error('Vercel Profile Load Error:', err)
+      const updatedData = {
+        id: +rId, // Convert to number for NestJS
+        profilePic: image.base64String // Match backend property
+      };
+
+      this.dataService.updateRanger(updatedData).subscribe({
+        next: () => this.showToast('Profile picture synced to database'),
+        error: (err) => {
+          console.error('DB Update Error:', err);
+          this.showToast('Failed to save photo');
+        }
       });
     }
-    this.loadRangerData();
+  } catch (error) {
+    console.warn('User cancelled photo selection');
   }
+}
+
+  
+// async changeProfilePicture() {
+//   try {
+//     const image = await Camera.getPhoto({
+//       quality: 90,
+//       allowEditing: true,
+//       resultType: CameraResultType.Base64,
+//       source: CameraSource.Prompt // Offers Gallery or Camera
+//     });
+
+//     if (image.base64String) {
+//       // Update UI immediately
+//       this.profileImage = `data:image/jpeg;base64,${image.base64String}`;
+//       this.cdr.detectChanges();
+      
+//       // Optional: Call updateProtocol() automatically to save the photo immediately
+//       // this.updateProtocol(); 
+//     }
+//   } catch (error) {
+//     console.warn('User cancelled photo selection');
+//   }
+// }
+
+toggleEdit() {
+    this.isEditMode = !this.isEditMode;
+  }
+
+ionViewWillEnter() {
+  this.translate.onLangChange.subscribe(() => {
+    this.cdr.detectChanges(); 
+  });
+
+  const currentRangerId = this.dataService.getRangerId();
+  if (currentRangerId) {
+    this.dataService.getRangerProfile(currentRangerId).subscribe({
+      next: (profile: any) => {
+        this.rangerId = profile.id;
+        this.rangerName = profile.username;
+        this.rangerPhone = profile.phoneNo;
+        // ✅ ADD THESE: So they don't reset on refresh
+        this.rangerDivision = profile.division || 'Washim Division 4.2';
+        
+        // Update LocalStorage
+        localStorage.setItem('ranger_username', profile.username);
+        localStorage.setItem('ranger_phone', profile.phoneNo);
+        
+        this.cdr.detectChanges();
+
+        if (profile.profile_pic) {
+      this.profileImage = `data:image/jpeg;base64,${profile.profile_pic}`;
+    }
+      },
+      error: (err) => console.error('Vercel Profile Load Error:', err)
+    });
+  }
+  this.loadRangerData();
+}
 
   loadRangerData() {
     this.rangerId = localStorage.getItem('ranger_id') || '';
@@ -163,9 +268,57 @@ export class HomePage implements OnInit {
     });
   }
 
-  updateProtocol() {
-    this.updateRangerProfile();
+
+async updateProtocol() {
+  const rId = this.dataService.getRangerId();
+  
+  // This check tells TypeScript that rId is definitely NOT null below this line
+  if (!rId) {
+    const toast = await this.toastController.create({
+      message: 'Error: Ranger ID not found. Please log in again.',
+      duration: 3000,
+      color: 'danger'
+    });
+    await toast.present();
+    return;
   }
+
+  const loader = await this.loadingController.create({
+    message: 'Updating Vercel Profile...',
+    spinner: 'dots',
+    mode: 'ios'
+  });
+  await loader.present();
+
+  const updatedData = {
+    id: +rId, // Now safe to use + because we checked if (!rId) above
+    name: this.rangerName,
+    phone: this.rangerPhone,
+    password: this.rangerPassword,
+    profilePic: this.profileImage.includes('base64') ? this.profileImage.split(',')[1] : null
+  };
+
+  this.dataService.updateRanger(updatedData).subscribe({
+    next: async (res: any) => {
+      await loader.dismiss();
+      
+      localStorage.setItem('ranger_username', this.rangerName);
+      localStorage.setItem('ranger_phone', this.rangerPhone);
+
+      const msg = await this.translate.get('SETTINGS.UPDATE_SUCCESS').toPromise();
+      await this.showToast(msg || 'Updated Successfully');
+      
+      this.rangerPassword = '';
+      this.isEditMode = false; // Auto-locks the UI
+      this.cdr.detectChanges();
+    },
+    error: async (err) => {
+      await loader.dismiss();
+      console.error("Update Error:", err);
+      this.showToast('Update failed. Check connection.');
+    }
+  });
+}
 
   async updateRangerProfile() {
     const loader = await this.loadingController.create({

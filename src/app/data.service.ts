@@ -89,8 +89,17 @@ export class DataService {
   // Use the central URL from your environment file
   // e.g., 'https://fsm-backend-....vercel.app/api'
   private baseApiUrl = environment.apiUrl;
+  private selectedIncident: any;
 
   constructor(private http: HttpClient) {}
+
+  setSelectedIncident(incident: any) {
+  this.selectedIncident = incident;
+}
+
+getSelectedIncident() {
+  return this.selectedIncident;
+}
 
   // --- HELPER FOR STORAGE ---
   saveRangerId(id: string) {

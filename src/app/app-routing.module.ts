@@ -44,7 +44,11 @@ const routes: Routes = [
   {
     path: 'patrol-active',
     loadChildren: () => import('./home/patrol-active/patrol-active.module').then(m => m.PatrolActivePageModule)
-  }
+  },
+  {
+  path: 'incident-detail/:id',
+  loadChildren: () => import('./home/incident-detail/incident-detail.module').then(m => m.IncidentDetailPageModule)
+}
 ];
 
 @NgModule({
