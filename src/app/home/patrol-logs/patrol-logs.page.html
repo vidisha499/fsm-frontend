@@ -1,4 +1,4 @@
-
+<!-- 
 
 
 <ion-content [fullscreen]="true" class="premium-wrapper">
@@ -132,6 +132,156 @@
                 <ion-icon [name]="isSubmitting ? 'sync-outline' : 'chevron-forward-outline'" 
                           [class.spin-icon]="isSubmitting">
                 </ion-icon>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+</ion-content> -->
+
+
+<ion-content [fullscreen]="true" class="premium-wrapper">
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
+  <div class="hero-header">
+    <div class="header-overlay"></div>
+    <div class="header-content">
+      <div class="top-row">
+        <div class="back-group">
+          <button (click)="goBack()" class="glass-btn">
+            <i class="fas fa-arrow-left"></i>
+          </button>
+          <div class="title-meta">
+            <h1>{{ 'LIST.TITLE' | translate }}</h1>
+            <p>{{ 'LIST.SITE' | translate }}</p> 
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="logs-container">
+    <div *ngIf="patrolLogs && patrolLogs.length > 0; else noLogsTemplate" style="display: flex; flex-direction: column; gap: 12px;">
+        <div class="log-entry-card" *ngFor="let log of patrolLogs" (click)="viewDetails(log)" style="cursor: pointer;">
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                  <div class="icon-thumb">
+                      <i [class]="log.patrolName?.toLowerCase().includes('foot') ? 'fas fa-hiking' : 'fas fa-binoculars'" style="color: #059669; font-size: 18px;"></i>
+                  </div>
+                  <div>
+                      <p style="margin: 0; font-weight: 800; color: #1e293b; font-size: 15px;">
+                        {{ log.patrolName }}
+                      </p>
+                      <p style="margin: 2px 0 0 0; font-size: 11px; color: #94a3b8; font-weight: 600;">
+                        {{ log.startTime | date:'MMM d, h:mm a' }}
+                      </p>
+                  </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span class="status-pill" 
+                      [style.background]="log.status === 'COMPLETED' ? '#ecfdf5' : '#fff7ed'" 
+                      [style.color]="log.status === 'COMPLETED' ? '#059669' : '#ea580c'">
+                  {{ log.status }}
+                </span>
+                <ion-button fill="clear" color="danger" (click)="deleteLog(log.id, $event)" style="--padding-start: 0; --padding-end: 0; margin: 0; height: 24px;">
+                  <ion-icon slot="icon-only" name="trash-outline" style="font-size: 18px;"></ion-icon>
+                </ion-button>
+              </div>
+            </div>
+        </div>
+    </div>
+
+    <ng-template #noLogsTemplate>
+      <div class="empty-state">
+        <div class="empty-icon-box">
+          <ion-icon name="document-text-outline"></ion-icon>
+        </div>
+        <h3>No recent patrol logs</h3>
+        <p>You haven't recorded any patrols yet. Tap the button below to start.</p>
+      </div>
+    </ng-template>
+
+    <button (click)="setOpen(true)" class="floating-action-btn"><i class="fas fa-plus"></i></button>
+  </div>
+
+  <ion-modal [isOpen]="isDetailModalOpen" (didDismiss)="isDetailModalOpen = false" (didPresent)="onDetailModalPresent()" style="--height: 85%; --border-radius: 30px 30px 0 0;">
+    <ng-template>
+      <ion-header class="ion-no-border">
+        <ion-toolbar style="--background: #ffffff; padding: 10px;">
+          <ion-title style="font-weight: 800; color: #061A13;">Patrol Summary</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="isDetailModalOpen = false" color="danger" style="font-weight: 700;">CLOSE</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding" style="--background: #ffffff;">
+        <div id="detailMap" style="height: 200px; width: 100%; border-radius: 20px; margin-bottom: 20px; border: 1px solid #eee;"></div>
+        <div *ngIf="selectedPatrol">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+            <div style="background: #F3F4F6; padding: 15px; border-radius: 15px;">
+              <p style="margin:0; font-size: 10px; color: #94a3b8; font-weight: 800;">DISTANCE</p>
+              <p style="margin:0; font-size: 16px; font-weight: 800; color: #061A13;">{{selectedPatrol.distanceKm}} KM</p>
+            </div>
+            <div style="background: #F3F4F6; padding: 15px; border-radius: 15px;">
+              <p style="margin:0; font-size: 10px; color: #94a3b8; font-weight: 800;">DURATION</p>
+              <p style="margin:0; font-size: 16px; font-weight: 800; color: #061A13;">{{selectedPatrol.duration}}</p>
+            </div>
+          </div>
+          <h3 style="font-size: 12px; font-weight: 800; color: #94a3b8; margin-bottom: 10px;">OBSERVATIONS</h3>
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+            <div *ngFor="let obs of selectedPatrol.observationData | keyvalue" style="background: white; border: 1px solid #eee; padding: 12px; border-radius: 12px; display: flex; justify-content: space-between;">
+              <span style="font-size: 12px; font-weight: 700; color: #1e293b;">{{obs.key}}</span>
+              <span style="font-size: 12px; font-weight: 800; color: #10b981;">{{obs.value}}</span>
+            </div>
+          </div>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <ion-modal [isOpen]="isModalOpen" (didDismiss)="setOpen(false)" [initialBreakpoint]="0.5" [breakpoints]="[0, 0.5, 0.8]">
+    <ng-template>
+      <ion-header class="ion-no-border">
+        <ion-toolbar style="--background: #061A13; --color: white; padding-top: 10px;">
+          <ion-title>{{ 'LIST.NEW_SESSION' | translate }}</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="setOpen(false)">{{ 'COMMON.CANCEL' | translate }}</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+        <div style="display: flex; flex-direction: column; gap: 15px;">
+          <ion-item lines="none" style="--background: #f4f4f7; border-radius: 12px; margin-bottom: 5px;">
+            <ion-label position="stacked" style="color: #64748b; font-weight: 700;">{{ 'LIST.METHOD' | translate }}</ion-label>
+            <ion-select [(ngModel)]="selectedMethod" [placeholder]="'LIST.SELECT_PLACEHOLDER' | translate" interface="action-sheet">
+              <ion-select-option value="vehicle">{{ 'LIST.VEHICLE' | translate }}</ion-select-option>
+              <ion-select-option value="bicycle">{{ 'LIST.BICYCLE' | translate }}</ion-select-option>
+              <ion-select-option value="on foot">{{ 'LIST.FOOT' | translate }}</ion-select-option>
+              <ion-select-option value="other">{{ 'LIST.OTHER' | translate }}</ion-select-option>
+            </ion-select>
+          </ion-item>
+          <ion-item lines="none" style="--background: #f4f4f7; border-radius: 12px; margin-bottom: 5px;">
+            <ion-label position="stacked" style="color: #64748b; font-weight: 700;">{{ 'LIST.TYPE' | translate }}</ion-label>
+            <ion-select [(ngModel)]="selectedType" [placeholder]="'LIST.SELECT_PLACEHOLDER' | translate" interface="action-sheet">
+              <ion-select-option value="Regular">{{ 'LIST.REGULAR' | translate }}</ion-select-option>
+              <ion-select-option value="Special">{{ 'LIST.SPECIAL' | translate }}</ion-select-option>
+              <ion-select-option value="Emergency">{{ 'LIST.EMERGENCY' | translate }}</ion-select-option>
+              <ion-select-option value="Beat inspection">{{ 'LIST.BEAT' | translate }}</ion-select-option>
+              <ion-select-option value="joint">{{ 'LIST.JOINT' | translate }}</ion-select-option>
+              <ion-select-option value="other">{{ 'LIST.OTHER' | translate }}</ion-select-option>
+            </ion-select>
+          </ion-item>
+
+          <div class="slider-action-container">
+            <div class="slider-track">
+              <div class="slider-text">
+                {{ isSubmitting ? 'STARTING...' : ('LIST.START_BTN' | translate) }}
+              </div>
+              <div class="slider-knob" (click)="savePatrol()" [class.slide-active]="isSubmitting">
+                <ion-icon [name]="isSubmitting ? 'sync-outline' : 'chevron-forward-outline'" [class.spin-icon]="isSubmitting"></ion-icon>
               </div>
             </div>
           </div>

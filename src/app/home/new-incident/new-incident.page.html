@@ -3,7 +3,7 @@
     <div class="ambient-glow glow-1"></div>
     <div class="ambient-glow glow-2"></div>
 
-    <div class="hero-header">
+    <!-- <div class="hero-header">
       <div class="header-overlay"></div>
       <div class="header-content">
         <div class="nav-bar">
@@ -12,12 +12,31 @@
           </button>
           <div class="auth-badge">
             <i class="fas fa-shield-alt"></i>
-            <!-- <span>NEW PROTOCOL</span> -->
-          </div>
+            <span>NEW PROTOCOL</span> -->
+          <!-- </div>
         </div>
         <h1>{{ 'REPORT.TITLE' | translate }}</h1>
       </div>
+    </div> -->
+
+    <div class="hero-header">
+  <div class="header-overlay"></div>
+  <div class="header-content">
+    <div class="nav-bar">
+      <div class="left-section">
+        <button (click)="goBack()" class="glass-btn">
+          <ion-icon name="arrow-back-outline"></ion-icon>
+        </button>
+        <h1>{{ 'REPORT.TITLE' | translate }}</h1>
+      </div>
+
+      <div class="auth-badge">
+        <i class="fas fa-shield-alt"></i>
+        </div>
     </div>
+  </div>
+</div>
+
 
     <div class="main-container">
       <div class="form-card">
@@ -96,21 +115,7 @@
         </div> 
         
         
-        <!-- <div class="auto-slider-container" (click)="submitReport()" [class.active]="isSubmitting">
-          <div class="slider-track">
-            <div class="slider-handle">
-              <i class="fas fa-chevron-right" *ngIf="!isSubmitting"></i>
-              <ion-spinner name="crescent" color="light" *ngIf="isSubmitting"></ion-spinner>
-            </div>
-            <span class="slider-text">
-              {{ isSubmitting ? ('REPORT.SUBMITTING' | translate) : ('REPORT.SUBMIT_BTN' | translate) }}
-            </span>
-            <div class="end-check">
-              <i class="fas fa-check"></i>
-            </div>
-          </div>
-        </div> -->
-
+    
 
         <div class="auto-slider-container" 
      (click)="capturedPhotos.length > 0 ? submitReport() : null" 

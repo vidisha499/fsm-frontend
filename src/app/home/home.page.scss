@@ -523,6 +523,8 @@
   animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   overflow-y: auto;
 
+
+  
   /* Ambient Glows */
   .ambient-glow {
     position: absolute; 
@@ -544,42 +546,69 @@
     
     .header-overlay {
       position: absolute; inset: 0;
+      height: 200px;
       background: linear-gradient(135deg, rgba(13, 148, 136, 0.95) 0%, rgba(15, 23, 42, 0.8) 100%);
       border-radius: 0 0 45px 45px;
     }
 
-    .header-content {
-      position: relative; z-index: 2; padding: 40px 24px;
 
-      .nav-bar {
+    .header-content {
+    position: relative; 
+    z-index: 2; 
+    padding: 40px 24px;
+
+    .nav-bar {
         display: flex; 
         justify-content: space-between; 
-        align-items: center; 
-        margin-bottom: 15px;
+        align-items: center;
+        margin-bottom: 5px; // Reduced margin since title moved up
+
+        .left-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+
+            h1 {
+                color: white; 
+                font-size: 22px; 
+                font-weight: 800; 
+                margin: 0;
+                
+                // --- Visual Centering Nudge ---
+                margin-top: 5px; 
+                line-height: 1;
+                white-space: nowrap;
+            }
+        }
 
         .glass-btn { 
-          background: rgba(255, 255, 255, 0.15); 
-          border: 1px solid rgba(255, 255, 255, 0.2); 
-          width: 42px; 
-          height: 42px; 
-          border-radius: 12px; 
-          color: white;
-          display: flex; 
-          align-items: center; 
-          justify-content: center;
-          transition: all 0.3s ease;
-          cursor: pointer;
-
-          &.edit-active {
-            background: #10b981 !important; 
-            border-color: #34d399;
-            box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
-          }
+            background: rgba(255, 255, 255, 0.15); 
+            border: 1px solid rgba(255, 255, 255, 0.2); 
+            width: 38px; 
+            height: 38px; 
+            border-radius: 10px; 
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            
+            &.edit-active {
+                background: var(--accent-gold);
+                color: var(--dark-slate);
+            }
         }
-      }
-      h1 { color: white; font-size: 24px; font-weight: 800; margin: 0; }
-      p { color: #ccfbf1; font-size: 11px; margin-top: 4px; font-weight: 600; }
     }
+
+    .header-title-group {
+        p { 
+            color: #ccfbf1; 
+            font-size: 11px; 
+            margin-top: 2px;
+            margin-left: 50px; // Aligns subtitle under the 'S' of Settings
+        }
+    }
+}
   }
 
   /* Premium Content Card */
@@ -685,6 +714,105 @@
   object-fit: cover;
   border-radius: 50%;
 }
+
+
+// --- PREMIUM SLIDER BUTTON ---
+ .auto-slider-container {
+  margin-top: 35px;
+  width: 100%;
+  position: relative;
+  
+  .slider-track {
+    height: 64px;
+    background: #0c1d23; 
+    border-radius: 32px;
+    display: flex;
+    align-items: center;
+    position: relative;
+    padding: 0 6px;
+    border: 1px solid #eef2f6;
+    overflow: hidden;
+  }
+
+  .slider-handle {
+    position: absolute;
+    left: 6px; // Initial position
+    width: 52px;
+    height: 52px;
+    background:  #0d9488; 
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    z-index: 2;
+    box-shadow: 0 4px 10px rgba(19, 29, 53, 0.2);
+    // This transition MUST be here
+    transition: all 0.6s cubic-bezier(0.65, 0, 0.35, 1) !important;
+  }
+
+  .slider-text {
+    width: 100%;
+    text-align: center;
+    font-weight: 800;
+    font-size: 16px;
+    color: #f0f3f8; 
+    transition: opacity 0.3s ease;
+
+     .end-check {
+    position: absolute;
+    // right: 50px; // Positioned inside the track on the right
+    color: #edeff1; // Match the navy handle color
+    font-size: 18px;
+    
+    // --- THIS IS THE KEY ---
+    opacity: 0.15; // Makes it subtle/faded like your first image
+    transition: all 0.4s ease;
+    z-index: 1;
+  }
+  }
+
+  // --- 1. DISABLED STATE ---
+  &.disabled {
+    cursor: not-allowed;
+    pointer-events: none;
+
+    .slider-track { background: #edf2f7; }
+    .slider-handle { 
+      background: #b8c5d6; 
+      box-shadow: none;
+      left: 6px; // Force stay at start
+    }
+    .slider-text { color: #708198; }
+    .end-check {
+      opacity: 0.05; // Almost invisible when the button is locked
+    }
+  }
+
+  // --- 2. ACTIVE STATE (Must come AFTER disabled or use !important) ---
+  &.active {
+    pointer-events: none;
+    
+    .slider-track { background: #e0f2f1 !important; }
+    
+    .slider-handle {
+      // Force the slide to the right
+      left: calc(100% - 58px) !important; 
+      background: #0d9488 !important; 
+    }
+    
+    .slider-text { opacity: 0 !important; }
+  }
+  
+    .end-check {
+      margin-right: 8%;
+      // opacity: 1 !important;
+      color: #ffffff !important; // FORCED WHITE
+      z-index: 3; // Ensures it sits ON TOP of the teal handle
+    }
+
+}
+
 
 /* --- ANIMATIONS --- */
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }

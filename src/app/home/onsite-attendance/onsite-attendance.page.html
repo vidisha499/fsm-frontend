@@ -100,7 +100,6 @@
   </div>
 
 </ion-content> 
-
  -->
 
 
@@ -117,8 +116,8 @@
             <ion-icon name="arrow-back-outline"></ion-icon>
           </button>
           <div class="title-meta">
-            <h1 class="main-title">My Beat Attendance</h1>
-            <p class="subtitle">Forest Management System • 2026</p>
+            <h1 class="main-title">Onsite Attendance</h1>
+            <!-- <p class="subtitle">Forest Management System • 2026</p> -->
           </div>
         </div>
         
@@ -135,7 +134,7 @@
   <div class="card-container">
     <div class="main-card">
       
-      <div class="scanner-section">
+      <!-- <div class="scanner-section">
         <div class="camera-frame" (click)="presentImageSourceOptions()">
           <div class="corners-bold">
             <span class="t-l"></span><span class="t-r"></span>
@@ -151,7 +150,26 @@
           </div>
         </div>
         <p class="scan-hint">Scan identity to mark attendance</p>
+      </div> -->
+
+      <div class="scanner-section">
+  <div class="camera-frame" (click)="presentImageSourceOptions()">
+    <div class="corners-bold">
+      <span class="t-l"></span><span class="t-r"></span>
+      <span class="b-l"></span><span class="b-r"></span>
+    </div>
+
+    <div class="scanner-inner" [style.background-image]="capturedPhoto ? 'url(' + capturedPhoto + ')' : ''">
+      <div class="scan-line" *ngIf="!capturedPhoto"></div>
+      
+      <div *ngIf="!capturedPhoto" class="placeholder-content">
+        <ion-icon name="camera" class="main-cam-icon"></ion-icon>
+        <!-- <span class="cam-text">Capture ID Photo</span> -->
       </div>
+    </div>
+  </div>
+  <p class="instruction">Scan identity to proceed</p>
+</div>
 
       <div class="map-wrapper">
         <div class="map-label">

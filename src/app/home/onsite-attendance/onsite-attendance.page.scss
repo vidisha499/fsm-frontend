@@ -17,7 +17,7 @@
 
     .header-overlay {
       position: absolute; inset: 0;
-      background: linear-gradient(180deg, rgba(6, 78, 75, 0.8) 0%, rgba(4, 47, 46, 0.95) 100%);
+      background: linear-gradient(135deg, rgba(13, 148, 136, 0.95) 0%, rgba(15, 23, 42, 0.8) 100%);
       z-index: 1;
     }
 
@@ -48,71 +48,99 @@
       background: white; border-radius: 35px; padding: 25px 20px; box-shadow: 0 15px 30px rgba(0,0,0,0.06);
 
       // Camera Style from Image
-      .scanner-section {
-        display: flex; flex-direction: column; align-items: center; margin-bottom: 25px;
-        .camera-frame {
-          position: relative; width: 150px; height: 150px;
-          .corners-bold span {
-            position: absolute; width: 28px; height: 28px; border: 5px solid var(--primary-teal);
-            &.t-l { top: -4px; left: -4px; border-right: 0; border-bottom: 0; border-radius: 14px 0 0 0; }
-            &.t-r { top: -4px; right: -4px; border-left: 0; border-bottom: 0; border-radius: 0 14px 0 0; }
-            &.b-l { bottom: -4px; left: -4px; border-right: 0; border-top: 0; border-radius: 0 0 0 14px; }
-            &.b-r { bottom: -4px; right: -4px; border-left: 0; border-top: 0; border-radius: 0 0 14px 0; }
-          }
-         .scanner-inner {
-  width: 100%;
-  height: 100%;
-  border-radius: 22px;
-  border: 2px dashed #cbd5e1;
-  background: #f8fafc;
+     .scanner-section {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  position: relative;
+  margin-top: 5px;
 
-  // ✅ ADD THIS BLOCK (for proper center layout)
-  .placeholder-content {
-    display: flex;
-    flex-direction: column;      // icon upar, text niche
-    align-items: center;         // horizontal center
-    justify-content: center;     // vertical center
-    text-align: center;
-    height: 100%;
-    width: 100%;
+  .camera-frame {
+    position: relative;
+    width: 120px; // Larger frame to match the bold look
+    height: 120px;
+    padding: 10px; // Spacing between corners and internal box
+
+    .corners-bold span {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border: 3px solid #0d9488; // Thick bold teal
+    //   z-index: 5;
+
+      &.t-l { top: 0; left: 0; border-right: 0; border-bottom: 0; border-radius: 18px 0 0 0; }
+      &.t-r { top: 0; right: 0; border-left: 0; border-bottom: 0; border-radius: 0 18px 0 0; }
+      &.b-l { bottom: 0; left: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 18px; }
+      &.b-r { bottom: 0; right: 0; border-left: 0; border-top: 0; border-radius: 0 0 18px 0; }
+    }
+
+    .scanner-inner {
+      width: 100%;
+      height: 100%;
+      background: #f8fafc;
+      border-radius: 20px;
+      border: 1px dashed #cbd5e1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      background-size: cover;
+
+      .scan-line {
+        position: absolute;
+        width: 85%;
+        height: 3px;
+        background: #0d9488;
+        box-shadow: 0 0 12px rgba(13, 148, 136, 0.6); // Glowing laser effect
+        animation: scanAni 3s infinite ease-in-out;
+        z-index: 2;
+      }
+
+      .main-cam-icon {
+        font-size: 44px;
+        color: #94a3b8;
+        margin-bottom: 5px;
+        align-items: center;
+      }
+
+      .cam-text {
+        font-size: 9px;
+        font-weight: 800;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+    }
   }
 
-  .main-cam-icon {
-    font-size: 38px;
-    color: #94a3b8;
-    margin-bottom: 6px;          // text ke liye spacing
-  }
-
-  .cam-text {
-    font-size: 9px;
-    font-weight: 800;
-    color: #94a3b8;
-    letter-spacing: 0.6px;
+  .instruction {
+    margin-top: 15px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
   }
 }
 
-        }
-        .scan-hint { font-size: 11px; font-weight: 700; color: #64748b; margin-top: 15px; }
-      }
+@keyframes scanAni {
+  0%, 100% { top: 15%; }
+  50% { top: 80%; }
+}
 
       .map-wrapper { 
+        margin-top:10px ;
         margin-bottom: 20px;
-        .map-label { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; ion-icon { color: #ef4444; } span { font-size: 10px; font-weight: 800; color: #64748b; } }
+        .map-label { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; ion-icon { color: #ef4444; } span { font-size: 10px; font-weight: 800; color: rgba(13, 148, 136, 0.95); } }
         .map-container-box { height: 150px; border-radius: 20px; overflow: hidden; border: 1px solid #e2e8f0; }
       }
 
       .form-body {
         display: flex; flex-direction: column; gap: 15px; margin-bottom: 30px;
         .input-group {
-          label { font-size: 9px; font-weight: 800; color: #94a3b8; margin-bottom: 6px; display: block; margin-left: 5px; }
+          label { font-size:0.7rem; font-weight: 800; color: rgba(13, 148, 136, 0.95); margin-bottom: 6px; display: block; margin-left: 5px; }
           .premium-input, .premium-select-box {
             background: #f8fafc; border-radius: 16px; padding: 12px 15px; border: 1px solid #f1f5f9; display: flex; align-items: center; gap: 10px;
-            ion-icon { color: var(--primary-teal); font-size: 18px; }
+            ion-icon {  font-size: 18px; }
             .val { font-weight: 700; color: #1e293b; font-size: 13px; }
             &.address-mode { font-size: 12px; line-height: 1.4; }
           }
