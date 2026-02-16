@@ -98,15 +98,16 @@
         <button (click)="goBack()" class="glass-btn">
           <i class="fas fa-arrow-left"></i>
         </button>
+         <h1>{{ 'ATTENDANCE.TITLE' | translate }}</h1>
         <div class="auth-badge">
           <i class="fas fa-fingerprint"></i>
           <span>{{ 'ATTENDANCE.LIVE' | translate }}</span>
         </div>
       </div>
-      <div class="title-section">
+      <!-- <div class="title-section">
         <h1>{{ 'ATTENDANCE.TITLE' | translate }}</h1>
-        <!-- <p>{{ 'ATTENDANCE.SUBTITLE' | translate }}</p> -->
-      </div>
+      <p>{{ 'ATTENDANCE.SUBTITLE' | translate }}</p>
+       </div> -->
     </div>
   </div>
 
@@ -137,32 +138,7 @@
           <capacitor-google-map #map id="map"></capacitor-google-map>
         </div>
       </div>
-<!-- 
-      <div class="form-grid">
-        <div class="double-col">
-          <div class="input-pill readonly">
-            <label>{{ 'ATTENDANCE.RANGER' | translate }}</label>
-            <div class="pill-content">
-              <i class="fas fa-user-shield"></i>
-              <input type="text" [value]="rangerName" readonly>
-            </div>
-          </div>
-          <div class="input-pill readonly">
-            <label>{{ 'ATTENDANCE.REGION' | translate }}</label>
-            <div class="pill-content">
-              <i class="fas fa-earth-asia"></i>
-              <input type="text" [value]="rangerRegion" readonly>
-            </div>
-          </div>
-        </div>
 
-        <div class="input-pill interactive">
-          <label>{{ 'ATTENDANCE.DETECTED_GEOFENCE' | translate }}</label>
-          <div class="pill-content">
-            <i class="fas fa-location-dot" style="color: #0d9488;"></i>
-            <span class="location-text">{{ currentAddress }}</span>
-          </div>
-        </div> -->
         <div class="form-grid">
   <div class="input-pill readonly">
     <label>{{ 'ATTENDANCE.RANGER' | translate }}</label>
