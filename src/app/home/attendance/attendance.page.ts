@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 // import { Component, OnInit, ViewChild, ElementRef, OnDestroy } from '@angular/core';
 // import { NavController, ToastController, ActionSheetController, Platform, LoadingController } from '@ionic/angular';
 // import { HttpClient } from '@angular/common/http';
@@ -406,3 +407,5 @@ export class AttendancePage implements OnInit, OnDestroy {
     if (this.newMap) await this.newMap.destroy();
   }
 }
+=======
+>>>>>>> Stashed changes
