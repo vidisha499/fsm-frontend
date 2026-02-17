@@ -288,7 +288,7 @@
 // }
 .floating-action-btn {
   position: fixed; 
-  bottom: 40px; 
+  bottom: 30px; 
   right: 25px; 
   /* Updated to match the dark navy color in the image */
   background: #0f172a; 
@@ -305,7 +305,7 @@
   justify-content: center; 
   
   /* Icon sizing */
-  font-size: 33px; 
+  font-size: 40px; 
   z-index: 1000; 
   
   /* Smooth shadow */
@@ -321,7 +321,7 @@
 
   i {
     /* Ensures the FontAwesome plus icon weight is thin like the image */
-    font-weight: 300; 
+    font-weight: 400; 
   }
 }
 
