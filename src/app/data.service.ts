@@ -166,4 +166,8 @@ getSelectedIncident() {
       newPass 
     });
   }
+
+  saveSighting(payload: any) {
+  return this.http.post(`${this.baseApiUrl}/patrols/sightings`, payload);
+}
 }

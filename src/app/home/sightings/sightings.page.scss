@@ -158,62 +158,104 @@
 
   // Footer Save Button (Fixed at bottom)
   .footer-btn {
-    position: fixed;
-    bottom: 25px;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: center;
-    z-index: 100;
+  padding: 16px 20px;
+  background: transparent;
+  width: 100%;
+  margin-top: auto; // Pushes it to the bottom if inside a flex container
 
-    .save-log-btn {
-      width: 85%;
-      background: #0f172a; // Dark blue/black
-      color: white;
-      border-radius: 50px;
-      padding: 10px;
+  .auto-slider-container {
+    width: 100%;
+    position: relative;
+    user-select: none;
+    touch-action: pan-y; // Allows page scrolling while blocking horizontal swipes
+
+    .slider-track {
+      height: 64px;
+      background: #03090f; // Dark navy/black background
+      border-radius: 32px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      border: none;
-      box-shadow: 0 10px 20px rgba(15, 23, 42, 0.3);
+      position: relative;
+      padding: 0 6px;
+      border: 1px solid #eef2f62b; // Subtle border
+      overflow: hidden;
+    }
 
-      span {
-        flex-grow: 1;
-        text-align: center;
-        font-weight: 800;
-        font-size: 17px;
-        letter-spacing: 1px;
+    .slider-handle {
+      position: absolute;
+      left: 6px;
+      width: 52px;
+      height: 52px;
+      background: #0d9488; // Teal color
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      z-index: 2;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      
+      // Snappy transition for the return, but logic handles the drag
+      transition: transform 0.1s ease-out, background 0.3s ease;
+      
+      ion-icon {
+        font-size: 24px;
+      }
+    }
+
+    .slider-text {
+      width: 100%;
+      text-align: center;
+      font-weight: 800;
+      font-size: 14px;
+      color: #fbfcff; 
+      letter-spacing: 0.5px;
+      pointer-events: none; // Ensures touch goes through to the container
+      transition: opacity 0.2s ease;
+      margin-left: 20px; // Offset to center better with the handle present
+    }
+
+    .end-check {
+      position: absolute;
+      right: 20px;
+      color: #ffffff;
+      font-size: 22px;
+      z-index: 1;
+      opacity: 0.2; // Ghosted initially
+      transition: all 0.4s ease;
+    }
+
+    // --- ACTIVE STATE (WHILE SAVING) ---
+    &.active {
+      pointer-events: none; // Prevent double-sliding
+
+      .slider-handle {
+        background: #22c55e !important; // Turn green on success/active
+        transition: transform 0.6s cubic-bezier(0.65, 0, 0.35, 1) !important;
       }
 
-      .arrow-circle {
-        background: #0d9488; // Teal circle
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        ion-icon {
-          color: white;
-          font-size: 24px;
-        }
+      .end-check {
+        opacity: 1 !important;
+        z-index: 3; // Put checkmark on top of handle
       }
+    }
 
-      &:disabled {
-        opacity: 0.7;
-        background: #475569;
-      }
+    // --- DISABLED STATE ---
+    &.disabled {
+      opacity: 0.6;
+      pointer-events: none;
+      filter: grayscale(0.5);
     }
   }
 }
 
-.footer-btn {
-  position: fixed;
-  bottom: 40px; // 25px se badha kar 40px kar dein
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: center;
-  z-index: 999;
+// Spinning animation for the sync icon
+.spin-icon {
+  animation: rotation 2s infinite linear;
+}
+
+@keyframes rotation {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(359deg); }
+}
 }

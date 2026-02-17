@@ -323,12 +323,11 @@
 }
 }
 
-
 .auto-slider-container {
   margin-top: 30px;
   width: 100%;
-  cursor: pointer;
-  opacity: 1 !important; // Ensure visibility
+  user-select: none; // Prevent text selection while dragging
+  touch-action: pan-y; // Prevent scrolling while sliding horizontally
 
   .slider-track {
     height: 60px;
@@ -344,18 +343,19 @@
 
   .slider-handle {
     position: absolute;
-    left: 5px; // Initial position
+    left: 5px; 
     width: 50px;
     height: 50px;
-    background: #0d9488; // Navy color from your screenshots
+    background: #0d9488; 
     border-radius: 25px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     z-index: 2;
-    // CRITICAL: This handles the smooth sliding animation
-    transition: all 0.6s cubic-bezier(0.65, 0, 0.35, 1) !important; 
+    // Remove 'left' transition to make manual drag feel instant
+    transition: transform 0.1s ease-out; 
+    will-change: transform;
   }
 
   .slider-text {
@@ -364,8 +364,7 @@
     font-weight: 800;
     font-size: 17px;
     color: #fbfbfc;
-    transition: opacity 0.3s ease;
-
+    pointer-events: none; // Touch goes through to container
   }
 
   .end-check {
@@ -373,28 +372,23 @@
     right: 18px;
     color: #cbd5e1;
     font-size: 18px;
-    opacity: 0.3; // Faded tick like your image
+    opacity: 0.3;
     transition: all 0.3s ease;
   }
 
-  // --- ACTIVE SLIDING STATE ---
   &.active {
     pointer-events: none; 
 
     .slider-handle {
-      // FORCE THE SLIDE TO THE RIGHT
-      left: calc(100% - 55px) !important; 
-      background: #0d9488 !important; // Changes to Teal
-    }
-
-    .slider-text {
-      opacity: 0 !important;
+      // Logic handled via TypeScript transform, but backup for state:
+      background: #0d9488 !important;
+      transition: transform 0.6s cubic-bezier(0.65, 0, 0.35, 1) !important;
     }
 
     .end-check {
       opacity: 1 !important;
       color: white !important;
-      z-index: 3; // Places tick on top of the handle
+      z-index: 3;
     }
   }
 

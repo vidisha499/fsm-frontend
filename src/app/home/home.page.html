@@ -403,18 +403,21 @@
                 </div>
             </button> -->
 
-            <div class="auto-slider-container" 
+<div class="auto-slider-container" 
      [class.active]="isSubmitting" 
      [class.disabled]="!isEditMode"
-     (click)="updateProtocol()">
+     (touchstart)="onDragStart($event)"
+     (touchmove)="onDragMove($event)"
+     (touchend)="onDragEnd()">
      
   <div class="slider-track">
-    <div class="slider-handle">
+    <div class="slider-handle" 
+         [style.transform]="'translateX(' + currentTranslateX + 'px)'">
       <i class="fas fa-save" *ngIf="!isSubmitting"></i>
       <ion-spinner name="crescent" color="light" *ngIf="isSubmitting"></ion-spinner>
     </div>
 
-    <span class="slider-text">
+    <span class="slider-text" [style.opacity]="textOpacity">
       {{ isSubmitting ? 'UPDATING...' : 'UPDATE' }}
     </span>
 

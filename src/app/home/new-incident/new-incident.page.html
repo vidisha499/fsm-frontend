@@ -116,7 +116,7 @@
         
         
     
-
+<!-- 
         <div class="auto-slider-container" 
      (click)="capturedPhotos.length > 0 ? submitReport() : null" 
      [class.active]="isSubmitting"
@@ -131,6 +131,35 @@
     
     <span class="slider-text">
       {{  (isSubmitting ? ('REPORT.SUBMITTING' | translate) : ('REPORT.SUBMIT_BTN' | translate)) }}
+    </span>
+    
+    <div class="end-check">
+      <i class="fas fa-check"></i>
+    </div>
+  </div>
+</div> -->
+
+
+<div class="auto-slider-container" 
+     [class.active]="isSubmitting"
+     [class.disabled]="capturedPhotos.length === 0"
+     (touchstart)="onDragStart($event)"
+     (touchmove)="onDragMove($event)"
+     (touchend)="onDragEnd()">
+     
+  <div class="slider-track">
+    <div class="slider-handle" 
+         [style.transform]="'translateX(' + currentTranslateX + 'px)'">
+      
+      <i class="fas fa-lock" *ngIf="capturedPhotos.length === 0"></i>
+      
+      <i class="fas fa-chevron-right" *ngIf="capturedPhotos.length > 0 && !isSubmitting"></i>
+      
+      <ion-spinner name="crescent" color="light" *ngIf="isSubmitting"></ion-spinner>
+    </div>
+    
+    <span class="slider-text" [style.opacity]="textOpacity">
+      {{ (isSubmitting ? ('REPORT.SUBMITTING' | translate) : ('REPORT.SUBMIT_BTN' | translate)) }}
     </span>
     
     <div class="end-check">

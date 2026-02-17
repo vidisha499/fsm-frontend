@@ -81,7 +81,7 @@
         </div>
       </div>
 
-      <div class="action-container">
+      <!-- <div class="action-container">
         <div class="slider-track" [class.active-track]="isSubmitting">
           <div class="slider-text">
             {{ isSubmitting ? 'ATTENDANCE MARKED & SYNCED' : 'MARK ATTENDANCE' }}
@@ -93,7 +93,41 @@
           </div>
         </div>
       </div>
-      
+       -->
+
+  
+<div class="auto-slider-container" 
+     [class.active]="isSubmitting"
+     (touchstart)="onDragStart($event)"
+     (touchmove)="onDragMove($event)"
+     (touchend)="onDragEnd()">
+     
+  <div class="slider-track">
+    <!-- <div class="slider-handle" 
+         [style.transform]="'translateX(' + currentTranslateX + 'px)'">
+      <ion-icon [name]="isSubmitting ?  : 'chevron-forward-outline'" 
+                [class.spin-icon]="isSubmitting">
+      </ion-icon>
+    </div> -->
+
+      <div class="slider-handle" [style.transform]="'translateX(' + currentTranslateX + 'px)'">
+      <ion-icon name="chevron-forward-outline" *ngIf="!isSubmitting"></ion-icon>
+      <ion-spinner name="crescent" color="light" *ngIf="isSubmitting"></ion-spinner>
+    </div>
+
+
+    <span class="slider-text" [style.opacity]="textOpacity">
+      {{ isSubmitting ? 'ATTENDANCE MARKED' : 'MARK ATTENDANCE' }}
+    </span>
+
+    <div class="end-check">
+      <ion-icon name="checkmark-outline"></ion-icon>
+    </div>
+  </div>
+</div>
+
+
+<!-- </div> -->
     </div>
   </div>
 </ion-content>

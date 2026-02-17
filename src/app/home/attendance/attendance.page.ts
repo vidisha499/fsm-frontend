@@ -17,6 +17,10 @@ import { environment } from 'src/environments/environment';
 export class AttendancePage implements OnInit, OnDestroy {
   @ViewChild('map') mapRef!: ElementRef;
   newMap!: GoogleMap;
+  public currentTranslateX: number = 0;
+public textOpacity: number = 1;
+private startX: number = 0;
+private maxSlide: number = 0;
   
   public isSubmitting: boolean = false;
   public isEntry: boolean = true;
@@ -140,9 +144,9 @@ export class AttendancePage implements OnInit, OnDestroy {
     return;
   }
 
-  // 1. Start the sliding animation immediately
+  // 1. Start the sliding animation/loading state
   this.isSubmitting = true;
-  this.cdr.detectChanges(); // Ensures the UI sees the 'active' class
+  this.cdr.detectChanges(); 
 
   const payload = {
     ranger_id: Number(localStorage.getItem('ranger_id')) || 1,
@@ -157,28 +161,23 @@ export class AttendancePage implements OnInit, OnDestroy {
 
   this.http.post(this.apiUrl, payload).subscribe({
     next: (res: any) => {
-      // 2. Success: Wait for the slide to complete (0.6s) + show the tick
+      // 2. Success: Show the toast immediately
+      this.presentToast('Attendance Success!', 'success');
+      
+      // 3. Wait 1 second so they see the success state, then redirect home
       setTimeout(() => {
-        this.presentToast('Attendance Success!', 'success');
-        this.attendance = res;
-        
-        // Reset the form after the user sees the success state
         this.isSubmitting = false;
-        this.capturedPhoto = ''; 
-        this.attendance = null; 
-        this.initMapAndTracking(); 
-        this.cdr.detectChanges();
-      }, 1500); // 1.5s total delay for the premium feel
+        this.goBack(); // This handles the redirect to /home
+      }, 1000); 
     },
     error: () => {
-      // 3. Reset the button immediately on error so they can try again
+      // Reset immediately on error so they can try again
       this.isSubmitting = false;
       this.presentToast('Failed to sync', 'danger');
       this.cdr.detectChanges();
     }
   });
 }
-
   async presentImageSourceOptions() {
     const actionSheet = await this.actionSheetCtrl.create({
       header: 'Select Photo Source',
@@ -233,4 +232,44 @@ export class AttendancePage implements OnInit, OnDestroy {
     if (this.watchId) await Geolocation.clearWatch({ id: this.watchId }); 
     if (this.newMap) await this.newMap.destroy();
   }
+
+  onDragStart(event: TouchEvent) {
+  if (this.isSubmitting) return;
+  this.startX = event.touches[0].clientX - this.currentTranslateX;
+  
+  const container = document.querySelector('.slider-track');
+  if (container) {
+    // 50px handle width + 10px total padding (5px left + 5px right)
+    this.maxSlide = container.clientWidth - 60; 
+  }
+}
+
+onDragMove(event: TouchEvent) {
+  if (this.isSubmitting) return;
+
+  let moveX = event.touches[0].clientX - this.startX;
+
+  if (moveX < 0) moveX = 0;
+  if (moveX > this.maxSlide) moveX = this.maxSlide;
+
+  this.currentTranslateX = moveX;
+  this.textOpacity = 1 - (moveX / this.maxSlide);
+  this.cdr.detectChanges();
+}
+
+onDragEnd() {
+  if (this.isSubmitting) return;
+
+  // If slid past 85%, snap to end and submit
+  if (this.currentTranslateX >= this.maxSlide * 0.85) {
+    this.currentTranslateX = this.maxSlide;
+    this.textOpacity = 0;
+    this.submitAttendance();
+  } else {
+    // Snap back to start
+    this.currentTranslateX = 0;
+    this.textOpacity = 1;
+  }
+  this.cdr.detectChanges();
+}
 }

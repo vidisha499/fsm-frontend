@@ -95,7 +95,7 @@
 </div>
 
        
-      <div class="auto-slider-container" (click)="submitAttendance()" [class.active]="isSubmitting">
+      <!-- <div class="auto-slider-container" (click)="submitAttendance()" [class.active]="isSubmitting">
   <div class="slider-track">
     <div class="slider-handle">
       <i class="fas fa-chevron-right" *ngIf="!isSubmitting"></i>
@@ -111,7 +111,30 @@
     </div>
   </div>
 </div>
-      
+       -->
+
+       <div class="auto-slider-container" 
+     #sliderContainer
+     [class.active]="isSubmitting"
+     (touchstart)="onDragStart($event)"
+     (touchmove)="onDragMove($event)"
+     (touchend)="onDragEnd()">
+     
+  <div class="slider-track">
+    <div class="slider-handle" [style.transform]="'translateX(' + currentTranslateX + 'px)'">
+      <ion-icon name="chevron-forward-outline" *ngIf="!isSubmitting"></ion-icon>
+      <ion-spinner name="crescent" color="light" *ngIf="isSubmitting"></ion-spinner>
+    </div>
+
+    <span class="slider-text" [style.opacity]="textOpacity">
+      {{ isSubmitting ? 'MARKING...' : ('ATTENDANCE.MARK_BUTTON' | translate) }}
+    </span>
+
+    <div class="end-check">
+      <ion-icon name="checkmark-outline"></ion-icon>
+    </div>
+  </div>
+</div>
 
     </div>
   </div>

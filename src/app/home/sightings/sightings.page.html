@@ -61,11 +61,38 @@
       <textarea [(ngModel)]="obsData.notes" rows="3" placeholder="Additional details..."></textarea>
     </div>
   </div>
-
+<!-- 
   <div class="footer-btn">
     <button class="save-log-btn" (click)="saveSighting()" [disabled]="isSaving">
       <div class="arrow-circle"><ion-icon name="chevron-forward-outline"></ion-icon></div>
       <span>SAVE LOG</span>
     </button>
+  </div> -->
+
+  <div class="footer-btn">
+  <div class="auto-slider-container" 
+       [class.active]="isSubmitting"
+       [class.disabled]="isSaving"
+       (touchstart)="onDragStart($event)"
+       (touchmove)="onDragMove($event)"
+       (touchend)="onDragEnd()">
+       
+    <div class="slider-track">
+      <div class="slider-handle" 
+           [style.transform]="'translateX(' + currentTranslateX + 'px)'">
+        <ion-icon [name]="isSubmitting ? 'sync-outline' : 'chevron-forward-outline'" 
+                  [class.spin-icon]="isSubmitting">
+        </ion-icon>
+      </div>
+
+      <span class="slider-text" [style.opacity]="textOpacity">
+        {{ isSubmitting ? 'SAVING LOG...' : 'SLIDE TO SAVE LOG' }}
+      </span>
+
+      <div class="end-check">
+        <ion-icon name="checkmark-outline"></ion-icon>
+      </div>
+    </div>
   </div>
+</div>
 </ion-content>

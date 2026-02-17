@@ -5,6 +5,7 @@ import { ToastController, LoadingController, Platform , ActionSheetController} f
 import { TranslateService } from '@ngx-translate/core';
 import { ChangeDetectorRef } from '@angular/core';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-home',
@@ -13,6 +14,11 @@ import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
   standalone: false
 })
 export class HomePage implements OnInit {
+     private backButtonSub?: Subscription;
+     public currentTranslateX: number = 0;
+public textOpacity: number = 1;
+private startX: number = 0;
+private maxSlide: number = 0;
 
   currentPage: 'home' | 'settings' | 'attendance' = 'home';
   activeTab: string = 'info';
@@ -21,6 +27,7 @@ export class HomePage implements OnInit {
 isSubmitting: boolean = false;
   // ✅ SOS State
   showSOSModal: boolean = false;
+  
 
   // Ranger Data
   rangerId: string = '';
@@ -57,6 +64,7 @@ isSubmitting: boolean = false;
     private cdr: ChangeDetectorRef,
     private platform: Platform,
     private actionSheetCtrl: ActionSheetController,
+ 
   ) {}
 
   ngOnInit() {
@@ -83,7 +91,7 @@ isSubmitting: boolean = false;
 
   async changeProfilePicture() {
   const actionSheet = await this.actionSheetCtrl.create({
-    header: 'CHANGE PROFILE PICTURE',
+    header: 'Change Profile Picture',
     cssClass: 'premium-action-sheet',
     buttons: [
       { 
@@ -159,27 +167,47 @@ async captureProfileImage(source: CameraSource) {
   }
 }
   
-// async changeProfilePicture() {
-//   try {
-//     const image = await Camera.getPhoto({
-//       quality: 90,
-//       allowEditing: true,
-//       resultType: CameraResultType.Base64,
-//       source: CameraSource.Prompt // Offers Gallery or Camera
-//     });
+onDragStart(event: TouchEvent) {
+  if (this.isSubmitting || !this.isEditMode) return;
+  this.startX = event.touches[0].clientX - this.currentTranslateX;
+  
+  const container = document.querySelector('.slider-track');
+  if (container) {
+    // 52px knob width + 12px total padding (6px left + 6px right)
+    this.maxSlide = container.clientWidth - 64; 
+  }
+}
 
-//     if (image.base64String) {
-//       // Update UI immediately
-//       this.profileImage = `data:image/jpeg;base64,${image.base64String}`;
-//       this.cdr.detectChanges();
-      
-//       // Optional: Call updateProtocol() automatically to save the photo immediately
-//       // this.updateProtocol(); 
-//     }
-//   } catch (error) {
-//     console.warn('User cancelled photo selection');
-//   }
-// }
+onDragMove(event: TouchEvent) {
+  if (this.isSubmitting || !this.isEditMode) return;
+
+  let moveX = event.touches[0].clientX - this.startX;
+
+  // Constrain movement
+  if (moveX < 0) moveX = 0;
+  if (moveX > this.maxSlide) moveX = this.maxSlide;
+
+  this.currentTranslateX = moveX;
+  this.textOpacity = 1 - (moveX / this.maxSlide);
+  this.cdr.detectChanges();
+}
+
+onDragEnd() {
+  if (this.isSubmitting || !this.isEditMode) return;
+
+  // If slid past 85%, trigger the update
+  if (this.currentTranslateX >= this.maxSlide * 0.85) {
+    this.currentTranslateX = this.maxSlide;
+    this.textOpacity = 0;
+    this.updateProtocol(); 
+  } else {
+    // Snap back to start
+    this.currentTranslateX = 0;
+    this.textOpacity = 1;
+  }
+  this.cdr.detectChanges();
+}
+
 
 toggleEdit() {
     this.isEditMode = !this.isEditMode;
@@ -282,68 +310,29 @@ ionViewWillEnter() {
   }
 
 
-// async updateProtocol() {
-//   const rId = this.dataService.getRangerId();
-  
-//   // This check tells TypeScript that rId is definitely NOT null below this line
-//   if (!rId) {
-//     const toast = await this.toastController.create({
-//       message: 'Error: Ranger ID not found. Please log in again.',
-//       duration: 3000,
-//       color: 'danger'
-//     });
-//     await toast.present();
-//     return;
-//   }
-
-//   const loader = await this.loadingController.create({
-//     message: 'Updating Vercel Profile...',
-//     spinner: 'dots',
-//     mode: 'ios'
-//   });
-//   await loader.present();
-
-//   const updatedData = {
-//     id: +rId, // Now safe to use + because we checked if (!rId) above
-//     name: this.rangerName,
-//     phone: this.rangerPhone,
-//     password: this.rangerPassword,
-//     profilePic: this.profileImage.includes('base64') ? this.profileImage.split(',')[1] : null
-//   };
-
-//   this.dataService.updateRanger(updatedData).subscribe({
-//     next: async (res: any) => {
-//       await loader.dismiss();
-      
-//       localStorage.setItem('ranger_username', this.rangerName);
-//       localStorage.setItem('ranger_phone', this.rangerPhone);
-
-//       const msg = await this.translate.get('SETTINGS.UPDATE_SUCCESS').toPromise();
-//       await this.showToast(msg || 'Updated Successfully');
-      
-//       this.rangerPassword = '';
-//       this.isEditMode = false; // Auto-locks the UI
-//       this.cdr.detectChanges();
-//     },
-//     error: async (err) => {
-//       await loader.dismiss();
-//       console.error("Update Error:", err);
-//       this.showToast('Update failed. Check connection.');
-//     }
-//   });
-// }
-
 
 async updateProtocol() {
   const rId = this.dataService.getRangerId();
   
   if (!rId) {
     this.showToast('Error: Ranger ID not found. Please log in again.');
+    // Reset slider if it was accidentally slid
+    this.currentTranslateX = 0;
+    this.textOpacity = 1;
+    this.cdr.detectChanges();
     return;
   }
 
-  // 1. Start the Slider Animation
+  // 1. Lock the UI and the Slider Position
   this.isSubmitting = true; 
+  this.textOpacity = 0; // Hide 'UPDATE' text
+  
+  // Calculate maxSlide to ensure the handle stays at the far right
+  const container = document.querySelector('.slider-track');
+  if (container) {
+    this.maxSlide = container.clientWidth - 64; 
+  }
+  this.currentTranslateX = this.maxSlide; 
   this.cdr.detectChanges();
 
   const updatedData = {
@@ -356,13 +345,16 @@ async updateProtocol() {
 
   this.dataService.updateRanger(updatedData).subscribe({
     next: async (res: any) => {
-      // 2. Success: Keep slider at the end for a second so user sees the checkmark
+      // 2. Success logic
       localStorage.setItem('ranger_username', this.rangerName);
       localStorage.setItem('ranger_phone', this.rangerPhone);
 
+      // Keep slider at the end (Green + Checkmark visible) for 1.5 seconds
       setTimeout(async () => {
-        this.isSubmitting = false; // Slide back
-        this.isEditMode = false;   // Lock UI
+        this.isSubmitting = false; // Triggers the slide back animation
+        this.isEditMode = false;   // Lock the input fields
+        this.currentTranslateX = 0; // Reset position for next time
+        this.textOpacity = 1;
         
         const msg = await this.translate.get('SETTINGS.UPDATE_SUCCESS').toPromise();
         this.showToast(msg || 'Updated Successfully');
@@ -372,8 +364,10 @@ async updateProtocol() {
       }, 1500);
     },
     error: async (err) => {
-      // 3. Error: Reset slider immediately so they can try again
+      // 3. Error: Snap back immediately so user can try again
       this.isSubmitting = false;
+      this.currentTranslateX = 0;
+      this.textOpacity = 1;
       console.error("Update Error:", err);
       this.showToast('Update failed. Check connection.');
       this.cdr.detectChanges();

@@ -102,26 +102,118 @@
           label { font-size: 10px; font-weight: 800; color: var(--primary-teal); margin-bottom: 6px; display: block; margin-left: 5px; }
           .premium-input {
             background: #f8fafc; border-radius: 16px; padding: 14px 15px; border: 1px solid #f1f5f9; display: flex; align-items: center; gap: 12px;
-            ion-icon { font-size: 20px; color: var(--primary-teal); }
+            ion-icon { font-size: 20px;  }
             .val { font-weight: 700; color: #1e293b; font-size: 13px; }
           }
         }
       }
 
-      .action-container {
-        .slider-track {
-          height: 60px; background: #0f172a; border-radius: 30px; position: relative;
-          display: flex; align-items: center; justify-content: center; overflow: hidden;
-          &.active-track { background: #064e3b; }
-          .slider-text { color: white; font-weight: 700; font-size: 12px; letter-spacing: 0.8px; z-index: 1; }
-          .slider-knob {
-            position: absolute; left: 5px; width: 50px; height: 50px; background: var(--primary-teal); border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; color: white; font-size: 22px; z-index: 2;
-            transition: transform 0.8s cubic-bezier(0.65, 0, 0.35, 1);
-            &.rotate-slide { transform: translateX(calc(100vw - 115px)) rotate(360deg); background: #22c55e; }
-          }
-        }
-      }
+      // .action-container {
+      //   .slider-track {
+      //     height: 60px; background: #0f172a; border-radius: 30px; position: relative;
+      //     display: flex; align-items: center; justify-content: center; overflow: hidden;
+      //     &.active-track { background: #064e3b; }
+      //     .slider-text { color: white; font-weight: 700; font-size: 12px; letter-spacing: 0.8px; z-index: 1; }
+      //     .slider-knob {
+      //       position: absolute; left: 5px; width: 50px; height: 50px; background: var(--primary-teal); border-radius: 50%;
+      //       display: flex; align-items: center; justify-content: center; color: white; font-size: 22px; z-index: 2;
+      //       transition: transform 0.8s cubic-bezier(0.65, 0, 0.35, 1);
+      //       &.rotate-slide { transform: translateX(calc(100vw - 115px)) rotate(360deg); background: #22c55e; }
+      //     }
+      //   }
+      // }
+
+.auto-slider-container {
+  margin-top: 30px;
+  width: 100%;
+  user-select: none;
+  touch-action: pan-y;
+
+  .slider-track {
+    height: 60px;
+    background: #03090f; // Dark background
+    border-radius: 30px;
+    display: flex;
+    align-items: center;
+    position: relative;
+    padding: 0 5px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+  }
+
+  .slider-handle {
+    position: absolute;
+    left: 5px; 
+    width: 50px;
+    height: 50px;
+    background: #0d9488; // Teal knob
+    border-radius: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    z-index: 2;
+    transition: transform 0.1s ease-out; 
+    will-change: transform;
+    font-size: 20px;
+  }
+
+  .slider-text {
+    width: 100%;
+    text-align: center;
+    font-weight: 800;
+    font-size: 14px;
+    color: #fbfbfc;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+
+  .end-check {
+    position: absolute;
+    right: 18px;
+    color: #cbd5e1;
+    font-size: 18px;
+    opacity: 0.3; // Faded by default
+    transition: all 0.3s ease;
+    z-index: 1;
+     transition: all 0.3s ease;
+  }
+
+  // --- SUCCESS STATE ---
+  &.active {
+    pointer-events: none; 
+
+    .slider-handle {
+      background:  #0d9488 !important; // Turns bright green
+      transition: transform 0.6s cubic-bezier(0.65, 0, 0.35, 1) !important;
+    }
+
+    .end-check {
+      opacity: 1 !important; // Becomes bright
+      color: white !important;
+      z-index: 3; // Put checkmark over the knob
+      transform: scale(1.1);
+    }
+  }
+}
+
+// .spin-icon {
+//   animation: rotation 2s infinite linear;
+// }
+
+@keyframes rotation {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(359deg); }
+}
+// Icon spinning animation
+.spin-icon {
+  animation: rotation 2s infinite linear;
+}
+
+@keyframes rotation {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(359deg); }
+}
 
 
       /* Target the Action Sheet directly from within the page */

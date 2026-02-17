@@ -688,23 +688,11 @@
 
         .pill-content {
           display: flex; align-items: center; gap: 12px;
-          i { font-size: 16px; color: #94a3b8; width: 20px; text-align: center; }
+          i { font-size: 16px; width: 20px; text-align: center; }
         }
       }
 
-      /* Premium Update Button */
-      .update-btn-premium {
-        width: 100%; margin-top: 20px; background: var(--dark-slate); color: white;
-        padding: 6px 6px 6px 25px; border-radius: 20px; border: none;
-        display: flex; justify-content: space-between; align-items: center;
-        cursor: pointer;
-        
-        .btn-text { font-weight: 800; font-size: 14px; letter-spacing: 0.5px; }
-        .btn-check { 
-          background: var(--primary-teal); width: 44px; height: 44px; 
-          border-radius: 16px; display: flex; align-items: center; justify-content: center; 
-        }
-      }
+    
     }
   }
 }
@@ -721,7 +709,8 @@
   margin-top: 35px;
   width: 100%;
   position: relative;
-  
+  touch-action: pan-y; // Allows vertical scrolling while sliding horizontally
+
   .slider-track {
     height: 64px;
     background: #0c1d23; 
@@ -736,10 +725,10 @@
 
   .slider-handle {
     position: absolute;
-    left: 6px; // Initial position
+    left: 6px; 
     width: 52px;
     height: 52px;
-    background:  #0d9488; 
+    background: #0d9488; 
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -747,8 +736,9 @@
     color: #ffffff;
     z-index: 2;
     box-shadow: 0 4px 10px rgba(19, 29, 53, 0.2);
-    // This transition MUST be here
-    transition: all 0.6s cubic-bezier(0.65, 0, 0.35, 1) !important;
+    // Short transition for finger tracking, long for the "active" snap
+    transition: transform 0.1s ease-out, background 0.3s ease;
+    will-change: transform;
   }
 
   .slider-text {
@@ -757,64 +747,41 @@
     font-weight: 800;
     font-size: 16px;
     color: #f0f3f8; 
+    pointer-events: none;
     transition: opacity 0.3s ease;
+  }
 
-     .end-check {
+  .end-check {
     position: absolute;
-    // right: 50px; // Positioned inside the track on the right
-    color: #edeff1; // Match the navy handle color
+    right: 20px;
+    color: #ffffff;
     font-size: 18px;
-    
-    // --- THIS IS THE KEY ---
-    opacity: 0.15; // Makes it subtle/faded like your first image
+    opacity: 0.15; // Faded state
     transition: all 0.4s ease;
     z-index: 1;
   }
-  }
 
-  // --- 1. DISABLED STATE ---
+  // --- DISABLED STATE ---
   &.disabled {
     cursor: not-allowed;
     pointer-events: none;
-
     .slider-track { background: #edf2f7; }
-    .slider-handle { 
-      background: #b8c5d6; 
-      box-shadow: none;
-      left: 6px; // Force stay at start
-    }
+    .slider-handle { background: #b8c5d6; box-shadow: none; }
     .slider-text { color: #708198; }
-    .end-check {
-      opacity: 0.05; // Almost invisible when the button is locked
-    }
+    .end-check { opacity: 0.05; }
   }
 
-  // --- 2. ACTIVE STATE (Must come AFTER disabled or use !important) ---
+  // --- ACTIVE STATE ---
   &.active {
     pointer-events: none;
-    
-    .slider-track { background: #e0f2f1 !important; }
-    
+    .slider-track { background: #0c1d23 !important; }
     .slider-handle {
-      // Force the slide to the right
-      left: calc(100% - 58px) !important; 
-      background: #0d9488 !important; 
+      background:  #0d9488 !important; // Success Green
+      transition: transform 0.6s cubic-bezier(0.65, 0, 0.35, 1) !important;
     }
-    
-    .slider-text { opacity: 0 !important; }
-  }
-  
     .end-check {
-      margin-right: 8%;
-      // opacity: 1 !important;
-      color: #ffffff !important; // FORCED WHITE
-      z-index: 3; // Ensures it sits ON TOP of the teal handle
+      opacity: 1 !important; 
+      z-index: 3; // Ensure it appears on top of the handle
     }
-
+  }
 }
-
-
-/* --- ANIMATIONS --- */
-@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-.fade-in { animation: fadeIn 0.3s ease-out; }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }

@@ -173,13 +173,11 @@
   }
 
   // --- SLIDER SUBMIT BUTTON ---
-  .auto-slider-container {
+.auto-slider-container {
   margin-top: 35px;
   width: 100%;
   position: relative;
-  
-  // Ensure the container itself is always at 100% opacity
-  // opacity: 1 !important;
+  touch-action: pan-y; // Prevents horizontal scroll interference
 
   .slider-track {
     height: 64px;
@@ -191,7 +189,24 @@
     padding: 0 6px;
     border: 1px solid #eef2f6;
     overflow: hidden;
-    opacity: 1 !important; // Force full visibility
+  }
+
+  .slider-handle {
+    position: absolute;
+    left: 6px;
+    width: 52px;
+    height: 52px;
+    background: #0d9488;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    z-index: 2;
+    box-shadow: 0 4px 10px rgba(19, 29, 53, 0.2);
+    /* Transition transform 0.1s for snappy finger tracking */
+    transition: transform 0.1s ease-out, background 0.3s ease;
+    will-change: transform;
   }
 
   .slider-text {
@@ -201,81 +216,41 @@
     font-size: 16px;
     color: #fbfcff; 
     letter-spacing: -0.6px;
-    margin-left: 10px;
-  }
-
-  .slider-handle {
-    position: absolute;
-    left: 6px;
-    width: 52px;
-    height: 52px;
-    background:  #0d9488; // The dark navy from your reference
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #ffffff;
-    z-index: 2;
-    box-shadow: 0 4px 10px rgba(19, 29, 53, 0.2);
-    transition: all 0.6s cubic-bezier(0.65, 0, 0.35, 1);
+    pointer-events: none;
+    transition: opacity 0.2s ease;
   }
 
   .end-check {
     position: absolute;
     right: 20px;
-    // Initial ghosted state
-    color: rgba(244, 239, 239, 0.929); // Light white/transparent initially
+    color: rgba(244, 239, 239, 0.3); // Faded initially
     font-size: 18px;
     z-index: 1;
     transition: all 0.4s ease;
   }
 
-  // --- FIXED DISABLED STATE (REMOVED OPACITY) ---
   &.disabled {
     cursor: not-allowed;
-    pointer-events: none;
-    // opacity: 1 !important; // REMOVED THE FADING EFFECT
-
-    // .slider-track {
-    //   background: #edf2f7 !important; // A solid, clear gray
-    //   border-color: #e2e8f0;
-    // }
-    
     // .slider-handle {
-    //   // background: #b8c5d6 !important; // A solid, darker gray (not faded)
-    //   box-shadow: none;
-    //   color: #ffffff;
+    //   // background: #1a2e35; // Darker/muted teal when locked
     // }
-
     // .slider-text {
-    //   // color: #708198 !important; // Darker gray text so it's sharp, not ghosted
-    //   opacity: 1 !important;
-    //   margin-left: 15%;
+    //   color: #4a5568; // Muted text
     // }
-
-    
   }
 
-  // --- ACTIVE STATE ---
   &.active {
-    .slider-track { 
-      background: #07191e; // Keep your dark track
-    } 
+    pointer-events: none; 
 
     .slider-handle {
-      left: calc(100% - 58px) !important;
-      background: #0d9488 !important;
-      z-index: 2; // Handle slides UNDER the tick if z-index of tick is 3
-    }
-
-    .slider-text { 
-      opacity: 0 !important; 
+      background:  #0d9488 !important; // Green for success
+      transition: transform 0.6s cubic-bezier(0.65, 0, 0.35, 1) !important;
     }
 
     .end-check {
-      // opacity: 1 !important;
-      color: #ffffff !important; // FORCED WHITE
-      z-index: 3; // Ensures it sits ON TOP of the teal handle
+      color: #ffffff !important; // Fully bright white
+      opacity: 1 !important;
+      z-index: 3; // On top of handle
     }
   }
 }
