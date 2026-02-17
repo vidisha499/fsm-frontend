@@ -9,6 +9,60 @@
  * https://ionicframework.com/docs/layout/global-stylesheets
  */
 
+// /* Core CSS required for Ionic components to work properly */
+// @import "@ionic/angular/css/core.css";
+
+// /* Basic CSS for apps built with Ionic */
+// @import "@ionic/angular/css/normalize.css";
+// @import "@ionic/angular/css/structure.css";
+// @import "@ionic/angular/css/typography.css";
+// @import "@ionic/angular/css/display.css";
+
+// /* Optional CSS utils that can be commented out */
+// @import "@ionic/angular/css/padding.css";
+// @import "@ionic/angular/css/float-elements.css";
+// @import "@ionic/angular/css/text-alignment.css";
+// @import "@ionic/angular/css/text-transformation.css";
+// @import "@ionic/angular/css/flex-utils.css";
+
+// /* Add this at the bottom of global.scss */
+// @import "~leaflet/dist/leaflet.css";
+
+// /**
+//  * Ionic Dark Mode
+//  * -----------------------------------------------------
+//  * For more info, please see:
+//  * https://ionicframework.com/docs/theming/dark-mode
+//  */
+
+// /* @import "@ionic/angular/css/palettes/dark.always.css"; */
+// /* @import "@ionic/angular/css/palettes/dark.class.css"; */
+// @import "@ionic/angular/css/palettes/dark.system.css";
+// @import "~leaflet/dist/leaflet.css";
+// @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+
+// :root {
+//   /* Force the background to white and text to dark green/black */
+//   --ion-background-color: #ffffff !important;
+//   --ion-text-color: #000000 !important;
+  
+//   /* Reset common UI elements that stay dark */
+//   --ion-item-background: #ffffff !important;
+//   --ion-card-background: #ffffff !important;
+//   --ion-toolbar-background: #ffffff !important;
+  
+//   /* Your Forest Theme Primary Colors */
+//   --ion-color-primary: #2e7d32 !important; 
+// }
+
+// /* Force light mode on the body specifically */
+// body {
+//   background: #ffffff !important;
+//   color: #000000 !important;
+// }
+
+
 /* Core CSS required for Ionic components to work properly */
 @import "@ionic/angular/css/core.css";
 
@@ -18,46 +72,59 @@
 @import "@ionic/angular/css/typography.css";
 @import "@ionic/angular/css/display.css";
 
-/* Optional CSS utils that can be commented out */
+/* Optional CSS utils */
 @import "@ionic/angular/css/padding.css";
 @import "@ionic/angular/css/float-elements.css";
 @import "@ionic/angular/css/text-alignment.css";
 @import "@ionic/angular/css/text-transformation.css";
 @import "@ionic/angular/css/flex-utils.css";
 
-/* Add this at the bottom of global.scss */
-@import "~leaflet/dist/leaflet.css";
-
-/**
- * Ionic Dark Mode
- * -----------------------------------------------------
- * For more info, please see:
- * https://ionicframework.com/docs/theming/dark-mode
- */
-
-/* @import "@ionic/angular/css/palettes/dark.always.css"; */
-/* @import "@ionic/angular/css/palettes/dark.class.css"; */
-@import "@ionic/angular/css/palettes/dark.system.css";
+/* Leaflet and Fonts */
 @import "~leaflet/dist/leaflet.css";
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
+/**
+ * DARK MODE REMOVAL
+ * We comment out 'dark.system.css' to stop the phone from forcing dark colors.
+ */
+/* @import "@ionic/angular/css/palettes/dark.system.css"; <--- DISABLED THIS */
 
 :root {
-  /* Force the background to white and text to dark green/black */
+  /* 1. Force Pure Light Mode Colors */
   --ion-background-color: #ffffff !important;
-  --ion-text-color: #000000 !important;
-  
-  /* Reset common UI elements that stay dark */
+  --ion-text-color: #1e293b !important;
   --ion-item-background: #ffffff !important;
   --ion-card-background: #ffffff !important;
   --ion-toolbar-background: #ffffff !important;
-  
-  /* Your Forest Theme Primary Colors */
-  --ion-color-primary: #2e7d32 !important; 
+  --ion-toolbar-color: #1e293b !important;
+
+  /* 2. Fix Action Sheets & Modals (The "Faded" parts) */
+  --ion-overlay-background-color: #ffffff !important;
+  --ion-modal-background: #ffffff !important;
+
+  /* 3. Primary Theme Color */
+  --ion-color-primary: #0d9488 !important; 
 }
 
-/* Force light mode on the body specifically */
-body {
+/* 4. Force the underlying body and all Ionic Overlays to stay Light */
+body, .modal-wrapper, .action-sheet-wrapper, ion-content {
   background: #ffffff !important;
-  color: #000000 !important;
+  --background: #ffffff !important;
+  color: #1e293b !important;
+}
+
+/* 5. Fix for Select/Action Sheet text visibility */
+ion-select-popover, ion-action-sheet {
+  --background: #ffffff !important;
+  --color: #1e293b !important;
+  
+  button {
+    color: #1e293b !important;
+  }
+}
+
+/* 6. Fix for those greyish "New Patrol Session" labels */
+ion-label, .label-stacked, .label-floating {
+  color: #475569 !important; /* Slate grey, very readable */
+  --color: #475569 !important;
 }
