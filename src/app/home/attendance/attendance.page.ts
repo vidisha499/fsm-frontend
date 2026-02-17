@@ -182,7 +182,8 @@ export class AttendancePage implements OnInit, OnDestroy {
   async presentImageSourceOptions() {
     const actionSheet = await this.actionSheetCtrl.create({
       header: 'Select Photo Source',
-      mode: 'ios',
+      mode: 'md',
+      cssClass: 'small-action-sheet',
       buttons: [
         { 
           text: 'Camera', 

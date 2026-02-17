@@ -283,6 +283,44 @@
     .btn-check { background: var(--primary-teal); width: 42px; height: 42px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
     &:disabled { opacity: 0.8; }
   }
+
+  /* Target the Action Sheet specifically from this page */
+::ng-deep {
+  .small-action-sheet {
+    /* 1. Shrink the overall width and center it slightly */
+    --width: 280px; 
+    margin: auto;
+
+    /* 2. Make the button rows much shorter */
+    .action-sheet-button {
+      height: 40px !important; 
+      min-height: 40px !important;
+      
+      .action-sheet-button-inner {
+        font-size: 13px !important;
+        justify-content: center !important; /* Centers text/icon */
+      }
+
+      ion-icon {
+        font-size: 16px !important;
+        margin-inline-end: 8px !important;
+      }
+    }
+
+    /* 3. Make the Title/Header tiny */
+    .action-sheet-title {
+      font-size: 11px !important;
+      padding: 4px !important;
+      min-height: unset !important;
+    }
+
+    /* 4. Remove extra padding around the groups */
+    .action-sheet-group {
+      margin-bottom: 2px !important;
+      border-radius: 8px !important;
+    }
+  }
+}
 }
 
 
@@ -422,6 +460,7 @@
       background: #f8fafc; // Subtle grey tint for fields that can't be edited
     }
   }
+  
 }
 }
 @keyframes scanAni { 0%, 100% { top: 20%; opacity: 0.3; } 50% { top: 80%; opacity: 1; } }

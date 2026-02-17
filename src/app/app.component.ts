@@ -37,10 +37,10 @@
 //   }
 // }
 
-
 import { Component, Renderer2, QueryList, ViewChildren } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { Platform, IonRouterOutlet, ActionSheetController, ModalController, MenuController } from '@ionic/angular';
+import { Platform, IonRouterOutlet, ActionSheetController, ModalController, MenuController, NavController } from '@ionic/angular';
+import { Router } from '@angular/router'; // Import Router
 
 @Component({
   selector: 'app-root',
@@ -49,7 +49,6 @@ import { Platform, IonRouterOutlet, ActionSheetController, ModalController, Menu
   standalone: false,
 })
 export class AppComponent {
-  // Added "!" to tell TypeScript this will be assigned by the view
   @ViewChildren(IonRouterOutlet) routerOutlets!: QueryList<IonRouterOutlet>;
 
   constructor(
@@ -58,7 +57,9 @@ export class AppComponent {
     private platform: Platform,
     private actionSheetCtrl: ActionSheetController,
     private modalCtrl: ModalController,
-    private menu: MenuController
+    private menu: MenuController,
+    private navCtrl: NavController, // Added NavController
+    private router: Router          // Added Router
   ) {
     this.renderer.removeClass(document.body, 'dark');
     this.renderer.addClass(document.body, 'light');
@@ -72,28 +73,34 @@ export class AppComponent {
     this.platform.ready().then(() => {
       this.platform.backButton.subscribeWithPriority(10, async () => {
         
+        // 1. Always prioritize closing popups/menus first
         if (await this.menu.isOpen()) {
           this.menu.close();
           return;
         }
-
         const actionSheet = await this.actionSheetCtrl.getTop();
         if (actionSheet) {
           actionSheet.dismiss();
           return;
         }
-
         const modal = await this.modalCtrl.getTop();
         if (modal) {
           modal.dismiss();
           return;
         }
 
+        // 2. Specific Logic for the Settings Page
+        // Change '/settings' to match your actual route path
+        if (this.router.url.includes('/settings')) {
+          this.navCtrl.navigateRoot('/home'); 
+          return;
+        }
+
+        // 3. Default behavior for other pages
         this.routerOutlets.forEach((outlet: IonRouterOutlet) => {
           if (outlet && outlet.canGoBack()) {
             outlet.pop();
           } else {
-            // Cast navigator to 'any' to avoid the TS7053 error
             (navigator as any)['app'].exitApp();
           }
         });

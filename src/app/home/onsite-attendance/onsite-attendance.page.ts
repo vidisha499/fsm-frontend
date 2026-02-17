@@ -278,26 +278,50 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
     }
   }
 
+  // async presentImageSourceOptions() {
+  //   const actionSheet = await this.actionSheetCtrl.create({
+  //     header: 'CHOOSE PHOTO SOURCE',
+  //     mode: 'ios',
+  //     buttons: [
+  //       { 
+  //         text: 'TAKE NEW PHOTO', 
+  //         icon: 'camera-outline', 
+  //         handler: () => this.captureImage(CameraSource.Camera) 
+  //       },
+  //       { 
+  //         text: 'SELECT FROM GALLERY', 
+  //         icon: 'image-outline', 
+  //         handler: () => this.captureImage(CameraSource.Photos) 
+  //       },
+  //       { text: 'CANCEL', role: 'cancel' }
+  //     ]
+  //   });
+  //   await actionSheet.present();
+  // }
+
   async presentImageSourceOptions() {
-    const actionSheet = await this.actionSheetCtrl.create({
-      header: 'CHOOSE PHOTO SOURCE',
-      mode: 'ios',
-      buttons: [
-        { 
-          text: 'TAKE NEW PHOTO', 
-          icon: 'camera-outline', 
-          handler: () => this.captureImage(CameraSource.Camera) 
-        },
-        { 
-          text: 'SELECT FROM GALLERY', 
-          icon: 'image-outline', 
-          handler: () => this.captureImage(CameraSource.Photos) 
-        },
-        { text: 'CANCEL', role: 'cancel' }
-      ]
-    });
-    await actionSheet.present();
-  }
+  const actionSheet = await this.actionSheetCtrl.create({
+    header: 'Select Photo Source',
+    mode: 'md',
+    cssClass: 'custom-action-sheet', // This key connects to the CSS below
+    buttons: [
+      { 
+        text: 'Camera', 
+        icon: 'camera-outline', 
+        handler: () => this.captureImage(CameraSource.Camera) 
+      },
+      { 
+        text: 'Gallery', 
+        icon: 'image-outline', 
+        handler: () => this.captureImage(CameraSource.Photos) 
+      },
+      { text: 'Cancel', 
+          role: 'cancel',
+          icon: 'close' }
+    ]
+  });
+  await actionSheet.present();
+}
 
   async submit() {
     if (!this.capturedPhoto) {
