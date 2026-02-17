@@ -313,7 +313,11 @@
       .top-line {
         display: flex; justify-content: space-between;
         .type-text { font-size: 9px; font-weight: 800; color: var(--primary-teal); text-transform: uppercase; }
-        .date-text { font-size: 9px; color: #94a3b8; font-weight: 700; }
+           .log-date { 
+        font-size: 12px; 
+        color: #162d4d; 
+        font-weight: 600;
+      }
       }
       .priority-title { font-size: 15px; font-weight: 700; color: var(--dark-slate); margin: 2px 0; }
       .reporter-line {

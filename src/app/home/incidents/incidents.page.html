@@ -70,7 +70,7 @@
           <div class="row-content">
             <div class="top-line">
               <span class="type-text">{{ item.incidentCriteria }}</span>
-              <span class="date-text">{{ formatDate(item.createdAt) }}</span>
+              <span class="log-date">{{ formatDate(item.createdAt) }}</span>
             </div>
             
             <h2 class="priority-title" [class.high-p]="item.responsePriority === 'High Priority'">
