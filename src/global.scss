@@ -128,3 +128,8 @@ ion-label, .label-stacked, .label-floating {
   color: #475569 !important; /* Slate grey, very readable */
   --color: #475569 !important;
 }
+
+/* global.scss mein check karein */
+.action-sheet-button-inner {
+  color: #000000 !important; /* Options ka text black karne ke liye */
+}

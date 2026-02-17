@@ -1,7 +1,9 @@
 
 
 
-// import { Component, OnInit } from '@angular/core';
+// import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+
+// // import { Component, OnInit } from '@angular/core';
 // import { Router } from '@angular/router';
 // import { NavController, ToastController, AlertController, LoadingController } from '@ionic/angular';
 // import { HttpClient } from '@angular/common/http';
@@ -21,7 +23,7 @@
 //   public isDetailModalOpen = false;
 //   public selectedPatrol: any = null;
 //   public isSubmitting = false;
-//   private detailMap!: L.Map;
+//   private detailMap: any; // Using any to avoid leaflet typing issues if not strictly configured
 
 //   private apiUrl: string = 'https://forest-backend-pi.vercel.app/api/patrols';
 
@@ -31,7 +33,8 @@
 //     private http: HttpClient,
 //     private toastCtrl: ToastController,
 //     private alertCtrl: AlertController,
-//     private loadingCtrl: LoadingController
+//     private loadingCtrl: LoadingController,
+//     private cdr: ChangeDetectorRef // Added for force UI update
 //   ) {}
 
 //   ngOnInit() { }
@@ -59,41 +62,49 @@
 //   viewDetails(log: any) {
 //     this.selectedPatrol = log;
 //     this.isDetailModalOpen = true;
+//     // Force Angular to detect that selectedPatrol is now set
+//     this.cdr.detectChanges();
 //   }
 
 //   onDetailModalPresent() {
-//     // 500ms delay is necessary to ensure the DOM is ready inside the modal
+//     // Increased delay to ensure modal animation is 100% finished
 //     setTimeout(() => {
 //       this.initDetailMap();
-//     }, 500); 
+//     }, 800); 
 //   }
 
 //   initDetailMap() {
-//     // 1. Sanity Check for route data
+//     // 1. Sanity Check
 //     if (!this.selectedPatrol?.route || this.selectedPatrol.route.length === 0) {
-//       console.warn("No route data found for this log.");
+//       console.warn("No route data found.");
 //       return;
 //     }
 
-//     // 2. Clear existing map instance
+//     // 2. Clear existing map instance safely
 //     if (this.detailMap) { 
-//       this.detailMap.off();
 //       this.detailMap.remove(); 
+//       this.detailMap = null;
 //     }
 
 //     // 3. Prepare Coordinates
 //     const coords = this.selectedPatrol.route.map((p: any) => [p.lat, p.lng]);
 
-//     // 4. Initialize Map
-//     this.detailMap = L.map('detailMap', { 
+//     // 4. Initialize Map with absolute container reference
+//     const mapElement = document.getElementById('detailMap');
+//     if (!mapElement) {
+//       console.error("Map element not found in DOM");
+//       return;
+//     }
+
+//     this.detailMap = L.map(mapElement, { 
 //       zoomControl: false,
-//       attributionControl: false 
+//       attributionControl: false,
+//       fadeAnimation: true
 //     }).setView(coords[0], 16);
 
-//     // 5. Add Tile Layer
-//     L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { 
-//       maxZoom: 20, 
-//       subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] 
+//     // 5. Use OpenStreetMap tiles (standard) to test if Google tiles are blocked
+//     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+//       maxZoom: 19
 //     }).addTo(this.detailMap);
 
 //     // 6. Add Marker or Polyline
@@ -104,17 +115,23 @@
 //       this.detailMap.fitBounds(polyline.getBounds(), { padding: [30, 30] });
 //     }
 
-//     // 7. CRITICAL: Force refresh map size inside the modal container
+//     // 7. THE FIX: Double call to invalidateSize
 //     setTimeout(() => { 
 //       this.detailMap.invalidateSize(); 
-//     }, 200);
+//       console.log("Map size invalidated");
+//     }, 100);
+    
+//     // Final check after a second delay
+//     setTimeout(() => {
+//         this.detailMap.invalidateSize();
+//     }, 500);
 //   }
 
 //   async deleteLog(id: number, event: Event) {
 //     event.stopPropagation();
 //     const alert = await this.alertCtrl.create({
 //       header: 'Delete Log',
-//       message: 'Are you sure you want to remove this record?',
+//       message: 'Are you sure?',
 //       buttons: [
 //         { text: 'Cancel', role: 'cancel' },
 //         { text: 'Delete', handler: () => { this.processDelete(id); } }
@@ -142,11 +159,9 @@
 //       this.presentToast('Please select Method and Type', 'warning');
 //       return;
 //     }
-    
 //     this.isSubmitting = true; 
 //     const name = `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`;
 //     localStorage.setItem('temp_patrol_name', name);
-
 //     setTimeout(() => {
 //       this.isModalOpen = false;
 //       this.navCtrl.navigateForward('/patrol-active');
@@ -163,8 +178,6 @@
 
 
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-
-// import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { NavController, ToastController, AlertController, LoadingController } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
@@ -184,7 +197,8 @@ export class PatrolLogsPage implements OnInit {
   public isDetailModalOpen = false;
   public selectedPatrol: any = null;
   public isSubmitting = false;
-  private detailMap: any; // Using any to avoid leaflet typing issues if not strictly configured
+  public mapLoading = true; // Added for loading state
+  private detailMap: any;
 
   private apiUrl: string = 'https://forest-backend-pi.vercel.app/api/patrols';
 
@@ -195,7 +209,7 @@ export class PatrolLogsPage implements OnInit {
     private toastCtrl: ToastController,
     private alertCtrl: AlertController,
     private loadingCtrl: LoadingController,
-    private cdr: ChangeDetectorRef // Added for force UI update
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() { }
@@ -223,69 +237,55 @@ export class PatrolLogsPage implements OnInit {
   viewDetails(log: any) {
     this.selectedPatrol = log;
     this.isDetailModalOpen = true;
-    // Force Angular to detect that selectedPatrol is now set
+    this.mapLoading = true; // Show "being loaded" message
     this.cdr.detectChanges();
   }
 
   onDetailModalPresent() {
-    // Increased delay to ensure modal animation is 100% finished
     setTimeout(() => {
       this.initDetailMap();
     }, 800); 
   }
 
   initDetailMap() {
-    // 1. Sanity Check
-    if (!this.selectedPatrol?.route || this.selectedPatrol.route.length === 0) {
-      console.warn("No route data found.");
-      return;
-    }
+    const mapElement = document.getElementById('detailMap');
+    if (!mapElement) return;
 
-    // 2. Clear existing map instance safely
     if (this.detailMap) { 
       this.detailMap.remove(); 
       this.detailMap = null;
     }
 
-    // 3. Prepare Coordinates
-    const coords = this.selectedPatrol.route.map((p: any) => [p.lat, p.lng]);
+    // Default center if no route exists
+    let center: L.LatLngExpression = [0, 0];
+    let coords: L.LatLngExpression[] = [];
 
-    // 4. Initialize Map with absolute container reference
-    const mapElement = document.getElementById('detailMap');
-    if (!mapElement) {
-      console.error("Map element not found in DOM");
-      return;
+    if (this.selectedPatrol?.route && this.selectedPatrol.route.length > 0) {
+      coords = this.selectedPatrol.route.map((p: any) => [p.lat, p.lng]);
+      center = coords[0];
     }
 
     this.detailMap = L.map(mapElement, { 
       zoomControl: false,
-      attributionControl: false,
-      fadeAnimation: true
-    }).setView(coords[0], 16);
+      attributionControl: false
+    }).setView(center, 16);
 
-    // 5. Use OpenStreetMap tiles (standard) to test if Google tiles are blocked
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19
-    }).addTo(this.detailMap);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(this.detailMap);
 
-    // 6. Add Marker or Polyline
-    if (coords.length === 1) {
-      L.marker(coords[0]).addTo(this.detailMap);
-    } else {
+    // DRAW POLYLINE OR MARKER
+    if (coords.length > 1) {
       const polyline = L.polyline(coords, { color: '#059669', weight: 5, opacity: 0.8 }).addTo(this.detailMap);
       this.detailMap.fitBounds(polyline.getBounds(), { padding: [30, 30] });
+    } else if (coords.length === 1) {
+      L.marker(coords[0]).addTo(this.detailMap);
     }
 
-    // 7. THE FIX: Double call to invalidateSize
+    this.mapLoading = false; // Hide loader text
+    
     setTimeout(() => { 
       this.detailMap.invalidateSize(); 
-      console.log("Map size invalidated");
-    }, 100);
-    
-    // Final check after a second delay
-    setTimeout(() => {
-        this.detailMap.invalidateSize();
-    }, 500);
+      this.cdr.detectChanges();
+    }, 200);
   }
 
   async deleteLog(id: number, event: Event) {

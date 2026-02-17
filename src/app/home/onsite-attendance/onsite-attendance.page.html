@@ -1,4 +1,4 @@
-<ion-content [fullscreen]="true" class="premium-wrapper">
+<!-- <ion-content [fullscreen]="true" class="premium-wrapper">
   <div class="ambient-glow glow-1"></div>
   <div class="ambient-glow glow-2"></div>
 
@@ -12,7 +12,6 @@
           </button>
           <div class="title-meta">
             <h1 class="main-title">Onsite Attendance</h1>
-            <!-- <p class="subtitle">Forest Management System • 2026</p> -->
           </div>
         </div>
         
@@ -29,42 +28,24 @@
   <div class="card-container">
     <div class="main-card">
       
-      <!-- <div class="scanner-section">
+      <div class="scanner-section">
         <div class="camera-frame" (click)="presentImageSourceOptions()">
           <div class="corners-bold">
             <span class="t-l"></span><span class="t-r"></span>
             <span class="b-l"></span><span class="b-r"></span>
           </div>
-          <div class="scanner-inner" [style.background-image]="capturedPhoto ? 'url(' + capturedPhoto + ')' : ''" style="background-size: cover; background-position: center;">
+
+          <div class="scanner-inner" [style.background-image]="capturedPhoto ? 'url(' + capturedPhoto + ')' : ''">
             <div class="scan-line" *ngIf="!capturedPhoto"></div>
             
             <div *ngIf="!capturedPhoto" class="placeholder-content">
               <ion-icon name="camera" class="main-cam-icon"></ion-icon>
-              <span class="cam-text">CAPTURE PHOTO</span>
+              <span class="cam-text">CAPTURE ID PHOTO</span>
             </div>
           </div>
         </div>
-        <p class="scan-hint">Scan identity to mark attendance</p>
-      </div> -->
-
-      <div class="scanner-section">
-  <div class="camera-frame" (click)="presentImageSourceOptions()">
-    <div class="corners-bold">
-      <span class="t-l"></span><span class="t-r"></span>
-      <span class="b-l"></span><span class="b-r"></span>
-    </div>
-
-    <div class="scanner-inner" [style.background-image]="capturedPhoto ? 'url(' + capturedPhoto + ')' : ''">
-      <div class="scan-line" *ngIf="!capturedPhoto"></div>
-      
-      <div *ngIf="!capturedPhoto" class="placeholder-content">
-        <ion-icon name="camera" class="main-cam-icon"></ion-icon>
-        <!-- <span class="cam-text">Capture ID Photo</span> -->
+        <p class="instruction">Scan identity to proceed</p>
       </div>
-    </div>
-  </div>
-  <p class="instruction">Scan identity to proceed</p>
-</div>
 
       <div class="map-wrapper">
         <div class="map-label">
@@ -72,7 +53,11 @@
           <span>REAL-TIME POSITIONING</span>
         </div>
         <div class="map-container-box">
-          <div #map id="onsite-map" style="width: 100%; height: 100%;"></div>
+          <div *ngIf="!mapLoaded" class="map-loader">
+            <ion-spinner name="crescent"></ion-spinner>
+            <p>Map is being loaded...</p>
+          </div>
+          <div #map id="onsite-map" style="width: 100%; height: 100%;" [hidden]="!mapLoaded"></div>
         </div>
       </div>
 
@@ -92,7 +77,104 @@
             <span class="val">{{ currentAddress }}</span>
           </div>
         </div>
+      </div>
 
+      <div class="action-container">
+        <div class="slider-track" [class.active-track]="isSubmitting">
+          <div class="slider-text">
+            {{ isSubmitting ? 'ATTENDANCE MARKED & SYNCED' : 'MARK ATTENDANCE' }}
+          </div>
+          <div class="slider-knob" (click)="submit()" [class.rotate-slide]="isSubmitting">
+            <ion-icon [name]="isSubmitting ? 'sync-outline' : 'chevron-forward-outline'" 
+                      [class.spin-icon]="isSubmitting">
+            </ion-icon>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+</ion-content> -->
+
+
+<ion-content [fullscreen]="true" class="premium-wrapper">
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
+  <div class="hero-header">
+    <div class="header-overlay"></div>
+    <div class="header-content">
+      <div class="top-row">
+        <div class="back-group">
+          <button (click)="goBack()" class="glass-btn">
+            <ion-icon name="arrow-back-outline"></ion-icon>
+          </button>
+          <div class="title-meta">
+            <h1 class="main-title">Onsite Attendance</h1>
+          </div>
+        </div>
+        
+        <div class="live-badge-top">
+          <div class="secure-id-badge">
+            <ion-icon name="finger-print-outline"></ion-icon>
+            <span>SECURE ID</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-container">
+    <div class="main-card">
+      
+      <div class="scanner-section">
+        <div class="camera-frame" (click)="presentImageSourceOptions()">
+          <div class="corners-bold">
+            <span class="t-l"></span><span class="t-r"></span>
+            <span class="b-l"></span><span class="b-r"></span>
+          </div>
+
+          <div class="scanner-inner" [style.background-image]="capturedPhoto ? 'url(' + capturedPhoto + ')' : ''">
+            <div *ngIf="!capturedPhoto" class="placeholder-content">
+              <ion-icon name="camera" class="main-cam-icon"></ion-icon>
+              <span class="cam-text">CAPTURE ID PHOTO</span>
+            </div>
+            <div class="scan-line" *ngIf="!capturedPhoto"></div>
+          </div>
+        </div>
+        <p class="instruction">Scan identity to proceed</p>
+      </div>
+
+      <div class="map-wrapper">
+        <div class="map-label">
+          <ion-icon name="location"></ion-icon>
+          <span>REAL-TIME POSITIONING</span>
+        </div>
+        <div class="map-container-box">
+          <div *ngIf="!mapLoaded" class="map-loader">
+            <ion-spinner name="crescent"></ion-spinner>
+            <p>Map is being loaded...</p>
+          </div>
+          <div #map id="onsite-map" style="width: 100%; height: 100%;" [hidden]="!mapLoaded"></div>
+        </div>
+      </div>
+
+      <div class="form-body">
+        <div class="input-group">
+          <label>RANGER PROFILE</label>
+          <div class="premium-input">
+            <ion-icon name="person-circle-outline"></ion-icon>
+            <span class="val">{{ rangerName }}</span>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>CURRENT GEOFENCE (DETECTED)</label>
+          <div class="premium-input address-mode">
+            <ion-icon name="map-outline"></ion-icon>
+            <span class="val">{{ currentAddress }}</span>
+          </div>
+        </div>
       </div>
 
       <div class="action-container">
