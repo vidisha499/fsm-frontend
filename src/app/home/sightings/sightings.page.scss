@@ -1,0 +1,219 @@
+.sighting-content {
+  --background: #f4f7f6; // Light grayish-green tint
+
+  // Header Section
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 25px 20px;
+    background: white;
+    border-radius: 0 0 35px 35px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+
+    h2 {
+      font-weight: 800;
+      color: #001b2e;
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: -0.5px;
+    }
+
+    .cancel-btn {
+      background: none;
+      color: #88929b;
+      font-weight: 700;
+      border: none;
+      font-size: 15px;
+      text-transform: uppercase;
+    }
+  }
+
+  // Form Body
+  .form-container {
+    padding: 20px;
+    padding-bottom: 100px;
+
+    .input-group {
+      margin-bottom: 22px;
+
+      label {
+        display: block;
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 800;
+        margin-bottom: 10px;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+      }
+
+      input, textarea, .custom-select select {
+        width: 100%;
+        border-radius: 18px;
+        border: 2px solid transparent;
+        background: #f1f5f9;
+        padding: 16px;
+        font-size: 15px;
+        color: #1e293b;
+        transition: all 0.3s ease;
+
+        &:focus {
+          outline: none;
+          background: #ffffff;
+          border-color: #0d9488;
+        }
+      }
+
+      .custom-select {
+        position: relative;
+        select {
+          appearance: none;
+          cursor: pointer;
+        }
+        &::after {
+          content: '\25BC'; // Chevron arrow
+          position: absolute;
+          right: 20px;
+          top: 18px;
+          font-size: 12px;
+          color: #64748b;
+          pointer-events: none;
+        }
+      }
+    }
+  }
+
+  // Gender Selection Styling
+  .gender-selection {
+    display: flex;
+    gap: 12px;
+
+    .radio-item {
+      display: flex;
+      align-items: center;
+      font-size: 14px;
+      font-weight: 600;
+      color: #334155;
+      background: white;
+      padding: 10px 15px;
+      border-radius: 25px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+
+      input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        margin-right: 10px;
+        accent-color: #0d9488; // Teal color from screenshot
+      }
+    }
+  }
+
+  // Photos Section
+  .photo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 15px;
+
+    .photo-item {
+      position: relative;
+      height: 100px;
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 12px;
+      }
+      .remove-icon {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: white;
+        color: #ef4444;
+        border-radius: 50%;
+        font-size: 20px;
+      }
+    }
+  }
+
+  .add-photo-btn {
+    width: 100%;
+    padding: 18px;
+    border-radius: 18px;
+    border: 2px dashed #0d9488;
+    background: #f0fdfa;
+    color: #0d9488;
+    font-weight: 800;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    ion-icon { font-size: 20px; }
+
+    &:active {
+      background: #ccfbf1;
+    }
+  }
+
+  // Footer Save Button (Fixed at bottom)
+  .footer-btn {
+    position: fixed;
+    bottom: 25px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    z-index: 100;
+
+    .save-log-btn {
+      width: 85%;
+      background: #0f172a; // Dark blue/black
+      color: white;
+      border-radius: 50px;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: none;
+      box-shadow: 0 10px 20px rgba(15, 23, 42, 0.3);
+
+      span {
+        flex-grow: 1;
+        text-align: center;
+        font-weight: 800;
+        font-size: 17px;
+        letter-spacing: 1px;
+      }
+
+      .arrow-circle {
+        background: #0d9488; // Teal circle
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        ion-icon {
+          color: white;
+          font-size: 24px;
+        }
+      }
+
+      &:disabled {
+        opacity: 0.7;
+        background: #475569;
+      }
+    }
+  }
+}
+
+.footer-btn {
+  position: fixed;
+  bottom: 40px; // 25px se badha kar 40px kar dein
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  z-index: 999;
+}
