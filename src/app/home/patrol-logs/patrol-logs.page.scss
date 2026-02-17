@@ -233,7 +233,7 @@
 
   .logs-container {
     padding: 0 20px 40px;
-    margin-top: -35px;
+    margin-top: -50px;
     position: relative;
     z-index: 5;
   }
@@ -295,8 +295,8 @@
   color: #ffffff;
   
   /* Perfect circle dimensions */
-  width: 56px; 
-  height: 56px; 
+  width: 60px; 
+  height: 60px; 
   border-radius: 50%; 
   
   /* Flex centering */
@@ -305,7 +305,7 @@
   justify-content: center; 
   
   /* Icon sizing */
-  font-size: 22px; 
+  font-size: 33px; 
   z-index: 1000; 
   
   /* Smooth shadow */
