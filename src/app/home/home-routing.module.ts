@@ -46,6 +46,10 @@ const routes: Routes = [
     path: 'sightings',
     loadChildren: () => import('./sightings/sightings.module').then( m => m.SightingsPageModule)
   },
+  {
+    path: 'patrol-details',
+    loadChildren: () => import('./patrol-details/patrol-details.module').then( m => m.PatrolDetailsPageModule)
+  },
 
  
  

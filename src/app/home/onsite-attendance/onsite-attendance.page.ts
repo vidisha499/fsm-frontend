@@ -182,7 +182,7 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
     // Refreshing currentDateTime to ensure it's not empty
     this.updateClock();
 
-    const onsiteData = {
+ const onsiteData = {
       ranger_id: Number(localStorage.getItem('ranger_id')) || 1,
       ranger: this.rangerName,
       geofence: this.currentAddress, 
@@ -190,7 +190,8 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
       photo: this.capturedPhoto,
       latitude: this.currentLat,
       longitude: this.currentLng,
-      created_at: this.currentDateTime // Yeh field database mein jayegi
+      // CHANGE THIS LINE:
+      created_at: new Date().toISOString() 
     };
 
     this.http.post(this.apiUrl, onsiteData).subscribe({

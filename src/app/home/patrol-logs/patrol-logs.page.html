@@ -1,5 +1,6 @@
 
 
+
 <ion-content [fullscreen]="true" class="premium-wrapper">
   <div class="ambient-glow glow-1"></div>
   <div class="ambient-glow glow-2"></div>
@@ -54,7 +55,7 @@
     <button (click)="setOpen(true)" class="floating-action-btn"><i class="fas fa-plus"></i></button>
   </div>
 
-  <ion-modal [isOpen]="isDetailModalOpen" (didDismiss)="isDetailModalOpen = false" (didPresent)="onDetailModalPresent()" style="--height: 85%; --border-radius: 30px 30px 0 0;">
+  <ion-modal [isOpen]="isDetailModalOpen" (didDismiss)="isDetailModalOpen = false" (didPresent)="onDetailModalPresent()" style="--height: 90%; --border-radius: 30px 30px 0 0;">
     <ng-template>
       <ion-header class="ion-no-border">
         <ion-toolbar style="--background: #ffffff; padding: 10px;">
@@ -78,28 +79,46 @@
             </div>
           </div>
 
-          <div style="width: 100%; height: 250px; background: #f1f5f9; border-radius: 20px; overflow: hidden; margin-bottom: 10px; border: 1.5px solid #d1d5db; position: relative; display: flex; align-items: center; justify-content: center;">
-            <div *ngIf="mapLoading" style="text-align: center; color: #94a3b8; z-index: 10;">
+          <div style="width: 100%; height: 250px; background: #f1f5f9; border-radius: 20px; overflow: hidden; margin-bottom: 20px; border: 1.5px solid #d1d5db; position: relative;">
+            <div *ngIf="mapLoading" style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(255,255,255,0.7); z-index: 10;">
               <ion-spinner name="crescent" color="primary"></ion-spinner>
-              <p style="font-size: 12px; font-weight: 600; margin-top: 5px;">Map is being loaded...</p>
+              <p style="font-size: 12px; font-weight: 600; margin-top: 5px; color: #94a3b8;">Loading Route...</p>
             </div>
-            <div id="detailMap" style="height: 100%; width: 100%; position: absolute; top: 0; left: 0;"></div>
+            <div id="detailMap" style="height: 100%; width: 100%;"></div>
           </div>
 
-          <div *ngIf="selectedPatrol.distanceKm <= 0" style="text-align: center; margin-bottom: 20px;">
-            <p style="color: #ef4444; font-size: 12px; font-weight: 700;">⚠️ 0 distance travelled</p>
-          </div>
-
-          <h3 style="font-size: 12px; font-weight: 800; color: #94a3b8; margin-bottom: 10px; text-transform: uppercase;">Observations</h3>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <ng-container *ngFor="let obs of selectedPatrol.observationData | keyvalue">
-              <div *ngIf="obs.key !== 'Details' && $any(obs.value) > 0" 
-                   style="background: #ffffff; border: 1px solid #f1f5f9; padding: 12px; border-radius: 12px; display: flex; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                <span style="font-size: 12px; font-weight: 700; color: #475569;">{{obs.key}}</span>
-                <span style="font-size: 12px; font-weight: 800; color: #059669;">{{obs.value}}</span>
+          <h3 style="font-size: 12px; font-weight: 800; color: #94a3b8; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">Sighting Details</h3>
+          
+          <div *ngIf="selectedPatrol.observationData?.Details?.length > 0; else noDetails">
+            <div *ngFor="let item of selectedPatrol.observationData.Details" class="sighting-summary-card">
+              
+              <div class="sighting-header">
+                <div class="sighting-icon-box">
+                  <i [class]="getCategoryIcon(item.category)"></i>
+                </div>
+                <div class="sighting-text-info">
+                  <div class="top-meta">
+                    <span class="cat-label">{{item.category | uppercase}}</span>
+                    <span class="time-stamp">{{item.timestamp | date:'h:mm a'}}</span>
+                  </div>
+                  <p class="species-name">{{item.species || 'Unspecified Sighting'}}</p>
+                  <p class="count-meta">Count: {{item.count}} • {{item.sighting_type}}</p>
+                </div>
               </div>
-            </ng-container>
+
+              <div class="sighting-image-box" *ngIf="item.photos && item.photos.length > 0">
+                <img [src]="item.photos[0]" />
+              </div>
+              
+            </div>
           </div>
+
+          <ng-template #noDetails>
+            <div style="text-align: center; padding: 30px 0; color: #94a3b8;">
+              <ion-icon name="eye-off-outline" style="font-size: 40px; opacity: 0.5;"></ion-icon>
+              <p style="font-size: 13px; font-weight: 600; margin-top: 10px;">No sightings recorded.</p>
+            </div>
+          </ng-template>
         </div>
       </ion-content>
     </ng-template>
@@ -123,7 +142,6 @@
               <ion-select-option value="vehicle">{{ 'LIST.VEHICLE' | translate }}</ion-select-option>
               <ion-select-option value="bicycle">{{ 'LIST.BICYCLE' | translate }}</ion-select-option>
               <ion-select-option value="on foot">{{ 'LIST.FOOT' | translate }}</ion-select-option>
-              <ion-select-option value="other">{{ 'LIST.OTHER' | translate }}</ion-select-option>
             </ion-select>
           </ion-item>
           <ion-item lines="none" style="--background: #f4f4f7; border-radius: 12px; margin-bottom: 5px;">
@@ -132,19 +150,25 @@
               <ion-select-option value="Regular">{{ 'LIST.REGULAR' | translate }}</ion-select-option>
               <ion-select-option value="Special">{{ 'LIST.SPECIAL' | translate }}</ion-select-option>
               <ion-select-option value="Emergency">{{ 'LIST.EMERGENCY' | translate }}</ion-select-option>
-              <ion-select-option value="Beat inspection">{{ 'LIST.BEAT' | translate }}</ion-select-option>
-              <ion-select-option value="joint">{{ 'LIST.JOINT' | translate }}</ion-select-option>
-              <ion-select-option value="other">{{ 'LIST.OTHER' | translate }}</ion-select-option>
             </ion-select>
           </ion-item>
-          <div class="slider-action-container">
+          <!-- <div class="slider-action-container">
             <div class="slider-track">
               <div class="slider-text">{{ isSubmitting ? 'STARTING...' : ('LIST.START_BTN' | translate) }}</div>
               <div class="slider-knob" (click)="savePatrol()" [class.slide-active]="isSubmitting">
                 <ion-icon [name]="isSubmitting ? 'sync-outline' : 'chevron-forward-outline'" [class.spin-icon]="isSubmitting"></ion-icon>
               </div>
             </div>
-          </div>
+          </div> -->
+
+          <div class="slider-action-container">
+  <div class="slider-track" #sliderTrack>
+    <div class="slider-text">{{ isSubmitting ? 'STARTING...' : ('LIST.START_BTN' | translate) }}</div>
+    <div class="slider-knob" #sliderKnob [class.slide-active]="isSubmitting">
+      <ion-icon [name]="isSubmitting ? 'sync-outline' : 'chevron-forward-outline'" [class.spin-icon]="isSubmitting"></ion-icon>
+    </div>
+  </div>
+</div>
         </div>
       </ion-content>
     </ng-template>

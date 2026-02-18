@@ -43,7 +43,23 @@
       .map-wrapper { margin-bottom: 20px; .map-container { height: 160px; border-radius: 20px; overflow: hidden; border: 1px solid #e2e8f0; position: relative; #map { height: 100%; width: 100%; } .recenter-btn-glass { position: absolute; bottom: 10px; right: 10px; z-index: 1000; background: white; border: none; width: 36px; height: 36px; border-radius: 10px; color: var(--primary-teal); } } }
       .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; .input-pill { background: #f8fafc; border-radius: 16px; padding: 12px; border: 1px solid #f1f5f9; label { display: block; font-size: 8px; font-weight: 800; color: var(--primary-teal); margin-bottom: 3px; } .pill-content { display: flex; align-items: center; gap: 8px; i { font-size: 14px; color: #94a3b8; } .val { font-weight: 700; color: #1e293b; font-size: 14px; } } } }
       .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 25px; .grid-item-glass { background: #ffffff; border: 1px solid #f1f5f9; border-radius: 18px; padding: 12px; display: flex; align-items: center; gap: 12px; span { font-size: 12px; font-weight: 700; color: #334155; } .icon-box { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; &.animal { background: rgba(245, 158, 11, 0.1); color: #f59e0b; } &.water { background: rgba(14, 165, 233, 0.1); color: #0ea5e9; } &.impact { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; } &.death { background: rgba(239, 68, 68, 0.1); color: #ef4444; } &.felling { background: rgba(16, 185, 129, 0.1); color: #10b981; } &.other { background: rgba(100, 116, 139, 0.1); color: #64748b; } } } }
-      .slider-wrapper { margin-bottom: 25px; .slider-track-new { height: 64px; background: #0f172a; border-radius: 32px; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; &.finished { background: #042f2e; } .slider-text-bg { color: rgba(255,255,255,0.8); font-weight: 700; font-size: 13px; } .slider-knob-left { position: absolute; left: 6px; width: 52px; height: 52px; background: #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); &.sliding { transform: translateX(230px); } &.at-end { transform: translateX(230px); background: white; color: #10b981; } } } }
+      
+      .slider-wrapper { 
+        margin-bottom: 25px; 
+        .slider-track-new { 
+          height: 64px; background: #0f172a; border-radius: 32px; position: relative; 
+          display: flex; align-items: center; justify-content: center; overflow: hidden; 
+          &.finished { background: #042f2e; } 
+          .slider-text-bg { color: rgba(255,255,255,0.8); font-weight: 700; font-size: 13px; pointer-events: none; z-index: 1; } 
+          .slider-knob-left { 
+            position: absolute; left: 6px; width: 52px; height: 52px; background: #10b981; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; color: white; z-index: 2;
+            touch-action: none;
+            cursor: grab;
+            &.at-end { background: white; color: #10b981; } 
+          } 
+        } 
+      }
 
       .recent-logs-section {
         border-top: 1px solid #f1f5f9; padding-top: 20px;
@@ -86,4 +102,39 @@
 }
 
 @keyframes scanMove { 0% { top: 0%; } 50% { top: 98%; } 100% { top: 0%; } }
-@keyframes spin { 100% { transform: rotate(360deg); } }
+
+// --- LEAFLET LIVE LOCATION STYLES ---
+// This targets the divIcon class defined in your .ts file
+::ng-deep .user-location-marker {
+  .blue-dot {
+    width: 16px;
+    height: 16px;
+    background-color: #3880ff; // Ionic Primary Blue
+    border: 3px solid #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 0 15px rgba(56, 128, 255, 0.8);
+    animation: pulse-animation 2s infinite;
+  }
+}
+
+@keyframes pulse-animation {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(56, 128, 255, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 12px rgba(56, 128, 255, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(56, 128, 255, 0);
+  }
+}
+
+// Ensure the map container is visible within your wrapper
+#map {
+  height: 100%;
+  width: 100%;
+  background: #f0f0f0; // Placeholder color until tiles load
+}

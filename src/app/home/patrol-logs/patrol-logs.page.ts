@@ -1,9 +1,9 @@
 
 
 
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { Router } from '@angular/router';
-import { NavController, ToastController, AlertController, LoadingController } from '@ionic/angular';
+import { NavController, ToastController, AlertController, LoadingController, GestureController, DomController } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
 import * as L from 'leaflet';
 
@@ -14,6 +14,9 @@ import * as L from 'leaflet';
   standalone: false
 })
 export class PatrolLogsPage implements OnInit {
+  @ViewChild('sliderKnob', { read: ElementRef }) sliderKnob!: ElementRef;
+  @ViewChild('sliderTrack', { read: ElementRef }) sliderTrack!: ElementRef;
+
   public patrolLogs: any[] = [];
   public isModalOpen = false;
   public selectedMethod = '';
@@ -21,9 +24,10 @@ export class PatrolLogsPage implements OnInit {
   public isDetailModalOpen = false;
   public selectedPatrol: any = null;
   public isSubmitting = false;
-  public mapLoading = true; // Added for loading state
+  public mapLoading = true;
   private detailMap: any;
 
+  // Verified API URL from your deployment
   private apiUrl: string = 'https://forest-backend-pi.vercel.app/api/patrols';
 
   constructor(
@@ -33,7 +37,9 @@ export class PatrolLogsPage implements OnInit {
     private toastCtrl: ToastController,
     private alertCtrl: AlertController,
     private loadingCtrl: LoadingController,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private gestureCtrl: GestureController,
+    private domCtrl: DomController
   ) {}
 
   ngOnInit() { }
@@ -42,6 +48,57 @@ export class PatrolLogsPage implements OnInit {
     this.loadPatrolLogs(); 
     this.isSubmitting = false; 
   }
+
+  // --- GESTURE LOGIC ---
+  setupSwipeGesture() {
+    if (!this.sliderKnob || !this.sliderTrack) return;
+
+    const knob = this.sliderKnob.nativeElement;
+    const track = this.sliderTrack.nativeElement;
+
+    const gesture = this.gestureCtrl.create({
+      el: knob,
+      threshold: 0,
+      gestureName: 'swipe-to-start',
+      onMove: ev => {
+        if (this.isSubmitting) return;
+        
+        const maxDelta = track.clientWidth - knob.clientWidth - 10; 
+        let deltaX = ev.deltaX;
+
+        if (deltaX < 0) deltaX = 0;
+        if (deltaX > maxDelta) deltaX = maxDelta;
+
+        this.domCtrl.write(() => {
+          knob.style.transform = `translateX(${deltaX}px)`;
+        });
+      },
+      onEnd: ev => {
+        if (this.isSubmitting) return;
+
+        const maxDelta = track.clientWidth - knob.clientWidth - 10;
+
+        if (ev.deltaX > maxDelta * 0.8) {
+          this.domCtrl.write(() => {
+            knob.style.transition = '0.3s ease-out';
+            knob.style.transform = `translateX(${maxDelta}px)`;
+            this.savePatrol(); 
+          });
+        } else {
+          this.domCtrl.write(() => {
+            knob.style.transition = '0.3s ease-out';
+            knob.style.transform = `translateX(0px)`;
+          });
+        }
+        
+        setTimeout(() => { knob.style.transition = 'none'; }, 300);
+      }
+    });
+
+    gesture.enable(true);
+  }
+
+  // --- DATA OPERATIONS ---
 
   async loadPatrolLogs() {
     const loader = await this.loadingCtrl.create({ message: 'Loading logs...', mode: 'ios' });
@@ -58,12 +115,87 @@ export class PatrolLogsPage implements OnInit {
     });
   }
 
-  viewDetails(log: any) {
-    this.selectedPatrol = log;
-    this.isDetailModalOpen = true;
-    this.mapLoading = true; // Show "being loaded" message
-    this.cdr.detectChanges();
+ async savePatrol() {
+  if (!this.selectedMethod || !this.selectedType) {
+    this.presentToast('Please select Method and Type', 'warning');
+    this.resetKnob();
+    return;
   }
+  this.isSubmitting = true; 
+  
+  const loader = await this.loadingCtrl.create({ message: 'Starting Patrol Session...', mode: 'ios' });
+  await loader.present();
+
+  // Change endpoint from '/start' to '/active' to match your controller/service logic
+  this.http.post(`${this.apiUrl}/active`, { rangerId: 1 }).subscribe({
+    next: (res: any) => {
+      loader.dismiss();
+      
+      // Store the active patrol ID for persistence
+      localStorage.setItem('active_patrol_id', res.id.toString());
+      localStorage.setItem('temp_patrol_name', `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`);
+      
+      this.isModalOpen = false;
+      this.navCtrl.navigateForward('/home/patrol-active');
+    },
+    error: (err) => {
+      loader.dismiss();
+      this.isSubmitting = false;
+      this.resetKnob();
+      console.error('Database Error:', err);
+      this.presentToast('Failed to start patrol in database', 'danger');
+    }
+  });
+}
+
+  private async processDelete(id: number) {
+    this.http.delete(`${this.apiUrl}/logs/${id}`).subscribe({
+      next: () => {
+        this.patrolLogs = this.patrolLogs.filter(log => log.id !== id);
+        this.presentToast('Log deleted', 'success');
+      },
+      error: () => this.presentToast('Delete failed', 'danger')
+    });
+  }
+
+  // --- TEMPLATE HELPERS (Fixes TS2339 Error) ---
+
+  getCategoryIcon(category: string): string {
+    const cat = category?.toLowerCase() || '';
+    if (cat.includes('animal')) return 'fas fa-paw';
+    if (cat.includes('water')) return 'fas fa-tint';
+    if (cat.includes('impact')) return 'fas fa-exclamation-triangle';
+    if (cat.includes('death')) return 'fas fa-skull';
+    if (cat.includes('felling')) return 'fas fa-tree';
+    return 'fas fa-eye';
+  }
+
+  // --- MODAL & UI CONTROL ---
+
+  setOpen(isOpen: boolean) { 
+    this.isModalOpen = isOpen; 
+    if (isOpen) {
+      setTimeout(() => this.setupSwipeGesture(), 150);
+    } else {
+      this.isSubmitting = false;
+    }
+  }
+
+  // viewDetails(log: any) {
+  //   this.selectedPatrol = log;
+  //   this.isDetailModalOpen = true;
+  //   this.mapLoading = true;
+  //   this.cdr.detectChanges();
+  // }
+
+
+  // Replace your existing viewDetails method
+viewDetails(log: any) {
+  // Navigate to the new page and pass the ID as a parameter
+  this.navCtrl.navigateForward(['/home/patrol-details'], {
+    queryParams: { id: log.id }
+  });
+}
 
   onDetailModalPresent() {
     setTimeout(() => {
@@ -80,14 +212,12 @@ export class PatrolLogsPage implements OnInit {
       this.detailMap = null;
     }
 
-    // Default center if no route exists
-    let center: L.LatLngExpression = [0, 0];
-    let coords: L.LatLngExpression[] = [];
-
+    let coords: L.LatLngTuple[] = [];
     if (this.selectedPatrol?.route && this.selectedPatrol.route.length > 0) {
-      coords = this.selectedPatrol.route.map((p: any) => [p.lat, p.lng]);
-      center = coords[0];
+      coords = this.selectedPatrol.route.map((p: any) => [p.lat, p.lng] as L.LatLngTuple);
     }
+
+    const center = coords.length > 0 ? coords[0] : [0, 0] as L.LatLngTuple;
 
     this.detailMap = L.map(mapElement, { 
       zoomControl: false,
@@ -96,18 +226,18 @@ export class PatrolLogsPage implements OnInit {
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(this.detailMap);
 
-    // DRAW POLYLINE OR MARKER
     if (coords.length > 1) {
-      const polyline = L.polyline(coords, { color: '#059669', weight: 5, opacity: 0.8 }).addTo(this.detailMap);
+      const polyline = L.polyline(coords, { color: '#059669', weight: 6, opacity: 0.8 }).addTo(this.detailMap);
       this.detailMap.fitBounds(polyline.getBounds(), { padding: [30, 30] });
-    } else if (coords.length === 1) {
-      L.marker(coords[0]).addTo(this.detailMap);
+      
+      L.circleMarker(coords[0], { color: '#3b82f6', radius: 5, fillOpacity: 1 }).addTo(this.detailMap);
+      L.circleMarker(coords[coords.length - 1], { color: '#ef4444', radius: 5, fillOpacity: 1 }).addTo(this.detailMap);
     }
 
-    this.mapLoading = false; // Hide loader text
+    this.mapLoading = false;
     
     setTimeout(() => { 
-      this.detailMap.invalidateSize(); 
+      if(this.detailMap) this.detailMap.invalidateSize(); 
       this.cdr.detectChanges();
     }, 200);
   }
@@ -116,65 +246,24 @@ export class PatrolLogsPage implements OnInit {
     event.stopPropagation();
     const alert = await this.alertCtrl.create({
       header: 'Delete Log',
-      message: 'Are you sure?',
+      message: 'Are you sure you want to delete this log?',
       buttons: [
         { text: 'Cancel', role: 'cancel' },
-        { text: 'Delete', handler: () => { this.processDelete(id); } }
+        { text: 'Delete', role: 'destructive', handler: () => { this.processDelete(id); } }
       ]
     });
     await alert.present();
   }
 
-  private async processDelete(id: number) {
-    this.http.delete(`${this.apiUrl}/logs/${id}`).subscribe({
-      next: () => {
-        this.patrolLogs = this.patrolLogs.filter(log => log.id !== id);
-        this.presentToast('Log deleted', 'success');
-      }
-    });
-  }
-
-  setOpen(isOpen: boolean) { 
-    this.isModalOpen = isOpen; 
-    if (!isOpen) this.isSubmitting = false;
-  }
-
- async savePatrol() {
-  if (!this.selectedMethod || !this.selectedType) {
-    this.presentToast('Please select Method and Type', 'warning');
-    return;
-  }
-
-  this.isSubmitting = true; 
-  const name = `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`;
-  localStorage.setItem('temp_patrol_name', name);
-
-  // --- YE WALA HISSA ADD KIYA HAI DATABASE ENTRY KE LIYE ---
-  const loader = await this.loadingCtrl.create({ message: 'Starting Patrol Session...', mode: 'ios' });
-  await loader.present();
-
-  const rangerId = 1; // Aapka default ranger ID
-  
-  // Backend ko batana ki trip shuru ho gayi hai
-  this.http.post(`${this.apiUrl}/active`, { rangerId: rangerId }).subscribe({
-    next: (res: any) => {
-      loader.dismiss();
-      console.log("Patrol Session Created ID:", res.id);
-      
-      // Session ID ko storage mein save karein backup ke liye
-      localStorage.setItem('active_patrol_id', res.id.toString());
-      
-      this.isModalOpen = false;
-      this.navCtrl.navigateForward('/home/patrol-active');
-    },
-    error: (err) => {
-      loader.dismiss();
-      this.isSubmitting = false;
-      console.error("Failed to start patrol in DB:", err);
-      this.presentToast('Database Error: Trip could not start', 'danger');
+  private resetKnob() {
+    if (this.sliderKnob) {
+      this.domCtrl.write(() => {
+        this.sliderKnob.nativeElement.style.transition = '0.3s ease-out';
+        this.sliderKnob.nativeElement.style.transform = `translateX(0px)`;
+      });
     }
-  });
-}
+    this.isSubmitting = false;
+  }
 
   async presentToast(message: string, color: string) {
     const toast = await this.toastCtrl.create({ message, duration: 2000, color, mode: 'ios' });

@@ -1,0 +1,77 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar color="success">
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon name="arrow-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Patrol Details</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content color="light">
+  <div *ngIf="patrol; else loading">
+    
+    <div class="map-container">
+      <div id="detailsMap" style="height: 250px; width: 100%;"></div>
+      <div *ngIf="mapLoading" class="map-skeleton">
+        <ion-spinner name="crescent"></ion-spinner>
+        <p>Loading Path...</p>
+      </div>
+    </div>
+
+    <div class="stats-card">
+      <ion-grid>
+        <ion-row>
+          <ion-col size="4">
+            <div class="stat-item">
+              <small>Distance</small>
+              <strong>{{ patrol.distanceKm || '0.00' }} km</strong>
+            </div>
+          </ion-col>
+          <ion-col size="4">
+            <div class="stat-item">
+              <small>Duration</small>
+              <strong>{{ patrol.duration || '--:--' }}</strong>
+            </div>
+          </ion-col>
+          <ion-col size="4">
+            <div class="stat-item">
+              <small>Date</small>
+              <strong>{{ patrol.startTime | date:'dd MMM' }}</strong>
+            </div>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+    </div>
+
+    <div class="section-title">Observations</div>
+    
+    <ion-list lines="none" class="obs-list" *ngIf="patrol.observationData?.Details?.length > 0; else noObs">
+      <ion-item *ngFor="let obs of patrol.observationData.Details" class="obs-item">
+        <div class="icon-box" slot="start">
+          <i [class]="getCategoryIcon(obs.category)"></i>
+        </div>
+        <ion-label>
+          <h3>{{ obs.species || obs.category }}</h3>
+          <p>{{ obs.sighting_type }} • {{ obs.count }} Spotted</p>
+        </ion-label>
+        <ion-note slot="end">{{ obs.timestamp | date:'HH:mm' }}</ion-note>
+      </ion-item>
+    </ion-list>
+
+    <ng-template #noObs>
+      <div class="ion-padding ion-text-center" style="color: #666;">
+        <p>No observations recorded during this patrol.</p>
+      </div>
+    </ng-template>
+
+  </div>
+
+  <ng-template #loading>
+    <div class="ion-text-center" style="margin-top: 100px;">
+      <ion-spinner name="crescent" color="success"></ion-spinner>
+      <p>Fetching Patrol Details...</p>
+    </div>
+  </ng-template>
+</ion-content>

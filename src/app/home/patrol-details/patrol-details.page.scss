@@ -1,0 +1,131 @@
+// Container for the Leaflet Map
+.map-container {
+  position: relative;
+  width: 100%;
+  height: 250px;
+  background: #e0e0e0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  #detailsMap {
+    height: 100%;
+    width: 100%;
+    z-index: 1;
+  }
+
+  .map-skeleton {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.8);
+    z-index: 2;
+    color: var(--ion-color-success);
+
+    p {
+      margin-top: 10px;
+      font-weight: 500;
+    }
+  }
+}
+
+// Stats Card with Distance, Duration, and Date
+.stats-card {
+  margin: -30px 16px 16px 16px; // Overlaps slightly with the map
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 10;
+
+  .stat-item {
+    text-align: center;
+    padding: 8px 0;
+
+    small {
+      display: block;
+      color: #737373;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    strong {
+      display: block;
+      color: var(--ion-color-dark);
+      font-size: 1rem;
+      font-weight: 700;
+    }
+  }
+}
+
+// Section Header for Observations
+.section-title {
+  padding: 0 16px;
+  margin: 20px 0 10px 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--ion-color-dark);
+}
+
+// Observation List Styling
+.obs-list {
+  background: transparent;
+  padding: 0 8px;
+
+  .obs-item {
+    --background: #ffffff;
+    --border-radius: 12px;
+    --padding-start: 12px;
+    --padding-end: 12px;
+    --inner-padding-end: 8px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+
+    .icon-box {
+      width: 40px;
+      height: 40px;
+      background: rgba(var(--ion-color-success-rgb), 0.1);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 12px;
+
+      i {
+        font-size: 1.2rem;
+        color: var(--ion-color-success);
+      }
+    }
+
+    ion-label {
+      h3 {
+        font-weight: 700;
+        color: var(--ion-color-dark);
+        margin-bottom: 4px;
+      }
+
+      p {
+        font-size: 0.85rem;
+        color: #666;
+      }
+    }
+
+    ion-note {
+      font-size: 0.8rem;
+      color: #999;
+      font-weight: 500;
+    }
+  }
+}
+
+// Styling for FontAwesome icons if used
+i {
+  display: inline-block;
+}
