@@ -1,6 +1,3 @@
-
-
-
 import { Component, OnInit, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { NavController, ToastController, AlertController, LoadingController, GestureController, DomController } from '@ionic/angular';

@@ -1,14 +1,14 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { NavController } from '@ionic/angular';
+import { NavController } from '@ionic/angular'; // FIXED: Character '軟' remove kar diya
 import * as L from 'leaflet';
 
 @Component({
   selector: 'app-patrol-details',
   templateUrl: './patrol-details.page.html',
   styleUrls: ['./patrol-details.page.scss'],
-  standalone: false
+  standalone: false // NgModule declarations ke liye ye zaroori hai
 })
 export class PatrolDetailsPage implements OnInit {
   patrolId: string | null = null;
@@ -16,7 +16,6 @@ export class PatrolDetailsPage implements OnInit {
   map!: L.Map;
   mapLoading = true;
   
-  // Adjusted URL to avoid double "/logs/logs"
   private apiUrl: string = 'https://forest-backend-pi.vercel.app/api/patrols';
 
   constructor(
@@ -27,27 +26,19 @@ export class PatrolDetailsPage implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.patrolId = this.route.snapshot.queryParamMap.get('id');
+    this.patrolId = this.route.snapshot.paramMap.get('id');
     if (this.patrolId) {
       this.loadPatrolDetails();
     }
   }
 
   loadPatrolDetails() {
-    // This will now correctly call /api/patrols/logs/106
     this.http.get(`${this.apiUrl}/logs/${this.patrolId}`).subscribe({
       next: (data: any) => { 
         this.patrol = data; 
-        console.log("Patrol Data Loaded:", this.patrol);
-        
-        // Trigger map initialization
-        setTimeout(() => {
-          this.initMap();
-        }, 500);
+        setTimeout(() => this.initMap(), 500);
       },
-      error: (err) => { 
-        console.error("Fetch Error:", err); 
-      }
+      error: (err) => console.error("Fetch Error:", err)
     });
   }
 
@@ -55,16 +46,12 @@ export class PatrolDetailsPage implements OnInit {
     const mapElement = document.getElementById('detailsMap');
     if (!mapElement || !this.patrol) return;
 
-    // Mapping route from backend JSON
     const coords: L.LatLngTuple[] = (this.patrol.route || []).map((p: any) => [p.lat, p.lng] as L.LatLngTuple);
-    
-    // Default to a fallback if no route exists
     const center = coords.length > 0 ? coords[0] : [19.95, 79.12];
 
     if (this.map) { this.map.remove(); }
 
     this.map = L.map('detailsMap', { zoomControl: false }).setView(center as L.LatLngExpression, 15);
-    
     L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { 
       subdomains: ['mt0','mt1','mt2','mt3'] 
     }).addTo(this.map);
@@ -85,6 +72,7 @@ export class PatrolDetailsPage implements OnInit {
     if (cat.includes('animal')) return 'fas fa-paw';
     if (cat.includes('water')) return 'fas fa-tint';
     if (cat.includes('felling')) return 'fas fa-tree';
+    if (cat.includes('death')) return 'fas fa-skull';
     return 'fas fa-eye';
   }
 

@@ -1,4 +1,4 @@
-<ion-header class="ion-no-border">
+<!-- <ion-header class="ion-no-border">
   <ion-toolbar color="success">
     <ion-buttons slot="start">
       <ion-button (click)="goBack()">
@@ -70,6 +70,102 @@
 
   <ng-template #loading>
     <div class="ion-text-center" style="margin-top: 100px;">
+      <ion-spinner name="crescent" color="success"></ion-spinner>
+      <p>Fetching Patrol Details...</p>
+    </div>
+  </ng-template>
+</ion-content> -->
+
+
+<ion-header class="ion-no-border">
+  <ion-toolbar color="success">
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon name="arrow-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Patrol Details</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content color="light">
+  <div *ngIf="patrol; else loading">
+    
+    <div class="map-container">
+      <div id="detailsMap"></div>
+      <div *ngIf="mapLoading" class="map-skeleton">
+        <ion-spinner name="crescent"></ion-spinner>
+        <p>Loading Path...</p>
+      </div>
+    </div>
+
+    <ion-card class="stats-card">
+      <ion-grid>
+        <ion-row>
+          <ion-col size="4">
+            <div class="stat-item">
+              <ion-icon name="navigate-circle-outline"></ion-icon>
+              <small>Distance</small>
+              <strong>{{ patrol.distanceKm || '0.00' }} km</strong>
+            </div>
+          </ion-col>
+          <ion-col size="4">
+            <div class="stat-item">
+              <ion-icon name="stopwatch-outline"></ion-icon>
+              <small>Duration</small>
+              <strong>{{ patrol.duration || '--:--' }}</strong>
+            </div>
+          </ion-col>
+          <ion-col size="4">
+            <div class="stat-item">
+              <ion-icon name="calendar-clear-outline"></ion-icon>
+              <small>Date</small>
+              <strong>{{ patrol.startTime | date:'dd MMM' }}</strong>
+            </div>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+    </ion-card>
+
+    <div class="section-title">Observations</div>
+    
+    <div *ngIf="patrol.observationData?.Details?.length > 0; else noObs">
+      <ion-card class="observation-card" *ngFor="let obs of patrol.observationData.Details">
+        <ion-card-content>
+          <div class="card-top">
+            <div class="category-info">
+              <div class="icon-circle">
+                <i [class]="getCategoryIcon(obs.category)"></i>
+              </div>
+              <span class="category-name">{{ obs.category }}</span>
+            </div>
+            <span class="obs-time">{{ obs.timestamp | date:'HH:mm' }}</span>
+          </div>
+
+          <div class="card-bottom">
+            <div class="main-info">
+              <h3>{{ obs.species || obs.category }}</h3>
+              <p>{{ obs.sighting_type }}</p>
+            </div>
+            <div class="count-box">
+              <span class="count-value">{{ obs.count }}</span>
+              <span class="count-label">Spotted</span>
+            </div>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <ng-template #noObs>
+      <div class="empty-state">
+        <p>No observations recorded during this patrol.</p>
+      </div>
+    </ng-template>
+
+  </div>
+
+  <ng-template #loading>
+    <div class="loading-container">
       <ion-spinner name="crescent" color="success"></ion-spinner>
       <p>Fetching Patrol Details...</p>
     </div>
