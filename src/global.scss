@@ -133,3 +133,55 @@ ion-label, .label-stacked, .label-floating {
 .action-sheet-button-inner {
   color: #000000 !important; /* Options ka text black karne ke liye */
 }
+
+/* Custom Verification Alert Styling */
+.custom-verification-alert {
+  --background: #ffffff;
+  --border-radius: 16px;
+  
+  /* Container styling */
+  .alert-wrapper {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    padding: 10px;
+  }
+
+  /* Title: "Alert" */
+  .alert-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #333333;
+    text-align: center;
+    margin-top: 15px;
+  }
+
+  /* Message: "User already Registered" */
+  .alert-message {
+    font-size: 16px;
+    color: #666666;
+    text-align: center;
+    padding: 10px 20px 20px 20px;
+  }
+
+  /* The Purple Button */
+  .alert-button-group {
+    padding: 0 20px 15px 20px;
+    justify-content: center;
+  }
+
+  .alert-button-purple {
+    background: #1b6e34 !important; /* Premium Purple */
+    color: #ffffff !important;
+    width: 100%;
+    height: 48px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 0;
+    
+    .button-inner {
+      justify-content: center;
+    }
+  }
+}

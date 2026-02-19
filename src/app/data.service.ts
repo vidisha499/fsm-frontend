@@ -170,4 +170,15 @@ getSelectedIncident() {
   saveSighting(payload: any) {
   return this.http.post(`${this.baseApiUrl}/patrols/sightings`, payload);
 }
+
+// DataService ke andar ye function add karein
+verifyCompanyUser(phone: string) {
+  // Isse URL banega: https://forest-backend-pi.vercel.app/api/company-user/verify-mobile
+  return this.http.post(`${this.baseApiUrl}/company-user/verify-mobile`, { phone });
+}
+
+checkUserExists(mobile: string) {
+  // This calls your backend to see if the ranger already exists
+  return this.http.get(`${this.baseApiUrl}/rangers/check/${mobile}`);
+}
 }

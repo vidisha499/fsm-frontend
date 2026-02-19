@@ -1,0 +1,68 @@
+<ion-content class="enroll-content">
+  <div class="bg-image-wrapper"></div>
+  <div class="dark-overlay"></div>
+
+  <div class="center-wrapper">
+    <div class="enroll-card signup-scroll-box">
+      <h2 class="form-title">Ranger <span class="highlight">Registration</span></h2>
+
+      <div class="photo-uploader" (click)="captureImage()">
+        <img [src]="profileImage" *ngIf="profileImage">
+        <div class="placeholder" *ngIf="!profileImage">
+          <i class="fas fa-camera"></i>
+          <span>Add Photo</span>
+        </div>
+      </div>
+
+      <div class="input-row">
+        <div class="input-group">
+          <label>FIRST NAME</label>
+          <div class="field"><input [(ngModel)]="firstName" type="text"></div>
+        </div>
+        <div class="input-group">
+          <label>SURNAME</label>
+          <div class="field"><input [(ngModel)]="lastName" type="text"></div>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>VERIFIED MOBILE NUMBER</label>
+        <div class="field">
+          <i class="fas fa-phone-alt"></i>
+          <input [(ngModel)]="mobile" type="text" readonly style="opacity: 0.8;">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>DATE OF BIRTH</label>
+        <div class="field"><input [(ngModel)]="dob" type="date"></div>
+      </div>
+
+      <div class="input-group">
+        <label>EMAIL ID</label>
+        <div class="field"><i class="fas fa-envelope"></i><input [(ngModel)]="email" type="email"></div>
+      </div>
+
+      <div class="input-group">
+        <label>FULL ADDRESS</label>
+        <div class="field"><i class="fas fa-map-pin"></i><textarea [(ngModel)]="address" rows="2"></textarea></div>
+      </div>
+
+      <div class="input-group">
+        <label>NEW PASSWORD</label>
+        <div class="field"><i class="fas fa-key"></i><input [(ngModel)]="password" type="password" placeholder="••••••">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>CONFIRM PASSWORD</label>
+        <div class="field"><i class="fas fa-lock"></i><input [(ngModel)]="confirmPassword" type="password"
+            placeholder="••••••"></div>
+      </div>
+
+      <button class="verify-btn" (click)="onSignup()">
+        SIGNUP NOW <i class="fas fa-user-check"></i>
+      </button>
+    </div>
+  </div>
+</ion-content>

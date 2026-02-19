@@ -35,6 +35,7 @@ isSubmitting: boolean = false;
   rangerDivision: string = 'Washim Division 4.2';
   rangerPhone: string = '';
   rangerPassword: string = '';
+ 
   // Navigation Logic
   
 
@@ -114,58 +115,107 @@ isSubmitting: boolean = false;
   await actionSheet.present();
 }
 
+// async captureProfileImage(source: CameraSource) {
+//   try {
+//     const image = await Camera.getPhoto({
+//       quality: 90,
+//       allowEditing: true,
+//       resultType: CameraResultType.Base64,
+//       source: source 
+//     });
+
+//     if (image.base64String) {
+//       // 1. Start the loading state (Starts the slider animation)
+//       this.isSubmitting = true; 
+      
+//       // 2. Update UI immediately for instant feedback
+//       this.profileImage = `data:image/jpeg;base64,${image.base64String}`;
+//       this.cdr.detectChanges();
+      
+//       // 3. Prepare data for Sync
+//       const rId = this.dataService.getRangerId();
+//       if (!rId) {
+//         this.isSubmitting = false; // Reset slider if error
+//         this.showToast('Error: Ranger ID not found');
+//         return;
+//       }
+
+//       const updatedData = {
+//         id: +rId,
+//         profilePic: image.base64String 
+//       };
+
+//       // 4. Sync to Database
+//       this.dataService.updateRanger(updatedData).subscribe({
+//         next: () => {
+//           // Success: Keep the slider at the end for 1.5 seconds then reset
+//           setTimeout(() => {
+//             this.isSubmitting = false;
+//             this.showToast('Profile picture synced successfully');
+//           }, 1500);
+//         },
+//         error: (err) => {
+//           console.error('DB Update Error:', err);
+//           this.isSubmitting = false; // Reset slider so they can try again
+//           this.showToast('Failed to save photo to database');
+//         }
+//       });
+//     }
+//   } catch (error) {
+//     // If the user simply closes the camera/gallery without picking a photo
+//     this.isSubmitting = false; 
+//     console.warn('User cancelled photo selection');
+//   }
+// }
+
+
 async captureProfileImage(source: CameraSource) {
-  try {
-    const image = await Camera.getPhoto({
-      quality: 90,
-      allowEditing: true,
-      resultType: CameraResultType.Base64,
-      source: source 
-    });
-
-    if (image.base64String) {
-      // 1. Start the loading state (Starts the slider animation)
-      this.isSubmitting = true; 
-      
-      // 2. Update UI immediately for instant feedback
-      this.profileImage = `data:image/jpeg;base64,${image.base64String}`;
-      this.cdr.detectChanges();
-      
-      // 3. Prepare data for Sync
-      const rId = this.dataService.getRangerId();
-      if (!rId) {
-        this.isSubmitting = false; // Reset slider if error
-        this.showToast('Error: Ranger ID not found');
-        return;
-      }
-
-      const updatedData = {
-        id: +rId,
-        profilePic: image.base64String 
-      };
-
-      // 4. Sync to Database
-      this.dataService.updateRanger(updatedData).subscribe({
-        next: () => {
-          // Success: Keep the slider at the end for 1.5 seconds then reset
-          setTimeout(() => {
-            this.isSubmitting = false;
-            this.showToast('Profile picture synced successfully');
-          }, 1500);
-        },
-        error: (err) => {
-          console.error('DB Update Error:', err);
-          this.isSubmitting = false; // Reset slider so they can try again
-          this.showToast('Failed to save photo to database');
-        }
+    try {
+      const image = await Camera.getPhoto({
+        quality: 60, // Optimized for Vercel body limits
+        allowEditing: true,
+        resultType: CameraResultType.Base64,
+        source: source 
       });
+
+      if (image.base64String) {
+        this.isSubmitting = true; 
+        
+        // Update UI immediately
+        this.profileImage = `data:image/jpeg;base64,${image.base64String}`;
+        this.cdr.detectChanges();
+        
+        const rId = this.dataService.getRangerId();
+        if (!rId) {
+          this.isSubmitting = false;
+          this.showToast('Error: Ranger ID not found');
+          return;
+        }
+
+        // KEY FIX: Matching your DB schema 'profile_pic'
+        const updatedData = {
+          id: +rId,
+          profile_pic: image.base64String 
+        };
+
+        this.dataService.updateRanger(updatedData).subscribe({
+          next: () => {
+            setTimeout(() => {
+              this.isSubmitting = false;
+              this.showToast('Profile photo updated successfully');
+            }, 1500);
+          },
+          error: (err) => {
+            console.error('DB Update Error:', err);
+            this.isSubmitting = false;
+            this.showToast('Failed to save photo');
+          }
+        });
+      }
+    } catch (error) {
+      this.isSubmitting = false; 
     }
-  } catch (error) {
-    // If the user simply closes the camera/gallery without picking a photo
-    this.isSubmitting = false; 
-    console.warn('User cancelled photo selection');
   }
-}
   
 onDragStart(event: TouchEvent) {
   if (this.isSubmitting || !this.isEditMode) return;
@@ -213,36 +263,72 @@ toggleEdit() {
     this.isEditMode = !this.isEditMode;
   }
 
+// ionViewWillEnter() {
+//   this.translate.onLangChange.subscribe(() => {
+//     this.cdr.detectChanges(); 
+//   });
+
+//   const currentRangerId = this.dataService.getRangerId();
+//   if (currentRangerId) {
+//     this.dataService.getRangerProfile(currentRangerId).subscribe({
+//       next: (profile: any) => {
+//         this.rangerId = profile.id;
+//         this.rangerName = profile.username;
+//         this.rangerPhone = profile.phoneNo;
+//         // ✅ ADD THESE: So they don't reset on refresh
+//         this.rangerDivision = profile.division || 'Washim Division 4.2';
+        
+//         // Update LocalStorage
+//         localStorage.setItem('ranger_username', profile.username);
+//         localStorage.setItem('ranger_phone', profile.phoneNo);
+        
+//         this.cdr.detectChanges();
+
+//         if (profile.profile_pic) {
+//       this.profileImage = `data:image/jpeg;base64,${profile.profile_pic}`;
+//     }
+//       },
+//       error: (err) => console.error('Vercel Profile Load Error:', err)
+//     });
+//   }
+//   this.loadRangerData();
+// }
+
+
 ionViewWillEnter() {
-  this.translate.onLangChange.subscribe(() => {
-    this.cdr.detectChanges(); 
-  });
-
-  const currentRangerId = this.dataService.getRangerId();
-  if (currentRangerId) {
-    this.dataService.getRangerProfile(currentRangerId).subscribe({
-      next: (profile: any) => {
-        this.rangerId = profile.id;
-        this.rangerName = profile.username;
-        this.rangerPhone = profile.phoneNo;
-        // ✅ ADD THESE: So they don't reset on refresh
-        this.rangerDivision = profile.division || 'Washim Division 4.2';
-        
-        // Update LocalStorage
-        localStorage.setItem('ranger_username', profile.username);
-        localStorage.setItem('ranger_phone', profile.phoneNo);
-        
-        this.cdr.detectChanges();
-
-        if (profile.profile_pic) {
-      this.profileImage = `data:image/jpeg;base64,${profile.profile_pic}`;
-    }
-      },
-      error: (err) => console.error('Vercel Profile Load Error:', err)
+    this.translate.onLangChange.subscribe(() => {
+      this.cdr.detectChanges(); 
     });
+
+    const currentRangerId = this.dataService.getRangerId();
+    if (currentRangerId) {
+      this.dataService.getRangerProfile(currentRangerId).subscribe({
+        next: (profile: any) => {
+          this.rangerId = profile.id;
+          // KEY FIX: Using the exact column names from your DB screenshot
+          this.rangerName = profile.username; 
+          // this.rangerPhone = profile.phone_no; 
+          this.rangerPhone = profile.phone_no || profile.phoneNo || '';
+          this.rangerDivision = profile.division || 'Washim Division 4.2';
+          
+          if (profile.profile_pic) {
+            // Check if it already has the data prefix
+            this.profileImage = profile.profile_pic.includes('data:image') 
+              ? profile.profile_pic 
+              : `data:image/jpeg;base64,${profile.profile_pic}`;
+          }
+
+          localStorage.setItem('ranger_username', this.rangerName);
+          localStorage.setItem('ranger_phone', this.rangerPhone);
+          
+          this.cdr.detectChanges();
+        },
+        error: (err) => console.error('Vercel Profile Load Error:', err)
+      });
+    }
+    this.loadRangerData();
   }
-  this.loadRangerData();
-}
+
 
   loadRangerData() {
     this.rangerId = localStorage.getItem('ranger_id') || '';
@@ -311,69 +397,131 @@ ionViewWillEnter() {
 
 
 
+// async updateProtocol() {
+//   const rId = this.dataService.getRangerId();
+  
+//   if (!rId) {
+//     this.showToast('Error: Ranger ID not found. Please log in again.');
+//     // Reset slider if it was accidentally slid
+//     this.currentTranslateX = 0;
+//     this.textOpacity = 1;
+//     this.cdr.detectChanges();
+//     return;
+//   }
+
+//   // 1. Lock the UI and the Slider Position
+//   this.isSubmitting = true; 
+//   this.textOpacity = 0; // Hide 'UPDATE' text
+  
+//   // Calculate maxSlide to ensure the handle stays at the far right
+//   const container = document.querySelector('.slider-track');
+//   if (container) {
+//     this.maxSlide = container.clientWidth - 64; 
+//   }
+//   this.currentTranslateX = this.maxSlide; 
+//   this.cdr.detectChanges();
+
+//   const updatedData = {
+//     id: +rId,
+//     name: this.rangerName,
+//     phone: this.rangerPhone,
+//     password: this.rangerPassword,
+//     profilePic: this.profileImage.includes('base64') ? this.profileImage.split(',')[1] : null
+//   };
+
+//   this.dataService.updateRanger(updatedData).subscribe({
+//     next: async (res: any) => {
+//       // 2. Success logic
+//       localStorage.setItem('ranger_username', this.rangerName);
+//       localStorage.setItem('ranger_phone', this.rangerPhone);
+
+//       // Keep slider at the end (Green + Checkmark visible) for 1.5 seconds
+//       setTimeout(async () => {
+//         this.isSubmitting = false; // Triggers the slide back animation
+//         this.isEditMode = false;   // Lock the input fields
+//         this.currentTranslateX = 0; // Reset position for next time
+//         this.textOpacity = 1;
+        
+//         const msg = await this.translate.get('SETTINGS.UPDATE_SUCCESS').toPromise();
+//         this.showToast(msg || 'Updated Successfully');
+        
+//         this.rangerPassword = '';
+//         this.cdr.detectChanges();
+//       }, 1500);
+//     },
+//     error: async (err) => {
+//       // 3. Error: Snap back immediately so user can try again
+//       this.isSubmitting = false;
+//       this.currentTranslateX = 0;
+//       this.textOpacity = 1;
+//       console.error("Update Error:", err);
+//       this.showToast('Update failed. Check connection.');
+//       this.cdr.detectChanges();
+//     }
+//   });
+// }
+
+
+
 async updateProtocol() {
-  const rId = this.dataService.getRangerId();
-  
-  if (!rId) {
-    this.showToast('Error: Ranger ID not found. Please log in again.');
-    // Reset slider if it was accidentally slid
-    this.currentTranslateX = 0;
-    this.textOpacity = 1;
-    this.cdr.detectChanges();
-    return;
-  }
-
-  // 1. Lock the UI and the Slider Position
-  this.isSubmitting = true; 
-  this.textOpacity = 0; // Hide 'UPDATE' text
-  
-  // Calculate maxSlide to ensure the handle stays at the far right
-  const container = document.querySelector('.slider-track');
-  if (container) {
-    this.maxSlide = container.clientWidth - 64; 
-  }
-  this.currentTranslateX = this.maxSlide; 
-  this.cdr.detectChanges();
-
-  const updatedData = {
-    id: +rId,
-    name: this.rangerName,
-    phone: this.rangerPhone,
-    password: this.rangerPassword,
-    profilePic: this.profileImage.includes('base64') ? this.profileImage.split(',')[1] : null
-  };
-
-  this.dataService.updateRanger(updatedData).subscribe({
-    next: async (res: any) => {
-      // 2. Success logic
-      localStorage.setItem('ranger_username', this.rangerName);
-      localStorage.setItem('ranger_phone', this.rangerPhone);
-
-      // Keep slider at the end (Green + Checkmark visible) for 1.5 seconds
-      setTimeout(async () => {
-        this.isSubmitting = false; // Triggers the slide back animation
-        this.isEditMode = false;   // Lock the input fields
-        this.currentTranslateX = 0; // Reset position for next time
-        this.textOpacity = 1;
-        
-        const msg = await this.translate.get('SETTINGS.UPDATE_SUCCESS').toPromise();
-        this.showToast(msg || 'Updated Successfully');
-        
-        this.rangerPassword = '';
-        this.cdr.detectChanges();
-      }, 1500);
-    },
-    error: async (err) => {
-      // 3. Error: Snap back immediately so user can try again
-      this.isSubmitting = false;
+    const rId = this.dataService.getRangerId();
+    
+    if (!rId) {
+      this.showToast('Error: Ranger ID not found.');
       this.currentTranslateX = 0;
       this.textOpacity = 1;
-      console.error("Update Error:", err);
-      this.showToast('Update failed. Check connection.');
       this.cdr.detectChanges();
+      return;
     }
-  });
-}
+
+    this.isSubmitting = true; 
+    this.textOpacity = 0; 
+    
+    const container = document.querySelector('.slider-track');
+    if (container) {
+      this.maxSlide = container.clientWidth - 64; 
+    }
+    this.currentTranslateX = this.maxSlide; 
+    this.cdr.detectChanges();
+
+    // KEY FIX: Mapping frontend variables to correct DB column names
+    const updatedData = {
+      id: +rId,
+      username: this.rangerName,     // DB: username
+      phone_no: this.rangerPhone, 
+         // DB: phone_no
+      password: this.rangerPassword, // Only send if not empty
+      profile_pic: this.profileImage.includes('base64') ? this.profileImage.split(',')[1] : null
+    };
+
+    this.dataService.updateRanger(updatedData).subscribe({
+      next: async (res: any) => {
+        localStorage.setItem('ranger_username', this.rangerName);
+        localStorage.setItem('ranger_phone', this.rangerPhone);
+
+        setTimeout(async () => {
+          this.isSubmitting = false; 
+          this.isEditMode = false;   
+          this.currentTranslateX = 0; 
+          this.textOpacity = 1;
+          
+          const msg = await this.translate.get('SETTINGS.UPDATE_SUCCESS').toPromise();
+          this.showToast(msg || 'Profile Protocol Updated');
+          
+          this.rangerPassword = '';
+          this.cdr.detectChanges();
+        }, 1500);
+      },
+      error: (err) => {
+        this.isSubmitting = false;
+        this.currentTranslateX = 0;
+        this.textOpacity = 1;
+        this.showToast('Update failed. Check your network.');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
 
   async updateRangerProfile() {
     const loader = await this.loadingController.create({

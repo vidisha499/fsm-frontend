@@ -1,4 +1,4 @@
-<ion-content [fullscreen]="true" class="enroll-content" scrollY="false">
+<!-- <ion-content [fullscreen]="true" class="enroll-content" scrollY="false">
   <div class="background-image"></div>
   <div class="vignette-overlay"></div>
 
@@ -55,6 +55,49 @@
       <div class="login-redirect">
         ALREADY A RANGER? <a (click)="navToLogin()">LOG IN</a>
       </div>
+    </div>
+  </div>
+</ion-content> -->
+
+
+
+<ion-content class="enroll-content" scroll-y="false">
+  <div class="bg-image-wrapper"></div>
+  <div class="dark-overlay"></div>
+
+  <div class="center-wrapper">
+    <div class="enroll-card">
+      <div class="back-nav" (click)="navToLogin()">
+        <i class="fas fa-arrow-left"></i> <span>BACK</span>
+      </div>
+
+      <div class="header-section">
+        <h2 class="form-title">Verify <span class="highlight">Mobile Number</span></h2>
+        <!-- <p class="form-subtitle">Enter your registered mobile number to continue</p> -->
+      </div>
+      
+      <div class="input-group">
+        <!-- <label>MOBILE NUMBER</label> -->
+        <div class="field">
+          <i class="fas fa-phone-alt"></i>
+          <!-- <input type="tel" [(ngModel)]="ranger.phone" placeholder="Enter Mobile Number">
+            -->
+          <input 
+  type="tel" 
+  [(ngModel)]="ranger.phone" 
+  placeholder="Enter Mobile Number"
+  inputmode="numeric" 
+  pattern="[0-9]*"
+  maxlength="10"
+  (keypress)="onlyNumbers($event)">
+        </div>
+      </div>
+
+      <button class="verify-btn" (click)="onVerifyMobile()">
+        VERIFY & PROCEED <i class="fas fa-chevron-right"></i>
+      </button>
+
+      <div class="footer-note">PUGARCH FSM SECURITY</div>
     </div>
   </div>
 </ion-content>

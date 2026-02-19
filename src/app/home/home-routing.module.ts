@@ -50,6 +50,10 @@ const routes: Routes = [
     path: 'patrol-details',
     loadChildren: () => import('./patrol-details/patrol-details.module').then( m => m.PatrolDetailsPageModule)
   },
+  {
+    path: 'signup-details',
+    loadChildren: () => import('./signup-details/signup-details.module').then( m => m.SignupDetailsPageModule)
+  },
 
  
  

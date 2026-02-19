@@ -62,6 +62,7 @@ import { environment } from '../environments/environment';
 export function HttpLoaderFactory(http: HttpClient) {
   // Use environment.apiUrl but add the specific route for translations
   return new TranslateHttpLoader(http, `${environment.apiUrl}/translations/`, '.json');
+  // return new TranslateHttpLoader(http, './assets/i18n/', '.json');
 }
 
 export function appInitializerFactory(translate: TranslateService) {
