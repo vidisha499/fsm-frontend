@@ -3,7 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { HttpClient } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
-import { NavController, ToastController, LoadingController } from '@ionic/angular';
+import { NavController, ToastController, LoadingController,  } from '@ionic/angular';
 
 @Component({
   selector: 'app-signup-details',
@@ -22,7 +22,11 @@ export class SignupDetailsPage implements OnInit {
   address: string = ''; 
   password: string = '';
   confirmPassword: string = '';
+ passwordType: string = 'password';
+passwordIcon: string = 'eye-off'; // Ionic default icon name
 
+confirmPasswordType: string = 'password';
+confirmPasswordIcon: string = 'eye-off';
   constructor(
     private route: ActivatedRoute,
     private http: HttpClient,
@@ -64,6 +68,16 @@ export class SignupDetailsPage implements OnInit {
     }
   });
   }
+
+  togglePassword(field: string) {
+  if (field === 'pw') {
+    this.passwordType = this.passwordType === 'password' ? 'text' : 'password';
+    this.passwordIcon = this.passwordIcon === 'eye-off' ? 'eye' : 'eye-off';
+  } else {
+    this.confirmPasswordType = this.confirmPasswordType === 'password' ? 'text' : 'password';
+    this.confirmPasswordIcon = this.confirmPasswordIcon === 'eye-off' ? 'eye' : 'eye-off';
+  }
+}
 
   /**
    * Captures a profile photo using the device camera.
@@ -164,5 +178,9 @@ export class SignupDetailsPage implements OnInit {
       buttons: [{ text: 'OK', role: 'cancel' }]
     });
     t.present();
+  }
+
+  navToLogin() {
+    this.navCtrl.navigateBack('/login'); 
   }
 }

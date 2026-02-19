@@ -1,68 +1,107 @@
-<ion-content class="enroll-content">
-  <div class="bg-image-wrapper"></div>
-  <div class="dark-overlay"></div>
+<ion-content [fullscreen]="true" class="premium-wrapper">
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
 
-  <div class="center-wrapper">
-    <div class="enroll-card signup-scroll-box">
-      <h2 class="form-title">Ranger <span class="highlight">Registration</span></h2>
+  <div class="hero-header">
+    <div class="header-overlay"></div>
+    <div class="header-content">
+      <div class="nav-bar">
+        <div class="left-section">
+          <button (click)="navToLogin()" class="glass-btn">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <h1>Ranger <span>Registration</span></h1>
+        </div>
+      </div>
+    </div>
+  </div>
 
-      <div class="photo-uploader" (click)="captureImage()">
-        <img [src]="profileImage" *ngIf="profileImage">
-        <div class="placeholder" *ngIf="!profileImage">
-          <i class="fas fa-camera"></i>
-          <span>Add Photo</span>
+  <div class="card-container">
+    <div class="main-card">
+      
+      <div class="scanner-section">
+        <div class="camera-frame" (click)="captureImage()">
+          <div class="corners-bold">
+            <span class="t-l"></span><span class="t-r"></span>
+            <span class="b-l"></span><span class="b-r"></span>
+          </div>
+          <div class="scanner-inner" [style.background-image]="profileImage ? 'url(' + profileImage + ')' : ''">
+            <div class="scan-line" *ngIf="!profileImage"></div>
+            <div *ngIf="!profileImage" class="placeholder-content">
+              <i class="fas fa-camera main-cam-icon"></i>
+              <span class="cam-text">ADD PHOTO</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="input-row">
-        <div class="input-group">
-          <label>FIRST NAME</label>
-          <div class="field"><input [(ngModel)]="firstName" type="text"></div>
+      <div class="form-grid">
+        <div class="input-row">
+          <div class="input-pill half">
+            <label>FIRST NAME</label>
+            <div class="pill-content">
+              <input [(ngModel)]="firstName" type="text" placeholder="First Name">
+            </div>
+          </div>
+          <div class="input-pill half">
+            <label>SURNAME</label>
+            <div class="pill-content">
+              <input [(ngModel)]="lastName" type="text" placeholder="Surname">
+            </div>
+          </div>
         </div>
-        <div class="input-group">
-          <label>SURNAME</label>
-          <div class="field"><input [(ngModel)]="lastName" type="text"></div>
+
+        <div class="input-pill">
+          <label>MOBILE NUMBER</label>
+          <div class="pill-content">
+            <i class="fas fa-phone-alt"></i>
+            <input [(ngModel)]="mobile" type="text" readonly class="readonly">
+          </div>
         </div>
-      </div>
 
-      <div class="input-group">
-        <label>VERIFIED MOBILE NUMBER</label>
-        <div class="field">
-          <i class="fas fa-phone-alt"></i>
-          <input [(ngModel)]="mobile" type="text" readonly style="opacity: 0.8;">
+        <div class="input-pill">
+          <label>DATE OF BIRTH</label>
+          <div class="pill-content">
+            <i class="fas fa-calendar-alt"></i>
+            <input [(ngModel)]="dob" type="date">
+          </div>
         </div>
-      </div>
 
-      <div class="input-group">
-        <label>DATE OF BIRTH</label>
-        <div class="field"><input [(ngModel)]="dob" type="date"></div>
-      </div>
-
-      <div class="input-group">
-        <label>EMAIL ID</label>
-        <div class="field"><i class="fas fa-envelope"></i><input [(ngModel)]="email" type="email"></div>
-      </div>
-
-      <div class="input-group">
-        <label>FULL ADDRESS</label>
-        <div class="field"><i class="fas fa-map-pin"></i><textarea [(ngModel)]="address" rows="2"></textarea></div>
-      </div>
-
-      <div class="input-group">
-        <label>NEW PASSWORD</label>
-        <div class="field"><i class="fas fa-key"></i><input [(ngModel)]="password" type="password" placeholder="••••••">
+        <div class="input-pill">
+          <label>EMAIL ID</label>
+          <div class="pill-content">
+            <i class="fas fa-envelope"></i>
+            <input [(ngModel)]="email" type="email" placeholder="email@example.com">
+          </div>
         </div>
-      </div>
 
-      <div class="input-group">
-        <label>CONFIRM PASSWORD</label>
-        <div class="field"><i class="fas fa-lock"></i><input [(ngModel)]="confirmPassword" type="password"
-            placeholder="••••••"></div>
-      </div>
+        <div class="input-pill">
+          <label>NEW PASSWORD</label>
+          <div class="pill-content">
+            <i class="fas fa-lock"></i>
+            <input [type]="passwordType" [(ngModel)]="password" placeholder="••••••••">
+            <ion-icon [name]="passwordIcon" (click)="togglePassword('pw')" class="toggle-eye"></ion-icon>
+          </div>
+        </div>
 
-      <button class="verify-btn" (click)="onSignup()">
-        SIGNUP NOW <i class="fas fa-user-check"></i>
-      </button>
+        <div class="input-pill">
+          <label>CONFIRM PASSWORD</label>
+          <div class="pill-content">
+            <i class="fas fa-shield-alt"></i>
+            <input [type]="confirmPasswordType" [(ngModel)]="confirmPassword" placeholder="••••••••">
+            <ion-icon [name]="confirmPasswordIcon" (click)="togglePassword('cpw')" class="toggle-eye"></ion-icon>
+          </div>
+        </div>
+
+        <button class="mark-btn" (click)="onSignup()">
+          <span class="btn-text">SIGNUP NOW</span>
+          <div class="btn-check">
+            <i class="fas fa-chevron-right"></i>
+          </div>
+        </button>
+      </div>
+      
+      <div class="bottom-spacer"></div>
     </div>
   </div>
 </ion-content>

@@ -76,7 +76,7 @@ private maxSlide: number = 0;
 
       const pos = await Geolocation.getCurrentPosition({ 
         enableHighAccuracy: true,
-        timeout: 15000 
+        timeout: 120000 
       });
       
       this.currentLat = pos.coords.latitude;

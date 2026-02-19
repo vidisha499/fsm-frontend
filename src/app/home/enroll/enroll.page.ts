@@ -142,18 +142,36 @@ async onVerifyMobile() {
 }
 
 // ✅ Add this helper function to create the specific Alert style
+// async showCustomAlert(header: string, message: string) {
+//   const alert = await this.alertController.create({
+//     header: header,
+//     message: message,
+//     buttons: [
+//       {
+//         text: 'OK',
+//         role: 'confirm',
+//         cssClass: 'alert-button-purple', // We will style this in global.scss
+//       },
+//     ],
+//     mode: 'ios', // Matches the clean look in your screenshot
+//     cssClass: 'custom-verification-alert'
+//   });
+
+//   await alert.present();
+// }
+
 async showCustomAlert(header: string, message: string) {
   const alert = await this.alertController.create({
     header: header,
-    message: message,
+    message: message, // 👈 Sirf plain text rakhein yahan
     buttons: [
       {
         text: 'OK',
         role: 'confirm',
-        cssClass: 'alert-button-purple', // We will style this in global.scss
+        cssClass: 'alert-button-purple', 
       },
     ],
-    mode: 'ios', // Matches the clean look in your screenshot
+    mode: 'ios', 
     cssClass: 'custom-verification-alert'
   });
 

@@ -360,8 +360,8 @@
                     <label>{{ 'SETTINGS.LABEL_CURR_PASS' | translate }}</label>
                     <div class="pill-content">
                         <i class="fas fa-lock"></i>
-                        <input [type]="showPassword ? 'text' : 'password'" [readonly]="!isEditMode" placeholder="Enter Current Pin">
-                        <i *ngIf="isEditMode" class="fas" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword" 
+                        <input [type]="showPassword ? 'text' : 'password'" [(ngModel)]="currentPassword"  [readonly]="!isEditMode" (click)="togglePasswordVisibility() " placeholder="Enter Current Pin">
+                        <i *ngIf="isEditMode"  class="fas" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword" 
                            (click)="showPassword = !showPassword" style="cursor: pointer; opacity: 0.6;"></i>
                     </div>
                 </div>
@@ -370,7 +370,7 @@
                     <label>{{ 'SETTINGS.LABEL_NEW_KEY' | translate }}</label>
                     <div class="pill-content">
                         <i class="fas fa-shield-alt"></i>
-                        <input [type]="showNewPassword ? 'text' : 'password'" [(ngModel)]="rangerPassword" [readonly]="!isEditMode"
+                        <input [type]="showNewPassword ? 'text' : 'password'" [(ngModel)]="rangerPassword" [readonly]="!isEditMode" (click)="togglePasswordVisibility() "
                                [placeholder]="'SETTINGS.PH_NEW_KEY' | translate">
                         <i *ngIf="isEditMode" class="fas" [class.fa-eye]="!showNewPassword" [class.fa-eye-slash]="showNewPassword" 
                            (click)="showNewPassword = !showNewPassword" style="cursor: pointer; opacity: 0.6;"></i>
