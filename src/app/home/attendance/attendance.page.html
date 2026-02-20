@@ -50,13 +50,20 @@
     {{ capturedPhoto ? 'Identity Verified' : 'Scan identity to proceed' }}
   </p>
 </div>
-
+<!-- 
       <div class="map-wrapper">
         <label class="group-label">{{ 'ATTENDANCE.LIVE_TRACKING' | translate }}</label>
         <div class="map-container">
           <capacitor-google-map #map id="map"></capacitor-google-map>
         </div>
-      </div>
+      </div> -->
+
+      <div class="map-wrapper">
+  <label class="group-label">{{ 'ATTENDANCE.LIVE_TRACKING' | translate }}</label>
+  <div class="map-container">
+    <capacitor-google-map #map id="map"></capacitor-google-map>
+  </div>
+</div>
 
 
         

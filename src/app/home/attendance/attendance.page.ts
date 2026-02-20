@@ -69,50 +69,129 @@ private maxSlide: number = 0;
     await this.initMapAndTracking();
   }
 
-  async initMapAndTracking() {
-    try {
-      const permissions = await Geolocation.checkPermissions();
-      if (permissions.location !== 'granted') await Geolocation.requestPermissions();
+  // async initMapAndTracking() {
+  //   try {
+  //     const permissions = await Geolocation.checkPermissions();
+  //     if (permissions.location !== 'granted') await Geolocation.requestPermissions();
 
-      const pos = await Geolocation.getCurrentPosition({ 
-        enableHighAccuracy: true,
-        timeout: 120000 
-      });
+  //     const pos = await Geolocation.getCurrentPosition({ 
+  //       enableHighAccuracy: true,
+  //       timeout: 120000 
+  //     });
       
-      this.currentLat = pos.coords.latitude;
-      this.currentLng = pos.coords.longitude;
+  //     this.currentLat = pos.coords.latitude;
+  //     this.currentLng = pos.coords.longitude;
 
-      await this.createMap();
-      this.startLocationWatch();
-      // Wait a bit to ensure GPS is stable before geocoding
-      setTimeout(() => this.updateAddress(this.currentLat, this.currentLng), 1000);
-    } catch (e) {
-      this.presentToast('Please enable GPS and permissions', 'warning');
+  //     await this.createMap();
+  //     this.startLocationWatch();
+  //     // Wait a bit to ensure GPS is stable before geocoding
+  //     setTimeout(() => this.updateAddress(this.currentLat, this.currentLng), 1000);
+  //   } catch (e) {
+  //     this.presentToast('Please enable GPS and permissions', 'warning');
+  //   }
+  // }
+
+  // async createMap() {
+  //   if (!this.mapRef) return;
+  //   this.newMap = await GoogleMap.create({
+  //     id: 'attendance-map-unique',
+  //     element: this.mapRef.nativeElement,
+  //     apiKey: this.googleApiKey,
+  //     config: { center: { lat: this.currentLat, lng: this.currentLng }, zoom: 17 },
+  //   });
+  //   this.updateMarker();
+  // }
+
+  // async startLocationWatch() {
+  //   this.watchId = await Geolocation.watchPosition({ 
+  //       enableHighAccuracy: true, 
+  //       timeout: 10000 
+  //   }, (pos) => {
+  //     if (pos) {
+  //       this.currentLat = pos.coords.latitude;
+  //       this.currentLng = pos.coords.longitude;
+  //       this.updateMarker();
+  //     }
+  //   });
+  // }
+
+async initMapAndTracking() {
+  try {
+    const permissions = await Geolocation.checkPermissions();
+    if (permissions.location !== 'granted') {
+      await Geolocation.requestPermissions();
     }
-  }
 
+    // Fresh location lene ke liye maximumAge: 0 add kiya hai
+    const pos = await Geolocation.getCurrentPosition({ 
+      enableHighAccuracy: true,
+      timeout: 30000, // 30s timeout for better accuracy
+      maximumAge: 0    
+    }).catch(err => {
+      console.warn("Location timeout, using defaults", err);
+      // Agar timeout ho toh Washim default rahega
+      return { coords: { latitude: 20.1013, longitude: 77.1337 } }; 
+    });
+    
+    this.currentLat = pos.coords.latitude;
+    this.currentLng = pos.coords.longitude;
+
+    // 1. Map create karein
+    await this.createMap();
+
+    // 2. Map ko current location par move/center karein
+    if (this.newMap) {
+      await this.newMap.setCamera({
+        coordinate: { lat: this.currentLat, lng: this.currentLng },
+        zoom: 15,
+        animate: true
+      });
+    }
+
+    // 3. Address aur Marker update karein
+    this.updateAddress(this.currentLat, this.currentLng);
+    this.updateMarker();
+    
+    // 4. Real-time tracking shuru karein
+    this.startLocationWatch();
+
+  } catch (e) {
+    this.presentToast('Please enable GPS and permissions', 'warning');
+  }
+}
   async createMap() {
     if (!this.mapRef) return;
+
+    // IMPORTANT: ID must match the HTML element ID
     this.newMap = await GoogleMap.create({
-      id: 'attendance-map-unique',
+      id: 'map', 
       element: this.mapRef.nativeElement,
       apiKey: this.googleApiKey,
-      config: { center: { lat: this.currentLat, lng: this.currentLng }, zoom: 17 },
+      config: { 
+        center: { lat: this.currentLat, lng: this.currentLng }, 
+        zoom: 15,
+        androidLiteMode: false // Set to true if performance is slow
+      },
     });
-    this.updateMarker();
+
+    await this.updateMarker();
   }
 
   async startLocationWatch() {
-    this.watchId = await Geolocation.watchPosition({ 
-        enableHighAccuracy: true, 
-        timeout: 10000 
-    }, (pos) => {
-      if (pos) {
+    // Save watch ID properly to clear it later
+    const callback = (pos: any) => {
+      if (pos && pos.coords) {
         this.currentLat = pos.coords.latitude;
         this.currentLng = pos.coords.longitude;
         this.updateMarker();
       }
-    });
+    };
+
+    this.watchId = await Geolocation.watchPosition({ 
+        enableHighAccuracy: true, 
+        timeout: 30000 ,
+        maximumAge: 0
+    }, callback);
   }
 
   async updateMarker() {
