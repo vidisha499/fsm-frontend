@@ -1,235 +1,514 @@
-// // Container for the Leaflet Map
-// .map-container {
-//   position: relative;
-//   width: 100%;
-//   height: 250px;
-//   background: #e0e0e0;
-//   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
-//   #detailsMap {
-//     height: 100%;
-//     width: 100%;
+
+// .premium-wrapper {
+//   --background: #f4f7f6; // Light grey-green background
+// }
+
+// // Curved Hero Section
+// .hero-header {
+//   position: relative;
+//   height: 180px;
+//   background: linear-gradient(135deg, #061A13 0%, #0d9488 100%);
+//   background-image: url('https://images.unsplash.com/photo-1501854140801-50d01698950b?q=80&w=2000&auto=format&fit=crop'); // Nature background
+//   background-size: cover;
+//   background-position: center;
+//   border-radius: 0 0 40px 40px;
+//   padding: 20px;
+
+//   .header-overlay {
+//     position: absolute;
+//     inset: 0;
+//     background: rgba(6, 26, 19, 0.7);
+//     border-radius: 0 0 40px 40px;
+//   }
+
+//   .header-content {
+//     position: relative;
+//     z-index: 2;
+//     padding-top: 10px;
+
+//     .top-row {
+//       display: flex;
+//       align-items: center;
+//       gap: 15px;
+
+//       h1 {
+//         color: white;
+//         font-size: 22px;
+//         font-weight: 800;
+//         margin-top: 10%;
+//       }
+//     }
+//   }
+// }
+
+// .back-btn-glass {
+//   background: rgba(255, 255, 255, 0.2);
+//   border: none;
+//   width: 40px;
+//   height: 40px;
+//   border-radius: 12px;
+//   display: flex;
+//   align-items: center;
+//   justify-content: center;
+//   color: white;
+//   backdrop-filter: blur(10px);
+//   font-size: 20px;
+//    margin-top: 10%;
+// }
+
+// // Content Layout
+// .main-content-container {
+//   padding: 0 20px 40px 20px;
+//   margin-top: -60px; // Pull content up over the curve
+//   position: relative;
+//   z-index: 10;
+// }
+
+// // Elevated Cards
+// .detail-card {
+//   background: white;
+//   border-radius: 20px;
+//   padding: 15px;
+//   margin-bottom: 15px;
+//   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+//   border: 1px solid rgba(255, 255, 255, 0.8);
+// }
+
+// .map-card {
+//   height: 220px;
+//   padding: 0;
+//   overflow: hidden;
+//   border: 4px solid white;
+
+//   #detailsMap { height: 100%; width: 100%; }
+// }
+
+// .stats-row-card {
+//   display: flex;
+//   justify-content: space-around;
+//   align-items: center;
+//   padding: 20px 10px;
+
+//   .stat-box {
+//     text-align: center;
+//     flex: 1;
+//     .label { display: block; font-size: 10px; font-weight: 800; color: #94a3b8; letter-spacing: 1px; }
+//     .value { display: block; font-size: 16px; font-weight: 800; color: #061A13; margin-top: 4px; }
+//   }
+
+//   .v-divider { width: 1px; height: 30px; background: #f1f5f9; }
+// }
+
+// .section-title {
+//   font-size: 12px;
+//   font-weight: 800;
+//   color: #0d9488;
+//   letter-spacing: 1.5px;
+//   margin: 25px 0 15px 5px;
+// }
+
+// // Observation Item
+// .obs-item {
+//   .obs-header {
+//     display: flex;
+//     gap: 15px;
+//     align-items: center;
+
+//     .icon-wrap {
+//       width: 50px;
+//       height: 50px;
+//       background: #f0fdfa;
+//       border-radius: 15px;
+//       display: flex;
+//       align-items: center;
+//       justify-content: center;
+//       i { font-size: 20px; color: #0d9488; }
+//     }
+
+//     .obs-info {
+//       flex: 1;
+//       .obs-top {
+//         display: flex;
+//         justify-content: space-between;
+//         margin-bottom: 2px;
+//         .category-tag { font-size: 10px; font-weight: 800; color: #0d9488; }
+//         .time { font-size: 11px; color: #94a3b8; font-weight: 600; }
+//       }
+//       .species { margin: 0; font-size: 16px; font-weight: 700; color: #1e293b; }
+//       .meta { margin: 0; font-size: 12px; color: #64748b; font-weight: 500; }
+//     }
+//   }
+// }
+
+// .loading-wrap {
+//   text-align: center;
+//   margin-top: 100px;
+//   color: #94a3b8;
+//   p { margin-top: 10px; font-weight: 600; }
+// }
+
+
+
+// .premium-wrapper {
+//   --background: #f1f5f9; // Light grey-blue background for the page
+// }
+
+// // Hero Section with Image and Bluish-Green Overlay
+// .hero-header {
+//   position: relative;
+//   height: 220px;
+//   background-image: url('https://images.unsplash.com/photo-1501854140801-50d01698950b?q=80&w=2000&auto=format&fit=crop'); 
+//   background-size: cover;
+//   background-position: center;
+//   border-radius: 0 0 45px 45px; // The smooth curve from your images
+//   overflow: hidden;
+
+//   .header-overlay {
+//     position: absolute;
+//     inset: 0;
+//     /* Exactly as requested: Bluish-green layer overlaying the image */
+//     background: linear-gradient(
+//       135deg, 
+//       rgba(6, 26, 19, 0.88) 0%,   // Deep Bluish-Green
+//       rgba(13, 148, 136, 0.75) 100% // Tealish color
+//     );
 //     z-index: 1;
 //   }
 
+//   .header-content {
+//     position: relative;
+//     z-index: 2;
+//     padding: 50px 20px 0 20px;
+
+//     .top-row {
+//       display: flex;
+//       align-items: center;
+//       gap: 15px;
+
+//       .header-title {
+//         color: white;
+//         font-size: 24px;
+//         font-weight: 800;
+//         margin: 0;
+//         text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+//       }
+//     }
+//   }
+// }
+
+// // Glassmorphism Back Button
+// .back-btn-glass {
+//   background: rgba(255, 255, 255, 0.18);
+//   border: none;
+//   width: 44px;
+//   height: 44px;
+//   border-radius: 14px;
+//   display: flex;
+//   align-items: center;
+//   justify-content: center;
+//   color: white;
+//   backdrop-filter: blur(10px);
+//   font-size: 22px;
+//   transition: 0.2s ease-in-out;
+
+//   &:active {
+//     background: rgba(255, 255, 255, 0.3);
+//     transform: scale(0.95);
+//   }
+// }
+
+// // Main container that overlaps the curve
+// .main-content-container {
+//   padding: 0 20px 40px 20px;
+//   margin-top: -65px; // Pulls cards up over the header curve
+//   position: relative;
+//   z-index: 10;
+// }
+
+// // Elevated White Cards
+// .detail-card {
+//   background: white;
+//   border-radius: 22px;
+//   padding: 16px;
+//   margin-bottom: 16px;
+//   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
+//   border: 1px solid rgba(255, 255, 255, 0.7);
+// }
+
+// // Map Card Specifics
+// .map-card {
+//   height: 240px;
+//   padding: 0;
+//   overflow: hidden;
+//   border: 4px solid white;
+
 //   .map-skeleton {
-//     position: absolute;
-//     top: 0;
-//     left: 0;
-//     width: 100%;
 //     height: 100%;
 //     display: flex;
 //     flex-direction: column;
 //     align-items: center;
 //     justify-content: center;
-//     background: rgba(255, 255, 255, 0.8);
-//     z-index: 2;
-//     color: var(--ion-color-success);
-
-//     p {
-//       margin-top: 10px;
-//       font-weight: 500;
-//     }
+//     background: #f8fafc;
+//     p { font-size: 12px; color: #94a3b8; font-weight: 600; margin-top: 10px; }
 //   }
 // }
 
-// // Stats Card with Distance, Duration, and Date
-// .stats-card {
-//   margin: -30px 16px 16px 16px; // Overlaps slightly with the map
-//   background: #ffffff;
-//   border-radius: 12px;
-//   padding: 8px;
-//   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-//   position: relative;
-//   z-index: 10;
+// // Horizontal Stats Card
+// .stats-row-card {
+//   display: flex;
+//   justify-content: space-around;
+//   align-items: center;
+//   padding: 22px 10px;
 
-//   .stat-item {
+//   .stat-box {
 //     text-align: center;
-//     padding: 8px 0;
-
-//     small {
-//       display: block;
-//       color: #737373;
-//       font-size: 0.75rem;
-//       text-transform: uppercase;
-//       letter-spacing: 0.5px;
-//       margin-bottom: 4px;
-//     }
-
-//     strong {
-//       display: block;
-//       color: var(--ion-color-dark);
-//       font-size: 1rem;
-//       font-weight: 700;
-//     }
+//     flex: 1;
+//     .label { display: block; font-size: 10px; font-weight: 800; color: #94a3b8; letter-spacing: 1px; }
+//     .value { display: block; font-size: 17px; font-weight: 800; color: #061A13; margin-top: 4px; }
 //   }
+
+//   .v-divider { width: 1px; height: 35px; background: #f1f5f9; }
 // }
 
-// // Section Header for Observations
+// // Section Label Styling
 // .section-title {
-//   padding: 0 16px;
-//   margin: 20px 0 10px 0;
-//   font-size: 1.1rem;
-//   font-weight: 700;
-//   color: var(--ion-color-dark);
+//   font-size: 12px;
+//   font-weight: 800;
+//   color: #0d9488;
+//   letter-spacing: 1.5px;
+//   margin: 25px 0 15px 5px;
+//   text-transform: uppercase;
 // }
 
-// // Observation List Styling
-// .obs-list {
-//   background: transparent;
-//   padding: 0 8px;
+// // Sighting / Observation Items
+// .obs-item {
+//   .obs-header {
+//     display: flex;
+//     gap: 15px;
+//     align-items: center;
 
-//   .obs-item {
-//     --background: #ffffff;
-//     --border-radius: 12px;
-//     --padding-start: 12px;
-//     --padding-end: 12px;
-//     --inner-padding-end: 8px;
-//     margin-bottom: 10px;
-//     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-
-//     .icon-box {
-//       width: 40px;
-//       height: 40px;
-//       background: rgba(var(--ion-color-success-rgb), 0.1);
-//       border-radius: 10px;
+//     .icon-wrap {
+//       width: 52px;
+//       height: 52px;
+//       background: #f0fdfa; // Light teal tint
+//       border-radius: 16px;
 //       display: flex;
 //       align-items: center;
 //       justify-content: center;
-//       margin-right: 12px;
-
-//       i {
-//         font-size: 1.2rem;
-//         color: var(--ion-color-success);
-//       }
+//       i { font-size: 20px; color: #0d9488; }
 //     }
 
-//     ion-label {
-//       h3 {
-//         font-weight: 700;
-//         color: var(--ion-color-dark);
-//         margin-bottom: 4px;
+//     .obs-info {
+//       flex: 1;
+//       .obs-top {
+//         display: flex;
+//         justify-content: space-between;
+//         margin-bottom: 2px;
+//         .category-tag { font-size: 10px; font-weight: 800; color: #0d9488; }
+//         .time { font-size: 11px; color: #94a3b8; font-weight: 600; }
 //       }
-
-//       p {
-//         font-size: 0.85rem;
-//         color: #666;
-//       }
+//       .species { margin: 0; font-size: 16px; font-weight: 700; color: #1e293b; }
+//       .meta { margin: 0; font-size: 12px; color: #64748b; font-weight: 500; }
 //     }
+//   }
 
-//     ion-note {
-//       font-size: 0.8rem;
-//       color: #999;
-//       font-weight: 500;
-//     }
+//   .obs-photo-preview {
+//     margin-top: 15px;
+//     border-radius: 12px;
+//     overflow: hidden;
+//     height: 120px;
+//     img { width: 100%; height: 100%; object-fit: cover; }
 //   }
 // }
 
-// // Styling for FontAwesome icons if used
-// i {
-//   display: inline-block;
+// // Helpers
+// .empty-state-card {
+//   text-align: center;
+//   padding: 40px 20px;
+//   color: #94a3b8;
+//   ion-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.4; }
+//   p { font-size: 14px; font-weight: 600; }
+// }
+
+// .loading-wrap {
+//   display: flex;
+//   flex-direction: column;
+//   align-items: center;
+//   justify-content: center;
+//   height: 80vh;
+//   color: #94a3b8;
+//   p { margin-top: 15px; font-weight: 600; font-size: 14px; }
 // }
 
 
-// Map and Skeleton
-.map-container {
+.premium-wrapper {
+  --background: #f4f7f6;
+}
+
+// Hero Header with Bluish-Green Overlay
+.hero-header {
   position: relative;
-  width: 100%;
-  height: 250px;
-  background: #d1d1d1;
+  height: 220px;
+  background-image: url('https://images.unsplash.com/photo-1501854140801-50d01698950b?q=80&w=2000&auto=format&fit=crop'); 
+  background-size: cover;
+  background-position: center;
+  border-radius: 0 0 45px 45px;
+  overflow: hidden;
 
-  #detailsMap { height: 100%; width: 100%; z-index: 1; }
-
-  .map-skeleton {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    background: rgba(255, 255, 255, 0.9); z-index: 2;
-    color: #1b5e20; // Darker Green
+  .header-overlay {
+    position: absolute;
+    inset: 0;
+    /* Bluish-green tint exactly like the screenshots */
+    background: linear-gradient(
+      135deg, 
+      rgba(6, 26, 19, 0.88) 0%,   
+      rgba(13, 148, 136, 0.75) 100% 
+    );
+    z-index: 1;
   }
-}
 
-// Stats Card
-.stats-card {
-  margin: -35px 16px 16px 16px;
-  border-radius: 15px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-  border: none;
-  background: white;
+  .header-content {
+    position: relative;
+    z-index: 2;
+    padding: 50px 20px 0 20px;
 
-  .stat-item {
-    text-align: center;
-    padding: 10px 0;
-
-    ion-icon { font-size: 1.5rem; color: #2e7d32; margin-bottom: 4px; }
-    small { display: block; color: #666; font-size: 0.7rem; text-transform: uppercase; }
-    strong { display: block; color: #000; font-size: 0.95rem; font-weight: 800; }
-  }
-}
-
-// Section Title
-.section-title {
-  padding: 10px 20px;
-  font-size: 1.2rem;
-  font-weight: 800;
-  color: #333;
-}
-
-// Observation Cards
-.observation-card {
-  margin: 0 16px 15px 16px;
-  border-radius: 14px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-  border: 1px solid #eee;
-
-  ion-card-content { padding: 15px; }
-
-  .card-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-
-    .category-info {
+    .top-row {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 15px;
 
-      .icon-circle {
-        width: 35px; height: 35px;
-        background: #1b5e20; // Deep Forest Green
+      .header-title {
         color: white;
-        border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 1rem;
+        font-size: 24px;
+        font-weight: 800;
+        margin: 0;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
       }
-
-      .category-name { font-weight: 600; font-size: 0.85rem; color: #444; }
-    }
-    .obs-time { font-size: 0.8rem; color: #888; font-weight: 500; }
-  }
-
-  .card-bottom {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-
-    .main-info {
-      h3 { margin: 0; font-size: 1.15rem; font-weight: 800; color: #111; }
-      p { margin: 4px 0 0 0; color: #555; font-size: 0.9rem; }
-    }
-
-    .count-box {
-      text-align: center;
-      padding-left: 15px;
-      border-left: 2px solid #f0f0f0;
-
-      .count-value { display: block; font-size: 1.2rem; font-weight: 900; color: #1b5e20; }
-      .count-label { font-size: 0.65rem; text-transform: uppercase; color: #999; }
     }
   }
 }
 
-// Helpers
-.empty-state, .loading-container {
-  text-align: center; margin-top: 50px; color: #666;
+// Back Button Style
+.back-btn-glass {
+  background: rgba(255, 255, 255, 0.18);
+  border: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  backdrop-filter: blur(10px);
+  font-size: 22px;
+}
+
+.main-content-container {
+  padding: 0 20px 40px 20px;
+  margin-top: -65px; // Overlap curve
+  position: relative;
+  z-index: 10;
+}
+
+// Evidence Gallery Styles
+.evidence-gallery {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 5px 5px 20px 5px;
+  &::-webkit-scrollbar { display: none; }
+
+  .photo-square {
+    min-width: 110px;
+    max-width: 110px;
+    height: 110px;
+    background: white;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+    border: 3px solid white;
+    flex-shrink: 0;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+}
+
+// Detail Cards
+.detail-card {
+  background: white;
+  border-radius: 22px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
+}
+
+.map-card {
+  height: 220px;
+  padding: 0;
+  overflow: hidden;
+  border: 4px solid white;
+}
+
+.stats-row-card {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 22px 10px;
+
+  .stat-box {
+    text-align: center;
+    flex: 1;
+    .label { display: block; font-size: 10px; font-weight: 800; color: #94a3b8; letter-spacing: 1px; }
+    .value { display: block; font-size: 17px; font-weight: 800; color: #061A13; margin-top: 4px; }
+  }
+  .v-divider { width: 1px; height: 35px; background: #f1f5f9; }
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #0d9488;
+  letter-spacing: 1.5px;
+  margin: 15px 0 10px 5px;
+  text-transform: uppercase;
+}
+
+.obs-item {
+  .obs-header {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    .icon-wrap {
+      width: 52px;
+      height: 52px;
+      background: #f0fdfa;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      i { font-size: 20px; color: #0d9488; }
+    }
+    .obs-info {
+      flex: 1;
+      .obs-top {
+        display: flex;
+        justify-content: space-between;
+        .category-tag { font-size: 10px; font-weight: 800; color: #0d9488; }
+        .time { font-size: 11px; color: #94a3b8; font-weight: 600; }
+      }
+      .species { margin: 0; font-size: 16px; font-weight: 700; color: #1e293b; }
+      .meta { margin: 0; font-size: 12px; color: #64748b; font-weight: 500; }
+    }
+  }
+}
+
+.loading-wrap {
+  text-align: center;
+  margin-top: 100px;
+  p { margin-top: 10px; font-weight: 600; color: #94a3b8; }
 }

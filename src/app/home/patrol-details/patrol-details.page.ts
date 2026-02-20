@@ -25,22 +25,37 @@ export class PatrolDetailsPage implements OnInit {
     private cdr: ChangeDetectorRef
   ) {}
 
-  ngOnInit() {
-    this.patrolId = this.route.snapshot.paramMap.get('id');
-    if (this.patrolId) {
-      this.loadPatrolDetails();
-    }
-  }
+ 
 
-  loadPatrolDetails() {
-    this.http.get(`${this.apiUrl}/logs/${this.patrolId}`).subscribe({
-      next: (data: any) => { 
-        this.patrol = data; 
-        setTimeout(() => this.initMap(), 500);
-      },
-      error: (err) => console.error("Fetch Error:", err)
-    });
+
+
+ngOnInit() {
+  // Grab ID from the path: /patrol-details/109
+  const idFromUrl = this.route.snapshot.paramMap.get('id');
+
+  if (idFromUrl) {
+    this.patrolId = idFromUrl;
+    this.loadPatrolDetails();
   }
+}
+
+
+loadPatrolDetails() {
+  this.http.get(`${this.apiUrl}/logs/${this.patrolId}`).subscribe({
+    next: (data: any) => { 
+      // Ensure patrol is populated with the correct property names
+     this.patrol = {
+   ...data,
+   patrolPhotos: data.patrol_photos || data.patrolPhotos || []
+};
+      
+      console.log("Verified Photos in Frontend:", this.patrol.patrolPhotos);
+      setTimeout(() => this.initMap(), 500);
+    }
+  });
+}
+
+
 
   initMap() {
     const mapElement = document.getElementById('detailsMap');

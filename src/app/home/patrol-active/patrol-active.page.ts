@@ -29,8 +29,7 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
   gpsWatchId: any;
   isSubmitting: boolean = false;
   isFinished: boolean = false;
-
-  capturedPhoto: string | null = null;
+capturedPhotos: string[] = [];
   totalDistanceKm: number = 0;
   lastLatLng: L.LatLng | null = null;
   routePoints: { lat: number; lng: number }[] = [];
@@ -55,20 +54,6 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     private gestureCtrl: GestureController,
     private domCtrl: DomController
   ) { }
-
-  // ngOnInit() {
-  //   this.activePatrolId = localStorage.getItem('active_patrol_id');
-  //   this.patrolName = localStorage.getItem('temp_patrol_name') || 'Active Patrol';
-
-  //   if (!this.activePatrolId) {
-  //     this.showToast('No active session found.');
-  //     this.navCtrl.navigateRoot('/home/patrol-logs');
-  //     return;
-  //   }
-  //   this.startTimer();
-  // }
-
-
 
   ngOnInit() {
   this.activePatrolId = localStorage.getItem('active_patrol_id');
@@ -164,41 +149,29 @@ refreshRecentSightings() {
     }
   }
 
-  async takeQuickPhoto() {
-    try {
-      const image = await Camera.getPhoto({ quality: 90, resultType: CameraResultType.DataUrl, source: CameraSource.Camera });
-      this.capturedPhoto = image.dataUrl || null;
-    } catch (e) { console.warn('Photo cancelled'); }
-  }
-
-  // async handleEndTrip() {
-  //   if (this.isSubmitting) return;
-  //   this.isSubmitting = true;
-  //   const loader = await this.loadingCtrl.create({ message: 'Syncing Final Logs...', mode: 'ios' });
-  //   await loader.present();
-
-  //   const logPayload = {
-  //     rangerId: 1,
-  //     patrolName: this.patrolName,
-  //     startTime: this.startTime,
-  //     endTime: new Date().toISOString(),
-  //     distanceKm: parseFloat(this.totalDistanceKm.toFixed(2)),
-  //     duration: this.timerDisplay,
-  //     status: 'COMPLETED',
-  //     route: this.routePoints,
-  //     observationData: { Details: this.recentSightings }
-  //   };
-
-  //   this.http.post(`${this.apiUrl}/logs`, logPayload).subscribe({
-  //     next: async () => {
-  //       loader.dismiss();
-  //       localStorage.removeItem('active_patrol_id');
-  //       this.navCtrl.navigateRoot('/home/patrol-logs');
-  //     },
-  //     error: () => { loader.dismiss(); this.isSubmitting = false; this.showToast('Final sync failed'); }
-  //   });
+  // async takeQuickPhoto() {
+  //   try {
+  //     const image = await Camera.getPhoto({ quality: 90, resultType: CameraResultType.DataUrl, source: CameraSource.Camera });
+  //     this.capturedPhoto = image.dataUrl || null;
+  //   } catch (e) { console.warn('Photo cancelled'); }
   // }
 
+
+  async takeQuickPhoto() {
+  try {
+    const image = await Camera.getPhoto({ 
+      quality: 90, 
+      resultType: CameraResultType.DataUrl, 
+      source: CameraSource.Camera 
+    });
+    if (image.dataUrl) {
+      this.capturedPhotos.push(image.dataUrl); // Add to array instead of replacing
+      this.showToast('Photo captured!');
+    }
+  } catch (e) { console.warn('Photo cancelled'); }
+}
+
+  
   async handleEndTrip() {
   if (this.isSubmitting) return;
   this.isSubmitting = true;
@@ -212,17 +185,19 @@ refreshRecentSightings() {
   // Get the actual ranger ID from storage
   const rId = localStorage.getItem('ranger_id') || '1';
 
-  const logPayload = {
-    rangerId: parseInt(rId), // Fixed: Dynamic ID
-    patrolName: this.patrolName,
-    startTime: this.startTime,
-    endTime: new Date().toISOString(),
-    distanceKm: parseFloat(this.totalDistanceKm.toFixed(2)),
-    duration: this.timerDisplay,
-    status: 'COMPLETED',
-    route: this.routePoints,
-    observationData: { Details: this.recentSightings }
-  };
+const logPayload = {
+   rangerId: parseInt(rId),
+   patrolName: this.patrolName,
+   startTime: this.startTime,
+   endTime: new Date().toISOString(),
+   distanceKm: parseFloat(this.totalDistanceKm.toFixed(2)),
+   duration: this.timerDisplay,
+   status: 'COMPLETED',
+  observationData: { 
+    Details: this.recentSightings // These are your Animal/Water sightings
+  },
+  patrolPhotos: this.capturedPhotos // These are ONLY the photos clicked in the main camera-frame
+};
 
   // Ensure apiUrl doesn't have double 'api' or 'patrols'
   this.http.post(`${this.apiUrl}/logs`, logPayload).subscribe({

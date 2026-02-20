@@ -112,42 +112,113 @@ export class PatrolLogsPage implements OnInit {
     });
   }
 
-//  async savePatrol() {
+
+
+async savePatrol() {
+  // 1. Validation check for UI inputs
+  if (!this.selectedMethod || !this.selectedType) {
+    this.presentToast('Please select Method and Type', 'warning');
+    this.resetKnob();
+    return;
+  }
+
+  // 2. KEY FIX: Match the key used in login.page.ts ('ranger_id')
+  const storedRangerId = localStorage.getItem('ranger_id'); 
+  
+  if (!storedRangerId) {
+    // This was likely causing your redirect because you were looking for 'user'
+    this.presentToast('User session not found. Please login again.', 'danger');
+    this.navCtrl.navigateRoot('/login');
+    return;
+  }
+
+  // 3. Prepare Payload
+  this.isSubmitting = true; 
+  const loader = await this.loadingCtrl.create({ 
+    message: 'Starting Patrol Session...', 
+    mode: 'ios' 
+  });
+  await loader.present();
+
+  const payload = { 
+    rangerId: parseInt(storedRangerId), // Ensure it is a number for NestJS
+    method: this.selectedMethod,
+    type: this.selectedType 
+  };
+
+  // 4. API Call - Matching your NestJS @Post('active')
+  this.http.post(`${this.apiUrl}/active`, payload).subscribe({
+    next: (res: any) => {
+      loader.dismiss();
+      
+      // Store the active patrol ID for the next screen
+      localStorage.setItem('active_patrol_id', res.id.toString());
+      localStorage.setItem('temp_patrol_name', `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`);
+      
+      this.isModalOpen = false;
+      
+      // ROUTE FIX: Navigating to the correct path defined in AppRoutingModule
+      this.navCtrl.navigateForward('/patrol-active');
+    },
+    error: (err) => {
+      loader.dismiss();
+      this.isSubmitting = false;
+      this.resetKnob();
+      console.error('Database Error:', err);
+      
+      // Handle 401/403/404 specifically
+      if (err.status === 401) {
+        this.presentToast('Session expired. Please login.', 'danger');
+        this.navCtrl.navigateRoot('/login');
+      } else {
+        this.presentToast('Failed to start patrol. Check connection.', 'danger');
+      }
+    }
+  });
+}
+
+// async savePatrol() {
 //   if (!this.selectedMethod || !this.selectedType) {
 //     this.presentToast('Please select Method and Type', 'warning');
 //     this.resetKnob();
 //     return;
 //   }
+
+//   // ✅ 1. Get the logged-in user from localStorage
+//   const storedUser = localStorage.getItem('user'); 
+//   if (!storedUser) {
+//     this.presentToast('User session not found. Please login again.', 'danger');
+//     this.navCtrl.navigateRoot('/login');
+//     return;
+//   }
+
+//   // ✅ 2. Parse the string into an object and get the ID
+//   const user = JSON.parse(storedUser);
+//   const dynamicRangerId = user.id; 
+
 //   this.isSubmitting = true; 
-  
-//   const loader = await this.loadingCtrl.create({ message: 'Starting Patrol Session...', mode: 'ios' });
+//   const loader = await this.loadingCtrl.create({ 
+//     message: 'Starting Patrol Session...', 
+//     mode: 'ios' 
+//   });
 //   await loader.present();
 
-//   // Change endpoint from '/start' to '/active' to match your controller/service logic
-//   // this.http.post(`${this.apiUrl}/active`, { rangerId: 1 }).subscribe({
-//   //   next: (res: any) => {
-//   //     loader.dismiss();
-      
-//   //     // Store the active patrol ID for persistence
-//   //     localStorage.setItem('active_patrol_id', res.id.toString());
-//   //     localStorage.setItem('temp_patrol_name', `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`);
-      
-//   //     this.isModalOpen = false;
-//   //     this.navCtrl.navigateForward('/home/patrol-active');
-//   //   },
-//   //   error: (err) => {
-//   //     loader.dismiss();
-//   //     this.isSubmitting = false;
-//   //     this.resetKnob();
-//   //     console.error('Database Error:', err);
-//   //     this.presentToast('Failed to start patrol in database', 'danger');
-//   //   }
-//   // });
+//   // ✅ 3. Use the dynamic ID in the payload
+//   const payload = { 
+//     rangerId: dynamicRangerId,
+//     method: this.selectedMethod,
+//     type: this.selectedType 
+//   };
 
-//   this.http.post(`${this.apiUrl}/start`, { rangerId: 1 }).subscribe({
+//   // Note: Ensure your backend controller matches this endpoint (/active vs /start)
+//   this.http.post(`${this.apiUrl}/active`, payload).subscribe({
 //     next: (res: any) => {
 //       loader.dismiss();
+      
+//       // Store the active patrol ID for the next screen
 //       localStorage.setItem('active_patrol_id', res.id.toString());
+//       localStorage.setItem('temp_patrol_name', `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`);
+      
 //       this.isModalOpen = false;
 //       this.navCtrl.navigateForward('/home/patrol-active');
 //     },
@@ -160,61 +231,6 @@ export class PatrolLogsPage implements OnInit {
 //     }
 //   });
 // }
-
-async savePatrol() {
-  if (!this.selectedMethod || !this.selectedType) {
-    this.presentToast('Please select Method and Type', 'warning');
-    this.resetKnob();
-    return;
-  }
-
-  // ✅ 1. Get the logged-in user from localStorage
-  const storedUser = localStorage.getItem('user'); 
-  if (!storedUser) {
-    this.presentToast('User session not found. Please login again.', 'danger');
-    this.navCtrl.navigateRoot('/login');
-    return;
-  }
-
-  // ✅ 2. Parse the string into an object and get the ID
-  const user = JSON.parse(storedUser);
-  const dynamicRangerId = user.id; 
-
-  this.isSubmitting = true; 
-  const loader = await this.loadingCtrl.create({ 
-    message: 'Starting Patrol Session...', 
-    mode: 'ios' 
-  });
-  await loader.present();
-
-  // ✅ 3. Use the dynamic ID in the payload
-  const payload = { 
-    rangerId: dynamicRangerId,
-    method: this.selectedMethod,
-    type: this.selectedType 
-  };
-
-  // Note: Ensure your backend controller matches this endpoint (/active vs /start)
-  this.http.post(`${this.apiUrl}/active`, payload).subscribe({
-    next: (res: any) => {
-      loader.dismiss();
-      
-      // Store the active patrol ID for the next screen
-      localStorage.setItem('active_patrol_id', res.id.toString());
-      localStorage.setItem('temp_patrol_name', `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`);
-      
-      this.isModalOpen = false;
-      this.navCtrl.navigateForward('/home/patrol-active');
-    },
-    error: (err) => {
-      loader.dismiss();
-      this.isSubmitting = false;
-      this.resetKnob();
-      console.error('Database Error:', err);
-      this.presentToast('Failed to start patrol', 'danger');
-    }
-  });
-}
 
   private async processDelete(id: number) {
     this.http.delete(`${this.apiUrl}/logs/${id}`).subscribe({
@@ -257,14 +273,20 @@ async savePatrol() {
   // }
 
 
-  // Replace your existing viewDetails method
-viewDetails(log: any) {
-  // Navigate to the new page and pass the ID as a parameter
-  this.navCtrl.navigateForward(['/home/patrol-details'], {
-    queryParams: { id: log.id }
-  });
-}
 
+
+viewDetails(patrol: any) {
+  // Use 'id' as per your database screenshot
+  const pId = patrol.id; 
+
+  if (pId) {
+    console.log("Navigating to ID:", pId);
+    this.navCtrl.navigateForward(['/patrol-details', pId]); 
+  } else {
+    console.error("ID missing in patrol object:", patrol);
+    this.presentToast("Error: ID not found", "danger");
+  }
+}
   onDetailModalPresent() {
     setTimeout(() => {
       this.initDetailMap();

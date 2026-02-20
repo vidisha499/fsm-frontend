@@ -201,7 +201,7 @@
 
   <div class="card-container">
     <div class="main-card">
-      <div class="scanner-section">
+      <!-- <div class="scanner-section">
         <div class="camera-frame" (click)="takeQuickPhoto()">
           <div class="corners"><span class="top-l"></span><span class="top-r"></span><span class="bot-l"></span><span class="bot-r"></span></div>
           <div class="scanner-inner">
@@ -213,7 +213,33 @@
             </div>
           </div>
         </div>
+      </div> -->
+
+      <div class="scanner-section">
+      <div class="camera-frame" (click)="takeQuickPhoto()">
+        <div class="corners">
+          <span class="top-l"></span><span class="top-r"></span>
+          <span class="bot-l"></span><span class="bot-r"></span>
+        </div>
+
+        <div class="scanner-inner">
+          <div class="scan-line" *ngIf="capturedPhotos.length === 0"></div>
+
+          <img *ngIf="capturedPhotos.length > 0" 
+               [src]="capturedPhotos[capturedPhotos.length - 1]" 
+               class="preview-img">
+
+          <div *ngIf="capturedPhotos.length === 0" class="placeholder-content">
+            <i class="fas fa-camera main-cam-icon"></i>
+            <span class="cam-text">CAMERA</span>
+          </div>
+          
+          <div class="photo-count-badge" *ngIf="capturedPhotos.length > 0">
+            {{ capturedPhotos.length }}
+          </div>
+        </div>
       </div>
+    </div>
 
       <div class="map-wrapper">
         <div class="map-container">

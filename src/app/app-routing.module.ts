@@ -45,6 +45,10 @@ const routes: Routes = [
     path: 'patrol-active',
     loadChildren: () => import('./home/patrol-active/patrol-active.module').then(m => m.PatrolActivePageModule)
   },
+ {
+  path: 'patrol-details/:id', // Add the :id parameter here
+  loadChildren: () => import('./home/patrol-details/patrol-details.module').then(m => m.PatrolDetailsPageModule)
+},
   {
   path: 'incident-detail/:id',
   loadChildren: () => import('./home/incident-detail/incident-detail.module').then(m => m.IncidentDetailPageModule)
