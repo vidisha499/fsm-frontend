@@ -73,22 +73,83 @@ export class AttendancePage implements OnInit, OnDestroy {
 
   async initLeafletMap() {
   try {
+<<<<<<< HEAD
     // Force high accuracy and disable cache
     const pos = await Geolocation.getCurrentPosition({ 
       enableHighAccuracy: true, 
       timeout: 10000, 
       maximumAge: 0 // <--- CRITICAL: Prevents using old/cached location
+=======
+    const permissions = await Geolocation.checkPermissions();
+    if (permissions.location !== 'granted') {
+      await Geolocation.requestPermissions();
+    }
+
+    const pos = await Geolocation.getCurrentPosition({ 
+      enableHighAccuracy: true,
+      timeout: 30000, 
+      maximumAge: 0    
+    }).catch(err => {
+      console.warn("Location timeout, using defaults", err);
+      return { coords: { latitude: 20.1013, longitude: 77.1337 } }; 
+>>>>>>> 25373f3b0393b189aabe7920f8fb2d79339e5d46
     });
     
     this.currentLat = pos.coords.latitude;
     this.currentLng = pos.coords.longitude;
 
+<<<<<<< HEAD
     if (this.map) { this.map.remove(); }
 
     this.map = L.map('attendanceMap', { 
       center: [this.currentLat, this.currentLng], 
       zoom: 18, // Zoomed in closer for better accuracy check
       zoomControl: false 
+=======
+    // Address update shuru karein
+    this.updateAddress(this.currentLat, this.currentLng);
+
+    // 1. Chota delay taaki UI elements render ho jayein
+    setTimeout(async () => {
+      // 2. Map create karein (ensure ID is 'map')
+      await this.createMap();
+
+      // 3. Camera set karein
+      if (this.newMap) {
+        await this.newMap.setCamera({
+          coordinate: { lat: this.currentLat, lng: this.currentLng },
+          zoom: 15,
+          animate: false // Pehli baar bina animation ke center karein
+        });
+        
+        // Native "My Location" button enable karein
+        await (this.newMap as any).enableCurrentLocation(true);
+      }
+
+      this.updateMarker();
+      this.startLocationWatch();
+    }, 500);
+
+  } catch (e) {
+    this.presentToast('Please enable GPS and permissions', 'warning');
+  }
+}
+
+
+  async createMap() {
+    if (!this.mapRef) return;
+
+    // IMPORTANT: ID must match the HTML element ID
+    this.newMap = await GoogleMap.create({
+      id: 'map', 
+      element: this.mapRef.nativeElement,
+      apiKey: this.googleApiKey,
+      config: { 
+        center: { lat: this.currentLat, lng: this.currentLng }, 
+        zoom: 15,
+        androidLiteMode: false // Set to true if performance is slow
+      },
+>>>>>>> 25373f3b0393b189aabe7920f8fb2d79339e5d46
     });
 
     L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {

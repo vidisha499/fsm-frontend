@@ -1,5 +1,3 @@
-
-
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { NavController, ToastController, ActionSheetController, Platform } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
