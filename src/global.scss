@@ -65,8 +65,6 @@
 
 /* Core CSS required for Ionic components to work properly */
 @import "@ionic/angular/css/core.css";
-
-/* Basic CSS for apps built with Ionic */
 @import "@ionic/angular/css/normalize.css";
 @import "@ionic/angular/css/structure.css";
 @import "@ionic/angular/css/typography.css";
@@ -79,128 +77,75 @@
 @import "@ionic/angular/css/text-transformation.css";
 @import "@ionic/angular/css/flex-utils.css";
 
-/* Leaflet and Fonts */
-@import "~leaflet/dist/leaflet.css";
+/* Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
-/**
- * DARK MODE REMOVAL
- * We comment out 'dark.system.css' to stop the phone from forcing dark colors.
- */
-/* @import "@ionic/angular/css/palettes/dark.system.css"; <--- DISABLED THIS */
-
 :root {
-  /* 1. Force Pure Light Mode Colors */
-  // --ion-background-color: #ffffff !important;
+  --ion-font-family: 'Poppins', sans-serif;
+  --ion-background-color: #ffffff !important;
   --ion-text-color: #1e293b !important;
-  --ion-item-background: #ffffff !important;
-  --ion-card-background: #ffffff !important;
-  --ion-toolbar-background: #ffffff !important;
-  --ion-toolbar-color: #1e293b !important;
-
-  /* 2. Fix Action Sheets & Modals (The "Faded" parts) */
+  --ion-color-primary: #0d9488 !important;
+  
+  /* Force Light Mode Overlays */
   --ion-overlay-background-color: #ffffff !important;
   --ion-modal-background: #ffffff !important;
-
-  /* 3. Primary Theme Color */
-  --ion-color-primary: #0d9488 !important; 
 }
 
-/* 4. Force the underlying body and all Ionic Overlays to stay Light */
-// body, .modal-wrapper, .action-sheet-wrapper, ion-content {
-//   background: #ffffff !important;
-//   --background: #ffffff !important;
-//   color: #1e293b !important;
-// }
-
+/* 1. Default App Look (Light Mode) */
 body {
-  background-color: #f1f5f9 !important; 
-}
-
-.capacitor-map-active ion-content {
-  --background: transparent !important;
-}
-
-/* 5. Fix for Select/Action Sheet text visibility */
-ion-select-popover, ion-action-sheet {
-  --background: #ffffff !important;
-  --color: #1e293b !important;
-  
-  button {
-    color: #1e293b !important;
-  }
-}
-
-/* 6. Fix for those greyish "New Patrol Session" labels */
-ion-label, .label-stacked, .label-floating {
-  color: #475569 !important; /* Slate grey, very readable */
-  --color: #475569 !important;
-}
-
-/* global.scss mein check karein */
-.action-sheet-button-inner {
-  color: #000000 !important; /* Options ka text black karne ke liye */
-}
-
-.custom-verification-alert {
-  --background: #ffffff;
-  --border-radius: 25px;
-
-  /* 1. Yellow/Orange Circle Icon */
-  .alert-head::before {
-    content: '!'; /* Exclamation mark */
-    display: block;
-    margin: 15px auto 5px;
-    width: 60px;
-    height: 60px;
-    line-height: 52px; /* Center the '!' vertically */
-    border: 4px solid #ffcc80; /* Light orange border */
-    border-radius: 50%;
-    color: #ffcc80;
-    font-size: 40px;
-    font-weight: bold;
-    text-align: center;
-    font-family: 'Arial', sans-serif;
-  }
-
-  .alert-wrapper {
-    padding: 10px;
-  }
-
-  .alert-title {
-    color: #333 !important;
-    font-weight: 800 !important;
-    text-align: center;
-    font-size: 1.4rem;
-  }
-
-  .alert-message {
-    text-align: center;
-    color: #666;
-    font-weight: 500;
-    font-size: 1rem;
-    padding-bottom: 10px;
-  }
-
-  /* 2. Purple Button Design */
-  .alert-button-group {
-    justify-content: center !important;
-    padding: 10px 0 15px;
-  }
-
-  .alert-button-purple {
-    background: #7162e0 !important; /* Proper Purple */
-    color: #fff !important;
-    width: 90px;
-    height: 44px;
-    border-radius: 12px;
-    font-weight: bold;
-    font-size: 0.9rem;
-    box-shadow: 0 4px 15px rgba(113, 98, 224, 0.4);
-  }
+  background-color: #f1f5f9 !important;
 }
 
 ion-content {
-  --background: transparent !important;
-  // background: #f8fafc; // Aapka light background color yahan dein
+  --background: #f1f5f9 !important;
+}
+
+/* 2. ✅ MAP ACTIVE MODE (CARD PROTECTOR LOGIC) */
+body.capacitor-map-active {
+  background: transparent !important;
+  --ion-background-color: transparent !important;
+
+  ion-content {
+    --background: transparent !important;
+    background: transparent !important;
+  }
+
+  .premium-wrapper {
+    background: transparent !important;
+  }
+
+  /* 🚨 YE HAI FIX: Card ko gayab hone se bachane ke liye */
+  .main-card {
+    background: #ffffff !important; // Card white rahega
+    position: relative;
+    z-index: 999; // Card ko map ke upar rakho
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  /* Sirf is box ke peeche map dikhna chahiye */
+  .map-container-box {
+    background: transparent !important; 
+    #onsite-map {
+      background: transparent !important;
+    }
+  }
+}
+
+/* 3. Dark Mode Block (Force Light) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ion-background-color: #ffffff !important;
+    --ion-text-color: #1e293b !important;
+  }
+  body { background-color: #f1f5f9 !important; }
+}
+
+/* 4. Other UI Fixes */
+ion-label {
+  color: #475569 !important;
+}
+
+.action-sheet-button-inner {
+  color: #000000 !important;
 }
