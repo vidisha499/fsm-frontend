@@ -1,261 +1,185 @@
+
+
+
+
 .sighting-content {
-  --background: #f4f7f6; // Light grayish-green tint
+  --background: #f4f7f6;
 
-  // Header Section
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 25px 20px;
+  .header-section {
+    background: linear-gradient(180deg, rgba(13, 148, 136, 0.8) 0%, rgba(6, 78, 59, 1) 100%), 
+                url('https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&q=80&w=800');
+    background-size: cover;
+    background-position: center;
+    padding: 50px 20px 80px 20px;
+    border-bottom-left-radius: 40px;
+    border-bottom-right-radius: 40px;
+
+    .header-content-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .left-group {
+        display: flex;
+        align-items: center;
+        gap: 15px; // Space between back button and text
+
+        .back-btn {
+          background: rgba(255, 255, 255, 0.2); // Glass effect
+          backdrop-filter: blur(5px);
+          border-radius: 12px;
+          padding: 8px;
+          color: white;
+          margin-top: 20%;
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          display: flex;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .main-title {
+          color: white;
+          font-weight: 700;
+          font-size: 24px;
+          margin-top: 20%;
+        }
+      }
+
+    .premium-badge {
+  background: #fbbf24;
+  color: white;
+  
+  // These three lines make it a square
+  width: 42px; 
+  height: 42px;
+  display: flex;
+  
+  // Center the icon inside the square
+  align-items: center;
+  justify-content: center;
+  
+  // Set this to a small value for a square look, or 0 for sharp corners
+  border-radius: 10px; 
+  
+  font-size: 22px;
+  box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4);
+}
+    }
+  }
+
+  .overlapping-card {
     background: white;
-    border-radius: 0 0 35px 35px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    margin: -45px 15px 30px 15px;
+    border-radius: 35px;
+    padding: 25px 20px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.06);
+  }
 
-    h2 {
+  .input-group {
+    margin-bottom: 20px;
+    
+    .photo-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    label {
+      font-size: 11px;
       font-weight: 800;
-      color: #001b2e;
-      margin: 0;
-      font-size: 24px;
-      letter-spacing: -0.5px;
-    }
-
-    .cancel-btn {
-      background: none;
-      color: #88929b;
-      font-weight: 700;
-      border: none;
-      font-size: 15px;
       text-transform: uppercase;
+      letter-spacing: 0.5px;
+      &.label-purple { color: #8b5cf6; }
+      &.label-blue { color: #3b82f6; }
+      &.label-green { color: #10b981; }
+      &.label-red { color: #ef4444; }
+      &.label-teal { color: #14b8a6; }
+      &.label-orange { color: #f59e0b; }
+    }
+
+    .count-badge {
+      font-size: 10px;
+      color: #94a3b8;
+      font-weight: 700;
     }
   }
 
-  // Form Body
-  .form-container {
-    padding: 20px;
-    padding-bottom: 100px;
-
-    .input-group {
-      margin-bottom: 22px;
-
-      label {
-        display: block;
-        color: #64748b;
-        font-size: 11px;
-        font-weight: 800;
-        margin-bottom: 10px;
-        letter-spacing: 0.8px;
-        text-transform: uppercase;
-      }
-
-      input, textarea, .custom-select select {
-        width: 100%;
-        border-radius: 18px;
-        border: 2px solid transparent;
-        background: #f1f5f9;
-        padding: 16px;
-        font-size: 15px;
-        color: #1e293b;
-        transition: all 0.3s ease;
-
-        &:focus {
-          outline: none;
-          background: #ffffff;
-          border-color: #0d9488;
-        }
-      }
-
-      .custom-select {
-        position: relative;
-        select {
-          appearance: none;
-          cursor: pointer;
-        }
-        &::after {
-          content: '\25BC'; // Chevron arrow
-          position: absolute;
-          right: 20px;
-          top: 18px;
-          font-size: 12px;
-          color: #64748b;
-          pointer-events: none;
-        }
-      }
-    }
-  }
-
-  // Gender Selection Styling
-  .gender-selection {
+  .premium-box {
+    background: #ffffff;
+    border: 1.5px solid #f1f5f9;
+    border-radius: 14px;
+    padding: 10px 15px;
     display: flex;
+    align-items: center;
     gap: 12px;
 
-    .radio-item {
-      display: flex;
-      align-items: center;
-      font-size: 14px;
-      font-weight: 600;
-      color: #334155;
-      background: white;
-      padding: 10px 15px;
-      border-radius: 25px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    &.box-purple { border-color: rgba(139, 92, 246, 0.2); }
+    &.box-blue { border-color: rgba(59, 130, 246, 0.2); }
+    &.box-green { border-color: rgba(16, 185, 129, 0.2); }
+    &.box-red { border-color: rgba(239, 68, 68, 0.2); }
+    &.box-orange { border-color: rgba(245, 158, 11, 0.2); }
 
-      input[type="checkbox"] {
-        width: 18px;
-        height: 18px;
-        margin-right: 10px;
-        accent-color: #0d9488; // Teal color from screenshot
+    input, select, textarea {
+      border: none; width: 100%; outline: none; background: transparent;
+      font-weight: 700; color: #334155; font-size: 14px;
+    }
+
+    .gender-selection-row {
+      display: flex; flex: 1; justify-content: space-around;
+      span {
+        font-size: 13px; font-weight: 700; color: #94a3b8; padding: 4px 8px;
+        &.active { color: #ef4444; background: rgba(239, 68, 68, 0.1); border-radius: 8px; }
       }
     }
   }
 
-  // Photos Section
-  .photo-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin-bottom: 15px;
+  .photo-container {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+
+    .add-photo-dashed {
+      flex: 0 0 85px;
+      height: 85px;
+      border: 2px dashed #cbd5e1;
+      border-radius: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #94a3b8;
+      span { font-size: 8px; font-weight: 800; margin-top: 5px; }
+    }
+
+    .photo-list { display: flex; gap: 10px; }
 
     .photo-item {
       position: relative;
-      height: 100px;
-      img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        border-radius: 12px;
-      }
+      img { width: 85px; height: 85px; border-radius: 18px; object-fit: cover; }
       .remove-icon {
-        position: absolute;
-        top: -5px;
-        right: -5px;
-        background: white;
-        color: #ef4444;
-        border-radius: 50%;
-        font-size: 20px;
+        position: absolute; top: -5px; right: -5px;
+        color: #ef4444; font-size: 20px; background: white; border-radius: 50%;
       }
     }
   }
 
-  .add-photo-btn {
-    width: 100%;
-    padding: 18px;
-    border-radius: 18px;
-    border: 2px dashed #0d9488;
-    background: #f0fdfa;
-    color: #0d9488;
-    font-weight: 800;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    ion-icon { font-size: 20px; }
-
-    &:active {
-      background: #ccfbf1;
-    }
-  }
-
-  // Footer Save Button (Fixed at bottom)
-  .footer-btn {
-  padding: 16px 20px;
-  background: transparent;
-  width: 100%;
-  margin-top: auto; // Pushes it to the bottom if inside a flex container
-
-  .auto-slider-container {
-    width: 100%;
-    position: relative;
-    user-select: none;
-    touch-action: pan-y; // Allows page scrolling while blocking horizontal swipes
-
+  .save-footer {
+    margin-top: 25px;
     .slider-track {
-      height: 64px;
-      background: #03090f; // Dark navy/black background
-      border-radius: 32px;
-      display: flex;
-      align-items: center;
-      position: relative;
-      padding: 0 6px;
-      border: 1px solid #eef2f62b; // Subtle border
-      overflow: hidden;
+      height: 55px; background: #1e293b; border-radius: 28px;
+      display: flex; align-items: center; position: relative; padding: 0 5px;
     }
-
     .slider-handle {
-      position: absolute;
-      left: 6px;
-      width: 52px;
-      height: 52px;
-      background: #0d9488; // Teal color
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #ffffff;
-      z-index: 2;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-      
-      // Snappy transition for the return, but logic handles the drag
-      transition: transform 0.1s ease-out, background 0.3s ease;
-      
-      ion-icon {
-        font-size: 24px;
-      }
+      width: 45px; height: 45px; background: #14b8a6; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: white; box-shadow: 0 4px 10px rgba(20, 184, 166, 0.4);
     }
-
-    .slider-text {
-      width: 100%;
-      text-align: center;
-      font-weight: 800;
-      font-size: 14px;
-      color: #fbfcff; 
-      letter-spacing: 0.5px;
-      pointer-events: none; // Ensures touch goes through to the container
-      transition: opacity 0.2s ease;
-      margin-left: 20px; // Offset to center better with the handle present
-    }
-
-    .end-check {
-      position: absolute;
-      right: 20px;
-      color: #ffffff;
-      font-size: 22px;
-      z-index: 1;
-      opacity: 0.2; // Ghosted initially
-      transition: all 0.4s ease;
-    }
-
-    // --- ACTIVE STATE (WHILE SAVING) ---
-    &.active {
-      pointer-events: none; // Prevent double-sliding
-
-      .slider-handle {
-        background: #22c55e !important; // Turn green on success/active
-        transition: transform 0.6s cubic-bezier(0.65, 0, 0.35, 1) !important;
-      }
-
-      .end-check {
-        opacity: 1 !important;
-        z-index: 3; // Put checkmark on top of handle
-      }
-    }
-
-    // --- DISABLED STATE ---
-    &.disabled {
-      opacity: 0.6;
-      pointer-events: none;
-      filter: grayscale(0.5);
+    .slider-label {
+      position: absolute; width: 100%; text-align: center;
+      color: white; font-weight: 700; font-size: 12px;
     }
   }
 }
 
-// Spinning animation for the sync icon
-.spin-icon {
-  animation: rotation 2s infinite linear;
-}
-
-@keyframes rotation {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(359deg); }
-}
-}
+.spin { animation: rotation 2s infinite linear; }
+@keyframes rotation { from { transform: rotate(0deg); } to { transform: rotate(359deg); } }

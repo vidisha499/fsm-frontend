@@ -1,92 +1,101 @@
-<ion-content class="sighting-content">
-  <div class="modal-header">
-    <h2>{{ category }} Log</h2>
-    <button class="cancel-btn" (click)="goBack()">CANCEL</button>
+
+
+<ion-content class="sighting-content" [fullscreen]="true">
+  <div class="header-section">
+    <div class="header-content-row">
+      <div class="left-group">
+        <button class="back-btn" (click)="goBack()">
+          <ion-icon name="arrow-back-outline"></ion-icon>
+        </button>
+        <h1 class="main-title">Report {{ category }}</h1>
+      </div>
+      <div class="premium-badge">
+        <ion-icon name="shield-checkmark"></ion-icon>
+      </div>
+    </div>
   </div>
 
-  <div class="form-container">
+  <div class="overlapping-card">
+    
     <div class="input-group">
-      <label>SIGHTING TYPE</label>
-      <div class="custom-select">
+      <label class="label-purple">SIGHTING TYPE</label>
+      <div class="premium-box box-purple">
+        <ion-icon name="flash" class="icon-purple"></ion-icon>
         <select [(ngModel)]="obsData.sightingType">
-          <option value="Direct">Direct</option>
+          <option value="Direct">Direct Sighting</option>
           <option value="Indirect">Indirect</option>
         </select>
       </div>
     </div>
 
     <div class="input-group">
-      <label>SPECIES</label>
-      <input type="text" [(ngModel)]="obsData.species" placeholder="Enter species name">
-    </div>
-
-    <div class="input-group">
-      <label>NUMBER OF {{ category | uppercase }}S</label>
-      <input type="number" [(ngModel)]="obsData.count">
-    </div>
-
-    <div class="input-group">
-      <label>GENDER</label>
-      <div class="gender-selection">
-        <label class="radio-item">
-          <input type="checkbox" [checked]="obsData.genderMale" (change)="toggleGender('male')">
-          <span class="custom-radio"></span> Male
-        </label>
-        <label class="radio-item">
-          <input type="checkbox" [checked]="obsData.genderFemale" (change)="toggleGender('female')">
-          <span class="custom-radio"></span> Female
-        </label>
-        <label class="radio-item">
-          <input type="checkbox" [checked]="obsData.genderUnknown" (change)="toggleGender('unknown')">
-          <span class="custom-radio"></span> Unknown
-        </label>
+      <label class="label-blue">SPECIES NAME</label>
+      <div class="premium-box box-blue">
+        <ion-icon name="paw" class="icon-blue"></ion-icon>
+        <input type="text" [(ngModel)]="obsData.species" placeholder="Enter species...">
       </div>
     </div>
 
     <div class="input-group">
-      <label>PHOTOS ({{ obsData.photos.length }}/5)</label>
-      <div class="photo-grid" *ngIf="obsData.photos.length > 0">
-        <div class="photo-item" *ngFor="let photo of obsData.photos; let i = index">
-          <img [src]="photo">
-          <ion-icon name="close-circle" class="remove-icon" (click)="removePhoto(i)"></ion-icon>
+      <label class="label-green">NUMBER OF {{ category | uppercase }}S</label>
+      <div class="premium-box box-green">
+        <ion-icon name="stats-chart" class="icon-green"></ion-icon>
+        <input type="number" [(ngModel)]="obsData.count">
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label class="label-red">GENDER</label>
+      <div class="premium-box box-red">
+        <ion-icon name="male-female" class="icon-red"></ion-icon>
+        <div class="gender-selection-row">
+          <span [class.active]="obsData.genderMale" (click)="toggleGender('male')">Male</span>
+          <span [class.active]="obsData.genderFemale" (click)="toggleGender('female')">Female</span>
+          <span [class.active]="obsData.genderUnknown" (click)="toggleGender('unknown')">Unknown</span>
         </div>
       </div>
-      <button class="add-photo-btn" (click)="takePhoto()" [disabled]="obsData.photos.length >= 5">
-        <ion-icon name="camera-outline"></ion-icon> ADD PHOTO
-      </button>
+    </div>
+
+    <div class="input-group photo-section">
+      <div class="photo-header-row">
+        <label class="label-teal">PHOTOS</label>
+        <span class="count-badge">{{ obsData.photos.length }}/5 Photos</span>
+      </div>
+      
+      <div class="photo-container">
+        <div class="add-photo-dashed" (click)="takePhoto()" *ngIf="obsData.photos.length < 5">
+          <ion-icon name="camera-outline"></ion-icon>
+          <span>ADD PHOTO</span>
+        </div>
+
+        <div class="photo-list">
+          <div class="photo-item" *ngFor="let photo of obsData.photos; let i = index">
+            <img [src]="photo">
+            <div class="remove-icon" (click)="removePhoto(i)">
+              <ion-icon name="close-circle"></ion-icon>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="input-group">
-      <label>NOTES</label>
-      <textarea [(ngModel)]="obsData.notes" rows="3" placeholder="Additional details..."></textarea>
-    </div>
-  </div>
-
-
-  <div class="footer-btn">
-  <div class="auto-slider-container" 
-       [class.active]="isSubmitting"
-       [class.disabled]="isSaving"
-       (touchstart)="onDragStart($event)"
-       (touchmove)="onDragMove($event)"
-       (touchend)="onDragEnd()">
-       
-    <div class="slider-track">
-      <div class="slider-handle" 
-           [style.transform]="'translateX(' + currentTranslateX + 'px)'">
-        <ion-icon [name]="isSubmitting ? 'sync-outline' : 'chevron-forward-outline'" 
-                  [class.spin-icon]="isSubmitting">
-        </ion-icon>
-      </div>
-
-      <span class="slider-text" [style.opacity]="textOpacity">
-        {{ isSubmitting ? 'SAVING LOG...' : 'SLIDE TO SAVE LOG' }}
-      </span>
-
-      <div class="end-check">
-        <ion-icon name="checkmark-outline"></ion-icon>
+      <label class="label-orange">REMARK / OBSERVATIONS</label>
+      <div class="premium-box box-orange textarea-container">
+        <ion-icon name="document-text-outline"></ion-icon>
+        <textarea [(ngModel)]="obsData.notes" rows="2" placeholder="Field observations..."></textarea>
       </div>
     </div>
+
+    <div class="save-footer">
+      <div class="slider-track" [class.is-loading]="isSubmitting"
+           (touchstart)="onDragStart($event)" (touchmove)="onDragMove($event)" (touchend)="onDragEnd()">
+        <div class="slider-handle" [style.transform]="'translateX(' + currentTranslateX + 'px)'">
+          <ion-icon [name]="isSubmitting ? 'refresh-outline' : 'chevron-forward-outline'" [class.spin]="isSubmitting"></ion-icon>
+        </div>
+        <span class="slider-label">{{ isSubmitting ? 'UPLOADING...' : 'SLIDE TO SAVE LOG' }}</span>
+      </div>
+    </div>
+
   </div>
-</div>
 </ion-content>
