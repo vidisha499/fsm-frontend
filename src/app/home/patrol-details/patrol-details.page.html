@@ -1,267 +1,210 @@
 <!-- 
 
-
 <ion-content [fullscreen]="true" class="premium-wrapper">
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
   <div class="hero-header">
     <div class="header-overlay"></div>
     <div class="header-content">
-      <div class="top-row">
-        <button (click)="goBack()" class="back-btn-glass">
-          <ion-icon name="arrow-back-outline"></ion-icon>
-        </button>
-        <h1>Patrol Details</h1>
+      <div class="nav-bar">
+        <div class="left-section">
+          <button (click)="goBack()" class="glass-btn">
+            <ion-icon name="arrow-back-outline"></ion-icon>
+          </button>
+          <h1>Patrol Details</h1>
+        </div>
+        <div class="priority-chip" *ngIf="patrol">Active</div>
       </div>
     </div>
   </div>
 
-  <div class="main-content-container" *ngIf="patrol; else loading">
+  <div class="card-container" *ngIf="patrol; else loadingTemplate">
     
-    <div class="detail-card map-card">
-      <div id="detailsMap"></div>
-      <div *ngIf="mapLoading" class="map-skeleton">
-        <ion-spinner name="crescent"></ion-spinner>
-      </div>
+    <div class="hero-image-container" *ngIf="patrol.photos?.length > 0">
+      <img [src]="patrol.photos[0]" class="hero-photo" />
     </div>
 
-    <div class="detail-card stats-row-card">
-      <div class="stat-box">
-        <span class="label">DISTANCE</span>
-        <span class="value">{{ patrol.distanceKm || '0.00' }} <small>KM</small></span>
-      </div>
-      <div class="v-divider"></div>
-      <div class="stat-box">
-        <span class="label">DURATION</span>
-        <span class="value">{{ patrol.duration || '--:--' }}</span>
-      </div>
-      <div class="v-divider"></div>
-      <div class="stat-box">
-        <span class="label">DATE</span>
-        <span class="value">{{ patrol.startTime | date:'dd MMM' }}</span>
-      </div>
-    </div>
-
-    <h3 class="section-title">FIELD OBSERVATIONS</h3>
-
-    <div *ngIf="patrol.observationData?.Details?.length > 0; else noObs">
-      <div *ngFor="let obs of patrol.observationData.Details" class="detail-card obs-item">
-        <div class="obs-header">
-          <div class="icon-wrap">
-            <i [class]="getCategoryIcon(obs.category)"></i>
-          </div>
-          <div class="obs-info">
-            <div class="obs-top">
-              <span class="category-tag">{{ obs.category | uppercase }}</span>
-              <span class="time">{{ obs.timestamp | date:'h:mm a' }}</span>
-            </div>
-            <p class="species">{{ obs.species || 'Unspecified Sighting' }}</p>
-            <p class="meta">{{ obs.count }} Spotted • {{ obs.sighting_type }}</p>
-          </div>
+    <div class="main-card">
+      
+      <div class="stats-grid">
+        <div class="stat-box">
+          <span class="label">DISTANCE</span>
+          <span class="value">{{ patrol.distanceKm || '0.00' }} <small>KM</small></span>
+        </div>
+        <div class="v-divider"></div>
+        <div class="stat-box">
+          <span class="label">DURATION</span>
+          <span class="value">{{ patrol.duration || '--:--' }}</span>
+        </div>
+        <div class="v-divider"></div>
+        <div class="stat-box">
+          <span class="label">DATE</span>
+          <span class="value">{{ patrol.startTime | date:'dd MMM' }}</span>
         </div>
       </div>
-    </div>
 
-    <ng-template #noObs>
-      <div class="empty-state-card">
-        <ion-icon name="document-text-outline"></ion-icon>
-        <p>No observations recorded.</p>
+      <hr class="card-divider">
+
+      <h3 class="inner-section-title">PATROL ROUTE</h3>
+      <div class="embedded-map">
+        <div id="detailsMap" style="height: 100%; width: 100%;"></div>
       </div>
-    </ng-template>
-  </div>
 
-  <ng-template #loading>
+      <hr class="card-divider">
+
+      <h3 class="inner-section-title">FIELD OBSERVATIONS</h3>
+      
+      <div *ngIf="patrol.observationData?.Details?.length > 0; else noObsTemplate">
+        <div *ngFor="let obs of patrol.observationData.Details" class="obs-card">
+          
+          <div class="obs-card-header">
+            <div class="obs-badge">
+              <i [class]="getCategoryIcon(obs.category)"></i>
+              <span>{{ obs.category | uppercase }}</span>
+            </div>
+            <span class="obs-time">{{ obs.timestamp | date:'h:mm a' }}</span>
+          </div>
+          
+          <div class="obs-body">
+            <div class="obs-text-content">
+              <h4>{{ obs.species || 'Unspecified' }}</h4>
+              <p>{{ obs.count }} Spotted • {{ obs.sighting_type }}</p>
+              <p class="obs-notes" *ngIf="obs.notes">"{{ obs.notes }}"</p>
+            </div>
+          </div>
+
+          <div class="obs-gallery" *ngIf="obs.photos?.length > 0">
+            <div class="obs-scroll">
+              <div class="obs-photo-item" *ngFor="let p of obs.photos">
+                <img [src]="p" />
+              </div>
+            </div>
+          </div>
+
+        </div> </div> </div> </div> <ng-template #noObsTemplate>
+    <div class="no-obs-box">
+      <ion-icon name="document-text-outline"></ion-icon>
+      <p>No observations recorded.</p>
+    </div>
+  </ng-template>
+
+  <ng-template #loadingTemplate>
     <div class="loading-wrap">
-      <ion-spinner name="crescent" color="primary"></ion-spinner>
-      <p>Fetching Patrol Details...</p>
+      <ion-spinner name="crescent"></ion-spinner>
+      <p>Loading details...</p>
     </div>
   </ng-template>
 </ion-content> -->
 
 
+<ion-content [fullscreen]="true" class="premium-wrapper">
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
 
-
-<!-- <ion-content [fullscreen]="true" class="premium-wrapper">
   <div class="hero-header">
     <div class="header-overlay"></div>
     <div class="header-content">
-      <div class="top-row">
-        <button (click)="goBack()" class="back-btn-glass">
-          <ion-icon name="arrow-back-outline"></ion-icon>
-        </button>
-        <h1 class="header-title">Patrol Details</h1>
+      <div class="nav-bar">
+        <div class="left-section">
+          <button (click)="goBack()" class="glass-btn">
+            <ion-icon name="arrow-back-outline"></ion-icon>
+          </button>
+          <h1>Patrol Details</h1>
+        </div>
+        <div class="priority-chip" *ngIf="patrol">Active</div>
       </div>
     </div>
   </div>
 
-  <div class="main-content-container" *ngIf="patrol; else loading">
+  <div class="card-container" *ngIf="patrol; else loadingTemplate">
     
-    <div class="detail-card map-card">
-      <div id="detailsMap" style="height: 100%; width: 100%;"></div>
-      <div *ngIf="mapLoading" class="map-skeleton">
-        <ion-spinner name="crescent" color="primary"></ion-spinner>
-        <p>Loading Route...</p>
-      </div>
+    <div class="hero-image-container" *ngIf="patrol.photos?.length > 0">
+      <img [src]="patrol.photos[0]" class="hero-photo" (click)="openZoom(patrol.photos[0])" />
     </div>
 
-    <div class="detail-card stats-row-card">
-      <div class="stat-box">
-        <span class="label">DISTANCE</span>
-        <span class="value">{{ patrol.distanceKm || '0.00' }} <small>KM</small></span>
+    <div class="main-card">
+      
+      <div class="stats-grid">
+        <div class="stat-box">
+          <span class="label">DISTANCE</span>
+          <span class="value">{{ patrol.distanceKm || '0.00' }} <small>KM</small></span>
+        </div>
+        <div class="v-divider"></div>
+        <div class="stat-box">
+          <span class="label">DURATION</span>
+          <span class="value">{{ patrol.duration || '--:--' }}</span>
+        </div>
+        <div class="v-divider"></div>
+        <div class="stat-box">
+          <span class="label">DATE</span>
+          <span class="value">{{ patrol.startTime | date:'dd MMM' }}</span>
+        </div>
       </div>
-      <div class="v-divider"></div>
-      <div class="stat-box">
-        <span class="label">DURATION</span>
-        <span class="value">{{ patrol.duration || '--:--' }}</span>
-      </div>
-      <div class="v-divider"></div>
-      <div class="stat-box">
-        <span class="label">DATE</span>
-        <span class="value">{{ patrol.startTime | date:'dd MMM' }}</span>
-      </div>
-    </div>
 
-    <h3 class="section-title">FIELD OBSERVATIONS</h3>
+      <hr class="card-divider">
 
-    <div *ngIf="patrol.observationData?.Details?.length > 0; else noObs">
-      <div *ngFor="let obs of patrol.observationData.Details" class="detail-card obs-item">
-        <div class="obs-header">
-          <div class="icon-wrap">
-            <i [class]="getCategoryIcon(obs.category)"></i>
-          </div>
-          <div class="obs-info">
-            <div class="obs-top">
-              <span class="category-tag">{{ obs.category | uppercase }}</span>
-              <span class="time">{{ obs.timestamp | date:'h:mm a' }}</span>
+      <h3 class="inner-section-title">PATROL ROUTE</h3>
+      <div class="embedded-map">
+        <div id="detailsMap" style="height: 100%; width: 100%;"></div>
+      </div>
+
+      <hr class="card-divider">
+
+      <h3 class="inner-section-title">FIELD OBSERVATIONS</h3>
+      
+      <div *ngIf="patrol.observationData?.Details?.length > 0; else noObsTemplate">
+        <div *ngFor="let obs of patrol.observationData.Details" class="obs-card">
+          
+          <div class="obs-card-header">
+            <div class="obs-badge">
+              <i [class]="getCategoryIcon(obs.category)"></i>
+              <span>{{ obs.category | uppercase }}</span>
             </div>
-            <p class="species">{{ obs.species || 'Unspecified Sighting' }}</p>
-            <p class="meta">{{ obs.count }} Spotted • {{ obs.sighting_type }}</p>
+            <span class="obs-time">{{ obs.timestamp | date:'h:mm a' }}</span>
           </div>
-        </div>
-        
-        <div class="obs-photo-preview" *ngIf="obs.photos && obs.photos.length > 0">
-           <img [src]="obs.photos[0]" alt="Sighting photo">
-        </div>
-      </div>
-    </div>
+          
+          <div class="obs-body">
+            <div class="obs-text-content">
+              <h4>{{ obs.species || 'Unspecified' }}</h4>
+              <p>{{ obs.count }} Spotted • {{ obs.sighting_type }}</p>
+              <p class="obs-notes" *ngIf="obs.notes">"{{ obs.notes }}"</p>
+            </div>
+          </div>
 
-    <ng-template #noObs>
-      <div class="empty-state-card">
-        <ion-icon name="eye-off-outline"></ion-icon>
-        <p>No observations recorded during this patrol.</p>
-      </div>
-    </ng-template>
+          <div class="obs-gallery" *ngIf="obs.photos?.length > 0">
+            <div class="obs-scroll">
+              <div class="obs-photo-item" *ngFor="let p of obs.photos">
+                <img [src]="p" (click)="openZoom(p)" />
+              </div>
+            </div>
+          </div>
+
+        </div> 
+      </div> 
+    </div> 
   </div>
 
-  <ng-template #loading>
-    <div class="loading-wrap">
-      <ion-spinner name="crescent" color="primary"></ion-spinner>
-      <p>Fetching Patrol Data...</p>
+  <ng-template #noObsTemplate>
+    <div class="no-obs-box">
+      <ion-icon name="document-text-outline"></ion-icon>
+      <p>No observations recorded.</p>
     </div>
   </ng-template>
-</ion-content> -->
 
-<ion-content [fullscreen]="true" class="premium-wrapper">
-  <div class="hero-header">
-    <div class="header-overlay"></div>
-    <div class="header-content">
-      <div class="top-row">
-        <button (click)="goBack()" class="back-btn-glass">
-          <ion-icon name="arrow-back-outline"></ion-icon>
-        </button>
-        <h1 class="header-title">Patrol Details</h1>
-      </div>
-    </div>
-  </div>
-
-  <div class="main-content-container" *ngIf="patrol; else loading">
-    
-    <div *ngIf="patrol.patrolPhotos?.length > 0">
-      <h3 class="section-title">CAPTURED EVIDENCE ({{ patrol.patrolPhotos.length }})</h3>
-      <div class="evidence-gallery">
-        <div class="photo-square" *ngFor="let img of patrol.patrolPhotos">
-          <img [src]="img" alt="Patrol photo" />
-        </div>
-      </div>
-    </div>
-
-    <h3 class="section-title">PATROL ROUTE</h3>
-    <div class="detail-card map-card">
-      <div id="detailsMap" style="height: 100%; width: 100%;"></div>
-      <div *ngIf="mapLoading" class="map-skeleton">
-        <ion-spinner name="crescent" color="primary"></ion-spinner>
-      </div>
-    </div>
-
-    <div class="detail-card stats-row-card">
-      <div class="stat-box">
-        <span class="label">DISTANCE</span>
-        <span class="value">{{ patrol.distanceKm || '0.00' }} <small>KM</small></span>
-      </div>
-      <div class="v-divider"></div>
-      <div class="stat-box">
-        <span class="label">DURATION</span>
-        <span class="value">{{ patrol.duration || '--:--' }}</span>
-      </div>
-      <div class="v-divider"></div>
-      <div class="stat-box">
-        <span class="label">DATE</span>
-        <span class="value">{{ patrol.startTime | date:'dd MMM' }}</span>
-      </div>
-    </div>
-
-    <!-- <h3 class="section-title">FIELD OBSERVATIONS</h3>
-    <div *ngIf="patrol.observationData?.Details?.length > 0; else noObs">
-      <div *ngFor="let obs of patrol.observationData.Details" class="detail-card obs-item">
-        <div class="obs-header">
-          <div class="icon-wrap">
-            <i [class]="getCategoryIcon(obs.category)"></i>
-          </div>
-          <div class="obs-info">
-            <div class="obs-top">
-              <span class="category-tag">{{ obs.category | uppercase }}</span>
-              <span class="time">{{ obs.timestamp | date:'h:mm a' }}</span>
-            </div>
-            <p class="species">{{ obs.species || 'Unspecified Sighting' }}</p>
-            <p class="meta">{{ obs.count }} Spotted • {{ obs.sighting_type }}</p>
-          </div>
-        </div>
-      </div>
-    </div> -->
-    <h3 class="section-title">FIELD OBSERVATIONS</h3>
-
-<div *ngIf="patrol.observationData?.Details?.length > 0; else noObs">
-  <div *ngFor="let obs of patrol.observationData.Details" class="detail-card obs-item">
-    <div class="obs-header">
-      <div class="icon-wrap">
-        <i [class]="getCategoryIcon(obs.category)"></i>
-      </div>
-      <div class="obs-info">
-        <div class="obs-top">
-          <span class="category-tag">{{ obs.category | uppercase }}</span>
-          <span class="time">{{ obs.timestamp | date:'h:mm a' }}</span>
-        </div>
-        <p class="species">{{ obs.species || 'Unspecified Sighting' }}</p>
-        <p class="meta">{{ obs.count }} Spotted • {{ obs.sighting_type }}</p>
-        
-        <div class="sighting-photo-preview" *ngIf="obs.photos?.length > 0">
-          <img [src]="obs.photos[0]" class="mini-thumb" />
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-    <ng-template #noObs>
-      <div class="empty-state-card">
-        <ion-icon name="eye-off-outline"></ion-icon>
-        <p>No observations recorded during this patrol.</p>
-      </div>
-    </ng-template>
-  </div>
-
-  <ng-template #loading>
+  <ng-template #loadingTemplate>
     <div class="loading-wrap">
-      <ion-spinner name="crescent" color="primary"></ion-spinner>
-      <p>Fetching Patrol Data...</p>
+      <ion-spinner name="crescent"></ion-spinner>
+      <p>Loading details...</p>
     </div>
   </ng-template>
 </ion-content>
+
+<div class="zoom-overlay" *ngIf="selectedZoomImage" (click)="closeZoom()">
+  <div class="zoom-container">
+    <img [src]="selectedZoomImage" (click)="$event.stopPropagation()" />
+    <button class="close-zoom-btn" (click)="closeZoom()">
+      <ion-icon name="close-outline"></ion-icon>
+    </button>
+  </div>
+</div>

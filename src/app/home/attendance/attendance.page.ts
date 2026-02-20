@@ -1,12 +1,14 @@
-import { Component, OnInit, ViewChild, ElementRef, OnDestroy , ChangeDetectorRef} from '@angular/core';
-import { NavController, ToastController, ActionSheetController, Platform, LoadingController } from '@ionic/angular';
+
+
+
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { NavController, ToastController, ActionSheetController, Platform } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Geolocation } from '@capacitor/geolocation';
-import { GoogleMap } from '@capacitor/google-maps';
 import { firstValueFrom } from 'rxjs';
-import { TranslateService } from '@ngx-translate/core';
 import { environment } from 'src/environments/environment';
+import * as L from 'leaflet';
 
 @Component({
   selector: 'app-attendance',
@@ -15,30 +17,34 @@ import { environment } from 'src/environments/environment';
   standalone: false
 })
 export class AttendancePage implements OnInit, OnDestroy {
-  @ViewChild('map') mapRef!: ElementRef;
-  newMap!: GoogleMap;
+  // Leaflet variables
+  map!: L.Map;
+  marker!: L.Marker;
+  private locationIcon = L.divIcon({
+    className: 'user-location-marker',
+    html: '<div class="blue-dot"></div>',
+    iconSize: [20, 20],
+    iconAnchor: [10, 10]
+  });
+
   public currentTranslateX: number = 0;
-public textOpacity: number = 1;
-private startX: number = 0;
-private maxSlide: number = 0;
+  public textOpacity: number = 1;
+  private startX: number = 0;
+  private maxSlide: number = 0;
   
   public isSubmitting: boolean = false;
   public isEntry: boolean = true;
-  
   public attendance: any = null;
   public currentTime: Date = new Date(); 
-
   public capturedPhoto: string = ''; 
   public rangerName: string = '';
   public rangerRegion: string = '';
   public currentAddress: string = 'Detecting location...';
 
-  public currentLat: number = 0;
-  public currentLng: number = 0;
-  private watchId: any = null;
-  private markerId: string | null = null;
+  public currentLat: number = 20.1013; 
+  public currentLng: number = 77.1337;
+  private gpsWatchId: any = null;
 
-  // Google API Key fix: Make sure this key has "Geocoding API" enabled
   private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw';
   private apiUrl: string = `${environment.apiUrl}/attendance/beat-attendance`;
 
@@ -46,9 +52,7 @@ private maxSlide: number = 0;
     private navCtrl: NavController,
     private toastCtrl: ToastController,
     private actionSheetCtrl: ActionSheetController,
-    private loadingCtrl: LoadingController,
     private http: HttpClient,
-    private translate: TranslateService,
     private platform: Platform,
     private cdr: ChangeDetectorRef,
   ) {}
@@ -56,7 +60,6 @@ private maxSlide: number = 0;
   ngOnInit() {
     this.rangerName = localStorage.getItem('ranger_username') || 'Ranger';
     this.rangerRegion = localStorage.getItem('ranger_region') || 'Washim';
-    
     this.attendance = { created_at: new Date() };
 
     setInterval(() => {
@@ -65,219 +68,147 @@ private maxSlide: number = 0;
   }
 
   async ionViewDidEnter() {
-    await this.platform.ready();
-    await this.initMapAndTracking();
+    await this.initLeafletMap();
   }
 
-  // async initMapAndTracking() {
-  //   try {
-  //     const permissions = await Geolocation.checkPermissions();
-  //     if (permissions.location !== 'granted') await Geolocation.requestPermissions();
-
-  //     const pos = await Geolocation.getCurrentPosition({ 
-  //       enableHighAccuracy: true,
-  //       timeout: 120000 
-  //     });
-      
-  //     this.currentLat = pos.coords.latitude;
-  //     this.currentLng = pos.coords.longitude;
-
-  //     await this.createMap();
-  //     this.startLocationWatch();
-  //     // Wait a bit to ensure GPS is stable before geocoding
-  //     setTimeout(() => this.updateAddress(this.currentLat, this.currentLng), 1000);
-  //   } catch (e) {
-  //     this.presentToast('Please enable GPS and permissions', 'warning');
-  //   }
-  // }
-
-  // async createMap() {
-  //   if (!this.mapRef) return;
-  //   this.newMap = await GoogleMap.create({
-  //     id: 'attendance-map-unique',
-  //     element: this.mapRef.nativeElement,
-  //     apiKey: this.googleApiKey,
-  //     config: { center: { lat: this.currentLat, lng: this.currentLng }, zoom: 17 },
-  //   });
-  //   this.updateMarker();
-  // }
-
-  // async startLocationWatch() {
-  //   this.watchId = await Geolocation.watchPosition({ 
-  //       enableHighAccuracy: true, 
-  //       timeout: 10000 
-  //   }, (pos) => {
-  //     if (pos) {
-  //       this.currentLat = pos.coords.latitude;
-  //       this.currentLng = pos.coords.longitude;
-  //       this.updateMarker();
-  //     }
-  //   });
-  // }
-
-async initMapAndTracking() {
+  async initLeafletMap() {
   try {
-    const permissions = await Geolocation.checkPermissions();
-    if (permissions.location !== 'granted') {
-      await Geolocation.requestPermissions();
-    }
-
-    // Fresh location lene ke liye maximumAge: 0 add kiya hai
+    // Force high accuracy and disable cache
     const pos = await Geolocation.getCurrentPosition({ 
-      enableHighAccuracy: true,
-      timeout: 30000, // 30s timeout for better accuracy
-      maximumAge: 0    
-    }).catch(err => {
-      console.warn("Location timeout, using defaults", err);
-      // Agar timeout ho toh Washim default rahega
-      return { coords: { latitude: 20.1013, longitude: 77.1337 } }; 
+      enableHighAccuracy: true, 
+      timeout: 10000, 
+      maximumAge: 0 // <--- CRITICAL: Prevents using old/cached location
     });
     
     this.currentLat = pos.coords.latitude;
     this.currentLng = pos.coords.longitude;
 
-    // 1. Map create karein
-    await this.createMap();
+    if (this.map) { this.map.remove(); }
 
-    // 2. Map ko current location par move/center karein
-    if (this.newMap) {
-      await this.newMap.setCamera({
-        coordinate: { lat: this.currentLat, lng: this.currentLng },
-        zoom: 15,
-        animate: true
-      });
-    }
-
-    // 3. Address aur Marker update karein
-    this.updateAddress(this.currentLat, this.currentLng);
-    this.updateMarker();
-    
-    // 4. Real-time tracking shuru karein
-    this.startLocationWatch();
-
-  } catch (e) {
-    this.presentToast('Please enable GPS and permissions', 'warning');
-  }
-}
-  async createMap() {
-    if (!this.mapRef) return;
-
-    // IMPORTANT: ID must match the HTML element ID
-    this.newMap = await GoogleMap.create({
-      id: 'map', 
-      element: this.mapRef.nativeElement,
-      apiKey: this.googleApiKey,
-      config: { 
-        center: { lat: this.currentLat, lng: this.currentLng }, 
-        zoom: 15,
-        androidLiteMode: false // Set to true if performance is slow
-      },
+    this.map = L.map('attendanceMap', { 
+      center: [this.currentLat, this.currentLng], 
+      zoom: 18, // Zoomed in closer for better accuracy check
+      zoomControl: false 
     });
 
-    await this.updateMarker();
-  }
+    L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+    }).addTo(this.map);
 
-  async startLocationWatch() {
-    // Save watch ID properly to clear it later
-    const callback = (pos: any) => {
-      if (pos && pos.coords) {
-        this.currentLat = pos.coords.latitude;
-        this.currentLng = pos.coords.longitude;
-        this.updateMarker();
+    this.marker = L.marker([this.currentLat, this.currentLng], { icon: this.locationIcon }).addTo(this.map);
+    
+    this.updateAddress(this.currentLat, this.currentLng);
+    this.startLiveTracking();
+
+  } catch (e) {
+    console.error("Leaflet init failed", e);
+    // If it fails, try one more time with lower accuracy as fallback
+    this.presentToast('Searching for GPS signal...', 'warning');
+  }
+}
+
+
+
+ async startLiveTracking() {
+  this.gpsWatchId = await Geolocation.watchPosition({ 
+    enableHighAccuracy: true, 
+    maximumAge: 0 // Forces a fresh read every time
+  }, (position) => {
+    if (position && this.map) {
+      const newLat = position.coords.latitude;
+      const newLng = position.coords.longitude;
+      
+      // Accuracy check: only update if the signal is decent (less than 50 meters error)
+      if (position.coords.accuracy < 50) { 
+        const newPoint = L.latLng(newLat, newLng);
+        this.marker.setLatLng(newPoint);
+        this.map.panTo(newPoint);
+        
+        if (L.latLng(this.currentLat, this.currentLng).distanceTo(newPoint) > 5) {
+          this.currentLat = newLat;
+          this.currentLng = newLng;
+          this.updateAddress(newLat, newLng);
+        }
       }
-    };
-
-    this.watchId = await Geolocation.watchPosition({ 
-        enableHighAccuracy: true, 
-        timeout: 30000 ,
-        maximumAge: 0
-    }, callback);
+    }
+  });
+}
+  recenterMap() {
+    if (this.map) {
+      this.map.setView([this.currentLat, this.currentLng], 16);
+    }
   }
 
-  async updateMarker() {
-    if (!this.newMap) return;
-    if (this.markerId) await this.newMap.removeMarkers([this.markerId]);
-    this.markerId = await this.newMap.addMarker({ coordinate: { lat: this.currentLat, lng: this.currentLng } });
-  }
+
+
 
   async updateAddress(lat: number, lng: number) {
     const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${this.googleApiKey}`;
     try {
       const data: any = await firstValueFrom(this.http.get(url));
       if (data.status === 'OK' && data.results.length > 0) {
+        // This is the variable bound to your HTML "Detected Geofence" field
         this.currentAddress = data.results[0].formatted_address;
       } else {
-        this.currentAddress = `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
+        this.currentAddress = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
       }
-    } catch (err) { 
-      this.currentAddress = `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`; 
+    } catch (err) {
+      this.currentAddress = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
     }
+    this.cdr.detectChanges(); // Force UI update
   }
 
-
-  async submitAttendance() {
-  if (this.isSubmitting) return; 
   
-  if (!this.capturedPhoto) {
-    this.presentToast('Please capture a photo', 'warning');
-    return;
+  async submitAttendance() {
+    if (this.isSubmitting) return; 
+    if (!this.capturedPhoto) {
+      this.presentToast('Please capture a photo', 'warning');
+      this.resetSlider();
+      return;
+    }
+
+    this.isSubmitting = true;
+    this.cdr.detectChanges(); 
+
+    const payload = {
+      ranger_id: Number(localStorage.getItem('ranger_id')) || 1,
+      type: this.isEntry ? 'ENTRY' : 'EXIT',
+      photo: this.capturedPhoto,
+      latitude: this.currentLat,
+      longitude: this.currentLng,
+      geofence: this.currentAddress
+    };
+
+    this.http.post(this.apiUrl, payload).subscribe({
+      next: () => {
+        this.presentToast('Attendance Marked!', 'success');
+        setTimeout(() => {
+          this.isSubmitting = false;
+          this.goBack();
+        }, 1500);
+      },
+      error: () => {
+        this.isSubmitting = false;
+        this.resetSlider();
+        this.presentToast('Failed to sync. Check internet.', 'danger');
+      }
+    });
   }
 
-  // 1. Start the sliding animation/loading state
-  this.isSubmitting = true;
-  this.cdr.detectChanges(); 
+  resetSlider() {
+    this.currentTranslateX = 0;
+    this.textOpacity = 1;
+    this.cdr.detectChanges();
+  }
 
-  const payload = {
-    ranger_id: Number(localStorage.getItem('ranger_id')) || 1,
-    rangerName: this.rangerName,
-    region: this.rangerRegion,
-    type: this.isEntry ? 'ENTRY' : 'EXIT',
-    photo: this.capturedPhoto,
-    latitude: this.currentLat,
-    longitude: this.currentLng,
-    geofence: this.currentAddress
-  };
-
-  this.http.post(this.apiUrl, payload).subscribe({
-    next: (res: any) => {
-      // 2. Success: Show the toast immediately
-      this.presentToast('Attendance Success!', 'success');
-      
-      // 3. Wait 1 second so they see the success state, then redirect home
-      setTimeout(() => {
-        this.isSubmitting = false;
-        this.goBack(); // This handles the redirect to /home
-      }, 1000); 
-    },
-    error: () => {
-      // Reset immediately on error so they can try again
-      this.isSubmitting = false;
-      this.presentToast('Failed to sync', 'danger');
-      this.cdr.detectChanges();
-    }
-  });
-}
   async presentImageSourceOptions() {
     const actionSheet = await this.actionSheetCtrl.create({
       header: 'Select Photo Source',
-      mode: 'md',
-      cssClass: 'small-action-sheet',
+      mode: 'ios',
       buttons: [
-        { 
-          text: 'Camera', 
-          icon: 'camera-outline', 
-          handler: () => this.captureImage(CameraSource.Camera) 
-        },
-        { 
-          text: 'Gallery', 
-          icon: 'image-outline', 
-          handler: () => this.captureImage(CameraSource.Photos) 
-        },
-        { 
-          text: 'Cancel', 
-          role: 'cancel',
-          icon: 'close'
-        }
+        { text: 'Camera', icon: 'camera-outline', handler: () => this.captureImage(CameraSource.Camera) },
+        { text: 'Gallery', icon: 'image-outline', handler: () => this.captureImage(CameraSource.Photos) },
+        { text: 'Cancel', role: 'cancel' }
       ]
     });
     await actionSheet.present();
@@ -285,19 +216,15 @@ async initMapAndTracking() {
 
   async captureImage(source: CameraSource) {
     try {
-      // ResultType.Base64 is required for your payload structure
       const photo = await Camera.getPhoto({ 
         quality: 50, 
         source: source, 
-        resultType: CameraResultType.Base64,
-        saveToGallery: false 
+        resultType: CameraResultType.Base64 
       });
       if (photo.base64String) {
         this.capturedPhoto = `data:image/jpeg;base64,${photo.base64String}`;
       }
-    } catch (e) { 
-        console.log('User cancelled or camera error:', e); 
-    }
+    } catch (e) { console.log('Camera cancelled'); }
   }
 
   async presentToast(message: string, color: string) {
@@ -307,48 +234,36 @@ async initMapAndTracking() {
 
   goBack() { this.navCtrl.navigateRoot('/home'); }
 
-  async ngOnDestroy() { 
-    if (this.watchId) await Geolocation.clearWatch({ id: this.watchId }); 
-    if (this.newMap) await this.newMap.destroy();
+  ngOnDestroy() { 
+    if (this.gpsWatchId) Geolocation.clearWatch({ id: this.gpsWatchId }); 
+    if (this.map) this.map.remove();
   }
 
+  // --- Slider Gestures ---
   onDragStart(event: TouchEvent) {
-  if (this.isSubmitting) return;
-  this.startX = event.touches[0].clientX - this.currentTranslateX;
-  
-  const container = document.querySelector('.slider-track');
-  if (container) {
-    // 50px handle width + 10px total padding (5px left + 5px right)
-    this.maxSlide = container.clientWidth - 60; 
+    if (this.isSubmitting) return;
+    this.startX = event.touches[0].clientX - this.currentTranslateX;
+    const container = document.querySelector('.slider-track');
+    if (container) this.maxSlide = container.clientWidth - 60; 
   }
-}
 
-onDragMove(event: TouchEvent) {
-  if (this.isSubmitting) return;
-
-  let moveX = event.touches[0].clientX - this.startX;
-
-  if (moveX < 0) moveX = 0;
-  if (moveX > this.maxSlide) moveX = this.maxSlide;
-
-  this.currentTranslateX = moveX;
-  this.textOpacity = 1 - (moveX / this.maxSlide);
-  this.cdr.detectChanges();
-}
-
-onDragEnd() {
-  if (this.isSubmitting) return;
-
-  // If slid past 85%, snap to end and submit
-  if (this.currentTranslateX >= this.maxSlide * 0.85) {
-    this.currentTranslateX = this.maxSlide;
-    this.textOpacity = 0;
-    this.submitAttendance();
-  } else {
-    // Snap back to start
-    this.currentTranslateX = 0;
-    this.textOpacity = 1;
+  onDragMove(event: TouchEvent) {
+    if (this.isSubmitting) return;
+    let moveX = event.touches[0].clientX - this.startX;
+    if (moveX < 0) moveX = 0;
+    if (moveX > this.maxSlide) moveX = this.maxSlide;
+    this.currentTranslateX = moveX;
+    this.textOpacity = 1 - (moveX / this.maxSlide);
+    this.cdr.detectChanges();
   }
-  this.cdr.detectChanges();
-}
+
+  onDragEnd() {
+    if (this.isSubmitting) return;
+    if (this.currentTranslateX >= this.maxSlide * 0.85) {
+      this.currentTranslateX = this.maxSlide;
+      this.submitAttendance();
+    } else {
+      this.resetSlider();
+    }
+  }
 }

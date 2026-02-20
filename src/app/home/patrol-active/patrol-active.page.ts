@@ -19,6 +19,7 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
   activePatrolId: string | null = null;
   patrolName: string = 'Active Patrol';
   recentSightings: any[] = [];
+  selectedZoomImage: string | null = null;
 
   // Map and Tracking
   map!: L.Map;
@@ -156,19 +157,27 @@ refreshRecentSightings() {
   //   } catch (e) { console.warn('Photo cancelled'); }
   // }
 
-
-  async takeQuickPhoto() {
+async takeQuickPhoto() {
   try {
     const image = await Camera.getPhoto({ 
-      quality: 90, 
+      quality: 40, // Keeps file size small for Vercel (under 4.5MB)
       resultType: CameraResultType.DataUrl, 
-      source: CameraSource.Camera 
+      source: CameraSource.Prompt, // <--- THIS enables the Gallery/Camera choice
+      promptLabelHeader: 'Select Photo Source',
+      promptLabelPhoto: 'Choose from Gallery',
+      promptLabelPicture: 'Take a Photo'
     });
-    if (image.dataUrl) {
-      this.capturedPhotos.push(image.dataUrl); // Add to array instead of replacing
-      this.showToast('Photo captured!');
+
+    if (image && image.dataUrl) {
+      // Using spread operator to ensure Angular detects the change
+      this.capturedPhotos = [...this.capturedPhotos, image.dataUrl];
+      
+      console.log('Photo added. Current count:', this.capturedPhotos.length);
+      this.showToast('Photo added to patrol logs');
     }
-  } catch (e) { console.warn('Photo cancelled'); }
+  } catch (e) { 
+    console.warn('Photo selection cancelled'); 
+  }
 }
 
   
@@ -185,20 +194,21 @@ refreshRecentSightings() {
   // Get the actual ranger ID from storage
   const rId = localStorage.getItem('ranger_id') || '1';
 
+
 const logPayload = {
-   rangerId: parseInt(rId),
-   patrolName: this.patrolName,
-   startTime: this.startTime,
-   endTime: new Date().toISOString(),
-   distanceKm: parseFloat(this.totalDistanceKm.toFixed(2)),
-   duration: this.timerDisplay,
-   status: 'COMPLETED',
-  observationData: { 
-    Details: this.recentSightings // These are your Animal/Water sightings
-  },
-  patrolPhotos: this.capturedPhotos // These are ONLY the photos clicked in the main camera-frame
+  rangerId: parseInt(rId),
+  patrolName: this.patrolName,
+  startTime: this.startTime,
+  endTime: new Date().toISOString(),
+  distanceKm: parseFloat(this.totalDistanceKm.toFixed(2)),
+  duration: this.timerDisplay,
+  status: 'COMPLETED',
+  // ... other fields
+  photos: this.capturedPhotos, 
+  observationData: { Details: this.recentSightings }
 };
 
+console.log('FINAL PAYLOAD SIZE:', JSON.stringify(logPayload).length / 1024, 'KB')
   // Ensure apiUrl doesn't have double 'api' or 'patrols'
   this.http.post(`${this.apiUrl}/logs`, logPayload).subscribe({
     next: async () => {
@@ -259,4 +269,12 @@ const logPayload = {
   async showToast(m: string) { const t = await this.toastCtrl.create({ message: m, duration: 2000 }); await t.present(); }
   stopTracking() { if (this.gpsWatchId) Geolocation.clearWatch({ id: this.gpsWatchId }); }
   recenterMap() { if (this.lastLatLng) this.map.panTo(this.lastLatLng); }
+
+  openZoom(imgUrl: string) {
+  this.selectedZoomImage = imgUrl;
+}
+
+closeZoom() {
+  this.selectedZoomImage = null;
+}
 }

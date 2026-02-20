@@ -458,3 +458,51 @@
 }
 }
 @keyframes scanAni { 0%, 100% { top: 20%; opacity: 0.3; } 50% { top: 80%; opacity: 1; } }
+
+/* Add this to your scss file */
+::ng-deep {
+  .user-location-marker {
+    .blue-dot {
+      width: 16px;
+      height: 16px;
+      background: #3b82f6;
+      border: 3px solid white;
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.6);
+      position: relative;
+      
+      &::after {
+        content: '';
+        position: absolute;
+        inset: -8px;
+        background: rgba(59, 130, 246, 0.2);
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+      }
+    }
+  }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+.recenter-btn-glass {
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
+  z-index: 1000;
+  width: 45px;
+  height: 45px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}

@@ -1,147 +1,115 @@
+
+
+
 <ion-content [fullscreen]="true" class="premium-wrapper">
   <div class="ambient-glow glow-1"></div>
   <div class="ambient-glow glow-2"></div>
 
-
-
   <div class="hero-header">
-  <div class="header-overlay"></div>
-  <div class="header-content">
-    <div class="nav-bar">
-      <div class="left-section">
-        <button (click)="goBack()" class="glass-btn">
-          <i class="fas fa-arrow-left"></i>
-        </button>
-        <h1>{{ 'ATTENDANCE.TITLE' | translate }}</h1>
-      </div>
+    <div class="header-overlay"></div>
+    <div class="header-content">
+      <div class="nav-bar">
+        <div class="left-section">
+          <button (click)="goBack()" class="glass-btn">
+            <i class="fas fa-arrow-left"></i>
+          </button>
+          <h1>{{ 'ATTENDANCE.TITLE' | translate }}</h1>
+        </div>
 
-      <div class="auth-badge">
-        <i class="fas fa-fingerprint"></i>
-        <span>{{ 'ATTENDANCE.LIVE' | translate }}</span>
+        <div class="auth-badge">
+          <i class="fas fa-fingerprint"></i>
+          <span>{{ 'ATTENDANCE.LIVE' | translate }}</span>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
   <div class="card-container">
     <div class="main-card">
       
-
       <div class="scanner-section">
-  <div class="camera-frame" (click)="presentImageSourceOptions()">
-    <div class="corners-bold">
-      <span class="t-l"></span><span class="t-r"></span>
-      <span class="b-l"></span><span class="b-r"></span>
-    </div>
-
-    <div class="scanner-inner" 
-         [style.background-image]="capturedPhoto ? 'url(' + capturedPhoto + ')' : ''">
-      
-      <div class="scan-line" *ngIf="!capturedPhoto"></div>
-      
-      <div *ngIf="!capturedPhoto" class="placeholder-content">
-        <ion-icon name="camera" class="main-cam-icon"></ion-icon>
-        <span class="cam-text">{{ 'ATTENDANCE.CAPTURE_ID' | translate }}</span>
-      </div>
-    </div>
-  </div>
-
-  <p class="instruction" [class.verified]="capturedPhoto">
-    {{ capturedPhoto ? 'Identity Verified' : 'Scan identity to proceed' }}
-  </p>
-</div>
-<!-- 
-      <div class="map-wrapper">
-        <label class="group-label">{{ 'ATTENDANCE.LIVE_TRACKING' | translate }}</label>
-        <div class="map-container">
-          <capacitor-google-map #map id="map"></capacitor-google-map>
+        <div class="camera-frame" (click)="presentImageSourceOptions()">
+          <div class="corners-bold">
+            <span class="t-l"></span><span class="t-r"></span>
+            <span class="b-l"></span><span class="b-r"></span>
+          </div>
+          <div class="scanner-inner" [style.background-image]="capturedPhoto ? 'url(' + capturedPhoto + ')' : ''">
+            <div class="scan-line" *ngIf="!capturedPhoto"></div>
+            <div *ngIf="!capturedPhoto" class="placeholder-content">
+              <ion-icon name="camera" class="main-cam-icon"></ion-icon>
+              <span class="cam-text">{{ 'ATTENDANCE.CAPTURE_ID' | translate }}</span>
+            </div>
+          </div>
         </div>
-      </div> -->
+        <p class="instruction" [class.verified]="capturedPhoto">
+          {{ capturedPhoto ? 'Identity Verified' : 'Scan identity to proceed' }}
+        </p>
+      </div>
 
-      <div class="map-wrapper">
+    <div class="map-wrapper">
   <label class="group-label">{{ 'ATTENDANCE.LIVE_TRACKING' | translate }}</label>
   <div class="map-container">
-    <capacitor-google-map #map id="map"></capacitor-google-map>
+    <div id="attendanceMap" style="height: 100%; width: 100%; border-radius: 15px;"></div>
+    
+    <button class="recenter-btn-glass" (click)="recenterMap()">
+      <i class="fas fa-crosshairs"></i>
+    </button>
   </div>
 </div>
 
+      <div class="form-body">
+        <div class="input-group">
+          <label>{{ 'ATTENDANCE.RANGER' | translate }}</label>
+          <div class="premium-input readonly">
+            <ion-icon name="person-circle-outline"></ion-icon>
+            <span class="val">{{ rangerName }}</span>
+          </div>
+        </div>
 
-        
-<div class="form-body">
-  <div class="input-group">
-    <label>{{ 'ATTENDANCE.RANGER' | translate }}</label>
-    <div class="premium-input readonly">
-      <ion-icon name="person-circle-outline"></ion-icon>
-      <span class="val">{{ rangerName }}</span>
-    </div>
-  </div>
+        <div class="input-group">
+          <label>{{ 'ATTENDANCE.REGION' | translate }}</label>
+          <div class="premium-input readonly">
+            <ion-icon name="earth-outline"></ion-icon>
+            <span class="val">{{ rangerRegion }}</span>
+          </div>
+        </div>
 
-  <div class="input-group">
-    <label>{{ 'ATTENDANCE.REGION' | translate }}</label>
-    <div class="premium-input readonly">
-      <ion-icon name="earth-outline"></ion-icon>
-      <span class="val">{{ rangerRegion }}</span>
-    </div>
-  </div>
-
-  <div class="input-group">
-    <label>{{ 'ATTENDANCE.DETECTED_GEOFENCE' | translate }}</label>
-    <div class="premium-input interactive">
-      <ion-icon name="location-sharp"></ion-icon>
-      <span class="val">{{ currentAddress }}</span>
-    </div>
-  </div>
-
-  <div class="input-group">
-    <label>{{ 'INCIDENT.TIME_LABEL' | translate }}</label>
-    <div class="premium-input readonly">
-      <ion-icon name="calendar-outline"></ion-icon>
-      <span class="val">{{ (attendance?.created_at || currentTime) | date:'dd MMM yyyy • hh:mm a' }}</span>
-    </div>
+      <div class="input-group">
+  <label>{{ 'ATTENDANCE.DETECTED_GEOFENCE' | translate }}</label>
+  <div class="premium-input interactive">
+    <ion-icon name="location-sharp"></ion-icon>
+    <span class="val">{{ currentAddress }}</span>
   </div>
 </div>
 
-       
-      <!-- <div class="auto-slider-container" (click)="submitAttendance()" [class.active]="isSubmitting">
-  <div class="slider-track">
-    <div class="slider-handle">
-      <i class="fas fa-chevron-right" *ngIf="!isSubmitting"></i>
-      <ion-spinner name="crescent" color="light" *ngIf="isSubmitting"></ion-spinner>
-    </div>
+        <div class="input-group">
+          <label>{{ 'INCIDENT.TIME_LABEL' | translate }}</label>
+          <div class="premium-input readonly">
+            <ion-icon name="calendar-outline"></ion-icon>
+            <span class="val">{{ (attendance?.created_at || currentTime) | date:'dd MMM yyyy • hh:mm a' }}</span>
+          </div>
+        </div>
+      </div>
 
-    <span class="slider-text">
-      {{ isSubmitting ? 'MARKING...' : ('ATTENDANCE.MARK_BUTTON' | translate) }}
-    </span>
-
-    <div class="end-check">
-      <i class="fas fa-check"></i>
-    </div>
-  </div>
-</div>
-       -->
-
-       <div class="auto-slider-container" 
-     #sliderContainer
-     [class.active]="isSubmitting"
-     (touchstart)="onDragStart($event)"
-     (touchmove)="onDragMove($event)"
-     (touchend)="onDragEnd()">
-     
-  <div class="slider-track">
-    <div class="slider-handle" [style.transform]="'translateX(' + currentTranslateX + 'px)'">
-      <ion-icon name="chevron-forward-outline" *ngIf="!isSubmitting"></ion-icon>
-      <ion-spinner name="crescent" color="light" *ngIf="isSubmitting"></ion-spinner>
-    </div>
-
-    <span class="slider-text" [style.opacity]="textOpacity">
-      {{ isSubmitting ? 'MARKING...' : ('ATTENDANCE.MARK_BUTTON' | translate) }}
-    </span>
-
-    <div class="end-check">
-      <ion-icon name="checkmark-outline"></ion-icon>
-    </div>
-  </div>
-</div>
+      <div class="auto-slider-container" 
+           #sliderContainer
+           [class.active]="isSubmitting"
+           (touchstart)="onDragStart($event)"
+           (touchmove)="onDragMove($event)"
+           (touchend)="onDragEnd()">
+        <div class="slider-track">
+          <div class="slider-handle" [style.transform]="'translateX(' + currentTranslateX + 'px)'">
+            <ion-icon name="chevron-forward-outline" *ngIf="!isSubmitting"></ion-icon>
+            <ion-spinner name="crescent" color="light" *ngIf="isSubmitting"></ion-spinner>
+          </div>
+          <span class="slider-text" [style.opacity]="textOpacity">
+            {{ isSubmitting ? 'MARKING...' : ('ATTENDANCE.MARK_BUTTON' | translate) }}
+          </span>
+          <div class="end-check">
+            <ion-icon name="checkmark-outline"></ion-icon>
+          </div>
+        </div>
+      </div>
 
     </div>
   </div>

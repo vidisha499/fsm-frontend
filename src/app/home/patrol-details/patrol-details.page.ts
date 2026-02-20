@@ -15,6 +15,8 @@ export class PatrolDetailsPage implements OnInit {
   patrol: any = null;
   map!: L.Map;
   mapLoading = true;
+  loading: boolean = true;
+  selectedZoomImage: string | null = null;
   
   private apiUrl: string = 'https://forest-backend-pi.vercel.app/api/patrols';
 
@@ -92,4 +94,13 @@ loadPatrolDetails() {
   }
 
   goBack() { this.navCtrl.back(); }
+
+  openZoom(imgUrl: string) {
+    this.selectedZoomImage = imgUrl;
+  }
+
+  // Method to close zoom
+  closeZoom() {
+    this.selectedZoomImage = null;
+  } 
 }

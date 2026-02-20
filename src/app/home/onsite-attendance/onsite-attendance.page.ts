@@ -1,11 +1,13 @@
-import { Component, OnInit, ElementRef, ViewChild, OnDestroy, ChangeDetectorRef } from '@angular/core';
+
+
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { NavController, ToastController, ActionSheetController, Platform } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Geolocation } from '@capacitor/geolocation';
-import { GoogleMap } from '@capacitor/google-maps';
 import { firstValueFrom } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import * as L from 'leaflet';
 
 @Component({
   selector: 'app-onsite',
@@ -14,8 +16,16 @@ import { environment } from 'src/environments/environment';
   standalone: false
 })
 export class OnsiteAttendancePage implements OnInit, OnDestroy {
-  @ViewChild('map') mapRef!: ElementRef;
-  newMap!: GoogleMap;
+  // Leaflet variables
+  map!: L.Map;
+  marker!: L.Marker;
+  private locationIcon = L.divIcon({
+    className: 'user-location-marker',
+    html: '<div class="blue-dot"></div>',
+    iconSize: [20, 20],
+    iconAnchor: [10, 10]
+  });
+
   private maxSlide: number = 0;
   private startX: number = 0;
   public currentTranslateX: number = 0;
@@ -24,11 +34,12 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
   public capturedPhoto: string | undefined = undefined;
   public rangerName: string = 'Loading...';
   public currentAddress: string = 'Detecting location...';
-  public currentLat: number = 0;
-  public currentLng: number = 0;
+  public currentLat: number = 20.1013;
+  public currentLng: number = 77.1337;
   
   public isSubmitting: boolean = false;
   public mapLoaded: boolean = false;
+  private gpsWatchId: any = null;
 
   private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw';
   private apiUrl: string = `${environment.apiUrl}/onsite-attendance`;
@@ -46,87 +57,93 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    this.updateClock(); // Turant time dikhane ke liye
-    this.timer = setInterval(() => {
-      this.updateClock();
-    }, 60000);
-
+    this.updateClock();
+    this.timer = setInterval(() => this.updateClock(), 60000);
     this.rangerName = localStorage.getItem('ranger_username') || 'Ranger';
   }
 
   async ionViewDidEnter() {
-    await this.platform.ready();
-    await this.initMap();
+    await this.initLeafletMap();
   }
 
-  // --- Slider Logic ---
-  onDragStart(event: TouchEvent) {
-    if (this.isSubmitting) return;
-    this.startX = event.touches[0].clientX - this.currentTranslateX;
-  }
-
-  onDragMove(event: TouchEvent) {
-    if (this.isSubmitting) return;
-    const x = event.touches[0].clientX;
-    let moveX = x - this.startX;
-    const maxSlide = window.innerWidth - 115; 
-    if (moveX < 0) moveX = 0;
-    if (moveX > maxSlide) moveX = maxSlide;
-    this.currentTranslateX = moveX;
-    this.textOpacity = 1 - (moveX / maxSlide);
-  }
-
-  onDragEnd() {
-    if (this.isSubmitting) return;
-    const maxSlide = window.innerWidth - 115;
-    if (this.currentTranslateX > maxSlide * 0.8) {
-      this.currentTranslateX = maxSlide;
-      this.submit(); 
-    } else {
-      this.currentTranslateX = 0;
-      this.textOpacity = 1;
-    }
-  }
-
-  // --- Map & Location Logic ---
-  async initMap() {
+  // --- Map & High Accuracy Location Logic ---
+  async initLeafletMap() {
     try {
-      const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+      // Force high accuracy & clear cache
+      const pos = await Geolocation.getCurrentPosition({ 
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0 
+      });
+
       this.currentLat = pos.coords.latitude;
       this.currentLng = pos.coords.longitude;
-      await this.createMap();
-      this.fetchAddress(this.currentLat, this.currentLng);
+
+      if (this.map) { this.map.remove(); }
+
+      this.map = L.map('onsiteMap', { 
+        center: [this.currentLat, this.currentLng], 
+        zoom: 17, 
+        zoomControl: false 
+      });
+
+      L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+      }).addTo(this.map);
+
+      this.marker = L.marker([this.currentLat, this.currentLng], { icon: this.locationIcon }).addTo(this.map);
+      
+      this.mapLoaded = true;
+      this.updateAddress(this.currentLat, this.currentLng);
+      this.startLiveTracking();
+
     } catch (e) {
-      this.presentToast('Location error. Check GPS.', 'danger');
+      this.presentToast('Searching for GPS signal...', 'warning');
     }
   }
 
-  async createMap() {
-    if (!this.mapRef) return;
-    this.newMap = await GoogleMap.create({
-      id: 'onsite-map-unique-id',
-      element: this.mapRef.nativeElement,
-      apiKey: this.googleApiKey,
-      config: {
-        center: { lat: this.currentLat, lng: this.currentLng },
-        zoom: 16,
-      },
+  async startLiveTracking() {
+    this.gpsWatchId = await Geolocation.watchPosition({ 
+      enableHighAccuracy: true,
+      maximumAge: 0 
+    }, (position) => {
+      if (position && this.map) {
+        const newLat = position.coords.latitude;
+        const newLng = position.coords.longitude;
+        const newPoint = L.latLng(newLat, newLng);
+        
+        this.marker.setLatLng(newPoint);
+        this.map.panTo(newPoint);
+
+        // Update address only if moved more than 10 meters
+        const distance = L.latLng(this.currentLat, this.currentLng).distanceTo(newPoint);
+        if (distance > 10 || this.currentAddress === 'Detecting location...') {
+          this.currentLat = newLat;
+          this.currentLng = newLng;
+          this.updateAddress(newLat, newLng);
+        }
+        this.cdr.detectChanges();
+      }
     });
-    await this.newMap.addMarker({
-      coordinate: { lat: this.currentLat, lng: this.currentLng },
-      title: 'You are here',
-    });
-    this.mapLoaded = true;
   }
 
-  async fetchAddress(lat: number, lng: number) {
+  recenterMap() {
+    if (this.map) {
+      this.map.setView([this.currentLat, this.currentLng], 17);
+    }
+  }
+
+  async updateAddress(lat: number, lng: number) {
     const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${this.googleApiKey}`;
     try {
       const data: any = await firstValueFrom(this.http.get(url));
-      this.currentAddress = data.results[0]?.formatted_address || 'Address Found';
-    } catch (error) {
-      this.currentAddress = `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
+      if (data.status === 'OK' && data.results.length > 0) {
+        this.currentAddress = data.results[0].formatted_address;
+      }
+    } catch (err) {
+      this.currentAddress = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
     }
+    this.cdr.detectChanges();
   }
 
   // --- Photo Logic ---
@@ -140,49 +157,34 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
       if (image.base64String) {
         this.capturedPhoto = `data:image/jpeg;base64,${image.base64String}`;
       }
-    } catch (error) { 
-      console.log('User cancelled selection'); 
-    }
+    } catch (error) { console.log('User cancelled'); }
   }
 
   async presentImageSourceOptions() {
     const actionSheet = await this.actionSheetCtrl.create({
       header: 'Select Photo Source',
       mode: 'md',
-      cssClass: 'custom-action-sheet',
       buttons: [
         { text: 'Camera', icon: 'camera-outline', handler: () => this.captureImage(CameraSource.Camera) },
         { text: 'Gallery', icon: 'image-outline', handler: () => this.captureImage(CameraSource.Photos) },
-        { text: 'Cancel', role: 'cancel', icon: 'close' }
+        { text: 'Cancel', role: 'cancel' }
       ]
     });
     await actionSheet.present();
   }
 
-  // --- Database Submission ---
+  // --- Submission Logic ---
   async submit() {
     if (!this.capturedPhoto) {
       this.presentToast('Please capture a photo first.', 'warning');
-      this.currentTranslateX = 0;
-      this.textOpacity = 1;
-      this.cdr.detectChanges();
+      this.resetSlider();
       return;
     }
 
-    const container = document.querySelector('.slider-track');
-    if (container) {
-      this.maxSlide = container.clientWidth - 60;
-    }
-
     this.isSubmitting = true;
-    this.textOpacity = 0; 
-    this.currentTranslateX = this.maxSlide;
     this.cdr.detectChanges(); 
 
-    // Refreshing currentDateTime to ensure it's not empty
-    this.updateClock();
-
- const onsiteData = {
+    const onsiteData = {
       ranger_id: Number(localStorage.getItem('ranger_id')) || 1,
       ranger: this.rangerName,
       geofence: this.currentAddress, 
@@ -190,54 +192,77 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
       photo: this.capturedPhoto,
       latitude: this.currentLat,
       longitude: this.currentLng,
-      // CHANGE THIS LINE:
       created_at: new Date().toISOString() 
     };
 
     this.http.post(this.apiUrl, onsiteData).subscribe({
       next: () => {
+        this.presentToast('ATTENDANCE MARKED & SYNCED', 'success');
         setTimeout(() => {
-          this.presentToast('ATTENDANCE MARKED & SYNCED', 'success');
-          setTimeout(() => {
-            this.isSubmitting = false;
-            this.navCtrl.navigateRoot('/home');
-          }, 1000);
-        }, 800);
+          this.isSubmitting = false;
+          this.navCtrl.navigateRoot('/home');
+        }, 1500);
       },
-      error: (err) => {
-        console.error('Server Error:', err);
+      error: () => {
         this.isSubmitting = false;
-        this.currentTranslateX = 0;
-        this.textOpacity = 1;
-        this.presentToast('Submission Failed. Please try again.', 'danger');
-        this.cdr.detectChanges();
+        this.resetSlider();
+        this.presentToast('Submission Failed.', 'danger');
       }
     });
   }
 
-  // --- Utilities ---
-  async presentToast(message: string, color: string) {
-    const toast = await this.toastCtrl.create({ 
-      message, duration: 2500, color, mode: 'ios', position: 'bottom'
-    });
-    toast.present();
+  resetSlider() {
+    this.currentTranslateX = 0;
+    this.textOpacity = 1;
+    this.cdr.detectChanges();
   }
-  
-  goBack() { 
-    this.navCtrl.back(); 
+
+  // --- slider helpers ---
+  onDragStart(event: TouchEvent) {
+    if (this.isSubmitting) return;
+    this.startX = event.touches[0].clientX - this.currentTranslateX;
+  }
+
+  onDragMove(event: TouchEvent) {
+    if (this.isSubmitting) return;
+    let moveX = event.touches[0].clientX - this.startX;
+    const maxSlide = window.innerWidth - 115; 
+    if (moveX < 0) moveX = 0;
+    if (moveX > maxSlide) moveX = maxSlide;
+    this.currentTranslateX = moveX;
+    this.textOpacity = 1 - (moveX / maxSlide);
+    this.cdr.detectChanges();
+  }
+
+  onDragEnd() {
+    if (this.isSubmitting) return;
+    const maxSlide = window.innerWidth - 115;
+    if (this.currentTranslateX > maxSlide * 0.8) {
+      this.currentTranslateX = maxSlide;
+      this.submit(); 
+    } else {
+      this.resetSlider();
+    }
   }
 
   updateClock() {
     const now = new Date();
-    const formatted = new Intl.DateTimeFormat('en-GB', {
+    this.currentDateTime = new Intl.DateTimeFormat('en-GB', {
       day: '2-digit', month: 'short', year: 'numeric',
       hour: '2-digit', minute: '2-digit', hour12: true
-    }).format(now);
-    this.currentDateTime = formatted.replace(',', ' •');
+    }).format(now).replace(',', ' •');
   }
 
   async ngOnDestroy() {
     if (this.timer) clearInterval(this.timer);
-    if (this.newMap) await this.newMap.destroy();
+    if (this.gpsWatchId) Geolocation.clearWatch({ id: this.gpsWatchId });
+    if (this.map) this.map.remove();
   }
+
+  async presentToast(message: string, color: string) {
+    const toast = await this.toastCtrl.create({ message, duration: 2500, color, mode: 'ios' });
+    toast.present();
+  }
+
+  goBack() { this.navCtrl.back(); }
 }
