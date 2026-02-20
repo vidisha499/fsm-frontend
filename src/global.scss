@@ -91,7 +91,7 @@
 
 :root {
   /* 1. Force Pure Light Mode Colors */
-  --ion-background-color: #ffffff !important;
+  // --ion-background-color: #ffffff !important;
   --ion-text-color: #1e293b !important;
   --ion-item-background: #ffffff !important;
   --ion-card-background: #ffffff !important;
@@ -107,10 +107,18 @@
 }
 
 /* 4. Force the underlying body and all Ionic Overlays to stay Light */
-body, .modal-wrapper, .action-sheet-wrapper, ion-content {
-  background: #ffffff !important;
-  --background: #ffffff !important;
-  color: #1e293b !important;
+// body, .modal-wrapper, .action-sheet-wrapper, ion-content {
+//   background: #ffffff !important;
+//   --background: #ffffff !important;
+//   color: #1e293b !important;
+// }
+
+body {
+  background-color: #f1f5f9 !important; 
+}
+
+.capacitor-map-active ion-content {
+  --background: transparent !important;
 }
 
 /* 5. Fix for Select/Action Sheet text visibility */
@@ -190,4 +198,9 @@ ion-label, .label-stacked, .label-floating {
     font-size: 0.9rem;
     box-shadow: 0 4px 15px rgba(113, 98, 224, 0.4);
   }
+}
+
+ion-content {
+  --background: transparent !important;
+  // background: #f8fafc; // Aapka light background color yahan dein
 }

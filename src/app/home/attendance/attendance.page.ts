@@ -122,43 +122,48 @@ async initMapAndTracking() {
       await Geolocation.requestPermissions();
     }
 
-    // Fresh location lene ke liye maximumAge: 0 add kiya hai
     const pos = await Geolocation.getCurrentPosition({ 
       enableHighAccuracy: true,
-      timeout: 30000, // 30s timeout for better accuracy
+      timeout: 30000, 
       maximumAge: 0    
     }).catch(err => {
       console.warn("Location timeout, using defaults", err);
-      // Agar timeout ho toh Washim default rahega
       return { coords: { latitude: 20.1013, longitude: 77.1337 } }; 
     });
     
     this.currentLat = pos.coords.latitude;
     this.currentLng = pos.coords.longitude;
 
-    // 1. Map create karein
-    await this.createMap();
-
-    // 2. Map ko current location par move/center karein
-    if (this.newMap) {
-      await this.newMap.setCamera({
-        coordinate: { lat: this.currentLat, lng: this.currentLng },
-        zoom: 15,
-        animate: true
-      });
-    }
-
-    // 3. Address aur Marker update karein
+    // Address update shuru karein
     this.updateAddress(this.currentLat, this.currentLng);
-    this.updateMarker();
-    
-    // 4. Real-time tracking shuru karein
-    this.startLocationWatch();
+
+    // 1. Chota delay taaki UI elements render ho jayein
+    setTimeout(async () => {
+      // 2. Map create karein (ensure ID is 'map')
+      await this.createMap();
+
+      // 3. Camera set karein
+      if (this.newMap) {
+        await this.newMap.setCamera({
+          coordinate: { lat: this.currentLat, lng: this.currentLng },
+          zoom: 15,
+          animate: false // Pehli baar bina animation ke center karein
+        });
+        
+        // Native "My Location" button enable karein
+        await (this.newMap as any).enableCurrentLocation(true);
+      }
+
+      this.updateMarker();
+      this.startLocationWatch();
+    }, 500);
 
   } catch (e) {
     this.presentToast('Please enable GPS and permissions', 'warning');
   }
 }
+
+
   async createMap() {
     if (!this.mapRef) return;
 

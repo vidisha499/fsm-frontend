@@ -89,20 +89,36 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
   }
 
   // --- Map & Location Logic ---
-  async initMap() {
-    try {
-      const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
-      this.currentLat = pos.coords.latitude;
-      this.currentLng = pos.coords.longitude;
-      await this.createMap();
-      this.fetchAddress(this.currentLat, this.currentLng);
-    } catch (e) {
-      this.presentToast('Location error. Check GPS.', 'danger');
-    }
+  // attendance.page.ts
+
+async initMap() {
+  try {
+    // High accuracy aur timeout ensure karein
+    const pos = await Geolocation.getCurrentPosition({ 
+      enableHighAccuracy: true,
+      timeout: 10000 
+    });
+    
+    this.currentLat = pos.coords.latitude;
+    this.currentLng = pos.coords.longitude;
+    
+    console.log('Location Found:', this.currentLat, this.currentLng);
+    
+    await this.createMap();
+    this.fetchAddress(this.currentLat, this.currentLng);
+  } catch (e) {
+    console.error('Location Error:', e);
+    this.presentToast('Location access denied or GPS off.', 'danger');
+  }
+}
+
+async createMap() {
+  if (!this.mapRef) {
+    console.error("Map reference (nativeElement) not found!");
+    return;
   }
 
-  async createMap() {
-    if (!this.mapRef) return;
+  try {
     this.newMap = await GoogleMap.create({
       id: 'onsite-map-unique-id',
       element: this.mapRef.nativeElement,
@@ -110,15 +126,38 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
       config: {
         center: { lat: this.currentLat, lng: this.currentLng },
         zoom: 16,
+        // Gesture handling allow karein taaki user map hila sake
+        androidLiteMode: false,
       },
     });
+
+    // 1. Map container aur content ko transparent banayein
+    this.mapLoaded = true;
+    
+    // 2. CSS Class add karein body par (jo humne global.scss mein banayi thi)
+    document.body.classList.add('capacitor-map-active');
+
+    // 3. Direct Style injection (Double Safety)
+    const content = document.querySelector('ion-content');
+    if (content) {
+      content.style.setProperty('--background', 'transparent', 'important');
+      content.style.setProperty('background', 'transparent', 'important');
+    }
+
+    // 4. Marker add karein
     await this.newMap.addMarker({
       coordinate: { lat: this.currentLat, lng: this.currentLng },
-      title: 'You are here',
+      title: 'Ranger Location',
+      snippet: 'You are currently here'
     });
-    this.mapLoaded = true;
-  }
 
+    console.log("Map successfully created at:", this.currentLat, this.currentLng);
+
+  } catch (err) {
+    console.error("Map creation failed:", err);
+    this.presentToast('Map initialization failed. Check API Key.', 'danger');
+  }
+}
   async fetchAddress(lat: number, lng: number) {
     const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${this.googleApiKey}`;
     try {

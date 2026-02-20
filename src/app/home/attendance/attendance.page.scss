@@ -4,10 +4,9 @@
   --dark-slate: #0f172a;
   
   min-height: 100vh;
-  background: #f1f5f9;
+  // Mobile par map dekhne ke liye wrapper ko transparent rakhein
+  background: transparent; 
   position: relative;
-
-  
 
   .ambient-glow {
     position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.2; z-index: 0;
@@ -26,435 +25,284 @@
       border-radius: 0 0 45px 45px;
     }
 
-    // .header-content {
-    //   position: relative; z-index: 2; padding: 40px 24px;
-    //   .nav-bar {
-    //     display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
-    //     .glass-btn { background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.2); width: 38px; height: 38px; border-radius: 10px; color: white; }
-    //     .auth-badge { background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.3); padding: 5px 12px; border-radius: 20px; color: var(--accent-gold); font-size: 10px; font-weight: 800; display: flex; align-items: center; gap: 6px; }
-    //   }
-    //   h1 {color: white; font-size: 22px; font-weight: 800; margin: 0;  }
-    //   p { color: #ccfbf1; font-size: 11px; margin-top: 4px; }
-    // }
-
     .header-content {
-  position: relative; 
-  z-index: 2; 
-  padding: 40px 24px;
+      position: relative; 
+      z-index: 2; 
+      padding: 40px 24px;
 
-  .nav-bar {
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    margin-bottom: 10px;
+      .nav-bar {
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        margin-bottom: 10px;
 
-    // This handles the horizontal alignment of button + title
-    .left-section {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      margin-top: 10%; // Space between arrow and text
+        .left-section {
+          display: flex;
+          align-items: center;
+          gap: 15px;
+          margin-top: 10%; 
 
-      h1 {
-        color: white; 
-        font-size: 22px; 
-        font-weight: 800; 
-        margin: 0;
-        
-        // --- THE FIX: Nudge down slightly ---
-        margin-top: 6px; 
-        line-height: 1;
-        white-space: nowrap;
+          h1 {
+            color: white; 
+            font-size: 22px; 
+            font-weight: 800; 
+            margin: 0;
+            margin-top: 6px; 
+            line-height: 1;
+            white-space: nowrap;
+          }
+        }
+
+        .glass-btn { 
+          background: rgba(255, 255, 255, 0.15); 
+          border: 1px solid rgba(255, 255, 255, 0.2); 
+          width: 38px; 
+          height: 38px; 
+          border-radius: 10px; 
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .auth-badge { 
+          background: rgba(251, 191, 36, 0.15); 
+          border: 1px solid rgba(251, 191, 36, 0.3); 
+          padding: 5px 12px; 
+          border-radius: 20px; 
+          color: var(--accent-gold); 
+          font-size: 10px; 
+          font-weight: 800; 
+          display: flex; 
+          align-items: center; 
+          gap: 6px; 
+        }
+      }
+
+      p { 
+        color: #ccfbf1; 
+        font-size: 11px; 
+        margin-top: 4px;
+        margin-left: 50px; 
       }
     }
-
-    .glass-btn { 
-      background: rgba(255, 255, 255, 0.15); 
-      border: 1px solid rgba(255, 255, 255, 0.2); 
-      width: 38px; 
-      height: 38px; 
-      border-radius: 10px; 
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .auth-badge { 
-      background: rgba(251, 191, 36, 0.15); 
-      border: 1px solid rgba(251, 191, 36, 0.3); 
-      padding: 5px 12px; 
-      border-radius: 20px; 
-      color: var(--accent-gold); 
-      font-size: 10px; 
-      font-weight: 800; 
-      display: flex; 
-      align-items: center; 
-      gap: 6px; 
-    }
-  }
-
-  p { 
-    color: #ccfbf1; 
-    font-size: 11px; 
-    margin-top: 4px;
-    margin-left: 50px; // Aligns subtitle under the title text
-  }
-}
-
-    
   }
 
   .card-container {
     margin-top: -45px; padding: 0 18px 40px; position: relative; z-index: 3;
+    
     .main-card {
       background: white; border-radius: 35px; padding: 25px 20px;
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
 
- .scanner-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 25px;
-
-  .camera-frame {
-    position: relative;
-    width: 120px; // Larger bold size
-    height: 120px;
-    cursor: pointer;
-
-    .corners-bold span {
-      position: absolute;
-      width: 18px;
-      height: 18px;
-      border: 3px solid #0d9488; // Thick bold teal
-      // z-index: 5;
-
-      &.t-l { top: -8px; left: -8px; border-right: 0; border-bottom: 0; border-radius: 15px 0 0 0; }
-      &.t-r { top: -8px; right: -8px; border-left: 0; border-bottom: 0; border-radius: 0 15px 0 0; }
-      &.b-l { bottom: -8px; left: -8px; border-right: 0; border-top: 0; border-radius: 0 0 0 15px; }
-      &.b-r { bottom: -8px; right: -8px; border-left: 0; border-top: 0; border-radius: 0 0 15px 0; }
-    }
-
-    .scanner-inner {
-      position: relative; // Boundary for the scan line
-      width: 100%;
-      height: 100%;
-      border-radius: 24px;
-      background: #f8fafc;
-      background-size: cover;
-      background-position: center;
-      border: 2px dashed #cbd5e1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden; // Hides the scan line when it reaches rounded edges
-
-      .scan-line {
-        position: absolute;
-        left: 0;
-        width: 100%; // Spans exactly across the inner box
-        height: 4px;
-        background: #0d9488;
-        box-shadow: 0 0 15px rgba(13, 148, 136, 0.7); // Glowing laser effect
-        z-index: 10;
-        animation: scanAni 3s infinite ease-in-out;
-      }
-
-      .placeholder-content {
+      .scanner-section {
         display: flex;
         flex-direction: column;
         align-items: center;
-        z-index: 1;
+        margin-bottom: 25px;
 
-        .main-cam-icon {
-          font-size: 44px;
-          color: #94a3b8;
-          margin-bottom: 8px;
+        .camera-frame {
+          position: relative;
+          width: 120px;
+          height: 120px;
+          cursor: pointer;
+
+          .corners-bold span {
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            border: 3px solid #0d9488;
+            z-index: 5;
+
+            &.t-l { top: -8px; left: -8px; border-right: 0; border-bottom: 0; border-radius: 15px 0 0 0; }
+            &.t-r { top: -8px; right: -8px; border-left: 0; border-bottom: 0; border-radius: 0 15px 0 0; }
+            &.b-l { bottom: -8px; left: -8px; border-right: 0; border-top: 0; border-radius: 0 0 0 15px; }
+            &.b-r { bottom: -8px; right: -8px; border-left: 0; border-top: 0; border-radius: 0 0 15px 0; }
+          }
+
+          .scanner-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border-radius: 24px;
+            background: #f8fafc;
+            background-size: cover;
+            background-position: center;
+            border: 2px dashed #cbd5e1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+
+            .scan-line {
+              position: absolute;
+              left: 0;
+              width: 100%;
+              height: 4px;
+              background: #0d9488;
+              box-shadow: 0 0 15px rgba(13, 148, 136, 0.7);
+              z-index: 10;
+              // Updated scan animation with opacity
+              animation: scanAni 3s infinite ease-in-out;
+            }
+
+            .placeholder-content {
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              z-index: 1;
+
+              .main-cam-icon { font-size: 44px; color: #94a3b8; margin-bottom: 8px; }
+              .cam-text { font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
+            }
+          }
         }
 
-        .cam-text {
-          font-size: 10px;
-          font-weight: 800;
-          color: #94a3b8;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
+        .instruction {
+          margin-top: 18px;
+          font-size: 11px;
+          font-weight: 700;
+          color: #64748b;
+          &.verified { color: #0d9488; }
         }
       }
-    }
-  }
-
-  .instruction {
-    margin-top: 18px;
-    font-size: 11px;
-    font-weight: 700;
-    color: #64748b;
-    
-    &.verified {
-      color: #0d9488; // Turns teal when identity is confirmed
-    }
-  }
-}
-
-// Laser Scanning Animation
-@keyframes scanAni {
-  0%, 100% { top: 5%; }
-  50% { top: 90%; }
-}
 
       .map-wrapper {
-         ion-icon { color: #ef4444; } 
         margin-bottom: 20px;
-        .group-label { display: block; font-size: 10px; font-weight: 800; color: #0d9488; ; text-transform: uppercase; margin-bottom: 8px; margin-left: 5px; }
+        ion-icon { color: #ef4444; } 
+        
+        .group-label { 
+          display: block; font-size: 10px; font-weight: 800; color: #0d9488; text-transform: uppercase; margin-bottom: 8px; margin-left: 5px; 
+        }
+
         .map-container {
-          height: 180px; width: 100%; border-radius: 20px; overflow: hidden; border: 1px solid #e2e8f0;
-          capacitor-google-map { display: block; width: 100%; height: 100%; }
+          height: 180px; 
+          width: 100%; 
+          border-radius: 20px; 
+          overflow: hidden; 
+          border: 1px solid #e2e8f0;
+          background: transparent !important; // Required for mobile map visibility
+          position: relative;
           
+
+          capacitor-google-map { 
+            display: block; 
+            width: 100%; 
+            height: 100%; 
+            background: transparent !important; 
+          }
         }
       }
     }
   }
 
-.form-body {
-  display: flex;
-  flex-direction: column;
-  gap: 10px; // Space between different groups
-  padding: 0 5px;
-
-  .input-group {
+  .form-body {
     display: flex;
     flex-direction: column;
+    gap: 10px;
+    padding: 0 5px;
 
-    label {
-      font-size: 12px;
-      font-weight: 800;
-      color: #0d9488; // Teal color for the header
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 5px; // Space between label and box
-      margin-left: 12px; // Align with the start of the box
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      label { font-size: 12px; font-weight: 800; color: #0d9488; text-transform: uppercase; margin-bottom: 5px; margin-left: 12px; }
+
+      .premium-input {
+        background: #f8fafc;
+        border: 1.5px solid #edf2f7;
+        border-radius: 20px;
+        padding: 14px 18px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        &.readonly { background: #f8fafc; }
+        .val { font-size: 14px; font-weight: 700; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      }
     }
+  }
 
-    .premium-input {
-      background: #f8fafc;
-      border: 1.5px solid #edf2f7;
-      border-radius: 20px;
-      padding: 14px 18px;
+  .auto-slider-container {
+    margin-top: 30px;
+    width: 100%;
+    user-select: none;
+    touch-action: pan-y;
+
+    .slider-track {
+      height: 60px;
+      background: #03090f;
+      border-radius: 30px;
       display: flex;
       align-items: center;
-      gap: 12px;
-      transition: all 0.2s ease;
+      position: relative;
+      padding: 0 5px;
+      border: 1px solid #e2e8f0;
+      overflow: hidden;
+    }
 
-      &.readonly {
-        background:  #f8fafc; // Clean white for profile info
-      }
+    .slider-handle {
+      position: absolute;
+      left: 5px; 
+      width: 50px;
+      height: 50px;
+      background: #0d9488; 
+      border-radius: 25px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      z-index: 2;
+      transition: transform 0.1s ease-out; 
+      will-change: transform;
+    }
 
-      &.interactive {
-        // background: #f0fdfa; // Subtle teal tint for live location
-        border-color: rgba(13, 148, 136, 0.2);
-        
-        // ion-icon { color: #0d9488; }
-      }
+    .slider-text {
+      width: 100%;
+      text-align: center;
+      font-weight: 800;
+      font-size: 17px;
+      color: #fbfbfc;
+    }
 
-      ion-icon {
-        font-size: 20px;
-        // color: #94a3b8; // Slate gray for standard icons
-      }
+    .end-check { position: absolute; right: 18px; color: #cbd5e1; font-size: 18px; opacity: 0.3; }
 
-      .val {
-        font-size: 14px;
-        font-weight: 700;
-        color: #1e293b;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
+    &.active {
+      pointer-events: none; 
+      .slider-handle { background: #0d9488 !important; }
+      .end-check { opacity: 1 !important; color: white !important; z-index: 3; }
     }
   }
 }
 
-  .mark-btn {
-    width: 100%; margin-top: 25px; background: var(--dark-slate); color: white;
-    padding: 6px 6px 6px 25px; border-radius: 20px; border: none;
-    display: flex; justify-content: space-between; align-items: center;
-    .btn-text { font-weight: 800; font-size: 25px; letter-spacing: 0.5px; }
-    .btn-check { background: var(--primary-teal); width: 42px; height: 42px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-    &:disabled { opacity: 0.8; }
+// Global Force Transparency for Capacitor Native Maps
+:host {
+  ion-content {
+    --background: transparent !important;
+    background: transparent !important;
   }
+}
 
-  /* Target the Action Sheet specifically from this page */
+body {
+  background-color: #f1f5f9; // Page color only on body
+}
+
+// Scanning Animation with your specific keyframes
+@keyframes scanAni { 
+  0%, 100% { top: 20%; opacity: 0.3; } 
+  50% { top: 80%; opacity: 1; } 
+}
+
+/* Action Sheet Customization */
 ::ng-deep {
   .small-action-sheet {
-    /* 1. Shrink the overall width and center it slightly */
     --width: 280px; 
     margin: auto;
-
-    /* 2. Make the button rows much shorter */
     .action-sheet-button {
       height: 40px !important; 
       min-height: 40px !important;
-      
-      .action-sheet-button-inner {
-        font-size: 13px !important;
-        justify-content: center !important; /* Centers text/icon */
-      }
-
-      ion-icon {
-        font-size: 16px !important;
-        margin-inline-end: 8px !important;
-      }
-    }
-
-    /* 3. Make the Title/Header tiny */
-    .action-sheet-title {
-      font-size: 11px !important;
-      padding: 4px !important;
-      min-height: unset !important;
-    }
-
-    /* 4. Remove extra padding around the groups */
-    .action-sheet-group {
-      margin-bottom: 2px !important;
-      border-radius: 8px !important;
+      .action-sheet-button-inner { font-size: 13px !important; justify-content: center !important; }
+      ion-icon { font-size: 16px !important; margin-inline-end: 8px !important; }
     }
   }
 }
-}
-
-.auto-slider-container {
-  margin-top: 30px;
-  width: 100%;
-  user-select: none; // Prevent text selection while dragging
-  touch-action: pan-y; // Prevent scrolling while sliding horizontally
-
-  .slider-track {
-    height: 60px;
-    background: #03090f;
-    border-radius: 30px;
-    display: flex;
-    align-items: center;
-    position: relative;
-    padding: 0 5px;
-    border: 1px solid #e2e8f0;
-    overflow: hidden;
-  }
-
-  .slider-handle {
-    position: absolute;
-    left: 5px; 
-    width: 50px;
-    height: 50px;
-    background: #0d9488; 
-    border-radius: 25px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    z-index: 2;
-    // Remove 'left' transition to make manual drag feel instant
-    transition: transform 0.1s ease-out; 
-    will-change: transform;
-  }
-
-  .slider-text {
-    width: 100%;
-    text-align: center;
-    font-weight: 800;
-    font-size: 17px;
-    color: #fbfbfc;
-    pointer-events: none; // Touch goes through to container
-  }
-
-  .end-check {
-    position: absolute;
-    right: 18px;
-    color: #cbd5e1;
-    font-size: 18px;
-    opacity: 0.3;
-    transition: all 0.3s ease;
-  }
-
-  &.active {
-    pointer-events: none; 
-
-    .slider-handle {
-      // Logic handled via TypeScript transform, but backup for state:
-      background: #0d9488 !important;
-      transition: transform 0.6s cubic-bezier(0.65, 0, 0.35, 1) !important;
-    }
-
-    .end-check {
-      opacity: 1 !important;
-      color: white !important;
-      z-index: 3;
-    }
-  }
-
-
-
-  .form-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 12px; // Creates equal vertical space between each line
-  margin-top: 15px;
-
-  .input-pill {
-    background: #ffffff;
-    border: 1px solid #f1f5f9;
-    border-radius: 16px; // Matching the smooth rounded corners in your image
-    padding: 12px 16px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
-
-    label {
-      display: block;
-      font-size: 10px;
-      font-weight: 800;
-      color: #0d9488; // Your teal theme color
-      text-transform: uppercase;
-      margin-bottom: 4px;
-      letter-spacing: 0.5px;
-    }
-
-    .pill-content {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-
-      i {
-        font-size: 16px;
-        color: #64748b;
-        width: 20px;
-        text-align: center;
-      }
-
-      input {
-        border: none;
-        background: transparent;
-        width: 100%;
-        font-weight: 700;
-        color: #1e293b;
-        font-size: 15px;
-        outline: none;
-        padding: 0;
-      }
-
-      .location-text {
-        font-size: 14px;
-        font-weight: 700;
-        color: #1e293b;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis; // Keeps long addresses neat on one line
-      }
-    }
-
-    &.readonly {
-      background: #f8fafc; // Subtle grey tint for fields that can't be edited
-    }
-  }
-  
-}
-}
-@keyframes scanAni { 0%, 100% { top: 20%; opacity: 0.3; } 50% { top: 80%; opacity: 1; } }
