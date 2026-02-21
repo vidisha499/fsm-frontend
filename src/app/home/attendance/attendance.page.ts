@@ -195,7 +195,7 @@ async startLiveTracking() {
   async presentImageSourceOptions() {
     const actionSheet = await this.actionSheetCtrl.create({
       header: 'Select Photo Source',
-      mode: 'ios',
+      mode: 'md',
       buttons: [
         { text: 'Camera', icon: 'camera-outline', handler: () => this.captureImage(CameraSource.Camera) },
         { text: 'Gallery', icon: 'image-outline', handler: () => this.captureImage(CameraSource.Photos) },
