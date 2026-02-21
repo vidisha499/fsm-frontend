@@ -6,6 +6,8 @@ import { TranslateService } from '@ngx-translate/core';
 import { ChangeDetectorRef } from '@angular/core';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Subscription } from 'rxjs';
+import * as L from 'leaflet';
+import { Geolocation } from '@capacitor/geolocation';
 
 @Component({
   selector: 'app-home',
@@ -20,7 +22,17 @@ public textOpacity: number = 1;
 private startX: number = 0;
 private maxSlide: number = 0;
 
-  currentPage: 'home' | 'settings' | 'attendance' = 'home';
+  // currentPage: 'home' | 'settings' | 'attendance' = 'home';
+//  currentPage: 'home' | 'settings' | 'attendance' | 'location' = 'home';
+  
+currentPage: string = 'home';
+currentCoords: any = null;
+currentLocationName: string = '';
+  private map: any;
+  private marker: any;
+  locationLoading: boolean = false;
+
+
   activeTab: string = 'info';
   isEditMode: boolean = false;
  profileImage: string = '';
@@ -319,69 +331,7 @@ ionViewWillEnter() {
 
 
 
-// async updateProtocol() {
-//   const rId = this.dataService.getRangerId();
-  
-//   if (!rId) {
-//     this.showToast('Error: Ranger ID not found. Please log in again.');
-//     // Reset slider if it was accidentally slid
-//     this.currentTranslateX = 0;
-//     this.textOpacity = 1;
-//     this.cdr.detectChanges();
-//     return;
-//   }
 
-//   // 1. Lock the UI and the Slider Position
-//   this.isSubmitting = true; 
-//   this.textOpacity = 0; // Hide 'UPDATE' text
-  
-//   // Calculate maxSlide to ensure the handle stays at the far right
-//   const container = document.querySelector('.slider-track');
-//   if (container) {
-//     this.maxSlide = container.clientWidth - 64; 
-//   }
-//   this.currentTranslateX = this.maxSlide; 
-//   this.cdr.detectChanges();
-
-//   const updatedData = {
-//     id: +rId,
-//     name: this.rangerName,
-//     phone: this.rangerPhone,
-//     password: this.rangerPassword,
-//     profilePic: this.profileImage.includes('base64') ? this.profileImage.split(',')[1] : null
-//   };
-
-//   this.dataService.updateRanger(updatedData).subscribe({
-//     next: async (res: any) => {
-//       // 2. Success logic
-//       localStorage.setItem('ranger_username', this.rangerName);
-//       localStorage.setItem('ranger_phone', this.rangerPhone);
-
-//       // Keep slider at the end (Green + Checkmark visible) for 1.5 seconds
-//       setTimeout(async () => {
-//         this.isSubmitting = false; // Triggers the slide back animation
-//         this.isEditMode = false;   // Lock the input fields
-//         this.currentTranslateX = 0; // Reset position for next time
-//         this.textOpacity = 1;
-        
-//         const msg = await this.translate.get('SETTINGS.UPDATE_SUCCESS').toPromise();
-//         this.showToast(msg || 'Updated Successfully');
-        
-//         this.rangerPassword = '';
-//         this.cdr.detectChanges();
-//       }, 1500);
-//     },
-//     error: async (err) => {
-//       // 3. Error: Snap back immediately so user can try again
-//       this.isSubmitting = false;
-//       this.currentTranslateX = 0;
-//       this.textOpacity = 1;
-//       console.error("Update Error:", err);
-//       this.showToast('Update failed. Check connection.');
-//       this.cdr.detectChanges();
-//     }
-//   });
-// }
 
 async updateProtocol() {
     const rId = this.dataService.getRangerId();
@@ -520,22 +470,100 @@ async updateProtocol() {
     await toast.present();
   }
 
-  goToPage(path: string) {
-    this.toggleMenu(false);
+  // async fetchCurrentLocation() {
+  //   this.locationLoading = true;
+  //   try {
+  //     const coordinates = await Geolocation.getCurrentPosition();
+  //     this.currentCoords = {
+  //       lat: coordinates.coords.latitude,
+  //       lng: coordinates.coords.longitude
+  //     };
+  //     this.cdr.detectChanges();
+  //   } catch (e) {
+  //     this.showToast('Please enable GPS');
+  //   } finally {
+  //     this.locationLoading = false;
+  //   }
+  // }
 
-    setTimeout(() => {
-      if (path === 'home') this.currentPage = 'home';
-      else if (path === 'settings') this.currentPage = 'settings';
-      else if (path === 'login') {
-        const lang = localStorage.getItem('app_language_code');
-        localStorage.clear();
-        if (lang) localStorage.setItem('app_language_code', lang);
-        this.router.navigate(['/login']);
-      } else {
-        this.router.navigate(['/', path]);
-      }
-    }, 150);
+  async fetchCurrentLocation() {
+  this.locationLoading = true;
+  try {
+    const coordinates = await Geolocation.getCurrentPosition();
+    this.currentCoords = {
+      lat: coordinates.coords.latitude,
+      lng: coordinates.coords.longitude
+    };
+
+    // --- REVERSE GEOCODING LOGIC START ---
+    // We use Nominatim (OpenStreetMap's free geocoding)
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${this.currentCoords.lat}&lon=${this.currentCoords.lng}`;
+    
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        // Extract a clean name. 
+        // We try to get the 'suburb' or 'city' or 'village', otherwise fallback to full address.
+        const addr = data.address;
+        this.currentLocationName = addr.suburb || addr.neighbourhood || addr.village || addr.city || addr.town || "Active Site";
+        this.cdr.detectChanges();
+      })
+      .catch(err => {
+        console.error("Geocoding error:", err);
+        this.currentLocationName = "Unknown Site";
+      });
+    // --- REVERSE GEOCODING LOGIC END ---
+
+    this.cdr.detectChanges();
+  } catch (e) {
+    this.showToast('Please enable GPS');
+  } finally {
+    this.locationLoading = false;
   }
+}
+
+  initMap(lat: number, lng: number) {
+    setTimeout(() => {
+      if (this.map) { this.map.remove(); }
+      this.map = L.map('map', { zoomControl: false }).setView([lat, lng], 15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(this.map);
+      this.marker = L.marker([lat, lng]).addTo(this.map);
+      setTimeout(() => this.map.invalidateSize(), 400);
+    }, 300);
+  }
+
+
+async goToPage(path: any) {
+  this.toggleMenu(false);
+  this.currentPage = path;
+
+  if (path === 'location') {
+    await this.fetchCurrentLocation(); // This now updates currentLocationName
+    if (this.currentCoords) {
+      this.initMap(this.currentCoords.lat, this.currentCoords.lng);
+    }
+  }
+  this.cdr.detectChanges();
+}
+
+
+
+  // goToPage(path: string) {
+  //   this.toggleMenu(false);
+
+  //   setTimeout(() => {
+  //     if (path === 'home') this.currentPage = 'home';
+  //     else if (path === 'settings') this.currentPage = 'settings';
+  //     else if (path === 'login') {
+  //       const lang = localStorage.getItem('app_language_code');
+  //       localStorage.clear();
+  //       if (lang) localStorage.setItem('app_language_code', lang);
+  //       this.router.navigate(['/login']);
+  //     } else {
+  //       this.router.navigate(['/', path]);
+  //     }
+  //   }, 150);
+  // }
 
   // Password toggle karne ka function
 togglePasswordVisibility() {

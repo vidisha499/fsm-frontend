@@ -1,41 +1,4 @@
 
-// import { Component , Renderer2 } from '@angular/core';
-// import { TranslateService } from '@ngx-translate/core';
-
-// @Component({
-//   selector: 'app-root',
-//   templateUrl: 'app.component.html',
-//   styleUrls: ['app.component.scss'],
-//   standalone: false,
-// })
-// export class AppComponent {
-//   constructor(private translate: TranslateService,
-//     private renderer: Renderer2
-//   ) {
-//     this.renderer.removeClass(document.body, 'dark');
-//     this.renderer.addClass(document.body, 'light');
-//     this.initLanguage();
-//     this.initializeApp();
-//   }
-
-//   initializeApp() {
-//     // Force light mode by removing any dark class and ensuring light is set
-//     document.body.classList.toggle('dark', false);
-    
-//     // Optional: If you use the Capacitor Dark Mode plugin, you can lock it here
-//   }
-
-//   initLanguage() {
-//     // Set default fallback language
-//     this.translate.setDefaultLang('en');
-    
-//     // Get the language from storage (matching your Step 1 key name)
-//     const savedLang = localStorage.getItem('app_language_code') || 'en';
-    
-//     // Tell ngx-translate to use this language
-//     this.translate.use(savedLang);
-//   }
-// }
 import { Component, Renderer2, QueryList, ViewChildren } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { Platform, IonRouterOutlet, ActionSheetController, ModalController, MenuController, NavController } from '@ionic/angular';
