@@ -119,12 +119,28 @@ export class SightingsPage implements OnInit {
     this.textOpacity = 1;
   }
 
+  // async takePhoto() {
+  //   try {
+  //     const image = await Camera.getPhoto({ quality: 50, resultType: CameraResultType.DataUrl, source: CameraSource.Camera });
+  //     if (image.dataUrl) this.obsData.photos.push(image.dataUrl);
+  //   } catch (e) { console.warn('User cancelled camera'); }
+  // }
+
   async takePhoto() {
-    try {
-      const image = await Camera.getPhoto({ quality: 50, resultType: CameraResultType.DataUrl, source: CameraSource.Camera });
-      if (image.dataUrl) this.obsData.photos.push(image.dataUrl);
-    } catch (e) { console.warn('User cancelled camera'); }
+  try {
+    const image = await Camera.getPhoto({
+      quality: 50,
+      resultType: CameraResultType.DataUrl,
+      source: CameraSource.Prompt, // This shows both Gallery and Camera options
+      saveToGallery: true
+    });
+    if (image.dataUrl) {
+      this.obsData.photos.push(image.dataUrl);
+    }
+  } catch (e) {
+    console.warn('User cancelled photo selection');
   }
+}
 
   removePhoto(index: number) { this.obsData.photos.splice(index, 1); }
   goBack() { this.navCtrl.back(); }
