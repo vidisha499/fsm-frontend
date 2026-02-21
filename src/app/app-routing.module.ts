@@ -56,7 +56,12 @@ const routes: Routes = [
   {
     path: 'signup-details',
     loadChildren: () => import('./home/signup-details/signup-details.module').then( m => m.SignupDetailsPageModule)
-  }
+  },
+  {
+    // ADD THIS BLOCK
+    path: 'location',
+    loadChildren: () => import('./home/location/location.module').then(m => m.LocationPageModule)
+  },
 
 ];
 

@@ -1,0 +1,52 @@
+
+
+
+<ion-content [fullscreen]="true" style="--background: #f8fafc;">
+  <div class="hero-header">
+    <div class="header-content">
+      <div class="nav-row">
+        <div (click)="goBack()" class="glass-back">
+          <i class="fas fa-arrow-left"></i>
+        </div>
+        <h1 class="header-title">Real-time Location</h1>
+        <div class="live-badge">
+          <div class="pulse-dot"></div>
+          <span>LIVE</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <div class="map-card">
+      <div *ngIf="isMapLoading" class="map-loader">
+        <ion-spinner name="crescent" color="primary"></ion-spinner>
+        <p>Fetching Satellite Data...</p>
+      </div>
+      <div id="map"></div>
+    </div>
+
+    <p class="section-label">MAP TRACKING</p>
+
+    <div class="status-card">
+      <p class="section-label-alt">GPS Status</p>
+      <div class="status-header">
+        <div class="icon-box">
+          <i class="fas fa-satellite"></i>
+        </div>
+        <div class="status-info">
+          <h2 class="status-main">Active Signal</h2>
+          <p class="status-sub">Secure Feed Active</p>
+        </div>
+        <button (click)="refreshLocation()" class="refresh-btn">
+          <i class="fas fa-sync-alt"></i>
+        </button>
+      </div>
+        
+        <div class="footer-tag">
+        <div class="secure-dot"></div>
+        SECURE GPS FEED ACTIVE
+      </div>
+    </div>
+  </div>
+</ion-content>

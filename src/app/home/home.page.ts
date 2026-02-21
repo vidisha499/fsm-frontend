@@ -6,8 +6,6 @@ import { TranslateService } from '@ngx-translate/core';
 import { ChangeDetectorRef } from '@angular/core';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Subscription } from 'rxjs';
-import * as L from 'leaflet';
-import { Geolocation } from '@capacitor/geolocation';
 
 @Component({
   selector: 'app-home',
@@ -22,17 +20,7 @@ public textOpacity: number = 1;
 private startX: number = 0;
 private maxSlide: number = 0;
 
-  // currentPage: 'home' | 'settings' | 'attendance' = 'home';
-//  currentPage: 'home' | 'settings' | 'attendance' | 'location' = 'home';
-  
-currentPage: string = 'home';
-currentCoords: any = null;
-currentLocationName: string = '';
-  private map: any;
-  private marker: any;
-  locationLoading: boolean = false;
-
-
+  currentPage: 'home' | 'settings' | 'attendance' = 'home';
   activeTab: string = 'info';
   isEditMode: boolean = false;
  profileImage: string = '';
@@ -330,9 +318,6 @@ ionViewWillEnter() {
   }
 
 
-
-
-
 async updateProtocol() {
     const rId = this.dataService.getRangerId();
     
@@ -470,100 +455,22 @@ async updateProtocol() {
     await toast.present();
   }
 
-  // async fetchCurrentLocation() {
-  //   this.locationLoading = true;
-  //   try {
-  //     const coordinates = await Geolocation.getCurrentPosition();
-  //     this.currentCoords = {
-  //       lat: coordinates.coords.latitude,
-  //       lng: coordinates.coords.longitude
-  //     };
-  //     this.cdr.detectChanges();
-  //   } catch (e) {
-  //     this.showToast('Please enable GPS');
-  //   } finally {
-  //     this.locationLoading = false;
-  //   }
-  // }
+  goToPage(path: string) {
+    this.toggleMenu(false);
 
-  async fetchCurrentLocation() {
-  this.locationLoading = true;
-  try {
-    const coordinates = await Geolocation.getCurrentPosition();
-    this.currentCoords = {
-      lat: coordinates.coords.latitude,
-      lng: coordinates.coords.longitude
-    };
-
-    // --- REVERSE GEOCODING LOGIC START ---
-    // We use Nominatim (OpenStreetMap's free geocoding)
-    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${this.currentCoords.lat}&lon=${this.currentCoords.lng}`;
-    
-    fetch(url)
-      .then(response => response.json())
-      .then(data => {
-        // Extract a clean name. 
-        // We try to get the 'suburb' or 'city' or 'village', otherwise fallback to full address.
-        const addr = data.address;
-        this.currentLocationName = addr.suburb || addr.neighbourhood || addr.village || addr.city || addr.town || "Active Site";
-        this.cdr.detectChanges();
-      })
-      .catch(err => {
-        console.error("Geocoding error:", err);
-        this.currentLocationName = "Unknown Site";
-      });
-    // --- REVERSE GEOCODING LOGIC END ---
-
-    this.cdr.detectChanges();
-  } catch (e) {
-    this.showToast('Please enable GPS');
-  } finally {
-    this.locationLoading = false;
-  }
-}
-
-  initMap(lat: number, lng: number) {
     setTimeout(() => {
-      if (this.map) { this.map.remove(); }
-      this.map = L.map('map', { zoomControl: false }).setView([lat, lng], 15);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(this.map);
-      this.marker = L.marker([lat, lng]).addTo(this.map);
-      setTimeout(() => this.map.invalidateSize(), 400);
-    }, 300);
+      if (path === 'home') this.currentPage = 'home';
+      else if (path === 'settings') this.currentPage = 'settings';
+      else if (path === 'login') {
+        const lang = localStorage.getItem('app_language_code');
+        localStorage.clear();
+        if (lang) localStorage.setItem('app_language_code', lang);
+        this.router.navigate(['/login']);
+      } else {
+        this.router.navigate(['/', path]);
+      }
+    }, 150);
   }
-
-
-async goToPage(path: any) {
-  this.toggleMenu(false);
-  this.currentPage = path;
-
-  if (path === 'location') {
-    await this.fetchCurrentLocation(); // This now updates currentLocationName
-    if (this.currentCoords) {
-      this.initMap(this.currentCoords.lat, this.currentCoords.lng);
-    }
-  }
-  this.cdr.detectChanges();
-}
-
-
-
-  // goToPage(path: string) {
-  //   this.toggleMenu(false);
-
-  //   setTimeout(() => {
-  //     if (path === 'home') this.currentPage = 'home';
-  //     else if (path === 'settings') this.currentPage = 'settings';
-  //     else if (path === 'login') {
-  //       const lang = localStorage.getItem('app_language_code');
-  //       localStorage.clear();
-  //       if (lang) localStorage.setItem('app_language_code', lang);
-  //       this.router.navigate(['/login']);
-  //     } else {
-  //       this.router.navigate(['/', path]);
-  //     }
-  //   }, 150);
-  // }
 
   // Password toggle karne ka function
 togglePasswordVisibility() {
