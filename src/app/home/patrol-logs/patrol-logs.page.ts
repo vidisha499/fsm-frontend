@@ -2,6 +2,8 @@ import { Component, OnInit, ChangeDetectorRef, ViewChild, ElementRef } from '@an
 import { Router } from '@angular/router';
 import { NavController, ToastController, AlertController, LoadingController, GestureController, DomController } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
+import { TranslateService } from '@ngx-translate/core';
+import { firstValueFrom } from 'rxjs';
 import * as L from 'leaflet';
 
 @Component({
@@ -24,7 +26,6 @@ export class PatrolLogsPage implements OnInit {
   public mapLoading = true;
   private detailMap: any;
 
-  // Verified API URL from your deployment
   private apiUrl: string = 'https://forest-backend-pi.vercel.app/api/patrols';
 
   constructor(
@@ -36,7 +37,8 @@ export class PatrolLogsPage implements OnInit {
     private loadingCtrl: LoadingController,
     private cdr: ChangeDetectorRef,
     private gestureCtrl: GestureController,
-    private domCtrl: DomController
+    private domCtrl: DomController,
+    private translate: TranslateService // Added for translation
   ) {}
 
   ngOnInit() { }
@@ -59,10 +61,8 @@ export class PatrolLogsPage implements OnInit {
       gestureName: 'swipe-to-start',
       onMove: ev => {
         if (this.isSubmitting) return;
-        
         const maxDelta = track.clientWidth - knob.clientWidth - 10; 
         let deltaX = ev.deltaX;
-
         if (deltaX < 0) deltaX = 0;
         if (deltaX > maxDelta) deltaX = maxDelta;
 
@@ -72,9 +72,7 @@ export class PatrolLogsPage implements OnInit {
       },
       onEnd: ev => {
         if (this.isSubmitting) return;
-
         const maxDelta = track.clientWidth - knob.clientWidth - 10;
-
         if (ev.deltaX > maxDelta * 0.8) {
           this.domCtrl.write(() => {
             knob.style.transition = '0.3s ease-out';
@@ -87,150 +85,75 @@ export class PatrolLogsPage implements OnInit {
             knob.style.transform = `translateX(0px)`;
           });
         }
-        
         setTimeout(() => { knob.style.transition = 'none'; }, 300);
       }
     });
-
     gesture.enable(true);
   }
 
   // --- DATA OPERATIONS ---
 
   async loadPatrolLogs() {
-    const loader = await this.loadingCtrl.create({ message: 'Loading logs...', mode: 'ios' });
+    const loaderMsg = await firstValueFrom(this.translate.get('DETAILS.LOADING'));
+    const loader = await this.loadingCtrl.create({ message: loaderMsg, mode: 'ios' });
     await loader.present();
+
     this.http.get(`${this.apiUrl}/logs`).subscribe({
       next: (data: any) => { 
         this.patrolLogs = data; 
         loader.dismiss(); 
       },
-      error: () => { 
+      error: async () => { 
         loader.dismiss(); 
-        this.presentToast('Failed to load logs', 'danger'); 
+        const errMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_ERROR'));
+        this.presentToast(errMsg, 'danger'); 
       }
     });
   }
 
-
-
-async savePatrol() {
-  // 1. Validation check for UI inputs
-  if (!this.selectedMethod || !this.selectedType) {
-    this.presentToast('Please select Method and Type', 'warning');
-    this.resetKnob();
-    return;
-  }
-
-  // 2. KEY FIX: Match the key used in login.page.ts ('ranger_id')
-  const storedRangerId = localStorage.getItem('ranger_id'); 
-  
-  if (!storedRangerId) {
-    // This was likely causing your redirect because you were looking for 'user'
-    this.presentToast('User session not found. Please login again.', 'danger');
-    this.navCtrl.navigateRoot('/login');
-    return;
-  }
-
-  // 3. Prepare Payload
-  this.isSubmitting = true; 
-  const loader = await this.loadingCtrl.create({ 
-    message: 'Starting Patrol Session...', 
-    mode: 'ios' 
-  });
-  await loader.present();
-
-  const payload = { 
-    rangerId: parseInt(storedRangerId), // Ensure it is a number for NestJS
-    method: this.selectedMethod,
-    type: this.selectedType 
-  };
-
-  // 4. API Call - Matching your NestJS @Post('active')
-  this.http.post(`${this.apiUrl}/active`, payload).subscribe({
-    next: (res: any) => {
-      loader.dismiss();
-      
-      // Store the active patrol ID for the next screen
-      localStorage.setItem('active_patrol_id', res.id.toString());
-      localStorage.setItem('temp_patrol_name', `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`);
-      
-      this.isModalOpen = false;
-      
-      // ROUTE FIX: Navigating to the correct path defined in AppRoutingModule
-      this.navCtrl.navigateForward('/patrol-active');
-    },
-    error: (err) => {
-      loader.dismiss();
-      this.isSubmitting = false;
+  async savePatrol() {
+    if (!this.selectedMethod || !this.selectedType) {
+      const warnMsg = await firstValueFrom(this.translate.get('LIST.SELECT_PLACEHOLDER'));
+      this.presentToast(warnMsg, 'warning');
       this.resetKnob();
-      console.error('Database Error:', err);
-      
-      // Handle 401/403/404 specifically
-      if (err.status === 401) {
-        this.presentToast('Session expired. Please login.', 'danger');
-        this.navCtrl.navigateRoot('/login');
-      } else {
-        this.presentToast('Failed to start patrol. Check connection.', 'danger');
-      }
+      return;
     }
-  });
-}
 
-// async savePatrol() {
-//   if (!this.selectedMethod || !this.selectedType) {
-//     this.presentToast('Please select Method and Type', 'warning');
-//     this.resetKnob();
-//     return;
-//   }
+    const storedRangerId = localStorage.getItem('ranger_id'); 
+    if (!storedRangerId) {
+      this.presentToast('User session not found. Please login again.', 'danger');
+      this.navCtrl.navigateRoot('/login');
+      return;
+    }
 
-//   // ✅ 1. Get the logged-in user from localStorage
-//   const storedUser = localStorage.getItem('user'); 
-//   if (!storedUser) {
-//     this.presentToast('User session not found. Please login again.', 'danger');
-//     this.navCtrl.navigateRoot('/login');
-//     return;
-//   }
+    this.isSubmitting = true; 
+    const startMsg = await firstValueFrom(this.translate.get('LIST.STARTING'));
+    const loader = await this.loadingCtrl.create({ message: startMsg, mode: 'ios' });
+    await loader.present();
 
-//   // ✅ 2. Parse the string into an object and get the ID
-//   const user = JSON.parse(storedUser);
-//   const dynamicRangerId = user.id; 
+    const payload = { 
+      rangerId: parseInt(storedRangerId),
+      method: this.selectedMethod,
+      type: this.selectedType 
+    };
 
-//   this.isSubmitting = true; 
-//   const loader = await this.loadingCtrl.create({ 
-//     message: 'Starting Patrol Session...', 
-//     mode: 'ios' 
-//   });
-//   await loader.present();
-
-//   // ✅ 3. Use the dynamic ID in the payload
-//   const payload = { 
-//     rangerId: dynamicRangerId,
-//     method: this.selectedMethod,
-//     type: this.selectedType 
-//   };
-
-//   // Note: Ensure your backend controller matches this endpoint (/active vs /start)
-//   this.http.post(`${this.apiUrl}/active`, payload).subscribe({
-//     next: (res: any) => {
-//       loader.dismiss();
-      
-//       // Store the active patrol ID for the next screen
-//       localStorage.setItem('active_patrol_id', res.id.toString());
-//       localStorage.setItem('temp_patrol_name', `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`);
-      
-//       this.isModalOpen = false;
-//       this.navCtrl.navigateForward('/home/patrol-active');
-//     },
-//     error: (err) => {
-//       loader.dismiss();
-//       this.isSubmitting = false;
-//       this.resetKnob();
-//       console.error('Database Error:', err);
-//       this.presentToast('Failed to start patrol', 'danger');
-//     }
-//   });
-// }
+    this.http.post(`${this.apiUrl}/active`, payload).subscribe({
+      next: (res: any) => {
+        loader.dismiss();
+        localStorage.setItem('active_patrol_id', res.id.toString());
+        localStorage.setItem('temp_patrol_name', `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`);
+        this.isModalOpen = false;
+        this.navCtrl.navigateForward('/patrol-active');
+      },
+      error: async (err) => {
+        loader.dismiss();
+        this.isSubmitting = false;
+        this.resetKnob();
+        const failMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_ERROR'));
+        this.presentToast(failMsg, 'danger');
+      }
+    });
+  }
 
   private async processDelete(id: number) {
     this.http.delete(`${this.apiUrl}/logs/${id}`).subscribe({
@@ -242,8 +165,6 @@ async savePatrol() {
     });
   }
 
-  // --- TEMPLATE HELPERS (Fixes TS2339 Error) ---
-
   getCategoryIcon(category: string): string {
     const cat = category?.toLowerCase() || '';
     if (cat.includes('animal')) return 'fas fa-paw';
@@ -254,8 +175,6 @@ async savePatrol() {
     return 'fas fa-eye';
   }
 
-  // --- MODAL & UI CONTROL ---
-
   setOpen(isOpen: boolean) { 
     this.isModalOpen = isOpen; 
     if (isOpen) {
@@ -265,80 +184,24 @@ async savePatrol() {
     }
   }
 
-  // viewDetails(log: any) {
-  //   this.selectedPatrol = log;
-  //   this.isDetailModalOpen = true;
-  //   this.mapLoading = true;
-  //   this.cdr.detectChanges();
-  // }
-
-
-
-
-viewDetails(patrol: any) {
-  // Use 'id' as per your database screenshot
-  const pId = patrol.id; 
-
-  if (pId) {
-    console.log("Navigating to ID:", pId);
-    this.navCtrl.navigateForward(['/patrol-details', pId]); 
-  } else {
-    console.error("ID missing in patrol object:", patrol);
-    this.presentToast("Error: ID not found", "danger");
-  }
-}
-  onDetailModalPresent() {
-    setTimeout(() => {
-      this.initDetailMap();
-    }, 800); 
-  }
-
-  initDetailMap() {
-    const mapElement = document.getElementById('detailMap');
-    if (!mapElement) return;
-
-    if (this.detailMap) { 
-      this.detailMap.remove(); 
-      this.detailMap = null;
+  viewDetails(patrol: any) {
+    const pId = patrol.id; 
+    if (pId) {
+      this.navCtrl.navigateForward(['/patrol-details', pId]); 
+    } else {
+      this.presentToast("Error: ID not found", "danger");
     }
-
-    let coords: L.LatLngTuple[] = [];
-    if (this.selectedPatrol?.route && this.selectedPatrol.route.length > 0) {
-      coords = this.selectedPatrol.route.map((p: any) => [p.lat, p.lng] as L.LatLngTuple);
-    }
-
-    const center = coords.length > 0 ? coords[0] : [0, 0] as L.LatLngTuple;
-
-    this.detailMap = L.map(mapElement, { 
-      zoomControl: false,
-      attributionControl: false
-    }).setView(center, 16);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(this.detailMap);
-
-    if (coords.length > 1) {
-      const polyline = L.polyline(coords, { color: '#059669', weight: 6, opacity: 0.8 }).addTo(this.detailMap);
-      this.detailMap.fitBounds(polyline.getBounds(), { padding: [30, 30] });
-      
-      L.circleMarker(coords[0], { color: '#3b82f6', radius: 5, fillOpacity: 1 }).addTo(this.detailMap);
-      L.circleMarker(coords[coords.length - 1], { color: '#ef4444', radius: 5, fillOpacity: 1 }).addTo(this.detailMap);
-    }
-
-    this.mapLoading = false;
-    
-    setTimeout(() => { 
-      if(this.detailMap) this.detailMap.invalidateSize(); 
-      this.cdr.detectChanges();
-    }, 200);
   }
 
   async deleteLog(id: number, event: Event) {
     event.stopPropagation();
+    const headerMsg = await firstValueFrom(this.translate.get('COMMON.DELETE_CONFIRM'));
+    
     const alert = await this.alertCtrl.create({
       header: 'Delete Log',
-      message: 'Are you sure you want to delete this log?',
+      message: headerMsg,
       buttons: [
-        { text: 'Cancel', role: 'cancel' },
+        { text: await firstValueFrom(this.translate.get('COMMON.CANCEL')), role: 'cancel' },
         { text: 'Delete', role: 'destructive', handler: () => { this.processDelete(id); } }
       ]
     });

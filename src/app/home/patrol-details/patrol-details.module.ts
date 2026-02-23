@@ -7,13 +7,14 @@ import { IonicModule } from '@ionic/angular';
 import { PatrolDetailsPageRoutingModule } from './patrol-details-routing.module';
 
 import { PatrolDetailsPage } from './patrol-details.page';
-
+import { TranslateModule } from '@ngx-translate/core'
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
     IonicModule,
-    PatrolDetailsPageRoutingModule
+    PatrolDetailsPageRoutingModule,
+       TranslateModule
   ],
   declarations: [PatrolDetailsPage]
 })

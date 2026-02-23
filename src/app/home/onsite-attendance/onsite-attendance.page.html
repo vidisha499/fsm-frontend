@@ -11,14 +11,14 @@
             <ion-icon name="arrow-back-outline"></ion-icon>
           </button>
           <div class="title-meta">
-            <h1 class="main-title">Onsite Attendance</h1>
+            <h1 class="main-title">{{ 'ATTENDANCE.TITLE' | translate }}</h1>
           </div>
         </div>
         
         <div class="live-badge-top">
           <div class="secure-id-badge">
             <ion-icon name="finger-print-outline"></ion-icon>
-            <span>SECURE ID</span>
+            <span>{{ 'ATTENDANCE.LIVE' | translate }}</span>
           </div>
         </div>
       </div>
@@ -38,33 +38,32 @@
           <div class="scanner-inner" [style.background-image]="capturedPhoto ? 'url(' + capturedPhoto + ')' : ''">
             <div *ngIf="!capturedPhoto" class="placeholder-content">
               <ion-icon name="camera" class="main-cam-icon"></ion-icon>
-              <span class="cam-text">CAPTURE ID PHOTO</span>
+              <span class="cam-text">{{ 'ATTENDANCE.CAPTURE_ID' | translate }}</span>
             </div>
             <div class="scan-line" *ngIf="!capturedPhoto"></div>
           </div>
         </div>
-        <p class="instruction">{{ capturedPhoto ? 'Identity Captured' : 'Scan identity to proceed' }}</p>
+        <p class="instruction">
+          {{ capturedPhoto ? ('ATTENDANCE.VERIFIED' | translate) : ('ATTENDANCE.SCAN_INSTRUCTION' | translate) }}
+        </p>
       </div>
 
-     
-
       <div class="map-wrapper">
-  <div class="map-label">
-    <ion-icon name="location"></ion-icon>
-    <span>REAL-TIME POSITIONING</span>
-  </div>
-  <div class="map-container-box">
-    <div id="onsiteMap" style="width: 100%; height: 100%; border-radius: 12px;"></div>
-    
-    <button class="recenter-btn-glass" (click)="recenterMap()">
-      <i class="fas fa-crosshairs"></i>
-    </button>
-  </div>
-</div>
+        <div class="map-label">
+          <ion-icon name="location"></ion-icon>
+          <span>{{ 'ATTENDANCE.LIVE_TRACKING' | translate }}</span>
+        </div>
+        <div class="map-container-box">
+          <div id="onsiteMap" style="width: 100%; height: 100%; border-radius: 12px;"></div>
+          <button class="recenter-btn-glass" (click)="recenterMap()">
+            <i class="fas fa-crosshairs"></i>
+          </button>
+        </div>
+      </div>
 
       <div class="form-body">
         <div class="input-group">
-          <label>RANGER PROFILE</label>
+          <label>{{ 'ATTENDANCE.RANGER' | translate }}</label>
           <div class="premium-input">
             <ion-icon name="person-circle-outline"></ion-icon>
             <span class="val">{{ rangerName }}</span>
@@ -72,7 +71,7 @@
         </div>
 
         <div class="input-group">
-          <label>CURRENT GEOFENCE (DETECTED)</label>
+          <label>{{ 'ATTENDANCE.DETECTED_GEOFENCE' | translate }}</label>
           <div class="premium-input address-mode">
             <ion-icon name="map-outline"></ion-icon>
             <span class="val">{{ currentAddress }}</span>
@@ -80,7 +79,7 @@
         </div>
 
         <div class="input-group">
-          <label>DATE & TIME</label>
+          <label>{{ 'ATTENDANCE.TIME_LABEL' | translate }}</label>
           <div class="premium-input datetime-pill">
             <ion-icon name="calendar-clear-outline"></ion-icon>
             <span class="val">{{ currentDateTime }}</span>
@@ -101,7 +100,7 @@
           </div>
 
           <span class="slider-text" [style.opacity]="textOpacity">
-            {{ isSubmitting ? 'SYNCING ATTENDANCE...' : 'MARK ATTENDANCE' }}
+            {{ isSubmitting ? ('ATTENDANCE.MARKING' | translate) : ('ATTENDANCE.MARK_BUTTON' | translate) }}
           </span>
 
           <div class="end-check">

@@ -183,6 +183,8 @@
           #attendanceMap {
             width: 100%;
             height: 100%;
+            z-index: 1;    // Taki card ke upar hi rahe
+  background: #f0f0f0;
           }
         }
       }

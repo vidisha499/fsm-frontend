@@ -1,5 +1,3 @@
-
-
 <ion-content class="sighting-content" [fullscreen]="true">
   <div class="header-section">
     <div class="header-content-row">
@@ -7,7 +5,7 @@
         <button class="back-btn" (click)="goBack()">
           <ion-icon name="arrow-back-outline"></ion-icon>
         </button>
-        <h1 class="main-title">Report {{ category }}</h1>
+        <h1 class="main-title">{{ 'SIGHTING.REPORT' | translate }} {{ 'PATROL.CAT_' + category.toUpperCase() | translate }}</h1>
       </div>
       <div class="premium-badge">
         <ion-icon name="shield-checkmark"></ion-icon>
@@ -18,26 +16,28 @@
   <div class="overlapping-card">
     
     <div class="input-group">
-      <label class="label-purple">SIGHTING TYPE</label>
+      <label class="label-purple">{{ 'SIGHTING.TYPE_LABEL' | translate }}</label>
       <div class="premium-box box-purple">
         <ion-icon name="flash" class="icon-purple"></ion-icon>
         <select [(ngModel)]="obsData.sightingType">
-          <option value="Direct">Direct Sighting</option>
-          <option value="Indirect">Indirect</option>
+          <option value="Direct">{{ 'SIGHTING.DIRECT' | translate }}</option>
+          <option value="Indirect">{{ 'SIGHTING.INDIRECT' | translate }}</option>
         </select>
       </div>
     </div>
 
     <div class="input-group">
-      <label class="label-blue">SPECIES NAME</label>
+      <label class="label-blue">{{ 'SIGHTING.SPECIES_LABEL' | translate }}</label>
       <div class="premium-box box-blue">
         <ion-icon name="paw" class="icon-blue"></ion-icon>
-        <input type="text" [(ngModel)]="obsData.species" placeholder="Enter species...">
+        <input type="text" [(ngModel)]="obsData.species" [placeholder]="'SIGHTING.SPECIES_PLACEHOLDER' | translate">
       </div>
     </div>
 
     <div class="input-group">
-      <label class="label-green">NUMBER OF {{ category | uppercase }}S</label>
+      <label class="label-green">
+        {{ 'SIGHTING.NUMBER_OF' | translate }} {{ 'PATROL.CAT_' + category.toUpperCase() | translate }}
+      </label>
       <div class="premium-box box-green">
         <ion-icon name="stats-chart" class="icon-green"></ion-icon>
         <input type="number" [(ngModel)]="obsData.count">
@@ -45,27 +45,27 @@
     </div>
 
     <div class="input-group">
-      <label class="label-red">GENDER</label>
+      <label class="label-red">{{ 'SIGHTING.GENDER_LABEL' | translate }}</label>
       <div class="premium-box box-red">
         <ion-icon name="male-female" class="icon-red"></ion-icon>
         <div class="gender-selection-row">
-          <span [class.active]="obsData.genderMale" (click)="toggleGender('male')">Male</span>
-          <span [class.active]="obsData.genderFemale" (click)="toggleGender('female')">Female</span>
-          <span [class.active]="obsData.genderUnknown" (click)="toggleGender('unknown')">Unknown</span>
+          <span [class.active]="obsData.genderMale" (click)="toggleGender('male')">{{ 'SIGHTING.MALE' | translate }}</span>
+          <span [class.active]="obsData.genderFemale" (click)="toggleGender('female')">{{ 'SIGHTING.FEMALE' | translate }}</span>
+          <span [class.active]="obsData.genderUnknown" (click)="toggleGender('unknown')">{{ 'SIGHTING.UNKNOWN' | translate }}</span>
         </div>
       </div>
     </div>
 
     <div class="input-group photo-section">
       <div class="photo-header-row">
-        <label class="label-teal">PHOTOS</label>
-        <span class="count-badge">{{ obsData.photos.length }}/5 Photos</span>
+        <label class="label-teal">{{ 'SIGHTING.PHOTOS_LABEL' | translate }}</label>
+        <span class="count-badge">{{ obsData.photos.length }}/5 {{ 'SIGHTING.PHOTOS' | translate }}</span>
       </div>
       
       <div class="photo-container">
         <div class="add-photo-dashed" (click)="takePhoto()" *ngIf="obsData.photos.length < 5">
           <ion-icon name="camera-outline"></ion-icon>
-          <span>ADD PHOTO</span>
+          <span>{{ 'SIGHTING.ADD_PHOTO' | translate }}</span>
         </div>
 
         <div class="photo-list">
@@ -80,10 +80,10 @@
     </div>
 
     <div class="input-group">
-      <label class="label-orange">REMARK / OBSERVATIONS</label>
+      <label class="label-orange">{{ 'SIGHTING.REMARK_LABEL' | translate }}</label>
       <div class="premium-box box-orange textarea-container">
         <ion-icon name="document-text-outline"></ion-icon>
-        <textarea [(ngModel)]="obsData.notes" rows="2" placeholder="Field observations..."></textarea>
+        <textarea [(ngModel)]="obsData.notes" rows="2" [placeholder]="'SIGHTING.REMARK_PLACEHOLDER' | translate"></textarea>
       </div>
     </div>
 
@@ -93,7 +93,9 @@
         <div class="slider-handle" [style.transform]="'translateX(' + currentTranslateX + 'px)'">
           <ion-icon [name]="isSubmitting ? 'refresh-outline' : 'chevron-forward-outline'" [class.spin]="isSubmitting"></ion-icon>
         </div>
-        <span class="slider-label">{{ isSubmitting ? 'UPLOADING...' : 'SLIDE TO SAVE LOG' }}</span>
+        <span class="slider-label">
+          {{ isSubmitting ? ('SIGHTING.UPLOADING' | translate) : ('SIGHTING.SLIDE_TO_SAVE' | translate) }}
+        </span>
       </div>
     </div>
 

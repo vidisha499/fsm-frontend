@@ -1,11 +1,11 @@
-
-
-import { Component, OnInit , ChangeDetectorRef} from '@angular/core'; 
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core'; 
 import { ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { NavController, ToastController, LoadingController } from '@ionic/angular';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { DataService } from 'src/app/data.service';
+import { TranslateService } from '@ngx-translate/core'; // Added
+import { firstValueFrom } from 'rxjs'; // Added
 
 @Component({
   selector: 'app-sightings',
@@ -41,7 +41,8 @@ export class SightingsPage implements OnInit {
     private toastCtrl: ToastController,
     private loadingCtrl: LoadingController,
     private dataService: DataService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private translate: TranslateService // Added
   ) {}
 
   ngOnInit() {
@@ -68,19 +69,18 @@ export class SightingsPage implements OnInit {
 
     this.isSaving = true;
     this.isSubmitting = true; 
-    this.textOpacity = 0;
     
+    const saveMsg = await firstValueFrom(this.translate.get('SIGHTING.SAVING_MSG'));
     const loader = await this.loadingCtrl.create({ 
-      message: 'Saving Sighting...', 
+      message: saveMsg, 
       mode: 'ios',
       spinner: 'crescent'
     });
     await loader.present();
 
-    // Payload updated to include 'category' for frontend icon logic
     const payload = {
       patrol_id: Number(this.patrolId),
-      category: this.category, // Required for log.category icons
+      category: this.category, 
       sighting_type: this.obsData.sightingType,
       species: this.obsData.species || this.category,
       count: this.obsData.count,
@@ -95,9 +95,12 @@ export class SightingsPage implements OnInit {
     };
 
     this.dataService.saveSighting(payload).subscribe({
-      next: () => {
+      next: async () => {
         loader.dismiss();
-        this.showToast(`${this.category} saved successfully!`);
+        const successMsg = await firstValueFrom(this.translate.get('SIGHTING.SUCCESS'));
+        const catTranslated = await firstValueFrom(this.translate.get('PATROL.CAT_' + this.category.toUpperCase()));
+        this.showToast(`${catTranslated} ${successMsg}`);
+        
         setTimeout(() => {
           this.isSubmitting = false;
           this.navCtrl.back();
@@ -119,28 +122,19 @@ export class SightingsPage implements OnInit {
     this.textOpacity = 1;
   }
 
-  // async takePhoto() {
-  //   try {
-  //     const image = await Camera.getPhoto({ quality: 50, resultType: CameraResultType.DataUrl, source: CameraSource.Camera });
-  //     if (image.dataUrl) this.obsData.photos.push(image.dataUrl);
-  //   } catch (e) { console.warn('User cancelled camera'); }
-  // }
-
   async takePhoto() {
-  try {
-    const image = await Camera.getPhoto({
-      quality: 50,
-      resultType: CameraResultType.DataUrl,
-      source: CameraSource.Prompt, // This shows both Gallery and Camera options
-      saveToGallery: true
-    });
-    if (image.dataUrl) {
-      this.obsData.photos.push(image.dataUrl);
-    }
-  } catch (e) {
-    console.warn('User cancelled photo selection');
+    try {
+      const image = await Camera.getPhoto({
+        quality: 50,
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Prompt,
+        saveToGallery: true
+      });
+      if (image.dataUrl) {
+        this.obsData.photos.push(image.dataUrl);
+      }
+    } catch (e) { console.warn('User cancelled photo selection'); }
   }
-}
 
   removePhoto(index: number) { this.obsData.photos.splice(index, 1); }
   goBack() { this.navCtrl.back(); }

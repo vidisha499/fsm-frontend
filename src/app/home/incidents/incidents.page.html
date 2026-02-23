@@ -1,44 +1,25 @@
-
-
 <ion-content [fullscreen]="true">
   <div class="premium-wrapper">
     <div class="ambient-glow glow-1"></div>
     <div class="ambient-glow glow-2"></div>
-<!-- 
+
     <div class="hero-header">
       <div class="header-overlay"></div>
       <div class="header-content">
         <div class="nav-bar">
-          <button (click)="goBack()" class="glass-btn">
-            <ion-icon name="arrow-back-outline"></ion-icon>
-          </button>
+          <div class="left-section">
+            <button (click)="goBack()" class="glass-btn">
+              <ion-icon name="arrow-back-outline"></ion-icon>
+            </button>
+            <h1>{{ 'INCIDENTS.TITLE' | translate }}</h1>
+          </div>
           <div class="auth-badge">
             <i class="fas fa-shield-alt"></i>
-            <span>SECURE LOG</span>
+            <span>{{ 'INCIDENTS.SECURE_LOG' | translate }}</span>
           </div>
         </div>
-        <h1>{{ 'INCIDENTS.TITLE' | translate }}</h1>
-      </div>
-    </div> -->
-
-    <div class="hero-header">
-  <div class="header-overlay"></div>
-  <div class="header-content">
-    <div class="nav-bar">
-      <div class="left-section">
-        <button (click)="goBack()" class="glass-btn">
-          <ion-icon name="arrow-back-outline"></ion-icon>
-        </button>
-        <h1>{{ 'INCIDENTS.TITLE' | translate }}</h1>
-      </div>
-
-      <div class="auth-badge">
-        <i class="fas fa-shield-alt"></i>
-        <span>SECURE LOG</span>
       </div>
     </div>
-  </div>
-</div>
 
     <div class="main-container">
       <div class="status-tabs-wrapper">
@@ -53,34 +34,32 @@
       </div>
 
       <div class="incident-list">
-        <div class="incident-row-compact animate__animated animate__fadeInUp" 
-             *ngFor="let item of incidents" 
-             (click)="viewDetails(item)">
-          
+        <div class="incident-row-compact animate__animated animate__fadeInUp" *ngFor="let item of incidents"
+          (click)="viewDetails(item)">
+
           <div class="mini-thumb">
             <img *ngIf="item.photos && item.photos.length > 0" [src]="item.photos[0]">
-            
             <div *ngIf="!item.photos || item.photos.length === 0" class="placeholder-icon">
-                <ion-icon name="image-outline"></ion-icon>
+              <ion-icon name="image-outline"></ion-icon>
             </div>
-            
             <div class="priority-indicator" [attr.data-priority]="item.responsePriority"></div>
           </div>
 
           <div class="row-content">
             <div class="top-line">
-              <span class="type-text">{{ item.incidentCriteria }}</span>
+              <!-- <span class="type-text">{{ 'INCIDENT.VALUES.' + getTranslationKey(item.incidentCriteria) | translate }}</span> -->
+              <span class="type-text">
+                {{ ('INCIDENT.VALUES.' + getTranslationKey(item.incidentCriteria)) | translate }}
+              </span>
+
               <span class="log-date">{{ formatDate(item.createdAt) }}</span>
             </div>
-            
+
             <h2 class="priority-title" [class.high-p]="item.responsePriority === 'High Priority'">
-              {{ item.responsePriority }}
-            </h2>
+              {{ ('INCIDENT.VALUES.' + getTranslationKey(item.responsePriority)) | translate }}</h2>
 
             <div class="reporter-line">
               <ion-icon name="person-circle-outline"></ion-icon>
-              <!-- <span>{{ item.ranger?.name || 'Assigned Ranger' }}</span> -->
-              
               <span class="photo-badge" *ngIf="item.photos?.length > 1">
                 +{{ item.photos.length - 1 }}
               </span>
@@ -97,7 +76,7 @@
 
         <div class="empty-state" *ngIf="incidents.length === 0">
           <i class="fas fa-clipboard-check"></i>
-          <p>No reports found in this sector</p>
+          <p>{{ 'INCIDENTS.EMPTY_STATE' | translate }}</p>
         </div>
       </div>
     </div>

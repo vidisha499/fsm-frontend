@@ -7,13 +7,15 @@ import { IonicModule } from '@ionic/angular';
 import { SightingsPageRoutingModule } from './sightings-routing.module';
 
 import { SightingsPage } from './sightings.page';
+import { TranslateModule } from '@ngx-translate/core';
 
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
     IonicModule,
-    SightingsPageRoutingModule
+    SightingsPageRoutingModule,
+    TranslateModule
   ],
   declarations: [SightingsPage]
 })

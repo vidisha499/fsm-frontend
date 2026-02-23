@@ -15,17 +15,17 @@
     &.glow-1 { width: 300px; height: 300px; background: var(--primary-teal); top: -100px; right: -50px; }
     &.glow-2 { width: 250px; height: 250px; background: var(--accent-gold); bottom: 50px; left: -100px; }
   }
-
-  .hero-header {
-    position: relative; height: 180px;
+.hero-header {
+    position: relative;
+    height: 180px;
     background: url('https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&q=80&w=800') center/cover;
     border-radius: 0 0 45px 45px;
-    overflow: hidden;
 
     .header-overlay {
-      position: absolute; inset: 0;
+      position: absolute;
+      inset: 0;
       background: linear-gradient(135deg, rgba(13, 148, 136, 0.95) 0%, rgba(15, 23, 42, 0.8) 100%);
-      z-index: 1;
+      border-radius: 0 0 45px 45px;
     }
 
 

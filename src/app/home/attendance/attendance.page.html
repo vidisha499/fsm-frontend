@@ -1,6 +1,3 @@
-
-
-
 <ion-content [fullscreen]="true" class="premium-wrapper">
   <div class="ambient-glow glow-1"></div>
   <div class="ambient-glow glow-2"></div>
@@ -42,20 +39,20 @@
           </div>
         </div>
         <p class="instruction" [class.verified]="capturedPhoto">
-          {{ capturedPhoto ? 'Identity Verified' : 'Scan identity to proceed' }}
+          {{ (capturedPhoto ? 'ATTENDANCE.VERIFIED' : 'ATTENDANCE.SCAN_INSTRUCTION') | translate }}
         </p>
       </div>
 
-    <div class="map-wrapper">
-  <label class="group-label">{{ 'ATTENDANCE.LIVE_TRACKING' | translate }}</label>
-  <div class="map-container">
-    <div id="attendanceMap" style="height: 100%; width: 100%; border-radius: 15px;"></div>
-    
-    <button class="recenter-btn-glass" (click)="recenterMap()">
-      <i class="fas fa-crosshairs"></i>
-    </button>
-  </div>
-</div>
+      <div class="map-wrapper">
+        <label class="group-label">{{ 'ATTENDANCE.LIVE_TRACKING' | translate }}</label>
+        <div class="map-container">
+          <div id="attendanceMap" style="height: 100%; width: 100%; border-radius: 15px;"></div>
+          
+          <button class="recenter-btn-glass" (click)="recenterMap()">
+            <i class="fas fa-crosshairs"></i>
+          </button>
+        </div>
+      </div>
 
       <div class="form-body">
         <div class="input-group">
@@ -74,16 +71,16 @@
           </div>
         </div>
 
-     <div class="input-group">
-  <label>{{ 'ATTENDANCE.DETECTED_GEOFENCE' | translate }}</label>
-  <div class="premium-input interactive">
-    <ion-icon name="location-sharp"></ion-icon>
-    <span class="val">{{ currentAddress }}</span>
-  </div>
-</div>
+        <div class="input-group">
+          <label>{{ 'ATTENDANCE.DETECTED_GEOFENCE' | translate }}</label>
+          <div class="premium-input interactive">
+            <ion-icon name="location-sharp"></ion-icon>
+            <span class="val">{{ currentAddress || ('ATTENDANCE.DETECTING' | translate) }}</span>
+          </div>
+        </div>
 
         <div class="input-group">
-          <label>{{ 'INCIDENT.TIME_LABEL' | translate }}</label>
+          <label>{{ 'ATTENDANCE.TIME_LABEL' | translate }}</label>
           <div class="premium-input readonly">
             <ion-icon name="calendar-outline"></ion-icon>
             <span class="val">{{ (attendance?.created_at || currentTime) | date:'dd MMM yyyy • hh:mm a' }}</span>
@@ -103,7 +100,7 @@
             <ion-spinner name="crescent" color="light" *ngIf="isSubmitting"></ion-spinner>
           </div>
           <span class="slider-text" [style.opacity]="textOpacity">
-            {{ isSubmitting ? 'MARKING...' : ('ATTENDANCE.MARK_BUTTON' | translate) }}
+            {{ (isSubmitting ? 'ATTENDANCE.MARKING' : 'ATTENDANCE.MARK_BUTTON') | translate }}
           </span>
           <div class="end-check">
             <ion-icon name="checkmark-outline"></ion-icon>

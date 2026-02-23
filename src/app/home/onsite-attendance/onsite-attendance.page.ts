@@ -3,6 +3,7 @@ import { NavController, ToastController, ActionSheetController, Platform } from 
 import { HttpClient } from '@angular/common/http';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Geolocation } from '@capacitor/geolocation';
+import { TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import * as L from 'leaflet';
@@ -14,7 +15,7 @@ import * as L from 'leaflet';
   standalone: false
 })
 export class OnsiteAttendancePage implements OnInit, OnDestroy {
-  // Leaflet variables
+  // Leaflet Map Variables
   map!: L.Map;
   marker!: L.Marker;
   private locationIcon = L.divIcon({
@@ -24,59 +25,56 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
     iconAnchor: [10, 10]
   });
 
-  private maxSlide: number = 0;
-  private startX: number = 0;
+  // Slider Logic Variables
   public currentTranslateX: number = 0;
   public textOpacity: number = 1;
-
+  private startX: number = 0;
+  
+  // Data Variables
   public capturedPhoto: string | undefined = undefined;
   public rangerName: string = 'Loading...';
   public currentAddress: string = 'Detecting location...';
   public currentLat: number = 20.1013;
   public currentLng: number = 77.1337;
+  public currentDateTime: string = '';
   
+  // State Variables
   public isSubmitting: boolean = false;
   public mapLoaded: boolean = false;
   private gpsWatchId: any = null;
-
-  private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw';
-  private apiUrl: string = `${environment.apiUrl}/onsite-attendance`;
-
-  public currentDateTime: string = '';
   private timer: any;
+
+  // Configuration
+  private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw'; // Re-check if this is restricted
+  private apiUrl: string = `${environment.apiUrl}/onsite-attendance`;
 
   constructor(
     private navCtrl: NavController,
     private toastCtrl: ToastController,
     private actionSheetCtrl: ActionSheetController,
     private http: HttpClient,
-    private platform: Platform,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private translate: TranslateService
   ) {}
 
   ngOnInit() {
     this.updateClock();
     this.timer = setInterval(() => this.updateClock(), 60000);
     this.rangerName = localStorage.getItem('ranger_username') || 'Ranger';
+    
+    // Set initial loading text from translation
+    this.translate.get('ATTENDANCE.DETECTING').subscribe(res => {
+      this.currentAddress = res;
+    });
   }
 
   async ionViewDidEnter() {
     await this.initLeafletMap();
   }
 
-  // --- Map & High Accuracy Location Logic ---
+  // --- Map & GPS Logic ---
   async initLeafletMap() {
     try {
-      // Force high accuracy & clear cache
-      const pos = await Geolocation.getCurrentPosition({ 
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0 
-      });
-
-      this.currentLat = pos.coords.latitude;
-      this.currentLng = pos.coords.longitude;
-
       if (this.map) { this.map.remove(); }
 
       this.map = L.map('onsiteMap', { 
@@ -86,24 +84,39 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
       });
 
       L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-        subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        attribution: 'Google Maps'
       }).addTo(this.map);
 
       this.marker = L.marker([this.currentLat, this.currentLng], { icon: this.locationIcon }).addTo(this.map);
+
+      const pos = await Geolocation.getCurrentPosition({ 
+        enableHighAccuracy: false,
+        timeout: 10000 
+      });
+
+      this.currentLat = pos.coords.latitude;
+      this.currentLng = pos.coords.longitude;
+
+      const newPoint = L.latLng(this.currentLat, this.currentLng);
+      this.marker.setLatLng(newPoint);
+      this.map.panTo(newPoint);
       
       this.mapLoaded = true;
       this.updateAddress(this.currentLat, this.currentLng);
       this.startLiveTracking();
 
     } catch (e) {
-      this.presentToast('Searching for GPS signal...', 'warning');
+      console.error("Initial GPS failed", e);
+      this.mapLoaded = true; 
+      this.startLiveTracking();
     }
   }
 
   async startLiveTracking() {
     this.gpsWatchId = await Geolocation.watchPosition({ 
-      enableHighAccuracy: true,
-      maximumAge: 0 
+      enableHighAccuracy: false, 
+      maximumAge: 5000 
     }, (position) => {
       if (position && this.map) {
         const newLat = position.coords.latitude;
@@ -111,11 +124,9 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
         const newPoint = L.latLng(newLat, newLng);
         
         this.marker.setLatLng(newPoint);
-        this.map.panTo(newPoint);
-
-        // Update address only if moved more than 10 meters
+        
         const distance = L.latLng(this.currentLat, this.currentLng).distanceTo(newPoint);
-        if (distance > 10 || this.currentAddress === 'Detecting location...') {
+        if (distance > 15) { // Update address only if moved significantly
           this.currentLat = newLat;
           this.currentLng = newLng;
           this.updateAddress(newLat, newLng);
@@ -144,7 +155,25 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
-  // --- Photo Logic ---
+  // --- Photo Handling ---
+  async presentImageSourceOptions() {
+    const header = await firstValueFrom(this.translate.get('ATTENDANCE.SELECT_SOURCE'));
+    const camera = await firstValueFrom(this.translate.get('ATTENDANCE.CAMERA'));
+    const gallery = await firstValueFrom(this.translate.get('ATTENDANCE.GALLERY'));
+    const cancel = await firstValueFrom(this.translate.get('ATTENDANCE.CANCEL'));
+
+    const actionSheet = await this.actionSheetCtrl.create({
+      header: header,
+      mode: 'md',
+      buttons: [
+        { text: camera, icon: 'camera-outline', handler: () => this.captureImage(CameraSource.Camera) },
+        { text: gallery, icon: 'image-outline', handler: () => this.captureImage(CameraSource.Photos) },
+        { text: cancel, role: 'cancel' }
+      ]
+    });
+    await actionSheet.present();
+  }
+
   async captureImage(source: CameraSource) {
     try {
       const image = await Camera.getPhoto({ 
@@ -155,26 +184,14 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
       if (image.base64String) {
         this.capturedPhoto = `data:image/jpeg;base64,${image.base64String}`;
       }
-    } catch (error) { console.log('User cancelled'); }
+    } catch (error) { console.log('User cancelled camera'); }
   }
 
-  async presentImageSourceOptions() {
-    const actionSheet = await this.actionSheetCtrl.create({
-      header: 'Select Photo Source',
-      mode: 'md',
-      buttons: [
-        { text: 'Camera', icon: 'camera-outline', handler: () => this.captureImage(CameraSource.Camera) },
-        { text: 'Gallery', icon: 'image-outline', handler: () => this.captureImage(CameraSource.Photos) },
-        { text: 'Cancel', role: 'cancel' }
-      ]
-    });
-    await actionSheet.present();
-  }
-
-  // --- Submission Logic ---
+  // --- Submission & Slider ---
   async submit() {
     if (!this.capturedPhoto) {
-      this.presentToast('Please capture a photo first.', 'warning');
+      const msg = await firstValueFrom(this.translate.get('ATTENDANCE.PHOTO_REQUIRED'));
+      this.presentToast(msg, 'warning');
       this.resetSlider();
       return;
     }
@@ -183,7 +200,7 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
     this.cdr.detectChanges(); 
 
     const onsiteData = {
-      ranger_id: Number(localStorage.getItem('ranger_id')) || 1,
+      ranger_id: Number(localStorage.getItem('ranger_id')) || 0,
       ranger: this.rangerName,
       geofence: this.currentAddress, 
       attendance_type: 'ON-SITE',
@@ -194,28 +211,23 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
     };
 
     this.http.post(this.apiUrl, onsiteData).subscribe({
-      next: () => {
-        this.presentToast('ATTENDANCE MARKED & SYNCED', 'success');
+      next: async () => {
+        const successMsg = await firstValueFrom(this.translate.get('ATTENDANCE.SUCCESS'));
+        this.presentToast(successMsg, 'success');
         setTimeout(() => {
           this.isSubmitting = false;
           this.navCtrl.navigateRoot('/home');
         }, 1500);
       },
-      error: () => {
+      error: async () => {
         this.isSubmitting = false;
         this.resetSlider();
-        this.presentToast('Submission Failed.', 'danger');
+        const errMsg = await firstValueFrom(this.translate.get('ATTENDANCE.SYNC_ERROR'));
+        this.presentToast(errMsg, 'danger');
       }
     });
   }
 
-  resetSlider() {
-    this.currentTranslateX = 0;
-    this.textOpacity = 1;
-    this.cdr.detectChanges();
-  }
-
-  // --- slider helpers ---
   onDragStart(event: TouchEvent) {
     if (this.isSubmitting) return;
     this.startX = event.touches[0].clientX - this.currentTranslateX;
@@ -243,6 +255,13 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
     }
   }
 
+  resetSlider() {
+    this.currentTranslateX = 0;
+    this.textOpacity = 1;
+    this.cdr.detectChanges();
+  }
+
+  // --- Helpers ---
   updateClock() {
     const now = new Date();
     this.currentDateTime = new Intl.DateTimeFormat('en-GB', {
@@ -251,16 +270,16 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
     }).format(now).replace(',', ' •');
   }
 
-  async ngOnDestroy() {
-    if (this.timer) clearInterval(this.timer);
-    if (this.gpsWatchId) Geolocation.clearWatch({ id: this.gpsWatchId });
-    if (this.map) this.map.remove();
-  }
-
   async presentToast(message: string, color: string) {
     const toast = await this.toastCtrl.create({ message, duration: 2500, color, mode: 'ios' });
     toast.present();
   }
 
   goBack() { this.navCtrl.back(); }
+
+  ngOnDestroy() {
+    if (this.timer) clearInterval(this.timer);
+    if (this.gpsWatchId) Geolocation.clearWatch({ id: this.gpsWatchId });
+    if (this.map) this.map.remove();
+  }
 }

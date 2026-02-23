@@ -6,6 +6,7 @@ import { Geolocation } from '@capacitor/geolocation';
 import { firstValueFrom } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import * as L from 'leaflet';
+import { TranslateService } from '@ngx-translate/core'; // 👈 Import TranslateService
 
 @Component({
   selector: 'app-attendance',
@@ -36,7 +37,7 @@ export class AttendancePage implements OnInit, OnDestroy {
   public capturedPhoto: string = ''; 
   public rangerName: string = '';
   public rangerRegion: string = '';
-  public currentAddress: string = 'Detecting location...';
+  public currentAddress: string = ''; // Will show translated placeholder in HTML
 
   public currentLat: number = 20.1013; 
   public currentLng: number = 77.1337;
@@ -52,6 +53,7 @@ export class AttendancePage implements OnInit, OnDestroy {
     private http: HttpClient,
     private platform: Platform,
     private cdr: ChangeDetectorRef,
+    private translate: TranslateService // 👈 Inject TranslateService
   ) {}
 
   ngOnInit() {
@@ -69,64 +71,68 @@ export class AttendancePage implements OnInit, OnDestroy {
   }
 
   async initLeafletMap() {
-  try {
-    // Force high accuracy and disable cache
-    const pos = await Geolocation.getCurrentPosition({ 
-      enableHighAccuracy: true, 
-      timeout: 10000, 
-      maximumAge: 0 // <--- CRITICAL: Prevents using old/cached location
-    });
-    
-    this.currentLat = pos.coords.latitude;
-    this.currentLng = pos.coords.longitude;
-
-    if (this.map) { this.map.remove(); }
-
-    this.map = L.map('attendanceMap', { 
-      center: [this.currentLat, this.currentLng], 
-      zoom: 18, // Zoomed in closer for better accuracy check
-      zoomControl: false 
-    });
-
-    L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-      subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-    }).addTo(this.map);
-
-    this.marker = L.marker([this.currentLat, this.currentLng], { icon: this.locationIcon }).addTo(this.map);
-    
-    this.updateAddress(this.currentLat, this.currentLng);
-    this.startLiveTracking();
-
-  } catch (e) {
-    console.error("Leaflet init failed", e);
-    // If it fails, try one more time with lower accuracy as fallback
-    this.presentToast('Searching for GPS signal...', 'warning');
-  }
-}
-async startLiveTracking() {
-  this.gpsWatchId = await Geolocation.watchPosition({ 
-    enableHighAccuracy: true, 
-    maximumAge: 0 // Forces a fresh read every time
-  }, (position) => {
-    if (position && this.map) {
-      const newLat = position.coords.latitude;
-      const newLng = position.coords.longitude;
+    try {
+      if (this.map) { this.map.remove(); }
       
-      // Accuracy check: only update if the signal is decent (less than 50 meters error)
-      if (position.coords.accuracy < 50) { 
-        const newPoint = L.latLng(newLat, newLng);
-        this.marker.setLatLng(newPoint);
-        this.map.panTo(newPoint);
+      this.map = L.map('attendanceMap', { 
+        center: [this.currentLat, this.currentLng], 
+        zoom: 16, 
+        zoomControl: false 
+      });
+
+      L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+      }).addTo(this.map);
+
+      this.marker = L.marker([this.currentLat, this.currentLng], { icon: this.locationIcon }).addTo(this.map);
+
+      const pos = await Geolocation.getCurrentPosition({ 
+        enableHighAccuracy: false, 
+        timeout: 15000, 
+        maximumAge: 60000 
+      });
+      
+      this.currentLat = pos.coords.latitude;
+      this.currentLng = pos.coords.longitude;
+
+      const newPoint = L.latLng(this.currentLat, this.currentLng);
+      this.marker.setLatLng(newPoint);
+      this.map.setView(newPoint, 18);
+      
+      this.updateAddress(this.currentLat, this.currentLng);
+      this.startLiveTracking();
+
+    } catch (e) {
+      console.error("GPS Timeout", e);
+      const msg = await this.translate.get('ATTENDANCE.GPS_SEARCH').toPromise(); // 👈 Translated
+      this.presentToast(msg, 'warning');
+      this.startLiveTracking(); 
+    }
+  }
+
+  async startLiveTracking() {
+    this.gpsWatchId = await Geolocation.watchPosition({ 
+      enableHighAccuracy: true, 
+      maximumAge: 0 
+    }, (position) => {
+      if (position && this.map) {
+        const newLat = position.coords.latitude;
+        const newLng = position.coords.longitude;
         
-        if (L.latLng(this.currentLat, this.currentLng).distanceTo(newPoint) > 5) {
-          this.currentLat = newLat;
-          this.currentLng = newLng;
-          this.updateAddress(newLat, newLng);
+        if (position.coords.accuracy < 50) { 
+          const newPoint = L.latLng(newLat, newLng);
+          this.marker.setLatLng(newPoint);
+          this.map.panTo(newPoint);
+          
+          if (L.latLng(this.currentLat, this.currentLng).distanceTo(newPoint) > 5) {
+            this.currentLat = newLat;
+            this.currentLng = newLng;
+            this.updateAddress(newLat, newLng);
+          }
         }
       }
-    }
-  });
-}
+    });
+  }
 
   recenterMap() {
     if (this.map) {
@@ -134,12 +140,11 @@ async startLiveTracking() {
     }
   }
 
- async updateAddress(lat: number, lng: number) {
+  async updateAddress(lat: number, lng: number) {
     const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${this.googleApiKey}`;
     try {
       const data: any = await firstValueFrom(this.http.get(url));
       if (data.status === 'OK' && data.results.length > 0) {
-        // This is the variable bound to your HTML "Detected Geofence" field
         this.currentAddress = data.results[0].formatted_address;
       } else {
         this.currentAddress = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
@@ -147,13 +152,14 @@ async startLiveTracking() {
     } catch (err) {
       this.currentAddress = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
     }
-    this.cdr.detectChanges(); // Force UI update
+    this.cdr.detectChanges();
   }
 
   async submitAttendance() {
     if (this.isSubmitting) return; 
     if (!this.capturedPhoto) {
-      this.presentToast('Please capture a photo', 'warning');
+      const msg = await this.translate.get('ATTENDANCE.PHOTO_REQUIRED').toPromise(); // 👈 Translated
+      this.presentToast(msg, 'warning');
       this.resetSlider();
       return;
     }
@@ -171,38 +177,46 @@ async startLiveTracking() {
     };
 
     this.http.post(this.apiUrl, payload).subscribe({
-      next: () => {
-        this.presentToast('Attendance Marked!', 'success');
+      next: async () => {
+        const msg = await this.translate.get('ATTENDANCE.SUCCESS').toPromise(); // 👈 Translated
+        this.presentToast(msg, 'success');
         setTimeout(() => {
           this.isSubmitting = false;
           this.goBack();
         }, 1500);
       },
-      error: () => {
+      error: async () => {
         this.isSubmitting = false;
         this.resetSlider();
-        this.presentToast('Failed to sync. Check internet.', 'danger');
+        const msg = await this.translate.get('ATTENDANCE.SYNC_ERROR').toPromise(); // 👈 Translated
+        this.presentToast(msg, 'danger');
       }
     });
   }
 
+  async presentImageSourceOptions() {
+    const header = await this.translate.get('ATTENDANCE.SELECT_SOURCE').toPromise();
+    const cam = await this.translate.get('ATTENDANCE.CAMERA').toPromise();
+    const gal = await this.translate.get('ATTENDANCE.GALLERY').toPromise();
+    const cancel = await this.translate.get('ATTENDANCE.CANCEL').toPromise();
+
+    const actionSheet = await this.actionSheetCtrl.create({
+      header: header,
+      mode: 'md',
+      buttons: [
+        { text: cam, icon: 'camera-outline', handler: () => this.captureImage(CameraSource.Camera) },
+        { text: gal, icon: 'image-outline', handler: () => this.captureImage(CameraSource.Photos) },
+        { text: cancel, role: 'cancel' }
+      ]
+    });
+    await actionSheet.present();
+  }
+
+  // Rest of slider logic stays same...
   resetSlider() {
     this.currentTranslateX = 0;
     this.textOpacity = 1;
     this.cdr.detectChanges();
-  }
-
-  async presentImageSourceOptions() {
-    const actionSheet = await this.actionSheetCtrl.create({
-      header: 'Select Photo Source',
-      mode: 'md',
-      buttons: [
-        { text: 'Camera', icon: 'camera-outline', handler: () => this.captureImage(CameraSource.Camera) },
-        { text: 'Gallery', icon: 'image-outline', handler: () => this.captureImage(CameraSource.Photos) },
-        { text: 'Cancel', role: 'cancel' }
-      ]
-    });
-    await actionSheet.present();
   }
 
   async captureImage(source: CameraSource) {
@@ -230,7 +244,6 @@ async startLiveTracking() {
     if (this.map) this.map.remove();
   }
 
-  // --- Slider Gestures ---
   onDragStart(event: TouchEvent) {
     if (this.isSubmitting) return;
     this.startX = event.touches[0].clientX - this.currentTranslateX;
