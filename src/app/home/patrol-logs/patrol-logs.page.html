@@ -10,8 +10,18 @@
           <button (click)="goBack()" class="glass-btn">
             <i class="fas fa-arrow-left"></i>
           </button>
+           <div class="back-group">
+          </div>
+       <!-- <button (click)="setFilterOpen(true)" class="glass-btn" style="margin-left: auto;">
+  <ion-icon name="options-outline" style="font-size: 20px; color: white;"></ion-icon>
+</button> -->
+
+<button (click)="setFilterOpen(true)" class="glass-btn" style="margin-left: auto;">
+  <ion-icon name="options-outline" style="font-size: 20px; color: white;"></ion-icon>
+</button>
           <div class="title-meta">
             <h1>{{ 'LIST.TITLE' | translate }}</h1>
+           
           </div>
         </div>
       </div>
@@ -94,5 +104,40 @@
         </div>
       </ion-content>
     </ng-template>
-  </ion-modal>
+  </ion-modal> 
+
+ <ion-modal [isOpen]="isFilterModalOpen" (didDismiss)="setFilterOpen(false)" [initialBreakpoint]="0.6" [breakpoints]="[0, 0.6]">
+  <ng-template>
+    <div class="filter-sheet">
+      <div class="drag-handle"></div>
+
+      <div class="filter-header-inline">
+        <ion-icon name="calendar" class="green-cal-icon"></ion-icon>
+        <h2 class="filter-title">Filter by Date</h2>
+      </div>
+      <p class="filter-subtitle">Select date range to filter incidents</p>
+
+      <div class="filter-content" style="width: 100%;">
+        <div class="filter-row-container">
+          <span class="row-label">FROM</span>
+          <div class="date-input-pill">
+            <input type="date" [(ngModel)]="filterFrom" [max]="maxDate">
+          </div>
+        </div>
+
+        <div class="filter-row-container">
+          <span class="row-label">TO</span>
+          <div class="date-input-pill">
+            <input type="date" [(ngModel)]="filterTo" [max]="maxDate">
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-footer">
+        <button class="btn-apply-primary" (click)="applyFilter()">Apply Filter</button>
+        <button class="btn-reset-link" (click)="resetFilter()">Reset All Filters</button>
+      </div>
+    </div>
+  </ng-template>
+</ion-modal>
 </ion-content>

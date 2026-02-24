@@ -61,7 +61,15 @@ const routes: Routes = [
     // ADD THIS BLOCK
     path: 'location',
     loadChildren: () => import('./home/location/location.module').then(m => m.LocationPageModule)
+  },  {
+    path: 'home',
+    loadChildren: () => import('./onsite-attendance-logs/home/home.module').then( m => m.HomePageModule)
   },
+  {
+    path: 'home',
+    loadChildren: () => import('./onsite-attendance-details/home/home.module').then( m => m.HomePageModule)
+  },
+
 
 ];
 
