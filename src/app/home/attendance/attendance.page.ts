@@ -70,45 +70,126 @@ export class AttendancePage implements OnInit, OnDestroy {
     await this.initLeafletMap();
   }
 
-  async initLeafletMap() {
-    try {
-      if (this.map) { this.map.remove(); }
+//   async initLeafletMap() {
+//     try {
+//       if (this.map) { this.map.remove(); }
+
+//       const iconRetinaUrl = 'assets/marker-icon-2x.png';
+//     const iconUrl = 'assets/marker-icon.png';
+//     const shadowUrl = 'assets/marker-shadow.png';
+//     const iconDefault = L.icon({
+//       iconRetinaUrl,
+//       iconUrl,
+//       shadowUrl,
+//       iconSize: [25, 41],
+//       iconAnchor: [12, 41],
+//       popupAnchor: [1, -34],
+//       tooltipAnchor: [16, -28],
+//       shadowSize: [41, 41]
+//     });
+//     L.Marker.prototype.options.icon = iconDefault;
+
+//     // initLeafletMap() ke shuruat mein ye dalo
+// delete (L.Icon.Default.prototype as any)._getIconUrl;
+
+// L.Icon.Default.mergeOptions({
+//   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+//   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+//   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+// });
       
-      this.map = L.map('attendanceMap', { 
-        center: [this.currentLat, this.currentLng], 
-        zoom: 16, 
-        zoomControl: false 
-      });
+//       this.map = L.map('attendanceMap', { 
+//         center: [this.currentLat, this.currentLng], 
+//         zoom: 16, 
+//         zoomControl: false 
+//       });
 
-      L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-        subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-      }).addTo(this.map);
+//       L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+//         subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+//       }).addTo(this.map);
 
-      this.marker = L.marker([this.currentLat, this.currentLng], { icon: this.locationIcon }).addTo(this.map);
+//       this.marker = L.marker([this.currentLat, this.currentLng], { icon: this.locationIcon }).addTo(this.map);
 
-      const pos = await Geolocation.getCurrentPosition({ 
-        enableHighAccuracy: false, 
-        timeout: 15000, 
-        maximumAge: 60000 
-      });
+//       const pos = await Geolocation.getCurrentPosition({ 
+//         enableHighAccuracy: false, 
+//         timeout: 15000, 
+//         maximumAge: 60000 
+//       });
       
-      this.currentLat = pos.coords.latitude;
-      this.currentLng = pos.coords.longitude;
+//       this.currentLat = pos.coords.latitude;
+//       this.currentLng = pos.coords.longitude;
 
-      const newPoint = L.latLng(this.currentLat, this.currentLng);
-      this.marker.setLatLng(newPoint);
-      this.map.setView(newPoint, 18);
+//       const newPoint = L.latLng(this.currentLat, this.currentLng);
+//       this.marker.setLatLng(newPoint);
+//       this.map.setView(newPoint, 18);
       
-      this.updateAddress(this.currentLat, this.currentLng);
-      this.startLiveTracking();
+//       this.updateAddress(this.currentLat, this.currentLng);
+//       this.startLiveTracking();
 
-    } catch (e) {
-      console.error("GPS Timeout", e);
-      const msg = await this.translate.get('ATTENDANCE.GPS_SEARCH').toPromise(); // 👈 Translated
-      this.presentToast(msg, 'warning');
-      this.startLiveTracking(); 
+//     } catch (e) {
+//       console.error("GPS Timeout", e);
+//       const msg = await this.translate.get('ATTENDANCE.GPS_SEARCH').toPromise(); // 👈 Translated
+//       this.presentToast(msg, 'warning');
+//       this.startLiveTracking(); 
+//     }
+//   }
+
+async initLeafletMap() {
+  try {
+    if (this.map) { 
+      this.map.remove(); 
     }
+
+    // 1. Pehle purana default icon handler delete karein
+    delete (L.Icon.Default.prototype as any)._getIconUrl;
+
+    // 2. Ab CDN se icons set karein (Isse 404 hamesha ke liye band ho jayega)
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    });
+
+    // 3. Map initialize karein
+    this.map = L.map('attendanceMap', { 
+      center: [this.currentLat, this.currentLng], 
+      zoom: 16, 
+      zoomControl: false 
+    });
+
+    L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+    }).addTo(this.map);
+
+    // 4. Marker create karein (Custom blue dot icon ke saath)
+    this.marker = L.marker([this.currentLat, this.currentLng], { 
+      icon: this.locationIcon 
+    }).addTo(this.map);
+
+    // 5. GPS Location update karein
+    const pos = await Geolocation.getCurrentPosition({ 
+      enableHighAccuracy: false, 
+      timeout: 15000, 
+      maximumAge: 60000 
+    });
+    
+    this.currentLat = pos.coords.latitude;
+    this.currentLng = pos.coords.longitude;
+
+    const newPoint = L.latLng(this.currentLat, this.currentLng);
+    this.marker.setLatLng(newPoint);
+    this.map.setView(newPoint, 18);
+    
+    this.updateAddress(this.currentLat, this.currentLng);
+    this.startLiveTracking();
+
+  } catch (e) {
+    console.error("GPS Timeout", e);
+    const msg = await this.translate.get('ATTENDANCE.GPS_SEARCH').toPromise();
+    this.presentToast(msg, 'warning');
+    this.startLiveTracking(); 
   }
+}
 
   async startLiveTracking() {
     this.gpsWatchId = await Geolocation.watchPosition({ 
@@ -197,48 +278,6 @@ export class AttendancePage implements OnInit, OnDestroy {
   }
 
 
-//   async submitAttendance() {
-//   if (this.isSubmitting) return; 
-//   if (!this.capturedPhoto) {
-//     const msg = await this.translate.get('ATTENDANCE.PHOTO_REQUIRED').toPromise();
-//     this.presentToast(msg, 'warning');
-//     this.resetSlider();
-//     return;
-//   }
-
-//   this.isSubmitting = true;
-//   this.cdr.detectChanges(); 
-
-//   // 👇 Yahan badlav karein
-//   const payload = {
-//     ranger_id: Number(localStorage.getItem('ranger_id')) || 1,
-//     type: this.isEntry ? 'ENTRY' : 'EXIT',
-//     photo: this.capturedPhoto,
-//     latitude: this.currentLat,
-//     longitude: this.currentLng,
-//     geofence: this.currentAddress,
-//     // Ye do lines missing thi, inhein add karein:
-//     rangerName: this.rangerName, 
-//     region: this.rangerRegion 
-//   };
-
-//   this.http.post(this.apiUrl, payload).subscribe({
-//     next: async () => {
-//       const msg = await this.translate.get('ATTENDANCE.SUCCESS').toPromise();
-//       this.presentToast(msg, 'success');
-//       setTimeout(() => {
-//         this.isSubmitting = false;
-//         this.goBack();
-//       }, 1500);
-//     },
-//     error: async () => {
-//       this.isSubmitting = false;
-//       this.resetSlider();
-//       const msg = await this.translate.get('ATTENDANCE.SYNC_ERROR').toPromise();
-//       this.presentToast(msg, 'danger');
-//     }
-//   });
-// }
 
   async presentImageSourceOptions() {
     const header = await this.translate.get('ATTENDANCE.SELECT_SOURCE').toPromise();
@@ -268,10 +307,10 @@ export class AttendancePage implements OnInit, OnDestroy {
   async captureImage(source: CameraSource) {
     try {
       const photo = await Camera.getPhoto({ 
-        quality: 25, 
+        quality: 50, 
         source: source, 
         resultType: CameraResultType.Base64 ,
-        width: 600,
+        width: 800,
       });
       if (photo.base64String) {
         this.capturedPhoto = `data:image/jpeg;base64,${photo.base64String}`;

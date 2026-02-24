@@ -15,9 +15,11 @@
 
   // 2. Hero Header Section
   .hero-header {
-    position: relative; height: 180px;
-    background: url('https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80&w=800') center/cover;
+    position: relative;
+    height: 180px;
+    background: url('https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&q=80&w=800') center/cover;
     border-radius: 0 0 45px 45px;
+
     .header-overlay { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(13, 148, 136, 0.9) 0%, rgba(15, 23, 42, 0.8) 100%); border-radius: 0 0 45px 45px; }
   }
 

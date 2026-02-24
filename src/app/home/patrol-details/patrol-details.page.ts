@@ -49,32 +49,105 @@ export class PatrolDetailsPage implements OnInit {
     });
   }
 
+
+  // initMap() {
+  //   const mapElement = document.getElementById('detailsMap');
+  //   if (!mapElement || !this.patrol) return;
+
+  //   // Route coordinates handle
+  //   const coords: L.LatLngTuple[] = (this.patrol.route || []).map((p: any) => [p.lat, p.lng] as L.LatLngTuple);
+  //   const center = coords.length > 0 ? coords[0] : [19.95, 79.12];
+
+  //   if (this.map) { this.map.remove(); }
+
+  //   this.map = L.map('detailsMap', { zoomControl: false }).setView(center as L.LatLngExpression, 15);
+    
+  //   L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { 
+  //     subdomains: ['mt0','mt1','mt2','mt3'] 
+  //   }).addTo(this.map);
+
+  //   if (coords.length > 1) {
+  //     const polyline = L.polyline(coords, { color: '#059669', weight: 5, opacity: 0.8 }).addTo(this.map);
+  //     this.map.fitBounds(polyline.getBounds(), { padding: [30, 30] });
+  //   } else if (coords.length === 1) {
+  //     L.marker(coords[0]).addTo(this.map);
+  //   }
+    
+  //   this.mapLoading = false;
+  //   this.cdr.detectChanges();
+  // }
+
+
   initMap() {
-    const mapElement = document.getElementById('detailsMap');
-    if (!mapElement || !this.patrol) return;
+  const mapElement = document.getElementById('detailsMap');
+  if (!mapElement || !this.patrol) return;
 
-    // Route coordinates handle
-    const coords: L.LatLngTuple[] = (this.patrol.route || []).map((p: any) => [p.lat, p.lng] as L.LatLngTuple);
-    const center = coords.length > 0 ? coords[0] : [19.95, 79.12];
+  // 1. Setup Map Instance
+  if (this.map) { this.map.remove(); }
+  this.map = L.map('detailsMap', { zoomControl: false });
 
-    if (this.map) { this.map.remove(); }
+  L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { 
+    subdomains: ['mt0','mt1','mt2','mt3'] 
+  }).addTo(this.map);
 
-    this.map = L.map('detailsMap', { zoomControl: false }).setView(center as L.LatLngExpression, 15);
-    
-    L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { 
-      subdomains: ['mt0','mt1','mt2','mt3'] 
-    }).addTo(this.map);
+  // 2. Initialize Bounds
+  const bounds = L.latLngBounds([]);
 
-    if (coords.length > 1) {
-      const polyline = L.polyline(coords, { color: '#059669', weight: 5, opacity: 0.8 }).addTo(this.map);
-      this.map.fitBounds(polyline.getBounds(), { padding: [30, 30] });
-    } else if (coords.length === 1) {
-      L.marker(coords[0]).addTo(this.map);
-    }
-    
-    this.mapLoading = false;
-    this.cdr.detectChanges();
+  // 3. Handle Route Polyline
+  const routeCoords: L.LatLngTuple[] = (this.patrol.route || []).map((p: any) => [p.lat, p.lng] as L.LatLngTuple);
+  if (routeCoords.length > 0) {
+    const polyline = L.polyline(routeCoords, { color: '#059669', weight: 5, opacity: 0.8 }).addTo(this.map);
+    routeCoords.forEach(coord => bounds.extend(coord));
   }
+
+  // 4. Handle Sighting Markers
+  const sightings = this.patrol.observationData?.Details || [];
+  sightings.forEach((obs: any) => {
+    if (obs.lat && obs.lng) {
+      const sightingCoord: L.LatLngTuple = [obs.lat, obs.lng];
+      const icon = this.createSightingMarkerIcon(obs.category);
+      
+      L.marker(sightingCoord, { icon })
+        .addTo(this.map)
+        .bindPopup(`<b>${obs.category}</b><br>${obs.species || ''}`);
+      
+      // Extend bounds to include this sighting
+      bounds.extend(sightingCoord);
+    }
+  });
+
+  // 5. Final Auto-Zoom Logic
+  if (bounds.isValid()) {
+    // fitBounds makes sure EVERYTHING is visible
+    this.map.fitBounds(bounds, { padding: [40, 40] });
+  } else {
+    // Fallback if no data exists
+    this.map.setView([19.95, 79.12], 13);
+  }
+
+  this.mapLoading = false;
+  this.cdr.detectChanges();
+}
+
+private createSightingMarkerIcon(category: string) {
+  const cat = category?.toLowerCase() || 'other';
+  const colors: any = {
+    animal: '#ca8a04',
+    water: '#0284c7',
+    impact: '#ea580c',
+    death: '#dc2626',
+    felling: '#16a34a',
+    other: '#64748b'
+  };
+  const color = colors[cat] || colors['other'];
+
+  return L.divIcon({
+    className: 'custom-details-marker',
+    html: `<div style="background-color: ${color}; width: 12px; height: 12px; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 5px rgba(0,0,0,0.3);"></div>`,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8]
+  });
+}
 
   getCategoryIcon(category: string): string {
     const cat = category?.toLowerCase() || '';
@@ -87,6 +160,22 @@ export class PatrolDetailsPage implements OnInit {
   }
 
   goBack() { this.navCtrl.back(); }
-  openZoom(imgUrl: string) { this.selectedZoomImage = imgUrl; }
-  closeZoom() { this.selectedZoomImage = null; } 
+ 
+
+  openZoom(imgUrl: string) {
+  if (!imgUrl) return;
+  this.selectedZoomImage = imgUrl;
+  
+}
+
+closeZoom() {
+  this.selectedZoomImage = null;
+}
+
+viewSightingDetails(obs: any) {
+ 
+  this.navCtrl.navigateForward(['/sightings-details', 'view'], {
+    state: { data: obs }
+  });
+}
 }

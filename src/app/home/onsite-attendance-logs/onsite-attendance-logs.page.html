@@ -1,0 +1,112 @@
+
+
+<ion-content [fullscreen]="true" class="premium-wrapper">
+  <div class="header-container">
+    <div class="header-overlay"></div>
+    <div class="nav-content">
+      <div class="top-row">
+        <button class="glass-back" (click)="goBack()">
+          <ion-icon name="arrow-back-outline"></ion-icon>
+        </button>
+        <div class="title-wrapper">
+          <h1>Attendance Logs</h1>
+        </div>
+        <!-- <button class="glass-back">
+          <ion-icon name="options-outline"></ion-icon>
+        </button> -->
+
+        <button class="glass-back" (click)="isModalOpen = true">
+          <ion-icon name="options-outline"></ion-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+
+<div class="logs-container">
+ <div class="log-card animate-in" *ngFor="let log of filteredLogs" (click)="viewDetails(log)">
+    <button class="btn-delete-top" (click)="deleteLog(log.id, $event)">
+      <ion-icon name="trash-outline"></ion-icon>
+    </button>
+
+    <div class="card-inner">
+      <div class="icon-section">
+        <div class="icon-blob-medium">
+          <i class="fas fa-fingerprint"></i>
+        </div>
+      </div>
+
+      <div class="info-section">
+        <div class="top-meta">
+          <span class="type-label">WORK SHIFT</span>
+          <span class="status-dot"></span>
+        </div>
+        
+        <h3 class="date-text-inline">
+          {{ log.created_at | date: 'EEE, MMM dd' }} &bull; {{ log.created_at | date: 'hh:mm a' }}
+        </h3>
+        
+        <p class="location-text-full">
+          <ion-icon name="location-outline"></ion-icon>
+          {{ log.geofence || 'Verified On-Site Location' }}
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <div class="fab-wrapper">
+    <div class="tooltip">Mark Onsite Attendance</div>
+    <button class="fab-main" (click)="goToMarkAttendance()">
+      <ion-icon name="add-outline"></ion-icon>
+    </button>
+  </div>
+
+<ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false" class="custom-bottom-card">
+  <ng-template>
+    <div class="modal-card-content">
+      <div class="modal-header">
+        <div class="title-row">
+          <ion-icon name="calendar-outline"></ion-icon>
+          <h3>Filter by Date</h3>
+        </div>
+        <p class="subtitle">Select date range and location to filter logs</p>
+      </div>
+
+      <div class="filter-body">
+        <div class="date-row">
+          <span class="label">LOCATION</span>
+          <ion-input [(ngModel)]="filters.location" placeholder="All locations" class="ion-text-end custom-input"></ion-input>
+        </div>
+
+        <div class="date-row">
+          <span class="label">FROM</span>
+          <ion-datetime-button datetime="fromDate"></ion-datetime-button>
+        </div>
+
+        <div class="date-row">
+          <span class="label">TO</span>
+          <ion-datetime-button datetime="toDate"></ion-datetime-button>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="apply-btn" (click)="applyFilters()">Apply Filter</button>
+        <button class="clear-btn" (click)="resetFilters()">Reset All Filters</button>
+      </div>
+    </div>
+
+    <ion-popover [keepContentsMounted]="true">
+      <ng-template>
+        <ion-datetime id="fromDate" presentation="date" [(ngModel)]="filters.fromDate" [max]="today" [showDefaultButtons]="true"></ion-datetime>
+      </ng-template>
+    </ion-popover>
+    <ion-popover [keepContentsMounted]="true">
+      <ng-template>
+        <ion-datetime id="toDate" presentation="date" [(ngModel)]="filters.toDate" [max]="today" [showDefaultButtons]="true"></ion-datetime>
+      </ng-template>
+    </ion-popover>
+  </ng-template>
+</ion-modal>
+</ion-content> 

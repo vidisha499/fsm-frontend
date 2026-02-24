@@ -53,8 +53,9 @@
       <h3 class="inner-section-title">{{ 'DETAILS.OBS_TITLE' | translate }}</h3>
       
       <div *ngIf="patrol.observationData?.Details?.length > 0; else noObsTemplate">
-        <div *ngFor="let obs of patrol.observationData.Details" class="obs-card">
+       
           
+          <div *ngFor="let obs of patrol.observationData.Details" class="obs-card clickable-card" (click)="viewSightingDetails(obs)">
           <div class="obs-card-header">
             <div class="obs-badge">
               <i [class]="getCategoryIcon(obs.category)"></i>
@@ -97,4 +98,15 @@
       <p>{{ 'DETAILS.LOADING' | translate }}</p>
     </div>
   </ng-template>
+
+  <div class="zoom-overlay" *ngIf="selectedZoomImage" (click)="closeZoom()">
+  <div class="zoom-header">
+    <button class="close-zoom-btn" (click)="closeZoom()">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+  <div class="zoom-body">
+    <img [src]="selectedZoomImage" (click)="$event.stopPropagation()">
+  </div>
+</div>
 </ion-content>

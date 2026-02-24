@@ -7,6 +7,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import * as L from 'leaflet';
+import { ModalController } from '@ionic/angular';
 
 @Component({
   selector: 'app-patrol-active',
@@ -27,6 +28,7 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
   // Map and Tracking
   map!: L.Map;
   marker!: L.Marker;
+  private sightingMarkersLayer = L.layerGroup();
   timerDisplay: string = '00:00:00';
   seconds = 0;
   timerInterval: any;
@@ -57,7 +59,8 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     private gestureCtrl: GestureController,
     private domCtrl: DomController,
     private translate: TranslateService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private modalCtrl: ModalController,
   ) { }
 
   ngOnInit() {
@@ -89,42 +92,148 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  refreshRecentSightings() {
-    if (!this.activePatrolId) return;
-    this.http.get(`${this.apiUrl}/active`).subscribe({
-      next: (data: any) => {
-        const active = Array.isArray(data)
-          ? data.find((p: any) => p.id.toString() === this.activePatrolId)
-          : data;
+
+
+//   refreshRecentSightings() {
+//   if (!this.activePatrolId) return;
+//   this.http.get(`${this.apiUrl}/active`).subscribe({
+//     next: (data: any) => {
+//       const active = Array.isArray(data)
+//         ? data.find((p: any) => p.id.toString() === this.activePatrolId)
+//         : data;
+      
+//       if (active) {
+//         this.recentSightings = active.obs_details || active.obsDetails || [];
+//         this.updateSightingMarkers(); // New function call
+//         this.cdr.detectChanges();
+//       }
+//     },
+//     error: (err) => console.error("Refresh failed", err)
+//   });
+// }
+
+
+
+refreshRecentSightings() {
+  if (!this.activePatrolId) return;
+  this.http.get(`${this.apiUrl}/active`).subscribe({
+    next: (data: any) => {
+      const active = Array.isArray(data)
+        ? data.find((p: any) => p.id.toString() === this.activePatrolId)
+        : data;
+      
+      if (active) {
+        this.recentSightings = active.obs_details || active.obsDetails || [];
         
-        if (active) {
-          this.recentSightings = active.obs_details || active.obsDetails || [];
-          this.cdr.detectChanges();
-        }
-      },
-      error: (err) => console.error("Refresh failed", err)
-    });
+        // --- ADD THIS LOG ---
+        console.log('All sightings from server:', this.recentSightings);
+        // Look at the console: Does the "Death" entry have lat and lng values?
+        
+        this.updateSightingMarkers();
+        this.cdr.detectChanges();
+      }
+    }
+  });
+}
+
+ngOnDestroy() {
+  // Clear the timer so it doesn't run in the background
+  if (this.timerInterval) clearInterval(this.timerInterval);
+
+  // Stop watching the GPS to save battery
+  if (this.gpsWatchId) Geolocation.clearWatch({ id: this.gpsWatchId });
+
+  // NEW: Remove all the sighting dots from memory
+  if (this.sightingMarkersLayer) {
+    this.sightingMarkersLayer.clearLayers();
   }
 
-  // --- Map & GPS Logic ---
-  async initMap() {
-    try {
-      const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
-      this.lastLatLng = L.latLng(lat, lng);
-      
-      this.map = L.map('map', { center: [lat, lng], zoom: 17, zoomControl: false });
-      L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { 
-        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] 
-      }).addTo(this.map);
-      
-      this.marker = L.marker([lat, lng], { icon: this.locationIcon }).addTo(this.map);
-      this.startTracking();
-    } catch (e) { 
-      console.error("GPS init failed", e); 
-    }
+  // Destroy the map instance
+  if (this.map) {
+    this.map.remove();
   }
+}
+
+private updateSightingMarkers() {
+  if (!this.map) return;
+  
+  // 1. Clear existing sighting markers
+  this.sightingMarkersLayer.clearLayers();
+
+  // 2. Loop through sightings and add markers if they have coordinates
+  this.recentSightings.forEach(s => {
+    if (s.lat && s.lng) {
+      const icon = this.createSightingIcon(s.category);
+      const marker = L.marker([s.lat, s.lng], { icon: icon });
+      
+      // Optional: Add a popup
+      marker.bindPopup(`<b>${s.category}</b><br>${s.species || ''}`);
+      
+      this.sightingMarkersLayer.addLayer(marker);
+    }
+  });
+}
+
+
+
+  async initMap() {
+  try {
+    const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    this.lastLatLng = L.latLng(lat, lng);
+    
+    this.map = L.map('map', { center: [lat, lng], zoom: 17, zoomControl: false });
+    L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { 
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] 
+    }).addTo(this.map);
+    
+    // Add the sightings layer to the map here
+    this.sightingMarkersLayer.addTo(this.map);
+    
+    this.marker = L.marker([lat, lng], { icon: this.locationIcon }).addTo(this.map);
+    this.startTracking();
+  } catch (e) { 
+    console.error("GPS init failed", e); 
+  }
+
+}
+
+
+
+
+private createSightingIcon(category: string) {
+  const cat = category?.toLowerCase().trim() || 'other';
+  const colors: any = {
+    animal: '#ca8a04',
+    water: '#0284c7',
+    impact: '#ea580c',
+    death: '#dc2626',
+    dead: '#dc2626', // Add fallback
+    felling: '#16a34a',
+    other: '#64748b'
+  };
+
+  const color = colors[cat] || colors['other'];
+
+  return L.divIcon({
+    className: 'custom-sighting-marker',
+    html: `
+      <div style="
+        background-color: ${color};
+        width: 12px;
+        height: 12px;
+        border: 2px solid white;
+        border-radius: 50%;
+        box-shadow: 0 0 5px rgba(0,0,0,0.3);
+      "></div>
+    `,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8]
+  });
+}
+  
+
 
   async startTracking() {
     this.gpsWatchId = await Geolocation.watchPosition({ 
@@ -215,6 +324,8 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     });
   }
 
+  
+
   setupEndTripGesture() {
     if (!this.endTripKnob) return;
     const knob = this.endTripKnob.nativeElement;
@@ -252,17 +363,53 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     }, 1000);
   }
 
-  async showToast(m: string) { 
-    const t = await this.toastCtrl.create({ message: m, duration: 2000, mode: 'ios' }); 
-    await t.present(); 
-  }
+  
+
+  async showToast(message: string, color: string = 'dark') {
+  const toast = await this.toastCtrl.create({
+    message: message,
+    duration: 2000,
+    position: 'bottom',
+    color: color // This allows you to pass 'danger' for errors or 'success' for deletions
+  });
+  await toast.present();
+}
+
 
   openZoom(imgUrl: string) { this.selectedZoomImage = imgUrl; }
   closeZoom() { this.selectedZoomImage = null; }
 
-  ngOnDestroy() {
-    if (this.timerInterval) clearInterval(this.timerInterval);
-    if (this.gpsWatchId) Geolocation.clearWatch({ id: this.gpsWatchId });
-    if (this.map) this.map.remove();
-  }
+
+viewSightingDetails(sighting: any, index: number) {
+  // Ensure the 'sighting' object being passed is the specific one from the loop
+  const tempId = sighting.id || `temp-${index}`;
+  
+  this.navCtrl.navigateForward(['/sightings-details', tempId], {
+    state: { data: sighting }
+  });
+}
+
+async confirmDeleteLog(index: number, event: Event) {
+  event.stopPropagation(); // Prevents opening the details page
+
+  const alert = await this.alertCtrl.create({
+    header: 'Remove Sighting?',
+    message: 'Are you sure you want to delete this log from your current session?',
+    buttons: [
+      { text: 'Cancel', role: 'cancel' },
+      {
+        text: 'Delete',
+        role: 'destructive',
+        handler: () => {
+          this.recentSightings.splice(index, 1);
+          this.showToast('Log removed successfully');
+        }
+      }
+    ]
+  });
+
+  await alert.present();
+}
+
+
 }

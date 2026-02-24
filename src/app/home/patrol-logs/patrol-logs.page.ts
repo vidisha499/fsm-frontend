@@ -25,6 +25,10 @@ export class PatrolLogsPage implements OnInit {
   public isSubmitting = false;
   public mapLoading = true;
   private detailMap: any;
+  public isFilterModalOpen = false;
+  public filterFrom: string = '';
+  public filterTo: string = '';
+  public maxDate: string = new Date().toISOString().split('T')[0];
 
   private apiUrl: string = 'https://forest-backend-pi.vercel.app/api/patrols';
 
@@ -91,23 +95,34 @@ export class PatrolLogsPage implements OnInit {
     gesture.enable(true);
   }
 
-  // --- DATA OPERATIONS ---
 
-  async loadPatrolLogs() {
+
+
+  async loadPatrolLogs(from?: string, to?: string) {
     const loaderMsg = await firstValueFrom(this.translate.get('DETAILS.LOADING'));
     const loader = await this.loadingCtrl.create({ message: loaderMsg, mode: 'ios' });
     await loader.present();
 
-    this.http.get(`${this.apiUrl}/logs`).subscribe({
-      next: (data: any) => { 
-        this.patrolLogs = data; 
-        loader.dismiss(); 
-      },
-      error: async () => { 
-        loader.dismiss(); 
-        const errMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_ERROR'));
-        this.presentToast(errMsg, 'danger'); 
-      }
+    let params = new Array();
+  if (from) params.push(`from=${from}`);
+  if (to) params.push(`to=${to}`);
+  
+  const queryString = params.length > 0 ? `?${params.join('&')}` : '';
+  const url = `${this.apiUrl}/logs${queryString}`;
+
+
+     this.http.get(url).subscribe({
+       next: (data: any) => { 
+         this.patrolLogs = data; 
+         loader.dismiss(); 
+       },
+      
+       error: async () => { 
+         loader.dismiss(); 
+         const errMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_ERROR'));
+         this.presentToast(errMsg, 'danger'); 
+       }
+
     });
   }
 
@@ -154,6 +169,28 @@ export class PatrolLogsPage implements OnInit {
       }
     });
   }
+
+
+  setFilterOpen(isOpen: boolean) {
+    this.isFilterModalOpen = isOpen;
+  }
+
+applyFilter() {
+  if (this.filterFrom && this.filterTo && this.filterFrom > this.filterTo) {
+    this.presentToast("'From' date cannot be after 'To' date", 'warning');
+    return;
+  }
+  this.isFilterModalOpen = false;
+  this.loadPatrolLogs(this.filterFrom, this.filterTo);
+}
+
+  resetFilter() {
+    this.filterFrom = '';
+    this.filterTo = '';
+    this.isFilterModalOpen = false;
+    this.loadPatrolLogs();
+  }
+
 
   private async processDelete(id: number) {
     this.http.delete(`${this.apiUrl}/logs/${id}`).subscribe({

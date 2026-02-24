@@ -88,7 +88,8 @@
           <span class="count-badge">{{recentSightings.length}}</span>
         </div>
         <div class="logs-list">
-          <div class="log-card" *ngFor="let log of recentSightings.slice().reverse()">
+
+             <!-- <div class="log-card" *ngFor="let log of recentSightings.slice().reverse(); let i = index" (click)="viewSightingDetails(log, i)">
             <div class="log-icon" [ngClass]="log.category?.toLowerCase() || 'other'">
               <i class="fas" [ngClass]="{
                 'fa-paw': log.category === 'Animal',
@@ -112,9 +113,39 @@
             <div class="log-right">
               <div class="log-time">{{log.timestamp | date:'HH:mm'}}</div>
             </div>
-          </div>
+          </div> -->
+          <div class="log-card" *ngFor="let log of recentSightings.slice().reverse(); let i = index" (click)="viewSightingDetails(log, i)">
+  <div class="log-icon" [ngClass]="log.category?.toLowerCase() || 'other'">
+    <i class="fas" [ngClass]="{
+      'fa-paw': log.category === 'Animal',
+      'fa-droplet': log.category === 'Water',
+      'fa-person-hiking': log.category === 'Impact',
+      'fa-skull': log.category === 'Death',
+      'fa-hammer': log.category === 'Felling',
+      'fa-circle-plus': log.category === 'Other'
+    }"></i>
+  </div>
+  
+  <div class="log-info">
+    <div class="log-main">
+      <span class="log-type">{{ 'PATROL.CAT_' + log.category.toUpperCase() | translate }}</span>
+      <span class="log-species" *ngIf="log.species">• {{log.species}}</span>
+    </div>
+    <span class="log-meta">{{log.sighting_type || 'Direct'}} ({{log.count || 1}})</span>
+    <div class="log-thumbnails" *ngIf="log.photos?.length > 0">
+      <img *ngFor="let p of log.photos" [src]="p" class="mini-thumb" (click)="openZoom(p); $event.stopPropagation()">
+    </div>
+  </div>
+
+  <div class="log-right">
+    <div class="log-time">{{log.timestamp | date:'HH:mm'}}</div>
+    <button class="delete-log-btn" (click)="confirmDeleteLog(recentSightings.length - 1 - i, $event)">
+      <i class="fas fa-trash-alt"></i>
+    </button>
+  </div>
+</div>
         </div>
       </div>
     </div>
-  </div>
+  </div> 
 </ion-content>

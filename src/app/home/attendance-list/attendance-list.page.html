@@ -13,13 +13,14 @@
             </button>
             <h1>Attendance History</h1>
           </div>
-
           <div class="right-section">
-        
-            <button class="filter-toggle-btn" id="open-attendance-filter">
-              <!-- <ion-icon name="options-outline"></ion-icon> -->
-               <i class="fas fa-sliders-h"></i>
+            <button class="filter-toggle-btn"  (click)="isModalOpen = true">
+              <i class="fas fa-sliders-h"></i>
             </button>
+<!-- 
+            <button class="glass-back" (click)="isModalOpen = true">
+          <ion-icon name="options-outline"></ion-icon>
+        </button> -->
           </div>
         </div>
       </div>
@@ -27,8 +28,8 @@
 
     <div class="main-container">
       <div class="filter-active-chip" *ngIf="isFiltered">
-        <ion-chip (click)="clearFilter()">
-          <ion-label>{{ startDate | date:'dd MMM' }} - {{ endDate | date:'dd MMM' }}</ion-label>
+        <ion-chip (click)="resetFilters()">
+          <ion-label>Filtered Results</ion-label>
           <ion-icon name="close-circle"></ion-icon>
         </ion-chip>
       </div>
@@ -45,14 +46,10 @@
 
           <div class="row-content">
             <div class="top-line">
-              <span class="type-text" [attr.data-type]="log.type">{{ log.type }}</span>
-              <span class="log-date">{{ log.createdAt | date:'hh:mm a' }}</span>
+              <!-- <span class="type-text" [attr.data-type]="log.type">{{ log.type }}</span> -->
+              <span class="log-date">{{ (log.createdAt || log.created_at) | date:'hh:mm a' }}</span>
             </div>
-
-            <h2 class="priority-title">
-              {{ log.createdAt | date:'dd MMMM, yyyy' }}
-            </h2>
-
+            <h2 class="priority-title">{{ (log.createdAt || log.created_at) | date:'dd MMMM, yyyy' }}</h2>
             <div class="reporter-line">
               <ion-icon name="location-outline"></ion-icon>
               <span class="location-name">{{ log.geofence || 'General Area' }}</span>
@@ -60,8 +57,8 @@
           </div>
 
           <div class="row-actions">
-            <ion-button fill="clear" color="danger" (click)="confirmDelete($event, log.id)">
-              <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+            <ion-button fill="clear"color="danger" (click)="confirmDelete($event, log.id)">
+              <ion-icon slot="icon-only" name="trash-outline" style="font-size: 18px;"></ion-icon>
             </ion-button>
             <ion-icon name="chevron-forward" class="chevron"></ion-icon>
           </div>
@@ -69,7 +66,7 @@
 
         <div class="empty-state" *ngIf="attendanceLogs.length === 0">
           <ion-icon name="calendar-clear-outline"></ion-icon>
-          <p>No attendance records found</p>
+          <p>No records found for this filter</p>
         </div>
       </div>
     </div>
@@ -80,47 +77,51 @@
       </ion-fab-button>
     </ion-fab>
   </div>
-</ion-content>
 
-<ion-modal #filterModal trigger="open-attendance-filter" [initialBreakpoint]="0.5" [breakpoints]="[0, 0.5, 0.9]" class="custom-bottom-card">
+<ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false" class="custom-bottom-card">
   <ng-template>
     <div class="modal-card-content">
       <div class="modal-header">
-        <div class="drag-handle"></div>
         <div class="title-row">
           <ion-icon name="calendar-outline"></ion-icon>
           <h3>Filter by Date</h3>
         </div>
-        <p class="subtitle">Select date range for attendance logs</p>
+        <p class="subtitle">Select date range and location to filter logs</p>
       </div>
 
       <div class="filter-body">
         <div class="date-row">
-          <span class="label">FROM</span>
-          <ion-datetime-button datetime="att-start"></ion-datetime-button>
+          <span class="label">LOCATION</span>
+          <ion-input [(ngModel)]="filters.location" placeholder="All locations" class="ion-text-end custom-input"></ion-input>
         </div>
+
+        <div class="date-row">
+          <span class="label">FROM</span>
+          <ion-datetime-button datetime="fromDate"></ion-datetime-button>
+        </div>
+
         <div class="date-row">
           <span class="label">TO</span>
-          <ion-datetime-button datetime="att-end"></ion-datetime-button>
+          <ion-datetime-button datetime="toDate"></ion-datetime-button>
         </div>
       </div>
 
       <div class="modal-footer">
-        <button class="apply-btn" (click)="applyFilter()">Apply Filter</button>
-        <button class="clear-btn" (click)="clearFilter()">Reset All Filters</button>
+        <button class="apply-btn" (click)="applyFilters()">Apply Filter</button>
+        <button class="clear-btn" (click)="resetFilters()">Reset All Filters</button>
       </div>
     </div>
+
+    <ion-popover [keepContentsMounted]="true">
+      <ng-template>
+        <ion-datetime id="fromDate" presentation="date" [(ngModel)]="filters.fromDate" [max]="today" [showDefaultButtons]="true"></ion-datetime>
+      </ng-template>
+    </ion-popover>
+    <ion-popover [keepContentsMounted]="true">
+      <ng-template>
+        <ion-datetime id="toDate" presentation="date" [(ngModel)]="filters.toDate" [max]="today" [showDefaultButtons]="true"></ion-datetime>
+      </ng-template>
+    </ion-popover>
   </ng-template>
 </ion-modal>
-
-<ion-popover [keepContentsMounted]="true">
-  <ng-template>
-    <ion-datetime id="att-start" presentation="date" [(ngModel)]="startDate" [max]="maxDate" [showDefaultButtons]="true"></ion-datetime>
-  </ng-template>
-</ion-popover>
-
-<ion-popover [keepContentsMounted]="true">
-  <ng-template>
-    <ion-datetime id="att-end" presentation="date" [(ngModel)]="endDate" [max]="maxDate" [showDefaultButtons]="true"></ion-datetime>
-  </ng-template>
-</ion-popover>
+</ion-content>

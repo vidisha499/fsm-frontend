@@ -24,6 +24,16 @@ allIncidents: any[] = []; // Isme hamesha original poora data rahega
   filteredIncidents: any[] = [];
 
   
+  filters = {
+    location: '',
+    fromDate: new Date().toISOString(),
+    toDate: new Date().toISOString()
+  };
+
+  isModalOpen: boolean = false; // Modal toggle error fix
+  today: string = new Date().toISOString(); 
+
+  
   private vercelUrl: string = 'https://forest-backend-pi.vercel.app/api/incidents';
   private apiUrl: string = '';
 
@@ -225,7 +235,7 @@ toggleFilter() {
 }
 
 // 2. applyFilter function ko aise update karo
-applyFilter() {
+applyFilters() {
   const start = new Date(this.startDate);
   start.setHours(0, 0, 0, 0); // Din ki shuruat
 
@@ -245,7 +255,7 @@ applyFilter() {
 
 
 // 3. clearFilter function ko aise update karo
-clearFilter() {
+resetFilters() {
   this.startDate = new Date().toISOString();
   this.endDate = new Date().toISOString();
   // Wapas saara data 'incidents' mein daal do

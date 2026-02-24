@@ -70,6 +70,19 @@ const routes: Routes = [
     path: 'location',
     loadChildren: () => import('./home/location/location.module').then(m => m.LocationPageModule)
   },
+{
+  path: 'onsite-attendance-logs',
+  loadChildren: () => import('./home/onsite-attendance-logs/onsite-attendance-logs.module').then(m => m.OnsiteAttendanceLogsPageModule)
+},
+{
+  path: 'onsite-attendance-details',
+  loadChildren: () => import('./home/onsite-attendance-details/onsite-attendance-details.module').then(m => m.OnsiteAttendanceDetailsPageModule)
+},
+{
+  path: 'sightings-details/:id',
+  loadChildren: () => import('./home/sightings-details/sightings-details.module').then(m => m.SightingsDetailsPageModule)
+}
+
 
 ];
 

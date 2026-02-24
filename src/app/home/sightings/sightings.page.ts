@@ -6,6 +6,7 @@ import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { DataService } from 'src/app/data.service';
 import { TranslateService } from '@ngx-translate/core'; // Added
 import { firstValueFrom } from 'rxjs'; // Added
+import { Geolocation } from '@capacitor/geolocation';
 
 @Component({
   selector: 'app-sightings',
@@ -60,60 +61,130 @@ export class SightingsPage implements OnInit {
     this.obsData.genderUnknown = (type === 'unknown');
   }
 
-  async saveSighting() {
-    if (!this.patrolId) {
-      this.showToast("No Active Patrol Session Found!");
-      this.resetSlider();
-      return;
-    }
+  // async saveSighting() {
+  //   if (!this.patrolId) {
+  //     this.showToast("No Active Patrol Session Found!");
+  //     this.resetSlider();
+  //     return;
+  //   }
 
-    this.isSaving = true;
-    this.isSubmitting = true; 
+  //   this.isSaving = true;
+  //   this.isSubmitting = true; 
     
-    const saveMsg = await firstValueFrom(this.translate.get('SIGHTING.SAVING_MSG'));
-    const loader = await this.loadingCtrl.create({ 
-      message: saveMsg, 
-      mode: 'ios',
-      spinner: 'crescent'
-    });
-    await loader.present();
+    
+  //   const saveMsg = await firstValueFrom(this.translate.get('SIGHTING.SAVING_MSG'));
+  //   const loader = await this.loadingCtrl.create({ 
+  //     message: saveMsg, 
+  //     mode: 'ios',
+  //     spinner: 'crescent'
+  //   });
+  //   await loader.present();
+
+  //   const payload = {
+  //     patrol_id: Number(this.patrolId),
+  //     category: this.category, 
+  //     sighting_type: this.obsData.sightingType,
+  //     species: this.obsData.species || this.category,
+  //     count: this.obsData.count,
+  //     gender: { 
+  //       male: this.obsData.genderMale, 
+  //       female: this.obsData.genderFemale, 
+  //       unknown: this.obsData.genderUnknown 
+  //     },
+  //     photos: this.obsData.photos,
+  //     notes: this.obsData.notes,
+  //     timestamp: new Date().toISOString()
+  //   };
+
+  //   this.dataService.saveSighting(payload).subscribe({
+  //     next: async () => {
+  //       loader.dismiss();
+  //       const successMsg = await firstValueFrom(this.translate.get('SIGHTING.SUCCESS'));
+  //       const catTranslated = await firstValueFrom(this.translate.get('PATROL.CAT_' + this.category.toUpperCase()));
+  //       this.showToast(`${catTranslated} ${successMsg}`);
+        
+  //       setTimeout(() => {
+  //         this.isSubmitting = false;
+  //         this.navCtrl.back();
+  //       }, 1000);
+  //     },
+  //     error: (err) => {
+  //       loader.dismiss();
+  //       this.resetSlider();
+  //       this.showToast(`Error: ${err.status}`);
+  //       this.cdr.detectChanges();
+  //     }
+  //   });
+  // }
+
+
+ // sightings.page.ts
+
+async saveSighting() {
+  if (!this.patrolId) {
+    this.showToast("No Active Patrol Session Found!");
+    this.resetSlider();
+    return;
+  }
+
+  this.isSaving = true;
+  this.isSubmitting = true; 
+  
+  const loader = await this.loadingCtrl.create({ 
+    message: 'Saving sighting...', 
+    mode: 'ios'
+  });
+  await loader.present();
+
+  try {
+    // This line captures the location for the map
+    const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+
+    // const payload = {
+    //   patrol_id: Number(this.patrolId),
+    //   category: this.category, 
+    //   species: this.obsData.species || this.category,
+    //   lat: pos.coords.latitude,   // Crucial for the map
+    //   lng: pos.coords.longitude,  // Crucial for the map
+    //   timestamp: new Date().toISOString()
+    //   // ... include your other fields like gender and notes
+    // };
 
     const payload = {
-      patrol_id: Number(this.patrolId),
-      category: this.category, 
-      sighting_type: this.obsData.sightingType,
-      species: this.obsData.species || this.category,
-      count: this.obsData.count,
-      gender: { 
-        male: this.obsData.genderMale, 
-        female: this.obsData.genderFemale, 
-        unknown: this.obsData.genderUnknown 
-      },
-      photos: this.obsData.photos,
-      notes: this.obsData.notes,
-      timestamp: new Date().toISOString()
-    };
+  patrol_id: Number(this.patrolId),
+  category: this.category, 
+  species: this.obsData.species || this.category,
+  lat: pos.coords.latitude,
+  lng: pos.coords.longitude,
+  count: this.obsData.count,           // Add this back
+  notes: this.obsData.notes,           // Add this back
+  photos: this.obsData.photos,         // Add this back
+  gender: {                            // Add this back
+    male: this.obsData.genderMale, 
+    female: this.obsData.genderFemale, 
+    unknown: this.obsData.genderUnknown 
+  },
+  timestamp: new Date().toISOString()
+};
 
     this.dataService.saveSighting(payload).subscribe({
       next: async () => {
-        loader.dismiss();
-        const successMsg = await firstValueFrom(this.translate.get('SIGHTING.SUCCESS'));
-        const catTranslated = await firstValueFrom(this.translate.get('PATROL.CAT_' + this.category.toUpperCase()));
-        this.showToast(`${catTranslated} ${successMsg}`);
-        
-        setTimeout(() => {
-          this.isSubmitting = false;
-          this.navCtrl.back();
-        }, 1000);
+        await loader.dismiss();
+        this.showToast("Sighting saved successfully!");
+        this.navCtrl.back();
       },
-      error: (err) => {
-        loader.dismiss();
+      error: async (err) => {
+        await loader.dismiss();
         this.resetSlider();
-        this.showToast(`Error: ${err.status}`);
-        this.cdr.detectChanges();
+        this.showToast("Save failed. Please try again.");
       }
     });
+  } catch (e) {
+    await loader.dismiss();
+    this.resetSlider();
+    this.showToast("Location error. Please enable GPS.");
   }
+}
 
   resetSlider() {
     this.isSaving = false;

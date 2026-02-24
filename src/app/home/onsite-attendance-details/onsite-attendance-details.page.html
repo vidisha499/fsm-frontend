@@ -1,0 +1,59 @@
+<ion-content [fullscreen]="true" *ngIf="attendanceData">
+  <div class="header-container">
+    <div class="header-overlay"></div>
+    <div class="nav-content">
+      <div class="top-row">
+        <button class="glass-back" (click)="goBack()">
+          <ion-icon name="arrow-back-outline"></ion-icon>
+        </button>
+        <div class="title-wrapper">
+          <h1>Shift Details</h1>
+          <span class="status-pill">Verified</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-body">
+    
+    <div class="photo-square-wrapper">
+      <div class="photo-card-square shadow-soft" *ngIf="attendanceData.photo">
+        <img [src]="attendanceData.photo" alt="Attendance Proof">
+      </div>
+    </div>
+    
+
+    <div class="label-text">VERIFIED LOCATION</div>
+    <div class="map-card shadow-soft">
+      <div id="attendanceMap"></div>
+      <div class="map-info">
+        <i class="fas fa-map-marker-alt"></i>
+        <span class="truncate-text">{{ attendanceData.geofence }}</span>
+      </div>
+    </div>
+
+    <div class="label-text">ATTENDANCE LOG</div>
+    <div class="detail-pill shadow-soft">
+      <div class="icon-circle in">
+        <i class="fas fa-clock"></i>
+      </div>
+      <div class="pill-text">
+        <strong>{{ attendanceData.created_at | date: 'hh:mm a' }}</strong>
+        <span>{{ attendanceData.created_at | date: 'EEEE, MMM dd' }}</span>
+      </div>
+    </div>
+ 
+
+  
+    <div class="label-text">RANGER INFO</div>
+    <div class="detail-pill shadow-soft">
+      <div class="icon-circle out">
+        <i class="fas fa-user-shield"></i>
+      </div>
+      <div class="pill-text">
+        <strong>{{ attendanceData.ranger }}</strong>
+        <span>Device Verified ID: #{{ attendanceData.ranger_id }}</span>
+      </div>
+    </div>
+   </div>
+</ion-content>
