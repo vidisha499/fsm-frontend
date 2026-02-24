@@ -1,0 +1,61 @@
+<ion-content [fullscreen]="true" class="premium-wrapper">
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
+  <div class="hero-header">
+    <div class="header-overlay"></div>
+    <div class="header-content">
+      <div class="top-row">
+        <button (click)="goBack()" class="glass-btn">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+        <h1>Sighting Details</h1>
+        <div class="active-badge">Active</div>
+      </div>
+    </div>
+  </div> 
+
+  <div class="card-container">
+    <div class="main-card" *ngIf="sighting">
+      
+      <div class="category-title-section">
+        <div class="icon-circle" [ngClass]="sighting.category?.toLowerCase()">
+          <i class="fas" [ngClass]="getIcon(sighting.category)"></i>
+        </div>
+        <h2>{{ sighting.category }}</h2>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-item">
+          <label>SPECIES</label>
+          <span class="val">{{ sighting.species || 'None' }}</span>
+        </div>
+        <div class="stat-item">
+          <label>COUNT</label>
+          <span class="val">{{ sighting.count }}</span>
+        </div>
+        <div class="stat-item">
+          <label>TYPE</label>
+          <span class="val">{{ sighting.sighting_type || 'Direct' }}</span>
+        </div>
+        <div class="stat-item">
+          <label>TIME</label>
+          <span class="val">{{ sighting.timestamp | date:'shortTime' }}</span>
+        </div>
+      </div>
+
+      <div class="evidence-section" *ngIf="sighting.photos?.length > 0">
+        <h3>Captured Evidence</h3>
+        <div class="photo-grid">
+          <img *ngFor="let p of sighting.photos" [src]="p" class="evidence-img">
+        </div>
+      </div>
+
+      <div class="notes-section" *ngIf="sighting.notes">
+        <h3>Field Notes</h3>
+        <p>{{ sighting.notes }}</p>
+      </div>
+
+    </div>
+  </div>
+</ion-content>

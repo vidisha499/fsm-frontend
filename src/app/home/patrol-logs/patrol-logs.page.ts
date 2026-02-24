@@ -95,18 +95,7 @@ export class PatrolLogsPage implements OnInit {
     gesture.enable(true);
   }
 
-  // --- DATA OPERATIONS ---
 
-  // async loadPatrolLogs() {
-  //   const loaderMsg = await firstValueFrom(this.translate.get('DETAILS.LOADING'));
-  //   const loader = await this.loadingCtrl.create({ message: loaderMsg, mode: 'ios' });
-  //   await loader.present();
-
-  //   this.http.get(`${this.apiUrl}/logs`).subscribe({
-  //     next: (data: any) => { 
-  //       this.patrolLogs = data; 
-  //       loader.dismiss(); 
-  //     },
 
 
   async loadPatrolLogs(from?: string, to?: string) {
@@ -114,22 +103,26 @@ export class PatrolLogsPage implements OnInit {
     const loader = await this.loadingCtrl.create({ message: loaderMsg, mode: 'ios' });
     await loader.present();
 
-    let url = `${this.apiUrl}/logs`;
-    if (from && to) {
-      url += `?from=${from}&to=${to}`;
-    }
+    let params = new Array();
+  if (from) params.push(`from=${from}`);
+  if (to) params.push(`to=${to}`);
+  
+  const queryString = params.length > 0 ? `?${params.join('&')}` : '';
+  const url = `${this.apiUrl}/logs${queryString}`;
 
-    this.http.get(url).subscribe({
-      next: (data: any) => { 
-        this.patrolLogs = data; 
-        loader.dismiss(); 
-      },
+
+     this.http.get(url).subscribe({
+       next: (data: any) => { 
+         this.patrolLogs = data; 
+         loader.dismiss(); 
+       },
       
-      error: async () => { 
-        loader.dismiss(); 
-        const errMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_ERROR'));
-        this.presentToast(errMsg, 'danger'); 
-      }
+       error: async () => { 
+         loader.dismiss(); 
+         const errMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_ERROR'));
+         this.presentToast(errMsg, 'danger'); 
+       }
+
     });
   }
 
@@ -182,10 +175,14 @@ export class PatrolLogsPage implements OnInit {
     this.isFilterModalOpen = isOpen;
   }
 
-  applyFilter() {
-    this.isFilterModalOpen = false;
-    this.loadPatrolLogs(this.filterFrom, this.filterTo);
+applyFilter() {
+  if (this.filterFrom && this.filterTo && this.filterFrom > this.filterTo) {
+    this.presentToast("'From' date cannot be after 'To' date", 'warning');
+    return;
   }
+  this.isFilterModalOpen = false;
+  this.loadPatrolLogs(this.filterFrom, this.filterTo);
+}
 
   resetFilter() {
     this.filterFrom = '';
@@ -194,7 +191,7 @@ export class PatrolLogsPage implements OnInit {
     this.loadPatrolLogs();
   }
 
-  
+
   private async processDelete(id: number) {
     this.http.delete(`${this.apiUrl}/logs/${id}`).subscribe({
       next: () => {

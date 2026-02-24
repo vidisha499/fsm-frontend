@@ -151,105 +151,102 @@
   &:hover .tooltip { opacity: 1; transform: translateY(0); }
 }
 
-.filter-modal-content {
-  --background: #ffffff;
-  
-  .modal-handle {
-    width: 45px;
-    height: 5px;
-    background: #e2e8f0;
-    border-radius: 10px;
-    margin: 15px auto 10px;
+.custom-bottom-card {
+  /* Fixes modal to bottom without draggable 'sheet' behavior */
+  --height: auto;
+  --max-height: 80%;
+  --border-radius: 40px 40px 0 0;
+  align-items: flex-end; 
+
+  &::part(content) {
+    border-radius: 40px 40px 0 0;
+    background: #ffffff;
+    /* Prevents any accidental dragging behavior */
+    touch-action: none; 
   }
 
-  .custom-modal-header {
-    padding: 10px 25px 20px;
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      
-      .title-icon {
-        font-size: 28px;
-        color: #0d9488;
-        padding: 8px;
-        background: #f0fdfa;
-        border-radius: 12px;
-      }
-
-      .title-stack {
-        h2 { margin: 0; font-size: 20px; font-weight: 800; color: #0f172a; }
-        p { margin: 0; font-size: 13px; color: #64748b; margin-top: 2px; }
-      }
-    }
-  }
-
-  .filter-container {
-    padding: 0 20px;
+  .modal-card-content {
+    /* Extra top padding since the drag handle is gone */
+    padding: 35px 24px 50px; 
+    background: #ffffff;
     
-    .filter-row {
-      background: #f8fafc;
-      border-radius: 14px;
-      padding: 12px 18px;
-      margin-bottom: 12px;
+    .modal-header {
+      text-align: center;
+      margin-bottom: 30px;
+
+      .title-row {
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        gap: 10px;
+        h3 { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0; }
+        ion-icon { color: #0d9488; font-size: 24px; }
+      }
+      .subtitle { font-size: 14px; color: #94a3b8; margin-top: 6px; }
+    }
+
+    .filter-body {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
+      flex-direction: column;
+      gap: 16px;
 
-      .label {
-        font-size: 11px;
-        font-weight: 800;
-        color: #94a3b8;
-        letter-spacing: 0.5px;
-      }
+      .date-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f8fafc;
+        padding: 14px 20px;
+        border-radius: 20px;
+        border: 1px solid #f1f5f9;
 
-      .custom-input {
-        text-align: right;
-        font-weight: 600;
-        color: #1e293b;
-        --padding-end: 0;
-      }
+        .label { 
+          font-size: 12px; font-weight: 800; color: #64748b; 
+          letter-spacing: 0.8px;
+        }
 
-      ion-datetime-button {
-        &::part(native) {
-          background: #ffffff;
-          border: 1px solid #e2e8f0;
-          border-radius: 8px;
-          color: #1e293b;
-          font-weight: 600;
-          font-size: 14px;
+        .custom-input {
+          font-weight: 700;
+          color: #0f172a;
+          --padding-end: 0;
+        }
+
+        ion-datetime-button {
+          &::part(native) {
+            background: #f1f5f9;
+            color: #0f172a;
+            font-weight: 700;
+            border-radius: 10px;
+          }
         }
       }
     }
-  }
 
-  .button-group {
-    padding: 20px;
-    text-align: center;
+    .modal-footer {
+      margin-top: 35px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
 
-    .apply-btn {
-      height: 55px;
-      --background: #0f172a; // Exactly like your dark navy button
-      --border-radius: 16px;
-      --box-shadow: 0 10px 20px rgba(15, 23, 42, 0.15);
-      font-weight: 700;
-      margin-bottom: 15px;
+      .apply-btn {
+        width: 100%; 
+        background: #0f172a; 
+        color: white; 
+        padding: 18px;
+        border-radius: 20px; 
+        font-weight: 700; 
+        font-size: 16px; 
+        border: none;
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.2);
+      }
+
+      .clear-btn {
+        background: transparent; border: none; 
+        color: #ef4444; 
+        font-weight: 700; 
+        text-decoration: underline;
+        text-underline-offset: 5px;
+      }
     }
-
-    .reset-link {
-      background: transparent;
-      border: none;
-      color: #ef4444; // Red
-      font-weight: 700;
-      font-size: 14px;
-      text-decoration: underline;
-      text-underline-offset: 5px;
-    }
   }
-}
-
-// Ensure the datetime popover looks clean
-ion-popover {
-  --border-radius: 20px;
 }
 

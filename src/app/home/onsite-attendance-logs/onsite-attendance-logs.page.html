@@ -63,111 +63,50 @@
     </button>
   </div>
 
-  <!-- <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false" [initialBreakpoint]="0.5" [breakpoints]="[0, 0.5, 0.8]">
-    <ng-template>
-      <ion-header class="ion-no-border">
-        <ion-toolbar>
-          <ion-title>Filter Logs</ion-title>
-          <ion-buttons slot="end">
-            <ion-button (click)="isModalOpen = false">Close</ion-button>
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-
-      <ion-content class="ion-padding">
-        <div class="filter-group">
-          <ion-item lines="none" class="filter-item">
-            <ion-label position="stacked">Location / Geofence</ion-label>
-            <ion-input type="text" [(ngModel)]="filters.location" placeholder="Search location..."></ion-input>
-          </ion-item>
-
-          <ion-item lines="none" class="filter-item">
-            <ion-label position="stacked">From Date</ion-label>
-            <ion-datetime-button datetime="fromDate"></ion-datetime-button>
-          </ion-item>
-
-          <ion-item lines="none" class="filter-item">
-            <ion-label position="stacked">To Date</ion-label>
-            <ion-datetime-button datetime="toDate"></ion-datetime-button>
-          </ion-item>
-        </div>
-
-        <ion-button expand="block" class="apply-btn" (click)="applyFilters()">
-          Apply Filters
-        </ion-button>
-        <ion-button expand="block" fill="clear" color="medium" (click)="resetFilters()">
-          Reset
-        </ion-button>
-
-        <ion-popover [keepContentsMounted]="true">
-          <ng-template>
-            <ion-datetime id="fromDate" presentation="date" [(ngModel)]="filters.fromDate"></ion-datetime>
-          </ng-template>
-        </ion-popover>
-        <ion-popover [keepContentsMounted]="true">
-          <ng-template>
-            <ion-datetime id="toDate" presentation="date" [(ngModel)]="filters.toDate"></ion-datetime>
-          </ng-template>
-        </ion-popover>
-      </ion-content>
-    </ng-template>
-  </ion-modal> -->
-
-
-  <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false" [initialBreakpoint]="0.6" [breakpoints]="[0, 0.6, 0.9]">
+<ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false" class="custom-bottom-card">
   <ng-template>
-    <ion-content class="filter-modal-content">
-      <div class="modal-handle"></div>
-
-      <div class="custom-modal-header">
-        <div class="header-left">
-          <ion-icon name="calendar-outline" class="title-icon"></ion-icon>
-          <div class="title-stack">
-            <h2>Filter by Date</h2>
-            <p>Select date range to filter logs</p>
-          </div>
+    <div class="modal-card-content">
+      <div class="modal-header">
+        <div class="title-row">
+          <ion-icon name="calendar-outline"></ion-icon>
+          <h3>Filter by Date</h3>
         </div>
+        <p class="subtitle">Select date range and location to filter logs</p>
       </div>
 
-      <div class="filter-container">
-        <div class="filter-row">
+      <div class="filter-body">
+        <div class="date-row">
           <span class="label">LOCATION</span>
-          <ion-input [(ngModel)]="filters.location" placeholder="All locations" class="custom-input"></ion-input>
+          <ion-input [(ngModel)]="filters.location" placeholder="All locations" class="ion-text-end custom-input"></ion-input>
         </div>
 
-        <div class="filter-row">
+        <div class="date-row">
           <span class="label">FROM</span>
           <ion-datetime-button datetime="fromDate"></ion-datetime-button>
         </div>
 
-        <div class="filter-row">
+        <div class="date-row">
           <span class="label">TO</span>
           <ion-datetime-button datetime="toDate"></ion-datetime-button>
         </div>
       </div>
 
-      <div class="button-group">
-        <ion-button expand="block" class="apply-btn" (click)="applyFilters()">
-          Apply Filter
-        </ion-button>
-        
-        <button class="reset-link" (click)="resetFilters()">
-          Reset All Filters
-        </button>
+      <div class="modal-footer">
+        <button class="apply-btn" (click)="applyFilters()">Apply Filter</button>
+        <button class="clear-btn" (click)="resetFilters()">Reset All Filters</button>
       </div>
+    </div>
 
-      <ion-popover [keepContentsMounted]="true">
-        <ng-template>
-          <ion-datetime id="fromDate" presentation="date" [(ngModel)]="filters.fromDate" [max]="today"></ion-datetime>
-        </ng-template>
-      </ion-popover>
-      <ion-popover [keepContentsMounted]="true">
-        <ng-template>
-          <ion-datetime id="toDate" presentation="date" [(ngModel)]="filters.toDate" [max]="today"></ion-datetime>
-        </ng-template>
-      </ion-popover>
-
-    </ion-content>
+    <ion-popover [keepContentsMounted]="true">
+      <ng-template>
+        <ion-datetime id="fromDate" presentation="date" [(ngModel)]="filters.fromDate" [max]="today" [showDefaultButtons]="true"></ion-datetime>
+      </ng-template>
+    </ion-popover>
+    <ion-popover [keepContentsMounted]="true">
+      <ng-template>
+        <ion-datetime id="toDate" presentation="date" [(ngModel)]="filters.toDate" [max]="today" [showDefaultButtons]="true"></ion-datetime>
+      </ng-template>
+    </ion-popover>
   </ng-template>
 </ion-modal>
-</ion-content>
+</ion-content> 

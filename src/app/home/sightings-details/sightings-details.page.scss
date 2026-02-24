@@ -1,0 +1,160 @@
+
+
+.premium-wrapper {
+  --background: #f4f7f6;
+
+  .hero-header {
+    position: relative;
+    height: 250px; // Keep your height
+    background: url('https://images.unsplash.com/photo-1501854140801-50d01698950b?q=80&w=2560') no-repeat center center/cover;
+    border-bottom-left-radius: 60px;
+    border-bottom-right-radius: 60px;
+    overflow: visible; 
+    z-index: 1; // Base layer
+
+    .header-overlay {
+      background: linear-gradient(180deg, rgba(6, 78, 75, 0.8) 0%, rgba(4, 47, 46, 0.95) 100%);
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      border-bottom-left-radius: 60px;
+      border-bottom-right-radius: 60px;
+    }
+
+    .header-content {
+      position: relative;
+      padding: 50px 20px;
+      z-index: 2;
+
+      .top-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        h1 {
+          color: white;
+          font-size: 22px;
+          font-weight: 700;
+          margin: 0;
+          margin-top: 12%;
+        }
+
+        .glass-btn {
+          background: rgba(255, 255, 255, 0.2);
+          border: none;
+          padding: 12px;
+          border-radius: 12px;
+          color: white;
+          backdrop-filter: blur(10px);
+          margin-top: 12%;
+        }
+
+        .active-badge {
+          background: rgba(250, 204, 21, 0.2);
+          border: 1px solid #facc15;
+          color: #facc15;
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 600;
+          text-transform: uppercase;
+          margin-top: -3%;
+        }
+      }
+    }
+  }
+
+  // --- CHANGED SECTION ---
+  .card-container {
+    padding: 0 20px 30px; 
+    margin-top: -90px; // This pulls the card UP over the header
+    position: relative;
+    z-index: 10; // Ensures it stays on top of the hero-header
+
+    .main-card {
+      background: white;
+      border-radius: 40px;
+      padding: 30px 20px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.1); // Slightly deeper shadow for depth
+
+      .category-title-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 30px;
+
+        .icon-circle {
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 24px;
+          margin-bottom: 10px;
+          
+          &.animal { background: #fef9c3; color: #ca8a04; }
+          &.water { background: #e0f2fe; color: #0284c7; }
+          &.impact { background: #ffedd5; color: #ea580c; }
+        }
+
+        h2 {
+          color: #061a13;
+          font-weight: 800;
+          margin: 0;
+        }
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        border-top: 1px solid #f0f0f0;
+        padding-top: 25px;
+
+        .stat-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+
+          label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #94a3b8;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+          }
+
+          .val {
+            font-size: 18px;
+            font-weight: 800;
+            color: #0f172a;
+          }
+        }
+      }
+
+      .evidence-section {
+        margin-top: 30px;
+        h3 { font-size: 14px; font-weight: 700; color: #0d9488; margin-bottom: 15px; }
+
+        .photo-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 10px;
+          
+          .evidence-img {
+            width: 100%;
+            height: 100px;
+            border-radius: 15px;
+            object-fit: cover;
+          }
+        }
+      }
+      
+      .notes-section {
+        margin-top: 20px;
+        h3 { font-size: 14px; font-weight: 700; color: #0d9488; margin-bottom: 10px; }
+        p { color: #475569; line-height: 1.5; margin: 0; }
+      }
+    }
+  }
+}

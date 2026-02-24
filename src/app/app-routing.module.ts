@@ -77,6 +77,10 @@ const routes: Routes = [
 {
   path: 'onsite-attendance-details',
   loadChildren: () => import('./home/onsite-attendance-details/onsite-attendance-details.module').then(m => m.OnsiteAttendanceDetailsPageModule)
+},
+{
+  path: 'sightings-details/:id',
+  loadChildren: () => import('./home/sightings-details/sightings-details.module').then(m => m.SightingsDetailsPageModule)
 }
 
 
