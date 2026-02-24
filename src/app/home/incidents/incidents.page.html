@@ -2,8 +2,7 @@
   <div class="premium-wrapper">
     <div class="ambient-glow glow-1"></div>
     <div class="ambient-glow glow-2"></div>
-
-    <div class="hero-header">
+<div class="hero-header">
       <div class="header-overlay"></div>
       <div class="header-content">
         <div class="nav-bar">
@@ -13,13 +12,104 @@
             </button>
             <h1>{{ 'INCIDENTS.TITLE' | translate }}</h1>
           </div>
-          <div class="auth-badge">
-            <i class="fas fa-shield-alt"></i>
-            <span>{{ 'INCIDENTS.SECURE_LOG' | translate }}</span>
+
+          <div class="right-section">
+            <div class="auth-badge">
+              <i class="fas fa-shield-alt"></i>
+              <span>SECURE LOG</span>
+            </div>
+            
+            <button class="filter-toggle-btn" id="open-filter">
+              <i class="fas fa-sliders-h"></i>
+            </button>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- <ion-modal trigger="open-filter-modal" [initialBreakpoint]="0.6" [breakpoints]="[0, 0.6]" handleBehavior="cycle" class="bottom-filter-modal">
+      <ng-template>
+        <div class="modal-wrapper">
+          <div class="modal-header">
+            <h3>Filter by Date</h3>
+            <p>Select date range to filter incidents</p>
+          </div>
+
+          <div class="filter-body">
+            <div class="date-input-field">
+              <label>FROM</label>
+              <ion-datetime-button datetime="from-date"></ion-datetime-button>
+            </div>
+
+            <div class="date-input-field">
+              <label>TO</label>
+              <ion-datetime-button datetime="to-date"></ion-datetime-button>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="apply-btn" (click)="applyFilter()">Apply Filter</button>
+            <button class="reset-link" (click)="clearFilter()">Reset Filter</button>
+          </div>
+        </div>
+      </ng-template>
+    </ion-modal>
+
+    <ion-modal [keepContentsMounted]="true" class="datetime-modal">
+      <ng-template>
+        <ion-datetime id="from-date" presentation="date" [(ngModel)]="startDate" [max]="maxDate" [showDefaultButtons]="true"></ion-datetime>
+      </ng-template>
+    </ion-modal>
+
+    <ion-modal [keepContentsMounted]="true" class="datetime-modal">
+      <ng-template>
+        <ion-datetime id="to-date" presentation="date" [(ngModel)]="endDate" [max]="maxDate" [showDefaultButtons]="true"></ion-datetime>
+      </ng-template>
+    </ion-modal> -->
+
+<ion-modal #filterModal trigger="open-filter" [initialBreakpoint]="0.5" [breakpoints]="[0, 0.5, 0.9]" class="custom-bottom-card">
+  <ng-template>
+    <div class="modal-card-content">
+      <div class="modal-header">
+        <div class="drag-handle"></div>
+        <div class="title-row">
+          <ion-icon name="calendar-outline"></ion-icon>
+          <h3>Filter by Date</h3>
+        </div>
+        <p class="subtitle">Select date range to filter incidents</p>
+      </div>
+
+      <div class="filter-body">
+        <div class="date-row">
+          <span class="label">FROM</span>
+          <ion-datetime-button datetime="start-picker"></ion-datetime-button>
+        </div>
+
+        <div class="date-row">
+          <span class="label">TO</span>
+          <ion-datetime-button datetime="end-picker"></ion-datetime-button>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="apply-btn" (click)="applyFilter()">Apply Filter</button>
+        <button class="clear-btn" (click)="clearFilter()">Reset All Filters</button>
+      </div>
+    </div>
+  </ng-template>
+</ion-modal>
+
+<ion-popover [keepContentsMounted]="true">
+  <ng-template>
+    <ion-datetime id="start-picker" presentation="date" [(ngModel)]="startDate" [max]="maxDate" [showDefaultButtons]="true"></ion-datetime>
+  </ng-template>
+</ion-popover>
+
+<ion-popover [keepContentsMounted]="true">
+  <ng-template>
+    <ion-datetime id="end-picker" presentation="date" [(ngModel)]="endDate" [max]="maxDate" [showDefaultButtons]="true"></ion-datetime>
+  </ng-template>
+</ion-popover>
 
     <div class="main-container">
       <div class="status-tabs-wrapper">
@@ -34,8 +124,9 @@
       </div>
 
       <div class="incident-list">
-        <div class="incident-row-compact animate__animated animate__fadeInUp" *ngFor="let item of incidents"
-          (click)="viewDetails(item)">
+        <div class="incident-row-compact animate__animated animate__fadeInUp" 
+             *ngFor="let item of incidents" 
+             (click)="viewDetails(item)">
 
           <div class="mini-thumb">
             <img *ngIf="item.photos && item.photos.length > 0" [src]="item.photos[0]">
@@ -47,16 +138,16 @@
 
           <div class="row-content">
             <div class="top-line">
-              <!-- <span class="type-text">{{ 'INCIDENT.VALUES.' + getTranslationKey(item.incidentCriteria) | translate }}</span> -->
               <span class="type-text">
                 {{ ('INCIDENT.VALUES.' + getTranslationKey(item.incidentCriteria)) | translate }}
               </span>
-
-              <span class="log-date">{{ formatDate(item.createdAt) }}</span>
+              <!-- <span class="log-date">{{ formatDate(item.createdAt) }}</span> -->
+               <span class="log-date">{{ formatDate(item.createdAt) }}</span>
             </div>
 
             <h2 class="priority-title" [class.high-p]="item.responsePriority === 'High Priority'">
-              {{ ('INCIDENT.VALUES.' + getTranslationKey(item.responsePriority)) | translate }}</h2>
+              {{ ('INCIDENT.VALUES.' + getTranslationKey(item.responsePriority)) | translate }}
+            </h2>
 
             <div class="reporter-line">
               <ion-icon name="person-circle-outline"></ion-icon>

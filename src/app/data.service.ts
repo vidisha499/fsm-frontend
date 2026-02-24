@@ -8,8 +8,20 @@ export class DataService {
   // e.g., 'https://fsm-backend-....vercel.app/api'
   private baseApiUrl = environment.apiUrl;
   private selectedIncident: any;
+  private selectedAttendance: any;
 
   constructor(private http: HttpClient) {}
+
+
+  // Attendance set karne ke liye
+  setSelectedAttendance(data: any) {
+    this.selectedAttendance = data;
+  }
+
+  // Attendance get karne ke liye (Detail page par use hoga)
+  getSelectedAttendance() {
+    return this.selectedAttendance;
+  }
 
   setSelectedIncident(incident: any) {
   this.selectedIncident = incident;
@@ -99,4 +111,14 @@ checkUserExists(mobile: string) {
   // This calls your backend to see if the ranger already exists
   return this.http.get(`${this.baseApiUrl}/rangers/check/${mobile}`);
 }
+
+// Backend endpoint: /attendance/beat-attendance/ranger/:id
+  getAttendanceLogsByRanger(rangerId: string) {
+    return this.http.get(`${this.baseApiUrl}/attendance/beat-attendance/ranger/${rangerId}`);
+  }
+
+  // Nayi attendance mark karne ke liye (Aapke form page ke liye)
+  markAttendance(payload: any) {
+    return this.http.post(`${this.baseApiUrl}/attendance/beat-attendance`, payload);
+  }
 }

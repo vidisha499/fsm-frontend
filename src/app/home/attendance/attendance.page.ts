@@ -237,7 +237,7 @@ export class AttendancePage implements OnInit, OnDestroy {
     toast.present();
   }
 
-  goBack() { this.navCtrl.navigateRoot('/home'); }
+  goBack() { this.navCtrl.navigateRoot('/attendance-list'); }
 
   ngOnDestroy() { 
     if (this.gpsWatchId) Geolocation.clearWatch({ id: this.gpsWatchId }); 

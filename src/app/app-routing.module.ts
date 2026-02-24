@@ -20,6 +20,14 @@ const routes: Routes = [
     path: 'enroll',
     loadChildren: () => import('./home/enroll/enroll.module').then( m => m.EnrollPageModule)
   },
+  {
+    path: 'attendance-list',
+    loadChildren: () => import('./home/attendance-list/attendance-list.module').then(m => m.AttendanceListPageModule)
+  },
+  {
+    path: 'attendance-detail/:id',
+    loadChildren: () => import('./home/attendance-detail/attendance-detail.module').then(m => m.AttendanceDetailPageModule)
+  },
   // ---------------------------
   {
     path: 'attendance',

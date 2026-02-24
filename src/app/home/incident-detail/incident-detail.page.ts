@@ -263,4 +263,35 @@ getTranslationKey(value: string | undefined | null): string {
     });
     toast.present();
   }
+
+  formatDetailDate(dateString: string) {
+  if (!dateString) return '';
+  
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return dateString;
+
+  // 1. Manual IST Offset Correction (5.5 hours minus)
+  // Taaki Feb 24 (UTC) wapas Feb 23 (Local) ban jaye
+  const IST_OFFSET = 5.5 * 60 * 60 * 1000;
+  const localDate = new Date(date.getTime() - IST_OFFSET);
+
+  // 2. Exact same format manual build karein: "February 23, 2026 • 9:12 PM"
+  const monthNames = ["January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const month = monthNames[localDate.getMonth()];
+  const day = localDate.getDate();
+  const year = localDate.getFullYear();
+  
+  let hours = localDate.getHours();
+  const minutes = localDate.getMinutes().toString().padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  
+  hours = hours % 12;
+  hours = hours ? hours : 12; // hour '0' should be '12'
+
+  // Exact wahi format jo aapko chahiye tha
+  return `${month} ${day}, ${year} • ${hours}:${minutes} ${ampm}`;
+}
 }
