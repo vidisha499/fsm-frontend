@@ -173,7 +173,9 @@ export class AttendancePage implements OnInit, OnDestroy {
       photo: this.capturedPhoto,
       latitude: this.currentLat,
       longitude: this.currentLng,
-      geofence: this.currentAddress
+      geofence: this.currentAddress,
+      rangerName: this.rangerName, 
+    region: this.rangerRegion 
     };
 
     this.http.post(this.apiUrl, payload).subscribe({
@@ -193,6 +195,50 @@ export class AttendancePage implements OnInit, OnDestroy {
       }
     });
   }
+
+
+//   async submitAttendance() {
+//   if (this.isSubmitting) return; 
+//   if (!this.capturedPhoto) {
+//     const msg = await this.translate.get('ATTENDANCE.PHOTO_REQUIRED').toPromise();
+//     this.presentToast(msg, 'warning');
+//     this.resetSlider();
+//     return;
+//   }
+
+//   this.isSubmitting = true;
+//   this.cdr.detectChanges(); 
+
+//   // 👇 Yahan badlav karein
+//   const payload = {
+//     ranger_id: Number(localStorage.getItem('ranger_id')) || 1,
+//     type: this.isEntry ? 'ENTRY' : 'EXIT',
+//     photo: this.capturedPhoto,
+//     latitude: this.currentLat,
+//     longitude: this.currentLng,
+//     geofence: this.currentAddress,
+//     // Ye do lines missing thi, inhein add karein:
+//     rangerName: this.rangerName, 
+//     region: this.rangerRegion 
+//   };
+
+//   this.http.post(this.apiUrl, payload).subscribe({
+//     next: async () => {
+//       const msg = await this.translate.get('ATTENDANCE.SUCCESS').toPromise();
+//       this.presentToast(msg, 'success');
+//       setTimeout(() => {
+//         this.isSubmitting = false;
+//         this.goBack();
+//       }, 1500);
+//     },
+//     error: async () => {
+//       this.isSubmitting = false;
+//       this.resetSlider();
+//       const msg = await this.translate.get('ATTENDANCE.SYNC_ERROR').toPromise();
+//       this.presentToast(msg, 'danger');
+//     }
+//   });
+// }
 
   async presentImageSourceOptions() {
     const header = await this.translate.get('ATTENDANCE.SELECT_SOURCE').toPromise();
@@ -222,9 +268,10 @@ export class AttendancePage implements OnInit, OnDestroy {
   async captureImage(source: CameraSource) {
     try {
       const photo = await Camera.getPhoto({ 
-        quality: 50, 
+        quality: 25, 
         source: source, 
-        resultType: CameraResultType.Base64 
+        resultType: CameraResultType.Base64 ,
+        width: 600,
       });
       if (photo.base64String) {
         this.capturedPhoto = `data:image/jpeg;base64,${photo.base64String}`;

@@ -1,6 +1,6 @@
 import { Component, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
-import { DataService } from '../../data.service';
 import { NavController } from '@ionic/angular';
+import { DataService } from '../../data.service'; // Path apne hisaab se check kar lein
 import * as L from 'leaflet';
 
 @Component({
@@ -13,35 +13,78 @@ export class AttendanceDetailPage implements OnInit, AfterViewInit, OnDestroy {
   attendance: any;
   map!: L.Map;
 
-  constructor(private dataService: DataService, private navCtrl: NavController) { }
+  constructor(
+    private dataService: DataService,
+    private navCtrl: NavController
+  ) { }
 
   ngOnInit() {
+    // 1. DataService se selected record uthao
     this.attendance = this.dataService.getSelectedAttendance();
+
+    // 2. Safety Check: Agar data nahi hai (refresh hone par), toh list par wapas bhej do
     if (!this.attendance) {
-      this.navCtrl.navigateBack('/attendance-list');
+      this.navCtrl.navigateBack('/home/attendance-list');
     }
   }
 
   ngAfterViewInit() {
-    if (this.attendance) {
-      setTimeout(() => { this.initMap(); }, 500);
+    // 3. Map tabhi initialize karein jab data aur coordinates available hon
+    if (this.attendance && this.attendance.latitude && this.attendance.longitude) {
+      setTimeout(() => {
+        this.initMap();
+      }, 600); // 600ms ka delay taaki premium-wrapper transitions complete ho jayein
     }
   }
 
   initMap() {
-    const lat = this.attendance.latitude;
-    const lng = this.attendance.longitude;
+    try {
+      const lat = parseFloat(this.attendance.latitude);
+      const lng = parseFloat(this.attendance.longitude);
 
-    this.map = L.map('detailMap', { center: [lat, lng], zoom: 16, zoomControl: false });
-    L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-      subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-    }).addTo(this.map);
+      // Map initialization
+      this.map = L.map('detailMap', {
+        center: [lat, lng],
+        zoom: 16,
+        zoomControl: false,
+        attributionControl: false
+      });
 
-    const icon = L.divIcon({ className: 'custom-marker', html: '<div class="blue-dot"></div>', iconSize: [20, 20] });
-    L.marker([lat, lng], { icon }).addTo(this.map);
+      // Standard OpenStreetMap Tiles
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(this.map);
+
+      // Custom Marker Icon (Optional: Aap apna icon bhi daal sakte hain)
+      const customIcon = L.icon({
+        iconUrl: 'assets/marker-icon.png', // Check karein ye file assets mein ho
+        shadowUrl: 'assets/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41]
+      });
+
+      // Marker placement
+      L.marker([lat, lng]).addTo(this.map)
+        .bindPopup(`<b>${this.attendance.geofence}</b><br>Marked here.`)
+        .openPopup();
+
+      // Fix for gray tiles issue
+      setTimeout(() => {
+        this.map.invalidateSize();
+      }, 200);
+
+    } catch (error) {
+      console.error("Map initialization failed", error);
+    }
   }
 
-  goBack() { this.navCtrl.back(); }
+  // Back Button Logic (Header ke glass-btn ke liye)
+  goBack() {
+    this.navCtrl.back();
+  }
 
-  ngOnDestroy() { if (this.map) this.map.remove(); }
+  // Memory Leak se bachne ke liye map destroy karein
+  ngOnDestroy() {
+    if (this.map) {
+      this.map.remove();
+    }
+  }
 }

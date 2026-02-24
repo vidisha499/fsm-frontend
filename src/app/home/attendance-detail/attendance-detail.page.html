@@ -1,50 +1,63 @@
 <ion-content [fullscreen]="true" class="premium-wrapper">
   <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
 
-  <div class="hero-header-mini">
+  <div class="hero-header">
     <div class="header-overlay"></div>
     <div class="header-content">
-      <div class="top-row">
-        <button (click)="goBack()" class="glass-btn">
-          <i class="fas fa-arrow-left"></i>
-        </button>
-        <h1>{{ 'ATTENDANCE.TITLE' | translate }} Details</h1>
+      <div class="nav-bar-stack">
+        <div class="top-row">
+          <button (click)="goBack()" class="glass-btn">
+            <ion-icon name="chevron-back-outline"></ion-icon>
+          </button>
+          <h1>{{ 'ATTENDANCE.TITLE' | translate }} Details</h1>
+        </div>
       </div>
     </div>
   </div>
 
   <div class="main-container" *ngIf="attendance">
+    
     <div class="detail-card photo-card">
-      <label class="group-label">Verified Selfie</label>
-      <div class="captured-photo-frame">
-        <img [src]="attendance.photo || 'assets/imgs/default-avatar.png'" alt="Selfie">
-        <div class="type-tag" [class.entry]="attendance.type === 'ENTRY'">{{ attendance.type }}</div>
+      <div class="card-header-line">
+        <span class="label">Verified Selfie</span>
+        <span class="badge" [class.entry]="attendance.type === 'ENTRY'">{{ attendance.type }}</span>
       </div>
-    </div>
-
-    <div class="detail-card map-card">
-      <label class="group-label">Location at Time of Mark</label>
-      <div class="map-view-container">
-        <div id="detailMap" style="height: 200px; width: 100%; border-radius: 15px;"></div>
+      <div class="image-frame">
+        <img [src]="attendance.photo" alt="Attendance Photo">
       </div>
     </div>
 
     <div class="detail-card info-card">
       <div class="info-item">
-        <ion-icon name="location-outline"></ion-icon>
-        <div class="text-box">
-          <small>Detected Geofence</small>
-          <p>{{ attendance.geofence }}</p>
+        <div class="icon-box"><ion-icon name="person"></ion-icon></div>
+        <div class="text-data">
+          <small>Ranger Name</small>
+          <p>{{ attendance.rangerName }}</p>
         </div>
       </div>
 
       <div class="info-item">
-        <ion-icon name="time-outline"></ion-icon>
-        <div class="text-box">
-          <small>Date & Time</small>
-          <p>{{ attendance.createdAt | date:'dd MMM yyyy • hh:mm a' }}</p>
+        <div class="icon-box"><ion-icon name="map"></ion-icon></div>
+        <div class="text-data">
+          <small>Region & Geofence</small>
+          <p>{{ attendance.region }} - {{ attendance.geofence }}</p>
+        </div>
+      </div>
+
+      <div class="info-item">
+        <div class="icon-box"><ion-icon name="time"></ion-icon></div>
+        <div class="text-data">
+          <small>Timestamp</small>
+          <p>{{ attendance.createdAt | date: 'dd MMM yyyy • hh:mm a' }}</p>
         </div>
       </div>
     </div>
+
+    <div class="detail-card map-card">
+      <span class="label">Location Visual</span>
+      <div id="detailMap" class="mini-map"></div>
+    </div>
+
   </div>
 </ion-content>

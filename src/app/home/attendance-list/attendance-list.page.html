@@ -1,65 +1,126 @@
-<ion-content [fullscreen]="true" class="premium-wrapper">
-  <div class="ambient-glow glow-1"></div>
-  <div class="ambient-glow glow-2"></div>
+<ion-content [fullscreen]="true">
+  <div class="premium-wrapper">
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
 
-  <div class="hero-header">
-    <div class="header-overlay"></div>
-    <div class="header-content">
-      <div class="nav-bar-stack">
-        <div class="top-row">
-          <button (click)="goBack()" class="glass-btn">
-            <i class="fas fa-arrow-left"></i>
-          </button>
-          <div class="title-meta">
-            <h1>{{ 'ATTENDANCE.LIST_TITLE' | translate }}</h1>
-            <div class="auth-badge">
-              <i class="fas fa-fingerprint"></i> BEAT LOG
+    <div class="hero-header">
+      <div class="header-overlay"></div>
+      <div class="header-content">
+        <div class="nav-bar">
+          <div class="left-section">
+            <button (click)="goBack()" class="glass-btn">
+              <ion-icon name="arrow-back-outline"></ion-icon>
+            </button>
+            <h1>Attendance History</h1>
+          </div>
+
+          <div class="right-section">
+        
+            <button class="filter-toggle-btn" id="open-attendance-filter">
+              <!-- <ion-icon name="options-outline"></ion-icon> -->
+               <i class="fas fa-sliders-h"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-container">
+      <div class="filter-active-chip" *ngIf="isFiltered">
+        <ion-chip (click)="clearFilter()">
+          <ion-label>{{ startDate | date:'dd MMM' }} - {{ endDate | date:'dd MMM' }}</ion-label>
+          <ion-icon name="close-circle"></ion-icon>
+        </ion-chip>
+      </div>
+
+      <div class="incident-list">
+        <div class="incident-row-compact animate__animated animate__fadeInUp" 
+             *ngFor="let log of attendanceLogs" 
+             (click)="viewDetails(log)">
+
+          <div class="mini-thumb">
+            <img [src]="log.photo || 'assets/imgs/user-placeholder.png'">
+            <div class="priority-indicator" [attr.data-type]="log.type"></div>
+          </div>
+
+          <div class="row-content">
+            <div class="top-line">
+              <span class="type-text" [attr.data-type]="log.type">{{ log.type }}</span>
+              <span class="log-date">{{ log.createdAt | date:'hh:mm a' }}</span>
+            </div>
+
+            <h2 class="priority-title">
+              {{ log.createdAt | date:'dd MMMM, yyyy' }}
+            </h2>
+
+            <div class="reporter-line">
+              <ion-icon name="location-outline"></ion-icon>
+              <span class="location-name">{{ log.geofence || 'General Area' }}</span>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-  </div>
 
-  <div class="main-container">
-    <div class="attendance-list" *ngIf="attendanceLogs.length > 0">
-      
-      <div class="incident-row-compact" *ngFor="let log of attendanceLogs" (click)="viewDetails(log)">
-        <div class="mini-thumb">
-          <img [src]="log.photo || 'assets/imgs/default-avatar.png'" alt="Selfie">
-          <div class="priority-indicator" [style.background]="log.type === 'ENTRY' ? '#10b981' : '#ef4444'"></div>
-        </div>
-
-        <div class="row-content">
-          <div class="top-line">
-            <span class="type-text" [style.color]="log.type === 'ENTRY' ? '#10b981' : '#ef4444'">
-              {{ log.type }}
-            </span>
-            <span class="log-date">{{ formatDate(log.createdAt) }}</span>
-          </div>
-          <div class="priority-title">{{ log.geofence || 'Location Captured' }}</div>
-          <div class="reporter-line">
-            <i class="fas fa-clock"></i> {{ log.createdAt | date:'hh:mm a' }}
-            <span class="photo-badge" *ngIf="log.photo">Verified</span>
+          <div class="row-actions">
+            <ion-button fill="clear" color="danger" (click)="confirmDelete($event, log.id)">
+              <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+            </ion-button>
+            <ion-icon name="chevron-forward" class="chevron"></ion-icon>
           </div>
         </div>
 
-        <div class="row-actions">
-          <i class="fas fa-chevron-right chevron"></i>
+        <div class="empty-state" *ngIf="attendanceLogs.length === 0">
+          <ion-icon name="calendar-clear-outline"></ion-icon>
+          <p>No attendance records found</p>
         </div>
       </div>
-
     </div>
 
-    <div class="empty-state" *ngIf="attendanceLogs.length === 0">
-      <i class="fas fa-clipboard-user"></i>
-      <p>{{ 'ATTENDANCE.NO_LOGS' | translate }}</p>
-    </div>
+    <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+      <ion-fab-button class="premium-fab" (click)="goToMarkAttendance()">
+        <ion-icon name="add"></ion-icon>
+      </ion-fab-button>
+    </ion-fab>
   </div>
-
-  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-    <ion-fab-button (click)="goToMarkAttendance()" class="premium-fab">
-      <ion-icon name="add"></ion-icon>
-    </ion-fab-button>
-  </ion-fab>
 </ion-content>
+
+<ion-modal #filterModal trigger="open-attendance-filter" [initialBreakpoint]="0.5" [breakpoints]="[0, 0.5, 0.9]" class="custom-bottom-card">
+  <ng-template>
+    <div class="modal-card-content">
+      <div class="modal-header">
+        <div class="drag-handle"></div>
+        <div class="title-row">
+          <ion-icon name="calendar-outline"></ion-icon>
+          <h3>Filter by Date</h3>
+        </div>
+        <p class="subtitle">Select date range for attendance logs</p>
+      </div>
+
+      <div class="filter-body">
+        <div class="date-row">
+          <span class="label">FROM</span>
+          <ion-datetime-button datetime="att-start"></ion-datetime-button>
+        </div>
+        <div class="date-row">
+          <span class="label">TO</span>
+          <ion-datetime-button datetime="att-end"></ion-datetime-button>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="apply-btn" (click)="applyFilter()">Apply Filter</button>
+        <button class="clear-btn" (click)="clearFilter()">Reset All Filters</button>
+      </div>
+    </div>
+  </ng-template>
+</ion-modal>
+
+<ion-popover [keepContentsMounted]="true">
+  <ng-template>
+    <ion-datetime id="att-start" presentation="date" [(ngModel)]="startDate" [max]="maxDate" [showDefaultButtons]="true"></ion-datetime>
+  </ng-template>
+</ion-popover>
+
+<ion-popover [keepContentsMounted]="true">
+  <ng-template>
+    <ion-datetime id="att-end" presentation="date" [(ngModel)]="endDate" [max]="maxDate" [showDefaultButtons]="true"></ion-datetime>
+  </ng-template>
+</ion-popover>
