@@ -1,0 +1,65 @@
+<ion-content [fullscreen]="true" class="premium-wrapper">
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
+  <div class="hero-header">
+    <div class="header-overlay"></div>
+    <div class="header-content">
+      <div class="nav-bar-stack">
+        <div class="top-row">
+          <button (click)="goBack()" class="glass-btn">
+            <i class="fas fa-arrow-left"></i>
+          </button>
+          <div class="title-meta">
+            <h1>{{ 'ATTENDANCE.LIST_TITLE' | translate }}</h1>
+            <div class="auth-badge">
+              <i class="fas fa-fingerprint"></i> BEAT LOG
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <div class="attendance-list" *ngIf="attendanceLogs.length > 0">
+      
+      <div class="incident-row-compact" *ngFor="let log of attendanceLogs" (click)="viewDetails(log)">
+        <div class="mini-thumb">
+          <img [src]="log.photo || 'assets/imgs/default-avatar.png'" alt="Selfie">
+          <div class="priority-indicator" [style.background]="log.type === 'ENTRY' ? '#10b981' : '#ef4444'"></div>
+        </div>
+
+        <div class="row-content">
+          <div class="top-line">
+            <span class="type-text" [style.color]="log.type === 'ENTRY' ? '#10b981' : '#ef4444'">
+              {{ log.type }}
+            </span>
+            <span class="log-date">{{ formatDate(log.createdAt) }}</span>
+          </div>
+          <div class="priority-title">{{ log.geofence || 'Location Captured' }}</div>
+          <div class="reporter-line">
+            <i class="fas fa-clock"></i> {{ log.createdAt | date:'hh:mm a' }}
+            <span class="photo-badge" *ngIf="log.photo">Verified</span>
+          </div>
+        </div>
+
+        <div class="row-actions">
+          <i class="fas fa-chevron-right chevron"></i>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="empty-state" *ngIf="attendanceLogs.length === 0">
+      <i class="fas fa-clipboard-user"></i>
+      <p>{{ 'ATTENDANCE.NO_LOGS' | translate }}</p>
+    </div>
+  </div>
+
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button (click)="goToMarkAttendance()" class="premium-fab">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>

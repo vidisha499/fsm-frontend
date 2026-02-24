@@ -84,13 +84,20 @@
           </div>
         </div>
 
-        <div class="input-pill">
+        <!-- <div class="input-pill">
           <label>{{ 'INCIDENT.TIME_LABEL' | translate }}</label>
           <div class="pill-content">
             <i class="fas fa-calendar-day"></i>
             <span class="val">{{ incident?.createdAt | date:'MMMM d, yyyy • h:mm a' }}</span>
           </div>
-        </div>
+        </div> -->
+        <div class="input-pill">
+  <label>{{ 'INCIDENT.TIME_LABEL' | translate }}</label>
+  <div class="pill-content">
+    <i class="fas fa-calendar-day"></i>
+    <span class="val">{{ formatDetailDate(incident?.createdAt) }}</span>
+  </div>
+</div>
 
       </div>
 

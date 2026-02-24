@@ -38,7 +38,8 @@ const routes: Routes = [
   {
     path: 'enroll',
     loadChildren: () => import('./enroll/enroll.module').then( m => m.EnrollPageModule)
-  },  {
+  },
+  {
     path: 'incident-detail',
     loadChildren: () => import('./incident-detail/incident-detail.module').then( m => m.IncidentDetailPageModule)
   },
@@ -59,12 +60,22 @@ const routes: Routes = [
     loadChildren: () => import('./location/location.module').then( m => m.LocationPageModule)
   },
   {
+
     path: 'onsite-attendance-logs',
     loadChildren: () => import('./onsite-attendance-logs/onsite-attendance-logs.module').then( m => m.OnsiteAttendanceLogsPageModule)
   },
   {
     path: 'onsite-attendance-details',
     loadChildren: () => import('./onsite-attendance-details/onsite-attendance-details.module').then( m => m.OnsiteAttendanceDetailsPageModule)
+  },
+  {
+    path: 'attendance-list',
+    loadChildren: () => import('./attendance-list/attendance-list.module').then( m => m.AttendanceListPageModule)
+  },
+  {
+    path: 'attendance-detail',
+    loadChildren: () => import('./attendance-detail/attendance-detail.module').then( m => m.AttendanceDetailPageModule)
+
   },
 
  
