@@ -59,7 +59,14 @@
       </div>
     </ng-template>
 
-    <button (click)="setOpen(true)" class="floating-action-btn"><i class="fas fa-plus"></i></button>
+    <!-- <button (click)="setOpen(true)" class="floating-action-btn"><i class="fas fa-plus"></i></button> -->
+
+    <div class="fab-container">
+  <div class="fab-tooltip">Mark Onsite Attendance</div>
+  <button class="fab-circle" (click)="setOpen(true)">
+    <ion-icon name="add-outline"></ion-icon>
+  </button>
+</div>
   </div>
 
   <ion-modal [isOpen]="isModalOpen" (didDismiss)="setOpen(false)" [initialBreakpoint]="0.5" [breakpoints]="[0, 0.5, 0.8]">

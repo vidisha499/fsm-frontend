@@ -294,3 +294,65 @@ ion-select { --placeholder-color: #475569; --placeholder-opacity: 1; color: #061
     }
   }
 }
+
+.fab-container {
+  position: fixed;
+  bottom: 40px; // Space from the bottom edge
+  right: 25px;  // Space from the right edge
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  z-index: 1000;
+
+  .fab-tooltip {
+    background: rgba(15, 23, 42, 0.9); // Matching the dark header theme
+    color: white;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    opacity: 0; // Hidden by default
+    transform: translateY(10px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .fab-circle {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #0f172a; // Deep midnight black/blue from image
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: transform 0.2s ease, background 0.2s ease;
+
+    ion-icon {
+      font-size: 30px; // Clean, bold plus icon
+    }
+
+    &:active {
+      transform: scale(0.92);
+      background: #1e293b;
+    }
+  }
+
+  // Hover logic: Show tooltip and slightly enlarge button
+  &:hover {
+    .fab-tooltip {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .fab-circle {
+      transform: scale(1.05);
+      background: #1e293b;
+    }
+  }
+}

@@ -1,0 +1,173 @@
+
+
+<ion-content [fullscreen]="true" class="premium-wrapper">
+  <div class="header-container">
+    <div class="header-overlay"></div>
+    <div class="nav-content">
+      <div class="top-row">
+        <button class="glass-back" (click)="goBack()">
+          <ion-icon name="arrow-back-outline"></ion-icon>
+        </button>
+        <div class="title-wrapper">
+          <h1>Attendance Logs</h1>
+        </div>
+        <!-- <button class="glass-back">
+          <ion-icon name="options-outline"></ion-icon>
+        </button> -->
+
+        <button class="glass-back" (click)="isModalOpen = true">
+          <ion-icon name="options-outline"></ion-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+
+<div class="logs-container">
+ <div class="log-card animate-in" *ngFor="let log of filteredLogs" (click)="viewDetails(log)">
+    <button class="btn-delete-top" (click)="deleteLog(log.id, $event)">
+      <ion-icon name="trash-outline"></ion-icon>
+    </button>
+
+    <div class="card-inner">
+      <div class="icon-section">
+        <div class="icon-blob-medium">
+          <i class="fas fa-fingerprint"></i>
+        </div>
+      </div>
+
+      <div class="info-section">
+        <div class="top-meta">
+          <span class="type-label">WORK SHIFT</span>
+          <span class="status-dot"></span>
+        </div>
+        
+        <h3 class="date-text-inline">
+          {{ log.created_at | date: 'EEE, MMM dd' }} &bull; {{ log.created_at | date: 'hh:mm a' }}
+        </h3>
+        
+        <p class="location-text-full">
+          <ion-icon name="location-outline"></ion-icon>
+          {{ log.geofence || 'Verified On-Site Location' }}
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <div class="fab-wrapper">
+    <div class="tooltip">Mark Onsite Attendance</div>
+    <button class="fab-main" (click)="goToMarkAttendance()">
+      <ion-icon name="add-outline"></ion-icon>
+    </button>
+  </div>
+
+  <!-- <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false" [initialBreakpoint]="0.5" [breakpoints]="[0, 0.5, 0.8]">
+    <ng-template>
+      <ion-header class="ion-no-border">
+        <ion-toolbar>
+          <ion-title>Filter Logs</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="isModalOpen = false">Close</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="ion-padding">
+        <div class="filter-group">
+          <ion-item lines="none" class="filter-item">
+            <ion-label position="stacked">Location / Geofence</ion-label>
+            <ion-input type="text" [(ngModel)]="filters.location" placeholder="Search location..."></ion-input>
+          </ion-item>
+
+          <ion-item lines="none" class="filter-item">
+            <ion-label position="stacked">From Date</ion-label>
+            <ion-datetime-button datetime="fromDate"></ion-datetime-button>
+          </ion-item>
+
+          <ion-item lines="none" class="filter-item">
+            <ion-label position="stacked">To Date</ion-label>
+            <ion-datetime-button datetime="toDate"></ion-datetime-button>
+          </ion-item>
+        </div>
+
+        <ion-button expand="block" class="apply-btn" (click)="applyFilters()">
+          Apply Filters
+        </ion-button>
+        <ion-button expand="block" fill="clear" color="medium" (click)="resetFilters()">
+          Reset
+        </ion-button>
+
+        <ion-popover [keepContentsMounted]="true">
+          <ng-template>
+            <ion-datetime id="fromDate" presentation="date" [(ngModel)]="filters.fromDate"></ion-datetime>
+          </ng-template>
+        </ion-popover>
+        <ion-popover [keepContentsMounted]="true">
+          <ng-template>
+            <ion-datetime id="toDate" presentation="date" [(ngModel)]="filters.toDate"></ion-datetime>
+          </ng-template>
+        </ion-popover>
+      </ion-content>
+    </ng-template>
+  </ion-modal> -->
+
+
+  <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false" [initialBreakpoint]="0.6" [breakpoints]="[0, 0.6, 0.9]">
+  <ng-template>
+    <ion-content class="filter-modal-content">
+      <div class="modal-handle"></div>
+
+      <div class="custom-modal-header">
+        <div class="header-left">
+          <ion-icon name="calendar-outline" class="title-icon"></ion-icon>
+          <div class="title-stack">
+            <h2>Filter by Date</h2>
+            <p>Select date range to filter logs</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-container">
+        <div class="filter-row">
+          <span class="label">LOCATION</span>
+          <ion-input [(ngModel)]="filters.location" placeholder="All locations" class="custom-input"></ion-input>
+        </div>
+
+        <div class="filter-row">
+          <span class="label">FROM</span>
+          <ion-datetime-button datetime="fromDate"></ion-datetime-button>
+        </div>
+
+        <div class="filter-row">
+          <span class="label">TO</span>
+          <ion-datetime-button datetime="toDate"></ion-datetime-button>
+        </div>
+      </div>
+
+      <div class="button-group">
+        <ion-button expand="block" class="apply-btn" (click)="applyFilters()">
+          Apply Filter
+        </ion-button>
+        
+        <button class="reset-link" (click)="resetFilters()">
+          Reset All Filters
+        </button>
+      </div>
+
+      <ion-popover [keepContentsMounted]="true">
+        <ng-template>
+          <ion-datetime id="fromDate" presentation="date" [(ngModel)]="filters.fromDate" [max]="today"></ion-datetime>
+        </ng-template>
+      </ion-popover>
+      <ion-popover [keepContentsMounted]="true">
+        <ng-template>
+          <ion-datetime id="toDate" presentation="date" [(ngModel)]="filters.toDate" [max]="today"></ion-datetime>
+        </ng-template>
+      </ion-popover>
+
+    </ion-content>
+  </ng-template>
+</ion-modal>
+</ion-content>

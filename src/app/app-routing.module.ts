@@ -61,14 +61,15 @@ const routes: Routes = [
     // ADD THIS BLOCK
     path: 'location',
     loadChildren: () => import('./home/location/location.module').then(m => m.LocationPageModule)
-  },  {
-    path: 'home',
-    loadChildren: () => import('./onsite-attendance-logs/home/home.module').then( m => m.HomePageModule)
   },
-  {
-    path: 'home',
-    loadChildren: () => import('./onsite-attendance-details/home/home.module').then( m => m.HomePageModule)
-  },
+{
+  path: 'onsite-attendance-logs',
+  loadChildren: () => import('./home/onsite-attendance-logs/onsite-attendance-logs.module').then(m => m.OnsiteAttendanceLogsPageModule)
+},
+{
+  path: 'onsite-attendance-details',
+  loadChildren: () => import('./home/onsite-attendance-details/onsite-attendance-details.module').then(m => m.OnsiteAttendanceDetailsPageModule)
+}
 
 
 ];

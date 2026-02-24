@@ -58,6 +58,14 @@ const routes: Routes = [
     path: 'location',
     loadChildren: () => import('./location/location.module').then( m => m.LocationPageModule)
   },
+  {
+    path: 'onsite-attendance-logs',
+    loadChildren: () => import('./onsite-attendance-logs/onsite-attendance-logs.module').then( m => m.OnsiteAttendanceLogsPageModule)
+  },
+  {
+    path: 'onsite-attendance-details',
+    loadChildren: () => import('./onsite-attendance-details/onsite-attendance-details.module').then( m => m.OnsiteAttendanceDetailsPageModule)
+  },
 
  
  

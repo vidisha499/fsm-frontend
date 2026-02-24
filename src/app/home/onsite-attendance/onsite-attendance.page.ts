@@ -216,7 +216,8 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
         this.presentToast(successMsg, 'success');
         setTimeout(() => {
           this.isSubmitting = false;
-          this.navCtrl.navigateRoot('/home');
+          // this.navCtrl.navigateRoot('/home');
+          this.navCtrl.navigateRoot('/onsite-attendance-logs');
         }, 1500);
       },
       error: async () => {
