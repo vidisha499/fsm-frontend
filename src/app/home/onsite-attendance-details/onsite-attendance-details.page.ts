@@ -58,26 +58,67 @@ loadDetails(id: string) {
   });
 }
 
+// initMap(lat: number, lng: number) {
+//   if (this.map) { this.map.remove(); }
+
+//   this.map = L.map('attendanceMap', {
+//     zoomControl: false,
+//     attributionControl: false
+//   }).setView([lat, lng], 16); // Standard street zoom level
+
+//   // STANDARD STREET VIEW
+//   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(this.map);
+
+//   setTimeout(() => {
+//     this.map.invalidateSize();
+//   }, 300);
+
+//   const markerIcon = L.divIcon({
+//     className: 'custom-div-icon',
+//     html: `<div style='background-color:#0d9488; width:14px; height:14px; border-radius:50%; border:2px solid white; box-shadow:0 0 10px rgba(0,0,0,0.3);'></div>`,
+//     iconSize: [14, 14],
+//     iconAnchor: [7, 7]
+//   });
+
+//   L.marker([lat, lng], { icon: markerIcon }).addTo(this.map);
+// }
+
+
 initMap(lat: number, lng: number) {
   if (this.map) { this.map.remove(); }
 
+  // 1. Initialize map with the same clean settings
   this.map = L.map('attendanceMap', {
     zoomControl: false,
     attributionControl: false
-  }).setView([lat, lng], 16); // Standard street zoom level
+  }).setView([lat, lng], 16);
 
-  // STANDARD STREET VIEW
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(this.map);
+  // 2. CHANGE THIS: Use the Google Maps Roadmap tiles
+  L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+    maxZoom: 20,
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+  }).addTo(this.map);
 
+  // Trigger size recalculation to fix gray tiles
   setTimeout(() => {
     this.map.invalidateSize();
-  }, 300);
+  }, 400);
 
+  // 3. Premium Marker: Using your theme color (#0d9488) 
+  // but with the "Google GPS dot" style
   const markerIcon = L.divIcon({
     className: 'custom-div-icon',
-    html: `<div style='background-color:#0d9488; width:14px; height:14px; border-radius:50%; border:2px solid white; box-shadow:0 0 10px rgba(0,0,0,0.3);'></div>`,
-    iconSize: [14, 14],
-    iconAnchor: [7, 7]
+    html: `
+      <div style="
+        background-color: #0d9488; 
+        width: 16px; 
+        height: 16px; 
+        border-radius: 50%; 
+        border: 3px solid white; 
+        box-shadow: 0 0 15px rgba(13, 148, 136, 0.5);
+      "></div>`,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8]
   });
 
   L.marker([lat, lng], { icon: markerIcon }).addTo(this.map);

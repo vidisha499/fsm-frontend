@@ -85,13 +85,21 @@
   position: relative;
   overflow: hidden;
 
-  #map { 
-    height: 100%; 
-    width: 100%; 
-    border-radius: 26px; 
-    z-index: 1; 
-    filter: saturate(0.8) contrast(1.1);
-  }
+#map { 
+  height: 100%; 
+  width: 100%; 
+  border-radius: 26px; 
+  z-index: 1; 
+  // Adjusted filter for a cleaner, modern tech look
+  filter: saturate(1.1) contrast(1.05) brightness(1.02);
+}
+
+// Style for the blue dot marker we added in TS
+.current-loc-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
   .map-loader {
     position: absolute;
