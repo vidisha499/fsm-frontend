@@ -19,7 +19,10 @@
               <span>SECURE LOG</span>
             </div>
             
-            <button class="filter-toggle-btn" id="open-filter">
+            <!-- <button class="filter-toggle-btn" id="open-filter">
+              <i class="fas fa-sliders-h"></i>
+            </button> -->
+                 <button class="filter-toggle-btn"  (click)="isModalOpen = true">
               <i class="fas fa-sliders-h"></i>
             </button>
           </div>
@@ -67,49 +70,53 @@
       </ng-template>
     </ion-modal> -->
 
-<ion-modal #filterModal trigger="open-filter" [initialBreakpoint]="0.5" [breakpoints]="[0, 0.5, 0.9]" class="custom-bottom-card">
+
+<ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false" class="custom-bottom-card">
   <ng-template>
     <div class="modal-card-content">
       <div class="modal-header">
-        <div class="drag-handle"></div>
         <div class="title-row">
           <ion-icon name="calendar-outline"></ion-icon>
           <h3>Filter by Date</h3>
         </div>
-        <p class="subtitle">Select date range to filter incidents</p>
+        <p class="subtitle">Select date range and location to filter logs</p>
       </div>
 
       <div class="filter-body">
+        <!-- <div class="date-row">
+          <span class="label">LOCATION</span>
+          <ion-input [(ngModel)]="filters.location" placeholder="All locations" class="ion-text-end custom-input"></ion-input>
+        </div> -->
+
         <div class="date-row">
           <span class="label">FROM</span>
-          <ion-datetime-button datetime="start-picker"></ion-datetime-button>
+          <ion-datetime-button datetime="fromDate"></ion-datetime-button>
         </div>
 
         <div class="date-row">
           <span class="label">TO</span>
-          <ion-datetime-button datetime="end-picker"></ion-datetime-button>
+          <ion-datetime-button datetime="toDate"></ion-datetime-button>
         </div>
       </div>
 
       <div class="modal-footer">
-        <button class="apply-btn" (click)="applyFilter()">Apply Filter</button>
-        <button class="clear-btn" (click)="clearFilter()">Reset All Filters</button>
+        <button class="apply-btn" (click)="applyFilters()">Apply Filter</button>
+        <button class="clear-btn" (click)="resetFilters()">Reset All Filters</button>
       </div>
     </div>
+
+    <ion-popover [keepContentsMounted]="true">
+      <ng-template>
+        <ion-datetime id="fromDate" presentation="date" [(ngModel)]="filters.fromDate" [max]="today" [showDefaultButtons]="true"></ion-datetime>
+      </ng-template>
+    </ion-popover>
+    <ion-popover [keepContentsMounted]="true">
+      <ng-template>
+        <ion-datetime id="toDate" presentation="date" [(ngModel)]="filters.toDate" [max]="today" [showDefaultButtons]="true"></ion-datetime>
+      </ng-template>
+    </ion-popover>
   </ng-template>
 </ion-modal>
-
-<ion-popover [keepContentsMounted]="true">
-  <ng-template>
-    <ion-datetime id="start-picker" presentation="date" [(ngModel)]="startDate" [max]="maxDate" [showDefaultButtons]="true"></ion-datetime>
-  </ng-template>
-</ion-popover>
-
-<ion-popover [keepContentsMounted]="true">
-  <ng-template>
-    <ion-datetime id="end-picker" presentation="date" [(ngModel)]="endDate" [max]="maxDate" [showDefaultButtons]="true"></ion-datetime>
-  </ng-template>
-</ion-popover>
 
     <div class="main-container">
       <div class="status-tabs-wrapper">
@@ -159,7 +166,7 @@
 
           <div class="row-actions">
             <ion-button fill="clear" color="danger" (click)="confirmDelete($event, item.id)">
-              <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+              <ion-icon slot="icon-only" name="trash-outline" style="font-size: 19px;"></ion-icon>
             </ion-button>
             <ion-icon name="chevron-forward" class="chevron"></ion-icon>
           </div>
