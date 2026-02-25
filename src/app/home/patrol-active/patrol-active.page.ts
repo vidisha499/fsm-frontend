@@ -235,27 +235,30 @@ private createSightingIcon(category: string) {
   
 
 
-  async startTracking() {
-    this.gpsWatchId = await Geolocation.watchPosition({ 
-      enableHighAccuracy: true,
-      maximumAge: 3000 
-    }, (position) => {
-      if (position && this.map) {
-        const current = L.latLng(position.coords.latitude, position.coords.longitude);
-        this.marker.setLatLng(current);
-        
-        if (this.lastLatLng) {
-          const dist = this.lastLatLng.distanceTo(current);
-          if (dist > 10) { // Sync only if moved 10+ meters
-            this.totalDistanceKm += (dist / 1000);
-            this.syncLocation(current.lat, current.lng);
-          }
+async startTracking() {
+  this.gpsWatchId = await Geolocation.watchPosition({ 
+    enableHighAccuracy: true,
+    maximumAge: 3000 
+  }, (position) => {
+    if (position && this.map) {
+      const current = L.latLng(position.coords.latitude, position.coords.longitude);
+      this.marker.setLatLng(current);
+      
+      // ADD THIS LINE: Push the new point to your local array
+      this.routePoints.push({ lat: current.lat, lng: current.lng });
+
+      if (this.lastLatLng) {
+        const dist = this.lastLatLng.distanceTo(current);
+        if (dist > 10) { 
+          this.totalDistanceKm += (dist / 1000);
+          this.syncLocation(current.lat, current.lng);
         }
-        this.lastLatLng = current;
-        this.cdr.detectChanges();
       }
-    });
-  }
+      this.lastLatLng = current;
+      this.cdr.detectChanges();
+    }
+  });
+}
 
   syncLocation(lat: number, lng: number) {
     if (this.activePatrolId) {
@@ -302,6 +305,7 @@ private createSightingIcon(category: string) {
       duration: this.timerDisplay,
       status: 'COMPLETED',
       photos: this.capturedPhotos, 
+      route: this.routePoints,
       observationData: { Details: this.recentSightings }
     };
 

@@ -1,3 +1,7 @@
+
+
+
+
 <ion-content [fullscreen]="true">
   <div class="premium-wrapper">
     <div class="ambient-glow glow-1"></div>
@@ -40,6 +44,13 @@
             </div>
           </div>
           <p class="counter-text">{{ capturedPhotos.length }} / 5 {{ 'REPORT.PHOTOS_COUNT' | translate }}</p>
+        </div>
+
+        <div class="map-preview-container animate__animated animate__fadeIn">
+          <div id="incidentMap" style="height: 180px; width: 100%; border-radius: 15px; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 8px;"></div>
+          <div class="location-status" style="padding-left: 5px; margin-bottom: 15px;">
+            <small style="color: #64748b;"><i class="fas fa-map-marker-alt"></i> {{ lat }}, {{ lng }}</small>
+          </div>
         </div>
 
         <div class="input-stack">

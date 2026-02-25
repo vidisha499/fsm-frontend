@@ -3,6 +3,8 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ActionSheetController, NavController, ToastController, LoadingController } from '@ionic/angular';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { TranslateService } from '@ngx-translate/core';
+import * as L from 'leaflet';
+import { Geolocation } from '@capacitor/geolocation';
 
 @Component({
   selector: 'app-new-incident',
@@ -17,6 +19,9 @@ export class NewIncidentPage implements OnInit {
   public textOpacity: number = 1;
   private startX: number = 0;
   private maxSlide: number = 0;
+  map: any;
+  lat: any = 'Detecting...';
+  lng: any = 'Detecting...';
   
   public incidentData = {
     priority: 'High Priority',
@@ -37,7 +42,46 @@ export class NewIncidentPage implements OnInit {
     private translate: TranslateService
   ) { }
 
-  ngOnInit() { }
+ ngOnInit() { 
+  setTimeout(() => {
+    this.initIncidentMap();
+  }, 600);
+}
+
+async initIncidentMap() {
+  try {
+    const coordinates = await Geolocation.getCurrentPosition();
+    this.lat = coordinates.coords.latitude.toFixed(6);
+    this.lng = coordinates.coords.longitude.toFixed(6);
+
+    // Create map
+    this.map = L.map('incidentMap', {
+      zoomControl: false,
+      attributionControl: false
+    }).setView([this.lat, this.lng], 15);
+
+    // Add Google Maps layer
+    L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+      maxZoom: 20,
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+    }).addTo(this.map);
+
+    // Add the 📍 icon we used in the previous page
+    const incidentIcon = L.divIcon({
+      className: 'incident-pin',
+      html: `<div style="font-size: 24px;">📍</div>`,
+      iconSize: [30, 30],
+      iconAnchor: [15, 30]
+    });
+
+    L.marker([this.lat, this.lng], { icon: incidentIcon }).addTo(this.map);
+
+  } catch (error) {
+    console.error('Error getting location', error);
+    this.lat = 'Location Error';
+    this.lng = 'Location Error';
+  }
+}
 
   goBack() { this.navCtrl.back(); }
 
@@ -80,57 +124,114 @@ export class NewIncidentPage implements OnInit {
 
   removePhoto(index: number) { this.capturedPhotos.splice(index, 1); }
 
-  async submitReport() {
-    if (this.isSubmitting) return;
+  // async submitReport() {
+  //   if (this.isSubmitting) return;
 
-    if (!this.capturedPhotos.length) {
-      const msg = await this.translate.get('REPORT.PHOTO_REQ_MSG').toPromise();
-      this.presentToast(msg, 'warning');
-      this.resetSlider();
-      return; 
-    }
+  //   if (!this.capturedPhotos.length) {
+  //     const msg = await this.translate.get('REPORT.PHOTO_REQ_MSG').toPromise();
+  //     this.presentToast(msg, 'warning');
+  //     this.resetSlider();
+  //     return; 
+  //   }
 
-    const rangerId = localStorage.getItem('ranger_id');
-    if (!rangerId) {
-      this.presentToast('Session expired.', 'danger');
-      this.resetSlider();
-      return;
-    }
+  //   const rangerId = localStorage.getItem('ranger_id');
+  //   if (!rangerId) {
+  //     this.presentToast('Session expired.', 'danger');
+  //     this.resetSlider();
+  //     return;
+  //   }
 
-    this.isSubmitting = true;
-    this.textOpacity = 0;
+  //   this.isSubmitting = true;
+  //   this.textOpacity = 0;
     
-    const container = document.querySelector('.slider-track');
-    if (container) this.maxSlide = container.clientWidth - 64;
-    this.currentTranslateX = this.maxSlide;
-    this.cdr.detectChanges();
+  //   const container = document.querySelector('.slider-track');
+  //   if (container) this.maxSlide = container.clientWidth - 64;
+  //   this.currentTranslateX = this.maxSlide;
+  //   this.cdr.detectChanges();
 
-    const payload = {
-      rangerId: +rangerId,
-      photos: this.capturedPhotos, 
-      responsePriority: this.incidentData.priority,
-      incidentCriteria: this.incidentData.criteria,
-      rootCause: this.incidentData.cause,
-      fieldObservation: this.incidentData.observation
-    };
+  //   const payload = {
+  //     rangerId: +rangerId,
+  //     photos: this.capturedPhotos, 
+  //     responsePriority: this.incidentData.priority,
+  //     incidentCriteria: this.incidentData.criteria,
+  //     rootCause: this.incidentData.cause,
+  //     latitude: parseFloat(this.lat),
+  //   longitude: parseFloat(this.lng),
+  //     fieldObservation: this.incidentData.observation
+  //   };
 
-    this.http.post(this.apiUrl, payload).subscribe({
-      next: async () => {
-        const successMsg = await this.translate.get('REPORT.SUCCESS_MSG').toPromise();
-        this.presentToast(successMsg, 'success');
-        setTimeout(() => {
-          this.isSubmitting = false;
-          this.navCtrl.back();
-        }, 1500);
-      },
-      error: async () => {
-        this.isSubmitting = false;
-        this.resetSlider();
-        const errMsg = await this.translate.get('REPORT.ERROR_MSG').toPromise();
-        this.presentToast(errMsg, 'danger');
-      }
-    });
+  //   this.http.post(this.apiUrl, payload).subscribe({
+  //     next: async () => {
+  //       const successMsg = await this.translate.get('REPORT.SUCCESS_MSG').toPromise();
+  //       this.presentToast(successMsg, 'success');
+  //       setTimeout(() => {
+  //         this.isSubmitting = false;
+  //         this.navCtrl.back();
+  //       }, 1500);
+  //     },
+  //     error: async () => {
+  //       this.isSubmitting = false;
+  //       this.resetSlider();
+  //       const errMsg = await this.translate.get('REPORT.ERROR_MSG').toPromise();
+  //       this.presentToast(errMsg, 'danger');
+  //     }
+  //   });
+  // }
+
+
+ async submitReport() {
+  if (this.isSubmitting) return;
+
+  const rawRangerId = localStorage.getItem('ranger_id');
+  if (!rawRangerId) {
+    this.presentToast('Error: Ranger ID not found.', 'danger');
+    this.resetSlider();
+    return;
   }
+
+  // Double-check these variables are numbers
+  if (this.lat === 'Detecting...' || this.lat === 'Location Error') {
+    this.presentToast('Waiting for GPS...', 'warning');
+    this.resetSlider();
+    return;
+  }
+
+  this.isSubmitting = true;
+
+  const payload = {
+    rangerId: +rawRangerId, 
+    photos: this.capturedPhotos,
+    responsePriority: this.incidentData.priority,
+    incidentCriteria: this.incidentData.criteria,
+    rootCause: this.incidentData.cause,
+    fieldObservation: this.incidentData.observation,
+    // THE CRITICAL LINES:
+    latitude: parseFloat(this.lat),
+    longitude: parseFloat(this.lng)
+  };
+
+  console.log('SENDING PAYLOAD:', payload); // Look for this in your browser console!
+
+  this.http.post(this.apiUrl, payload).subscribe({
+    next: async (response) => {
+      // 1. Show success message
+      const successMsg = await this.translate.get('REPORT.SUCCESS_MSG').toPromise();
+      this.presentToast(successMsg || 'Incident reported successfully!', 'success');
+      
+      // 2. Clear state and go back to home
+      setTimeout(() => {
+        this.isSubmitting = false;
+        this.navCtrl.back();
+      }, 1500);
+    },
+    error: (err) => {
+      console.error('SERVER ERROR:', err); // Check this in F12 console
+      this.isSubmitting = false;
+      this.resetSlider();
+      this.presentToast('Failed to submit. Check server limits.', 'danger');
+    }
+  });
+}
 
   private resetSlider() {
     this.currentTranslateX = 0;
@@ -176,4 +277,10 @@ export class NewIncidentPage implements OnInit {
       this.resetSlider();
     }
   }
+
+  ngOnDestroy() {
+  if (this.map) {
+    this.map.remove();
+  }
+}
 }

@@ -43,6 +43,16 @@
       </div>
 
       <div class="form-grid">
+
+        <div class="input-pill">
+  <label>{{ 'INCIDENT.LOCATION_LABEL' | translate }}</label>
+  <div class="pill-content map-wrapper">
+    <div id="detailMap" style="height: 200px; width: 100%; border-radius: 12px; margin-top: 8px; z-index: 1;"></div>
+    <div class="coords-overlay">
+       {{ incident?.latitude }}, {{ incident?.longitude }}
+    </div>
+  </div>
+</div>
         
         <div class="input-pill">
           <label>{{ 'INCIDENT.OBSERVATION_LABEL' | translate }}</label>

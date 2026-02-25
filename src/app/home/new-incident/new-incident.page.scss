@@ -255,3 +255,18 @@
   }
 }
 }
+
+.map-preview-container {
+  margin: 15px 0;
+  padding: 0 5px;
+  
+  .location-status {
+    margin-top: 8px;
+    padding-left: 5px;
+    font-size: 0.8rem;
+  }
+}
+
+#incidentMap {
+  z-index: 1; /* Ensure map stays below glassmorphism overlays if any */
+}

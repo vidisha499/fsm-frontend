@@ -190,3 +190,27 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+.map-wrapper {
+  display: block !important;
+  padding: 8px !important;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+
+  .coords-overlay {
+    font-size: 11px;
+    color: var(--ion-color-medium);
+    margin-top: 8px;
+    text-align: right;
+    font-family: monospace;
+  }
+}
+
+
+
+#detailMap {
+  height: 200px;
+  width: 100%;
+  border-radius: 12px;
+}
