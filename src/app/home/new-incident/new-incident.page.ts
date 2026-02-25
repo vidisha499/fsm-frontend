@@ -206,8 +206,8 @@ async initIncidentMap() {
     rootCause: this.incidentData.cause,
     fieldObservation: this.incidentData.observation,
     // THE CRITICAL LINES:
-    latitude: parseFloat(this.lat),
-    longitude: parseFloat(this.lng)
+ latitude: Number(this.lat), 
+  longitude: Number(this.lng)
   };
 
   console.log('SENDING PAYLOAD:', payload); // Look for this in your browser console!

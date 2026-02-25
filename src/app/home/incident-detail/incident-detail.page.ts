@@ -101,6 +101,9 @@ initDetailMap() {
 
   if (this.map) { this.map.remove(); }
 
+  const lat = parseFloat(this.incident.latitude);
+  const lng = parseFloat(this.incident.longitude)
+
   this.map = L.map('detailMap', {
     zoomControl: false,
     attributionControl: false

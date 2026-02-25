@@ -23,6 +23,7 @@ filterLocation: string = ''; // Location input ke liye
   endDate: string | undefined;
   maxDate: string = new Date().toISOString();
   isFiltered: boolean = false;
+  todayDateOnly: string = new Date().toISOString().split('T')[0]; // Format: "2026-02-25"
 
   filters = {
     location: '',
@@ -46,76 +47,199 @@ filterLocation: string = ''; // Location input ke liye
   ) {}
 
   ngOnInit() {
-    this.loadAttendanceLogs();
-    this.attendance = this.dataService.getSelectedAttendance();
+this.attendance = this.dataService.getSelectedAttendance();
     
-    if (!this.attendance) {
-      // Optional: Agar logic ki zaroorat na ho toh ise hata sakte hain
-      // this.navCtrl.navigateBack('/home/attendance-list');
-    }
   }
 
-  ionViewWillEnter() {
-    this.loadAttendanceLogs();
-  }
+  // async loadTodayOnly() {
+  // this.isFiltered = false; // Default view is not "manually filtered"
+  // this.startDate = this.todayDateOnly;
+  // this.endDate = this.todayDateOnly;
+  // this.loadAttendanceLogs(this.todayDateOnly, this.todayDateOnly);
+  // }
 
-  // UPDATE: Added 'from' and 'to' parameters to fix TS2554
-async loadAttendanceLogs(from?: string, to?: string) {
+  async loadTodayOnly() {
+  this.isFiltered = false;
+  this.startDate = this.todayDateOnly;
+  this.endDate = this.todayDateOnly;
+  this.filterLocation = '';
+  // Hum backend se saara data layenge aur fir filter karenge
+  await this.fetchAndFilter();
+}
+
+async fetchAndFilter() {
   const rangerId = localStorage.getItem('ranger_id');
   if (!rangerId) return;
 
   const loader = await this.loadingCtrl.create({
     message: 'Fetching Logs...',
-    spinner: 'crescent',
-    mode: 'ios'
+    spinner: 'crescent'
   });
   await loader.present();
 
-  // 1. URL Build Karein
-  let url = `${this.apiUrl}/ranger/${rangerId}`;
-  if (from && to) {
-    const formattedFrom = from.split('T')[0];
-    const formattedTo = to.split('T')[0];
-    url += `?startDate=${formattedFrom}&endDate=${formattedTo}`;
-  }
-
-  this.http.get(url).subscribe({
+  // Step 1: Backend se saara data mangwao (reliable tarika)
+  this.http.get(`${this.apiUrl}/ranger/${rangerId}`).subscribe({
     next: (data: any) => {
-      // 2. Data ko Format aur IST adjust karein
-      let formattedData = data.map((log: any) => {
+      // Step 2: Data Format karo
+      this.allLogs = data.map((log: any) => {
         const rawDate = log.created_at || log.createdAt; 
         const utcDate = new Date(rawDate);
-        const validDate = isNaN(utcDate.getTime()) ? new Date() : utcDate;
-
         const IST_OFFSET = 5.5 * 60 * 60 * 1000;
-        const adjustedDate = new Date(validDate.getTime() - IST_OFFSET);
-        
         return {
           ...log,
-          createdAt: adjustedDate.toISOString() 
+          createdAt: new Date(utcDate.getTime() - IST_OFFSET).toISOString()
         };
       });
 
-      // 3. 📍 LOCATION FILTER LOGIC (Yahan add kiya hai)
-      if (this.filterLocation && this.filterLocation.trim() !== '') {
-        const query = this.filterLocation.toLowerCase().trim();
-        formattedData = formattedData.filter((log: any) => {
-          // Check karein geofence ya location name mein query hai ya nahi
-          const locationName = (log.geofence || log.location_name || '').toLowerCase();
-          return locationName.includes(query);
-        });
-      }
-
-      this.attendanceLogs = formattedData;
+      // Step 3: Filter Apply karo (Aaj ka ya User ki select ki hui date ka)
+      this.applyFrontendLogic();
       loader.dismiss();
     },
     error: (err) => {
-      console.error("Fetch error:", err);
+      console.error(err);
       loader.dismiss();
     }
   });
 }
 
+
+applyFrontendLogic() {
+  if (!this.startDate || !this.endDate) {
+    const today = new Date().toISOString().split('T')[0];
+    this.attendanceLogs = this.allLogs.filter(log => log.createdAt.startsWith(today));
+    return;
+  }
+
+  const start = this.startDate.split('T')[0];
+  const end = this.endDate.split('T')[0];
+
+  this.attendanceLogs = this.allLogs.filter(log => {
+    const logDate = log.createdAt.split('T')[0];
+    const isWithinDate = logDate >= start && logDate <= end;
+    
+    let isMatchLocation = true;
+    if (this.filterLocation) {
+      const query = this.filterLocation.toLowerCase();
+      const locName = (log.geofence || log.location_name || '').toLowerCase();
+      isMatchLocation = locName.includes(query);
+    }
+    return isWithinDate && isMatchLocation;
+  });
+}
+
+  ionViewWillEnter() {
+   this.resetToToday();
+  }
+
+
+  async resetToToday() {
+  this.isFiltered = false;
+  this.filters.location = '';
+  
+  const todayStr = new Date().toISOString();
+  this.filters.fromDate = todayStr;
+  this.filters.toDate = todayStr;
+  
+  // Wapas "todayDateOnly" variable ko bhi sync karein agar use kar rahe hain
+  this.startDate = this.todayDateOnly;
+  this.endDate = this.todayDateOnly;
+
+  // Data fetch karein
+  await this.loadAttendanceLogs();
+}
+
+  // UPDATE: Added 'from' and 'to' parameters to fix TS2554
+// async loadAttendanceLogs(from?: string, to?: string) {
+//   const rangerId = localStorage.getItem('ranger_id');
+//   if (!rangerId) return;
+
+//   const loader = await this.loadingCtrl.create({
+//     message: 'Fetching Logs...',
+//     spinner: 'crescent',
+//     mode: 'ios'
+//   });
+//   await loader.present();
+
+//   // 1. URL Build Karein
+//   let url = `${this.apiUrl}/ranger/${rangerId}`;
+//   if (from && to) {
+//     const formattedFrom = from.split('T')[0];
+//     const formattedTo = to.split('T')[0];
+//     url += `?startDate=${formattedFrom}&endDate=${formattedTo}`;
+//   }
+
+//   this.http.get(url).subscribe({
+//     next: (data: any) => {
+//       // 2. Data ko Format aur IST adjust karein
+//       let formattedData = data.map((log: any) => {
+//         const rawDate = log.created_at || log.createdAt; 
+//         const utcDate = new Date(rawDate);
+//         const validDate = isNaN(utcDate.getTime()) ? new Date() : utcDate;
+
+//         const IST_OFFSET = 5.5 * 60 * 60 * 1000;
+//         const adjustedDate = new Date(validDate.getTime() - IST_OFFSET);
+        
+//         return {
+//           ...log,
+//           createdAt: adjustedDate.toISOString() 
+//         };
+//       });
+
+//       // 3. 📍 LOCATION FILTER LOGIC (Yahan add kiya hai)
+//       if (this.filterLocation && this.filterLocation.trim() !== '') {
+//         const query = this.filterLocation.toLowerCase().trim();
+//         formattedData = formattedData.filter((log: any) => {
+//           // Check karein geofence ya location name mein query hai ya nahi
+//           const locationName = (log.geofence || log.location_name || '').toLowerCase();
+//           return locationName.includes(query);
+//         });
+//       }
+
+//       this.attendanceLogs = formattedData;
+//       loader.dismiss();
+//     },
+//     error: (err) => {
+//       console.error("Fetch error:", err);
+//       loader.dismiss();
+//     }
+//   });
+// }
+
+async loadAttendanceLogs() {
+  const rangerId = localStorage.getItem('ranger_id');
+  if (!rangerId) return;
+
+  const loader = await this.loadingCtrl.create({
+    message: 'Fetching Logs...',
+    spinner: 'crescent'
+  });
+  await loader.present();
+
+  this.http.get(`${this.apiUrl}/ranger/${rangerId}`).subscribe({
+    next: (data: any) => {
+      // 1. Saara data format karke backup mein rakhein
+      this.allLogs = data.map((log: any) => {
+        const rawDate = log.created_at || log.createdAt; 
+        const utcDate = new Date(rawDate);
+        const IST_OFFSET = 5.5 * 60 * 60 * 1000;
+        return {
+          ...log,
+          createdAt: new Date(utcDate.getTime() - IST_OFFSET).toISOString()
+        };
+      });
+
+      // 2. Sirf AAJ ka data dikhayein (Starts with YYYY-MM-DD)
+      const today = new Date().toISOString().split('T')[0];
+      this.attendanceLogs = this.allLogs.filter(log => log.createdAt.startsWith(today));
+      
+      loader.dismiss();
+    },
+    error: (err) => {
+      console.error(err);
+      loader.dismiss();
+    }
+  });
+}
   // UPDATE: Event must be 'any' or 'Event' and come first as per HTML ($event, log.id)
   async confirmDelete(event: any, id: number) {
     if (event) event.stopPropagation(); 
@@ -162,50 +286,88 @@ async loadAttendanceLogs(from?: string, to?: string) {
     this.navCtrl.navigateRoot('/home');
   }
 
-applyFilters() {
-  // 1. Pehle Date Range ke liye API se fresh data layein
-  if (this.startDate && this.endDate) {
-    this.isFiltered = true;
+// applyFilters() {
+//   // 1. Pehle Date Range ke liye API se fresh data layein
+//   if (this.startDate && this.endDate) {
+//     this.isFiltered = true;
     
-    const rangerId = localStorage.getItem('ranger_id');
-    const formattedFrom = this.startDate.split('T')[0];
-    const formattedTo = this.endDate.split('T')[0];
-    let url = `${this.apiUrl}/ranger/${rangerId}?startDate=${formattedFrom}&endDate=${formattedTo}`;
+//     const rangerId = localStorage.getItem('ranger_id');
+//     const formattedFrom = this.startDate.split('T')[0];
+//     const formattedTo = this.endDate.split('T')[0];
+//     let url = `${this.apiUrl}/ranger/${rangerId}?startDate=${formattedFrom}&endDate=${formattedTo}`;
 
-    this.http.get(url).subscribe({
-      next: (data: any) => {
-        // Data format karein (IST adjustment)
-        let filtered = data.map((log: any) => {
-          const rawDate = log.created_at || log.createdAt;
-          return { ...log, createdAt: new Date(new Date(rawDate).getTime() - (5.5 * 60 * 60 * 1000)).toISOString() };
-        });
+//     this.http.get(url).subscribe({
+//       next: (data: any) => {
+//         // Data format karein (IST adjustment)
+//         let filtered = data.map((log: any) => {
+//           const rawDate = log.created_at || log.createdAt;
+//           return { ...log, createdAt: new Date(new Date(rawDate).getTime() - (5.5 * 60 * 60 * 1000)).toISOString() };
+//         });
 
-        // 2. AB LOCATION FILTER APPLY KAREIN (Frontend Filtering)
-        if (this.filterLocation && this.filterLocation.trim() !== '') {
-          const query = this.filterLocation.toLowerCase().trim();
-          filtered = filtered.filter((log: any) => 
-            (log.geofence && log.geofence.toLowerCase().includes(query)) ||
-            (log.region && log.region.toLowerCase().includes(query))
-          );
-        }
+//         // 2. AB LOCATION FILTER APPLY KAREIN (Frontend Filtering)
+//         if (this.filterLocation && this.filterLocation.trim() !== '') {
+//           const query = this.filterLocation.toLowerCase().trim();
+//           filtered = filtered.filter((log: any) => 
+//             (log.geofence && log.geofence.toLowerCase().includes(query)) ||
+//             (log.region && log.region.toLowerCase().includes(query))
+//           );
+//         }
 
-        this.attendanceLogs = filtered;
-        if (this.filterModal) this.filterModal.dismiss();
-      },
-      error: (err) => console.error(err)
-    });
-  }
+//         this.attendanceLogs = filtered;
+//         if (this.filterModal) this.filterModal.dismiss();
+//       },
+//       error: (err) => console.error(err)
+//     });
+//   }
+// }
+
+// resetFilters() {
+//   this.isFiltered = false;
+//   this.startDate = undefined;
+//   this.endDate = undefined;
+//   this.filterLocation = ''; // Location khali karein
+//   this.loadAttendanceLogs(); 
+//   if (this.filterModal) this.filterModal.dismiss();
+// }
+async applyFilters() {
+  this.isFiltered = true;
+
+  // 1. Dates ko normalize karein (Sirf YYYY-MM-DD format)
+  const start = new Date(this.filters.fromDate).toISOString().split('T')[0];
+  const end = new Date(this.filters.toDate).toISOString().split('T')[0];
+
+  console.log("Starting Filter Process...");
+  console.log("Selected Start Date:", start);
+  console.log("Selected End Date:", end);
+  console.log("Total Logs in Memory:", this.allLogs.length);
+
+  // 2. Filter logic with Logging
+  this.attendanceLogs = this.allLogs.filter(log => {
+    const logDate = log.createdAt.split('T')[0]; // IST adjusted date
+    const isWithin = logDate >= start && logDate <= end;
+    
+    // Agar 24 tarikh ka data hai toh yahan console mein dikhega
+    if (logDate.includes('2026-02-24')) {
+      console.log("Found a 24th record! Within range?", isWithin);
+    }
+
+    return isWithin;
+  });
+
+  console.log("Results after filtering:", this.attendanceLogs.length);
+  this.isModalOpen = false;
 }
 
 resetFilters() {
-  this.isFiltered = false;
-  this.startDate = undefined;
-  this.endDate = undefined;
-  this.filterLocation = ''; // Location khali karein
-  this.loadAttendanceLogs(); 
-  if (this.filterModal) this.filterModal.dismiss();
+  this.resetToToday();
+  this.isModalOpen = false;
 }
-  goToMarkAttendance() {
+
+
+
+
+
+goToMarkAttendance() {
     // Ye aapko attendance mark karne wale page par le jayega
     this.navCtrl.navigateForward('/attendance'); 
   }
