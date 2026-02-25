@@ -11,9 +11,10 @@ import { AlertController } from '@ionic/angular';
   standalone: false
 })
 export class OnsiteAttendanceLogsPage implements OnInit {
-  
+  rangerId: number = Number(localStorage.getItem('ranger_id')) || 0; 
+allLogs: any[] = []; // Backup for filtering
   // attendanceLogs: any[] = [];
-  rangerId: number = 145; // Replace with your actual auth storage value
+  // rangerId: number = 145; // Replace with your actual auth storage value
   attendanceLogs: any[] = []; // Data from server
 filteredLogs: any[] = [];   // Data displayed after filtering // Data shown in UI
   isModalOpen = false;
@@ -43,35 +44,68 @@ ionViewWillEnter() {
   this.loadAttendanceLogs();
 }
 
-  async loadAttendanceLogs() {
-    const loader = await this.loadingCtrl.create({
-      message: 'Loading history...',
-      spinner: 'crescent'
-    });
-    await loader.present();
+//   async loadAttendanceLogs() {
+//     const loader = await this.loadingCtrl.create({
+//       message: 'Loading history...',
+//       spinner: 'crescent'
+//     });
+//     await loader.present();
 
-    // Change this URL to your actual NestJS endpoint
-    // const url = `${environment.apiUrl}/attendance/logs?rangerId=${this.rangerId}`;
-    // Ensure the URL matches your NestJS OnsiteAttendance controller
-const url = `${environment.apiUrl}/onsite-attendance`;
+//     // Change this URL to your actual NestJS endpoint
+//     // const url = `${environment.apiUrl}/attendance/logs?rangerId=${this.rangerId}`;
+//     // Ensure the URL matches your NestJS OnsiteAttendance controller
+// const url = `${environment.apiUrl}/onsite-attendance`;
 
-    this.http.get<any[]>(url).subscribe({
-      next: (data) => {
-        this.attendanceLogs = data;
-        this.filteredLogs = data;
-        loader.dismiss();
-      },
-      error: (err) => {
-        console.error('Error fetching logs', err);
-        loader.dismiss();
-        // Fallback dummy data for UI testing
-        this.attendanceLogs = [
-          { id: 1, date: '2026-02-23', totalHours: '9.2', status: 'COMPLETED' },
-          { id: 2, date: '2026-02-22', totalHours: '8.5', status: 'COMPLETED' }
-        ];
-      }
-    });
-  }
+//     this.http.get<any[]>(url).subscribe({
+//       next: (data) => {
+//         this.attendanceLogs = data;
+//         this.filteredLogs = data;
+//         loader.dismiss();
+//       },
+//       error: (err) => {
+//         console.error('Error fetching logs', err);
+//         loader.dismiss();
+//         // Fallback dummy data for UI testing
+//         this.attendanceLogs = [
+//           { id: 1, date: '2026-02-23', totalHours: '9.2', status: 'COMPLETED' },
+//           { id: 2, date: '2026-02-22', totalHours: '8.5', status: 'COMPLETED' }
+//         ];
+//       }
+//     });
+//   }
+
+async loadAttendanceLogs() {
+  const loader = await this.loadingCtrl.create({
+    message: 'Loading your logs...',
+    spinner: 'crescent'
+  });
+  await loader.present();
+
+  // URL mein rangerId bhejna zaroori hai
+  const url = `${environment.apiUrl}/onsite-attendance/ranger/${this.rangerId}`;
+
+  this.http.get<any[]>(url).subscribe({
+    next: (data) => {
+      this.allLogs = data; // Sab data backup mein rakha
+      
+      // Default: Sirf AAJ ka data dikhayein
+      this.showTodayOnly();
+      loader.dismiss();
+    },
+    error: (err) => {
+      console.error('Error fetching logs', err);
+      loader.dismiss();
+    }
+  });
+}
+
+showTodayOnly() {
+  const todayDate = new Date().toISOString().split('T')[0];
+  this.filteredLogs = this.allLogs.filter(log => {
+    const logDate = new Date(log.created_at).toISOString().split('T')[0];
+    return logDate === todayDate;
+  });
+}
 
   viewDetails(log: any) {
     this.navCtrl.navigateForward(['/onsite-attendance-details'], {
@@ -126,26 +160,28 @@ async deleteLog(id: number, event: Event) {
 }
 
 
+// 3. Apply Filter Logic (Purana data dekhne ke liye)
+applyFilters() {
+  const start = this.filters.fromDate ? new Date(this.filters.fromDate).setHours(0,0,0,0) : null;
+  const end = this.filters.toDate ? new Date(this.filters.toDate).setHours(23,59,59,999) : null;
 
-  applyFilters() {
-    this.filteredLogs = this.attendanceLogs.filter(log => {
-      const logDate = new Date(log.created_at).setHours(0,0,0,0);
-      const from = this.filters.fromDate ? new Date(this.filters.fromDate).setHours(0,0,0,0) : null;
-      const to = this.filters.toDate ? new Date(this.filters.toDate).setHours(0,0,0,0) : null;
-      
-      const matchesLocation = log.geofence?.toLowerCase().includes(this.filters.location.toLowerCase());
-      const matchesFrom = from ? logDate >= from : true;
-      const matchesTo = to ? logDate <= to : true;
+  this.filteredLogs = this.allLogs.filter(log => {
+    const logTime = new Date(log.created_at).getTime();
+    
+    const matchesFrom = start ? logTime >= start : true;
+    const matchesTo = end ? logTime <= end : true;
+    const matchesLoc = log.geofence?.toLowerCase().includes(this.filters.location.toLowerCase());
 
-      return matchesLocation && matchesFrom && matchesTo;
-    });
+    return matchesFrom && matchesTo && matchesLoc;
+  });
 
-    this.isModalOpen = false;
-  }
+  this.isModalOpen = false;
+}
 
-  resetFilters() {
-    this.filters = { location: '', fromDate: '', toDate: '' };
-    this.filteredLogs = [...this.attendanceLogs];
-    this.isModalOpen = false;
-  }
+// 4. Reset logic
+resetFilters() {
+  this.filters = { location: '', fromDate: this.today, toDate: this.today };
+  this.showTodayOnly();
+  this.isModalOpen = false;
+}
 }

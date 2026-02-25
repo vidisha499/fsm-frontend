@@ -77,10 +77,12 @@ async fetchAndFilter() {
   });
   await loader.present();
 
-  // Step 1: Backend se saara data mangwao (reliable tarika)
-  this.http.get(`${this.apiUrl}/ranger/${rangerId}`).subscribe({
+  // 📍 Sabse safe tarika: Saara data mangwao (dates params mat bhejo)
+  // Backend ab updated hai, toh wo saara data bhej dega
+  let url = `${this.apiUrl}/ranger/${rangerId}`;
+
+  this.http.get(url).subscribe({
     next: (data: any) => {
-      // Step 2: Data Format karo
       this.allLogs = data.map((log: any) => {
         const rawDate = log.created_at || log.createdAt; 
         const utcDate = new Date(rawDate);
@@ -91,7 +93,7 @@ async fetchAndFilter() {
         };
       });
 
-      // Step 3: Filter Apply karo (Aaj ka ya User ki select ki hui date ka)
+      // Default logic: Sirf aaj ka dikhao
       this.applyFrontendLogic();
       loader.dismiss();
     },
@@ -101,7 +103,6 @@ async fetchAndFilter() {
     }
   });
 }
-
 
 applyFrontendLogic() {
   if (!this.startDate || !this.endDate) {

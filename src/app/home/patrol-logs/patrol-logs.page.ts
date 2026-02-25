@@ -98,33 +98,67 @@ export class PatrolLogsPage implements OnInit {
 
 
 
-  async loadPatrolLogs(from?: string, to?: string) {
-    const loaderMsg = await firstValueFrom(this.translate.get('DETAILS.LOADING'));
-    const loader = await this.loadingCtrl.create({ message: loaderMsg, mode: 'ios' });
-    await loader.present();
+  // async loadPatrolLogs(from?: string, to?: string) {
+  //   const loaderMsg = await firstValueFrom(this.translate.get('DETAILS.LOADING'));
+  //   const loader = await this.loadingCtrl.create({ message: loaderMsg, mode: 'ios' });
+  //   await loader.present();
 
-    let params = new Array();
+  //   let params = new Array();
+  // if (from) params.push(`from=${from}`);
+  // if (to) params.push(`to=${to}`);
+  
+  // const queryString = params.length > 0 ? `?${params.join('&')}` : '';
+  // const url = `${this.apiUrl}/logs${queryString}`;
+
+
+  //    this.http.get(url).subscribe({
+  //      next: (data: any) => { 
+  //        this.patrolLogs = data; 
+  //        loader.dismiss(); 
+  //      },
+      
+  //      error: async () => { 
+  //        loader.dismiss(); 
+  //        const errMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_ERROR'));
+  //        this.presentToast(errMsg, 'danger'); 
+  //      }
+
+  //   });
+  // }
+
+
+  async loadPatrolLogs(from?: string, to?: string) {
+  const loaderMsg = await firstValueFrom(this.translate.get('DETAILS.LOADING'));
+  const loader = await this.loadingCtrl.create({ message: loaderMsg, mode: 'ios' });
+  await loader.present();
+
+  // 1. LocalStorage se login user ki ID lein
+  const storedRangerId = localStorage.getItem('ranger_id');
+
+  let params = new Array();
   if (from) params.push(`from=${from}`);
   if (to) params.push(`to=${to}`);
   
+  // 2. Ranger ID ko query params mein add karein
+  if (storedRangerId) {
+    params.push(`rangerId=${storedRangerId}`);
+  }
+
   const queryString = params.length > 0 ? `?${params.join('&')}` : '';
   const url = `${this.apiUrl}/logs${queryString}`;
 
-
-     this.http.get(url).subscribe({
-       next: (data: any) => { 
-         this.patrolLogs = data; 
-         loader.dismiss(); 
-       },
-      
-       error: async () => { 
-         loader.dismiss(); 
-         const errMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_ERROR'));
-         this.presentToast(errMsg, 'danger'); 
-       }
-
-    });
-  }
+  this.http.get(url).subscribe({
+    next: (data: any) => { 
+      this.patrolLogs = data; 
+      loader.dismiss(); 
+    },
+    error: async () => { 
+      loader.dismiss(); 
+      const errMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_ERROR'));
+      this.presentToast(errMsg, 'danger'); 
+    }
+  });
+}
 
   async savePatrol() {
     if (!this.selectedMethod || !this.selectedType) {
