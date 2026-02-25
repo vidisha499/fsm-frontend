@@ -21,6 +21,7 @@ export class LocationPage implements OnInit, OnDestroy {
   lat: any;
   lng: any;
   isMapLoading: boolean = true;
+  private rangerId = localStorage.getItem('ranger_id');
 
   // --- LAYER GROUPS ---
   private attendanceLayer = L.featureGroup();
@@ -112,15 +113,33 @@ L.control.layers(undefined, overlays, { collapsed: false }).addTo(this.map);
     }
   }
 
-loadSightingMarkers() {
-  this.http.get<any[]>(this.patrolApiUrl).subscribe({
-    next: (logs) => {
-      console.log('Total Patrols fetched:', logs.length); // Check this number in console
+// loadSightingMarkers() {
+//   this.http.get<any[]>(this.patrolApiUrl).subscribe({
+//     next: (logs) => {
+//       console.log('Total Patrols fetched:', logs.length); // Check this number in console
       
-      logs.forEach(log => {
-        // Accessing the nested path we found earlier
-        const sightings = log.observationData?.Details || [];
+//       logs.forEach(log => {
+//         // Accessing the nested path we found earlier
+//         const sightings = log.observationData?.Details || [];
         
+//         if (Array.isArray(sightings)) {
+//           sightings.forEach((sighting: any) => {
+//             if (sighting.lat && sighting.lng) {
+//               this.addSightingMarker(sighting);
+//             }
+//           });
+//         }
+//       });
+//     }
+//   });
+// }
+
+loadSightingMarkers() {
+  const url = `${this.patrolApiUrl}?rangerId=${this.rangerId}`; // Filter added
+  this.http.get<any[]>(url).subscribe({
+    next: (logs) => {
+      logs.forEach(log => {
+        const sightings = log.observationData?.Details || [];
         if (Array.isArray(sightings)) {
           sightings.forEach((sighting: any) => {
             if (sighting.lat && sighting.lng) {
@@ -153,17 +172,33 @@ loadSightingMarkers() {
   }
 
 
- loadPatrolPaths() {
-  this.http.get<any[]>(this.patrolApiUrl).subscribe({
+//  loadPatrolPaths() {
+//   this.http.get<any[]>(this.patrolApiUrl).subscribe({
+//     next: (logs) => {
+//       logs.forEach(log => {
+//         // Ensure route is valid and has at least one point
+//         if (log.route && Array.isArray(log.route) && log.route.length > 0) {
+          
+//           // FIX 1: Call the helper function to add the marker to patrolStartLayer
+//           this.addStartMarker(log);
+
+//           // Draw the actual path line if there are multiple points
+//           if (log.route.length > 1) {
+//             this.drawPatrolRoute(log);
+//           }
+//         }
+//       });
+//     }
+//   });
+// }
+
+loadPatrolPaths() {
+  const url = `${this.patrolApiUrl}?rangerId=${this.rangerId}`; // Filter added
+  this.http.get<any[]>(url).subscribe({
     next: (logs) => {
       logs.forEach(log => {
-        // Ensure route is valid and has at least one point
         if (log.route && Array.isArray(log.route) && log.route.length > 0) {
-          
-          // FIX 1: Call the helper function to add the marker to patrolStartLayer
           this.addStartMarker(log);
-
-          // Draw the actual path line if there are multiple points
           if (log.route.length > 1) {
             this.drawPatrolRoute(log);
           }
@@ -235,18 +270,32 @@ addStartMarker(log: any) {
     `);
   }
 
+  // loadAttendanceMarkers() {
+  //   this.http.get<any[]>(this.apiUrl).subscribe({
+  //     next: (attendances) => {
+  //       attendances.forEach(record => {
+  //           if (record.latitude && record.longitude) {
+  //               this.addAttendanceMarker(record);
+  //           }
+  //       });
+  //     },
+  //     error: (err) => console.error(err)
+  //   });
+  // }
+
   loadAttendanceMarkers() {
-    this.http.get<any[]>(this.apiUrl).subscribe({
-      next: (attendances) => {
-        attendances.forEach(record => {
-            if (record.latitude && record.longitude) {
-                this.addAttendanceMarker(record);
-            }
-        });
-      },
-      error: (err) => console.error(err)
-    });
-  }
+  // Iska backend filter humne pehle set kiya tha
+  const url = `${this.apiUrl}?rangerId=${this.rangerId}`; 
+  this.http.get<any[]>(url).subscribe({
+    next: (attendances) => {
+      attendances.forEach(record => {
+        if (record.latitude && record.longitude) {
+          this.addAttendanceMarker(record);
+        }
+      });
+    }
+  });
+}
 
   addAttendanceMarker(record: any) {
     const attendanceIcon = L.divIcon({
@@ -266,17 +315,31 @@ addStartMarker(log: any) {
       `);
   }
 
+  // loadOnsiteMarkers() {
+  //   this.http.get<any[]>(this.onsiteApiUrl).subscribe({
+  //     next: (records) => {
+  //       records.forEach(record => {
+  //         if (record.latitude && record.longitude) {
+  //           this.addOnsiteMarker(record);
+  //         }
+  //       });
+  //     }
+  //   });
+  // }
+
   loadOnsiteMarkers() {
-    this.http.get<any[]>(this.onsiteApiUrl).subscribe({
-      next: (records) => {
-        records.forEach(record => {
-          if (record.latitude && record.longitude) {
-            this.addOnsiteMarker(record);
-          }
-        });
-      }
-    });
-  }
+  // Onsite backend mein bhi rangerId parameter bhej rahe hain
+  const url = `${this.onsiteApiUrl}/ranger/${this.rangerId}`;
+  this.http.get<any[]>(url).subscribe({
+    next: (records) => {
+      records.forEach(record => {
+        if (record.latitude && record.longitude) {
+          this.addOnsiteMarker(record);
+        }
+      });
+    }
+  });
+}
 
   addOnsiteMarker(record: any) {
     const onsiteIcon = L.divIcon({
@@ -291,18 +354,31 @@ addStartMarker(log: any) {
       .bindPopup(`<b>Onsite: ${record.ranger || 'Ranger'}</b><br><small>${new Date(record.created_at).toLocaleString()}</small>`);
   }
 
-  loadIncidentMarkers() {
-    this.http.get<any[]>(this.incidentApiUrl).subscribe({
-      next: (incidents) => {
-        incidents.forEach(incident => {
-          if (incident.latitude && incident.longitude) {
-            this.addIncidentMarker(incident);
-          }
-        });
-      }
-    });
-  }
+  // loadIncidentMarkers() {
+  //   this.http.get<any[]>(this.incidentApiUrl).subscribe({
+  //     next: (incidents) => {
+  //       incidents.forEach(incident => {
+  //         if (incident.latitude && incident.longitude) {
+  //           this.addIncidentMarker(incident);
+  //         }
+  //       });
+  //     }
+  //   });
+  // }
 
+  loadIncidentMarkers() {
+  // Incident API mein bhi filter add karein
+  const url = `${this.incidentApiUrl}?rangerId=${this.rangerId}`;
+  this.http.get<any[]>(url).subscribe({
+    next: (incidents) => {
+      incidents.forEach(incident => {
+        if (incident.latitude && incident.longitude) {
+          this.addIncidentMarker(incident);
+        }
+      });
+    }
+  });
+}
   addIncidentMarker(incident: any) {
     const incidentIcon = L.divIcon({
       className: 'incident-marker',
