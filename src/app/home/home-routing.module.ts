@@ -80,6 +80,10 @@ const routes: Routes = [
     path: 'sightings-details',
     loadChildren: () => import('./sightings-details/sightings-details.module').then( m => m.SightingsDetailsPageModule)
   },
+  {
+    path: 'super-admin',
+    loadChildren: () => import('./super-admin/super-admin.module').then( m => m.SuperAdminPageModule)
+  },
 
 
  

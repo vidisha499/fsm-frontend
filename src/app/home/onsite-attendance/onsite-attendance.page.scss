@@ -322,3 +322,24 @@
     .action-sheet-button-inner { font-size: 13px !important; font-weight: 600 !important; }
   }
 }
+
+.empty-state-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 70vh; /* Centers it vertically on the screen */
+  text-align: center;
+
+  .empty-icon-container ion-icon {
+    font-size: 80px;
+    color: #d1d9e6; /* Light grey/blue as seen in image */
+    margin-bottom: 15px;
+  }
+
+  .empty-message {
+    font-size: 1.1rem;
+    color: #94a3b8; /* Muted text color */
+    font-weight: 500;
+  }
+}

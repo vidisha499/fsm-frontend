@@ -27,6 +27,15 @@
 
   <div class="card-container">
     <div class="main-card">
+
+      <ng-template #noRecords>
+  <div class="empty-state-wrapper">
+    <div class="empty-icon-container">
+      <ion-icon name="calendar-outline"></ion-icon>
+    </div>
+    <p class="empty-message">No records found for this filter</p>
+  </div>
+</ng-template>
       
       <div class="scanner-section">
         <div class="camera-frame" (click)="presentImageSourceOptions()">
