@@ -49,59 +49,110 @@ export class LoginPage implements OnInit, OnDestroy {
   }
 
   // --- Core Login Logic ---
-  async login() {
-    if (!this.loginData.phone || !this.loginData.password) {
-      this.presentToast('Please enter both phone and password', 'warning');
-      return;
-    }
+  // async login() {
+  //   if (!this.loginData.phone || !this.loginData.password) {
+  //     this.presentToast('Please enter both phone and password', 'warning');
+  //     return;
+  //   }
 
-    const loading = await this.loadingCtrl.create({
-      message: 'Authenticating...',
-      spinner: 'crescent',
-      mode: 'ios'
-    });
-    await loading.present();
+  //   const loading = await this.loadingCtrl.create({
+  //     message: 'Authenticating...',
+  //     spinner: 'crescent',
+  //     mode: 'ios'
+  //   });
+  //   await loading.present();
 
-    const payload = { 
-      phoneNo: this.loginData.phone.trim(), 
-      password: this.loginData.password 
-    };
+  //   const payload = { 
+  //     phoneNo: this.loginData.phone.trim(), 
+  //     password: this.loginData.password 
+  //   };
 
-    this.loginSub = this.dataService.login(payload).subscribe({
-      next: async (res: any) => {
-        await loading.dismiss();
+  //   this.loginSub = this.dataService.login(payload).subscribe({
+  //     next: async (res: any) => {
+  //       await loading.dismiss();
         
-        // Ensure backend returns an ID
-        if (res && (res.id || res.rangerId)) {
-          const rId = (res.id || res.rangerId).toString();
-          const currentLang = localStorage.getItem('app_language_code') || 'en';
+  //       // Ensure backend returns an ID
+  //       if (res && (res.id || res.rangerId)) {
+  //         const rId = (res.id || res.rangerId).toString();
+  //         const currentLang = localStorage.getItem('app_language_code') || 'en';
           
-          // Store Credentials
-          localStorage.setItem('ranger_username', res.username || 'Ranger');
-          localStorage.setItem('ranger_id', rId);
-          this.dataService.saveRangerId(rId);
+  //         // Store Credentials
+  //         localStorage.setItem('ranger_username', res.username || 'Ranger');
+  //         localStorage.setItem('ranger_id', rId);
+  //         this.dataService.saveRangerId(rId);
 
-          // Force language load before entering home
-          this.translate.use(currentLang).subscribe({
-            next: () => this.navCtrl.navigateRoot('/home'),
-            error: () => this.navCtrl.navigateRoot('/home')
-          });
-        } else {
-          this.presentToast('Invalid server response structure', 'danger');
-        }
-      },
-      error: async (err) => {
-        await loading.dismiss();
-        console.error('CORS or Auth Error:', err);
+  //         // Force language load before entering home
+  //         this.translate.use(currentLang).subscribe({
+  //           next: () => this.navCtrl.navigateRoot('/home'),
+  //           error: () => this.navCtrl.navigateRoot('/home')
+  //         });
+  //       } else {
+  //         this.presentToast('Invalid server response structure', 'danger');
+  //       }
+  //     },
+  //     error: async (err) => {
+  //       await loading.dismiss();
+  //       console.error('CORS or Auth Error:', err);
         
-        if (err.status === 0) {
-          this.presentToast('Network Error: Check Vercel CORS configuration', 'danger');
-        } else {
-          this.presentToast(err.error?.message || 'Invalid Credentials', 'danger');
-        }
-      }
-    });
+  //       if (err.status === 0) {
+  //         this.presentToast('Network Error: Check Vercel CORS configuration', 'danger');
+  //       } else {
+  //         this.presentToast(err.error?.message || 'Invalid Credentials', 'danger');
+  //       }
+  //     }
+  //   });
+  // }
+
+
+
+  async login() {
+  if (!this.loginData.phone || !this.loginData.password) {
+    this.presentToast('Please enter both identifier and password', 'warning');
+    return;
   }
+
+  const loading = await this.loadingCtrl.create({
+    message: 'Authenticating...',
+    spinner: 'crescent',
+    mode: 'ios'
+  });
+  await loading.present();
+
+  // 1. Payload match karo (Backend 'identifier' aur 'pass' maang raha hai)
+  const payload = { 
+    identifier: this.loginData.phone.trim(), // Phone ya Email dono chalega
+    pass: this.loginData.password 
+  };
+
+  this.loginSub = this.dataService.login(payload).subscribe({
+    next: async (res: any) => {
+      await loading.dismiss();
+      
+      // 2. Naya Response Structure check karo
+      if (res && res.id) {
+        // Store User Info
+        localStorage.setItem('user_id', res.id.toString());
+        localStorage.setItem('user_name', res.name);
+        localStorage.setItem('user_role', res.role_type); // SUPER_ADMIN ya RANGER
+
+        const currentLang = localStorage.getItem('app_language_code') || 'en';
+        
+        // 3. Backend se aayi hui 'redirect_to' path par bhejo
+        this.translate.use(currentLang).subscribe({
+          next: () => this.navCtrl.navigateRoot(res.redirect_to),
+          error: () => this.navCtrl.navigateRoot(res.redirect_to)
+        });
+
+        this.presentToast(`Welcome back, ${res.name}!`, 'success');
+      }
+    },
+    error: async (err) => {
+      await loading.dismiss();
+      console.error('Login Error:', err);
+      this.presentToast(err.error?.message || 'Invalid Credentials', 'danger');
+    }
+  });
+}
 
   // --- Password Reset Flow ---
   async forgotPassword() {

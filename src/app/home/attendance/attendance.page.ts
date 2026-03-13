@@ -247,9 +247,11 @@ async initLeafletMap() {
 
     this.isSubmitting = true;
     this.cdr.detectChanges(); 
+    const companyId = localStorage.getItem('company_id');
 
     const payload = {
       ranger_id: Number(localStorage.getItem('ranger_id')) || 1,
+      company_id: companyId ? Number(companyId) : null,
       type: this.isEntry ? 'ENTRY' : 'EXIT',
       photo: this.capturedPhoto,
       latitude: this.currentLat,
