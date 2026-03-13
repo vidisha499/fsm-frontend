@@ -183,6 +183,7 @@ async initIncidentMap() {
   if (this.isSubmitting) return;
 
   const rawRangerId = localStorage.getItem('ranger_id');
+  
   if (!rawRangerId) {
     this.presentToast('Error: Ranger ID not found.', 'danger');
     this.resetSlider();
@@ -199,6 +200,7 @@ async initIncidentMap() {
   this.isSubmitting = true;
 
   const payload = {
+    company_id: Number(localStorage.getItem('company_id')),
     rangerId: +rawRangerId, 
     photos: this.capturedPhotos,
     responsePriority: this.incidentData.priority,

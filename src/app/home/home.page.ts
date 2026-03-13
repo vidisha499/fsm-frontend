@@ -77,7 +77,7 @@ passwordType: string = 'password';
 
     // 2. Ensure DataService is using Vercel URL
     if (this.dataService) {
-      (this.dataService as any).apiUrl = `${this.vercelBaseUrl}/rangers`;
+      (this.dataService as any).apiUrl = `${this.vercelBaseUrl}/users`;
     }
 
     
@@ -228,9 +228,11 @@ ionViewWillEnter() {
         next: (profile: any) => {
           this.rangerId = profile.id;
           // KEY FIX: Using the exact column names from your DB screenshot
-          this.rangerName = profile.username; 
-          // this.rangerPhone = profile.phone_no; 
-          this.rangerPhone = profile.phone_no || profile.phoneNo || '';
+          // this.rangerName = profile.username; 
+          // // this.rangerPhone = profile.phone_no; 
+          // this.rangerPhone = profile.phone_no || profile.phoneNo || '';
+          this.rangerName = profile.name;          // DB mein 'name' hai
+        this.rangerPhone = profile.contact;
           this.rangerDivision = profile.division || 'Washim Division 4.2';
           this.rangerPassword = '';
           if (profile.profile_pic) {
@@ -342,8 +344,9 @@ async updateProtocol() {
     const updatedData = {
       // id: +rId,
       id: Number(rId),
-      name: this.rangerName,     // ✅ Backend 'name' mang raha hai
-      phone: this.rangerPhone,
+      name: this.rangerName,     // ✅ DB: name
+    contact: this.rangerPhone,
+      address: this.rangerDivision,
       password: this.rangerPassword, // Agar password change kiya hai toh jayega
       profile_pic: this.profileImage && this.profileImage.includes('base64') 
                    ? this.profileImage.split(',')[1] : null
