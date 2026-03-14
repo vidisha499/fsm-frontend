@@ -215,53 +215,50 @@ toggleEdit() {
   }
 
 
-
-
 ionViewWillEnter() {
-    this.translate.onLangChange.subscribe(() => {
-      this.cdr.detectChanges(); 
+  const currentRangerId = this.dataService.getRangerId();
+  if (currentRangerId) {
+    this.dataService.getRangerProfile(currentRangerId).subscribe({
+      next: (profile: any) => {
+        // ✅ DB Column 'name' -> Frontend 'rangerName'
+        this.rangerName = profile.name || 'Ranger'; 
+        
+        // ✅ DB Column 'contact' -> Frontend 'rangerPhone'
+        this.rangerPhone = profile.contact || ''; 
+        
+        this.rangerId = profile.id;
+        this.rangerDivision = profile.address || 'Washim Division';
+
+        // LocalStorage update zaroori hai taaki reload pe data na ude
+        localStorage.setItem('ranger_username', this.rangerName);
+        localStorage.setItem('ranger_phone', this.rangerPhone);
+        
+        if (profile.profile_pic) {
+          this.profileImage = profile.profile_pic.includes('data:image') 
+            ? profile.profile_pic 
+            : `data:image/jpeg;base64,${profile.profile_pic}`;
+        }
+        this.cdr.detectChanges();
+      }
     });
-
-    const currentRangerId = this.dataService.getRangerId();
-    if (currentRangerId) {
-      this.dataService.getRangerProfile(currentRangerId).subscribe({
-        next: (profile: any) => {
-          this.rangerId = profile.id;
-          // KEY FIX: Using the exact column names from your DB screenshot
-          // this.rangerName = profile.username; 
-          // // this.rangerPhone = profile.phone_no; 
-          // this.rangerPhone = profile.phone_no || profile.phoneNo || '';
-          this.rangerName = profile.name;          // DB mein 'name' hai
-        this.rangerPhone = profile.contact;
-          this.rangerDivision = profile.division || 'Washim Division 4.2';
-          this.rangerPassword = '';
-          if (profile.profile_pic) {
-            // Check if it already has the data prefix
-            this.profileImage = profile.profile_pic.includes('data:image') 
-              ? profile.profile_pic 
-              : `data:image/jpeg;base64,${profile.profile_pic}`;
-          }
-
-          localStorage.setItem('ranger_username', this.rangerName);
-          localStorage.setItem('ranger_phone', this.rangerPhone);
-          
-          this.cdr.detectChanges();
-        },
-        error: (err) => console.error('Vercel Profile Load Error:', err)
-      });
-    }
-    this.loadRangerData();
   }
+}
 
+  // loadRangerData() {
+  //   this.rangerId = localStorage.getItem('ranger_id') || '';
+  //   const storedName = localStorage.getItem('ranger_username');
+  //   const storedPhone = localStorage.getItem('ranger_phone');
+
+  //   if (storedName) this.rangerName = storedName;
+  //   if (storedPhone) this.rangerPhone = storedPhone;
+  // }
 
   loadRangerData() {
-    this.rangerId = localStorage.getItem('ranger_id') || '';
-    const storedName = localStorage.getItem('ranger_username');
-    const storedPhone = localStorage.getItem('ranger_phone');
-
-    if (storedName) this.rangerName = storedName;
-    if (storedPhone) this.rangerPhone = storedPhone;
-  }
+  this.rangerId = localStorage.getItem('ranger_id') || '';
+  // Ensure these keys match what you set in Login
+  this.rangerName = localStorage.getItem('ranger_username') || 'Ranger';
+  this.rangerPhone = localStorage.getItem('ranger_phone') || '';
+}
 
   toggleSOSModal(status: boolean) {
     this.showSOSModal = status;
@@ -341,17 +338,14 @@ async updateProtocol() {
     this.currentTranslateX = this.maxSlide; 
     this.cdr.detectChanges();
 
-    const updatedData = {
-      // id: +rId,
-      id: Number(rId),
-      name: this.rangerName,     // ✅ DB: name
-    contact: this.rangerPhone,
-      address: this.rangerDivision,
-      password: this.rangerPassword, // Agar password change kiya hai toh jayega
-      profile_pic: this.profileImage && this.profileImage.includes('base64') 
-                   ? this.profileImage.split(',')[1] : null
-    };
-
+ const updatedData = {
+  id: Number(rId),
+  name: this.rangerName,     // Matches 'name' column
+  contact: this.rangerPhone,  // Matches 'contact' column (apne pehle rangerPhone likha tha shayad)
+  password: this.rangerPassword,
+  profile_pic: this.profileImage && this.profileImage.includes('base64') 
+               ? this.profileImage.split(',')[1] : null
+};
     this.dataService.updateRanger(updatedData).subscribe({
       next: async (res: any) => {
         localStorage.setItem('ranger_username', this.rangerName);

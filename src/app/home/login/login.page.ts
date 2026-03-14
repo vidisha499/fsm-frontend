@@ -105,7 +105,57 @@ export class LoginPage implements OnInit, OnDestroy {
 
 
 
-  async login() {
+//   async login() {
+//   if (!this.loginData.phone || !this.loginData.password) {
+//     this.presentToast('Please enter both identifier and password', 'warning');
+//     return;
+//   }
+
+//   const loading = await this.loadingCtrl.create({
+//     message: 'Authenticating...',
+//     spinner: 'crescent',
+//     mode: 'ios'
+//   });
+//   await loading.present();
+
+//   // 1. Payload match karo (Backend 'identifier' aur 'pass' maang raha hai)
+//   const payload = { 
+//     identifier: this.loginData.phone.trim(), // Phone ya Email dono chalega
+//     pass: this.loginData.password 
+//   };
+
+//   this.loginSub = this.dataService.login(payload).subscribe({
+//     next: async (res: any) => {
+//       await loading.dismiss();
+      
+//       // 2. Naya Response Structure check karo
+//       if (res && res.id) {
+//         // Store User Info
+//         localStorage.setItem('user_id', res.id.toString());
+//         localStorage.setItem('user_name', res.name);
+//         localStorage.setItem('user_role', res.role_type); // SUPER_ADMIN ya RANGER
+
+//         const currentLang = localStorage.getItem('app_language_code') || 'en';
+        
+//         // 3. Backend se aayi hui 'redirect_to' path par bhejo
+//         this.translate.use(currentLang).subscribe({
+//           next: () => this.navCtrl.navigateRoot(res.redirect_to),
+//           error: () => this.navCtrl.navigateRoot(res.redirect_to)
+//         });
+
+//         this.presentToast(`Welcome back, ${res.name}!`, 'success');
+//       }
+//     },
+//     error: async (err) => {
+//       await loading.dismiss();
+//       console.error('Login Error:', err);
+//       this.presentToast(err.error?.message || 'Invalid Credentials', 'danger');
+//     }
+//   });
+// }
+
+
+async login() {
   if (!this.loginData.phone || !this.loginData.password) {
     this.presentToast('Please enter both identifier and password', 'warning');
     return;
@@ -118,37 +168,48 @@ export class LoginPage implements OnInit, OnDestroy {
   });
   await loading.present();
 
-  // 1. Payload match karo (Backend 'identifier' aur 'pass' maang raha hai)
   const payload = { 
-    identifier: this.loginData.phone.trim(), // Phone ya Email dono chalega
+    identifier: this.loginData.phone.trim(), 
     pass: this.loginData.password 
   };
 
   this.loginSub = this.dataService.login(payload).subscribe({
     next: async (res: any) => {
       await loading.dismiss();
-      
-      // 2. Naya Response Structure check karo
-      if (res && res.id) {
-        // Store User Info
-        localStorage.setItem('user_id', res.id.toString());
-        localStorage.setItem('user_name', res.name);
-        localStorage.setItem('user_role', res.role_type); // SUPER_ADMIN ya RANGER
+      console.log('Full Backend Response:', res); // 👈 Console mein check karo data kaise aa raha hai
+
+      // 1. Backend check: Kya data 'res.user' mein hai ya direct 'res' mein?
+      const userData = res.user ? res.user : res;
+      const userRole = res.role_id || userData.role_id || res.roleId;
+
+      if (userData && userData.id) {
+        // 2. Storage mein save karo
+        localStorage.setItem('ranger_id', userData.id.toString());
+        localStorage.setItem('ranger_username', userData.name);
+        localStorage.setItem('user_role', userRole.toString());
 
         const currentLang = localStorage.getItem('app_language_code') || 'en';
         
-        // 3. Backend se aayi hui 'redirect_to' path par bhejo
         this.translate.use(currentLang).subscribe({
-          next: () => this.navCtrl.navigateRoot(res.redirect_to),
-          error: () => this.navCtrl.navigateRoot(res.redirect_to)
+          next: () => {
+            // ✅ 3. REDIRECTION LOGIC (The Main Fix)
+            if (userRole == 1 || userRole == '1') {
+              console.log('Redirecting to Admin Dashboard... Role:', userRole);
+              this.navCtrl.navigateRoot('/admin-dashboard'); 
+            } else {
+              console.log('Redirecting to Ranger Home... Role:', userRole);
+              this.navCtrl.navigateRoot('/home');
+            }
+          }
         });
 
-        this.presentToast(`Welcome back, ${res.name}!`, 'success');
+        this.presentToast(`Welcome back, ${userData.name}!`, 'success');
+      } else {
+        this.presentToast('Invalid server response structure', 'danger');
       }
     },
     error: async (err) => {
       await loading.dismiss();
-      console.error('Login Error:', err);
       this.presentToast(err.error?.message || 'Invalid Credentials', 'danger');
     }
   });
