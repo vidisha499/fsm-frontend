@@ -6,6 +6,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { ChangeDetectorRef } from '@angular/core';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Subscription } from 'rxjs';
+import { MenuController } from '@ionic/angular';
 
 @Component({
   selector: 'app-home',
@@ -59,6 +60,7 @@ passwordType: string = 'password';
   };
 
   constructor(
+    private menuCtrl: MenuController,
     private router: Router,
     private renderer: Renderer2,
     private dataService: DataService,
@@ -216,6 +218,7 @@ toggleEdit() {
 
 
 ionViewWillEnter() {
+  this.menuCtrl.enable(true, 'start');
   const currentRangerId = this.dataService.getRangerId();
   if (currentRangerId) {
     this.dataService.getRangerProfile(currentRangerId).subscribe({
@@ -475,4 +478,8 @@ togglePasswordVisibility() {
   this.passwordIcon = this.passwordIcon === 'eye-off' ? 'eye' : 'eye-off';
   this.cdr.detectChanges();
 }
+
+openMenu() {
+    this.menuCtrl.open('start');
+  }
 }

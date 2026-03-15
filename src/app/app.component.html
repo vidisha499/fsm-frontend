@@ -1,3 +1,277 @@
-<ion-app>
+<!-- <ion-app>
   <ion-router-outlet></ion-router-outlet>
+</ion-app> -->
+
+<ion-app>
+<ion-menu contentId="main-content" side="start" type="overlay">
+  <div class="side-menu-container">
+    
+    <div class="menu-header-premium">
+      <div class="header-content">
+        <div class="user-profile-section">
+          <div class="avatar-box">
+            <img [src]="userPhoto || 'https://placehold.co/56x56/10b981/FFF?text=N'" alt="User">
+            <div class="status-indicator"></div>
+          </div>
+          <div class="user-info">
+            <h2>{{ rangerName || ('COMMON.PENDING_NAME' | translate) }}</h2>
+            <p>{{ rangerDivision || ('COMMON.ASSIGN_DIVISION' | translate) }}</p>
+          </div>
+        </div>
+
+        <div class="duty-card">
+          <div class="label">
+            <i class="fas fa-calendar-alt"></i>
+            <span>{{ 'MENU.DUTY_ASSIGNMENT' | translate }}</span>
+          </div>
+          <div class="value">14 Jul 2024 — 30 Nov 2024</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="menu-nav">
+      <div class="menu-section-label">{{ 'MENU.NAVIGATION' | translate }}</div>
+      
+      <a class="menu-item" (click)="goToPage('home')" [class.active]="router.url.includes('home')">
+        <div class="icon-box emerald"><i class="fas fa-th-large"></i></div>
+        <div class="item-text"><span>{{ 'MENU.DASHBOARD' | translate }}</span></div>
+      </a>
+
+      <a class="menu-item" (click)="goToPage('attendance')" [class.active]="router.url.includes('attendance')">
+        <div class="icon-box blue"><i class="fas fa-calendar-check"></i></div>
+        <div class="item-text"><span>{{ 'MENU.ATTENDANCE_REQ' | translate }}</span></div>
+      </a>
+
+      <a class="menu-item" (click)="goToPage('updates')" [class.active]="router.url.includes('updates')">
+        <div class="icon-box purple"><i class="fas fa-newspaper"></i></div>
+        <div class="item-text"><span>{{ 'MENU.DAILY_UPDATES' | translate }}</span></div>
+      </a>
+
+      <a class="menu-item" (click)="goToPage('visits')" [class.active]="router.url.includes('visits')">
+        <div class="icon-box indigo"><i class="fas fa-briefcase"></i></div>
+        <div class="item-text"><span>{{ 'MENU.CLIENT_VISITS' | translate }}</span></div>
+      </a>
+
+      <a class="menu-item" (click)="goToPage('location')" [class.active]="router.url.includes('location')">
+        <div class="icon-box teal"><i class="fas fa-map-marker-alt"></i></div>
+        <div class="item-text"><span>{{ 'MENU.CURRENT_LOCATION' | translate }}</span></div>
+      </a>
+
+      <a class="menu-item" (click)="goToPage('settings')" [class.active]="router.url.includes('settings')">
+        <div class="icon-box slate"><i class="fas fa-cog"></i></div>
+        <div class="item-text"><span>{{ 'MENU.ACCOUNT_SETTINGS' | translate }}</span></div>
+      </a>
+
+      <a class="menu-item" (click)="toggleLanguageModal(true)">
+        <div class="icon-box amber"><i class="fas fa-language"></i></div>
+        <div class="item-text"><span>{{ 'MENU.CHANGE_LANGUAGE' | translate }}</span></div>
+      </a>
+
+      <a class="menu-item logout-btn" (click)="logout()">
+        <div class="icon-box red"><i class="fas fa-power-off"></i></div>
+        <div class="item-text"><span>{{ 'MENU.LOGOUT' | translate }}</span></div>
+      </a>
+    </nav>
+
+    <div class="menu-footer">
+      <span class="version-tag">{{ 'COMMON.SYSTEM_TAG' | translate }} v1.2.1</span>
+    </div>
+  </div>
+</ion-menu>
+  
+
+  <ion-router-outlet id="main-content" [class.hidden]="currentPage === 'settings'"></ion-router-outlet>
+
+  <div *ngIf="currentPage === 'settings'" class="settings-view premium-wrapper">
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <div class="hero-header">
+      <div class="header-overlay"></div>
+      <div class="header-content">
+        <div class="nav-bar">
+          <div class="left-section">
+            <div (click)="goToPage('home')" class="glass-btn">
+              <i class="fas fa-chevron-left"></i>
+            </div>
+            <h1>{{ 'SETTINGS.TITLE' | translate }}</h1>
+          </div>
+          <div (click)="toggleEdit()" class="glass-btn" [class.edit-active]="isEditMode">
+            <i class="fas" [class.fa-edit]="!isEditMode" [class.fa-check]="isEditMode"></i>
+          </div>
+        </div>
+        <div class="header-title-group">
+          <p>Operational Protocol & Personal Profile</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-container">
+      <div class="main-card animate-scale-up">
+        <div class="tab-switcher">
+          <button (click)="activeTab = 'info'" [class.active]="activeTab === 'info'">
+            {{ 'SETTINGS.TAB_ACCOUNT' | translate }}
+          </button>
+          <button (click)="activeTab = 'pass'" [class.active]="activeTab === 'pass'">
+            {{ 'SETTINGS.TAB_SECURITY' | translate }}
+          </button>
+        </div>
+
+        <div *ngIf="activeTab === 'info'" class="fade-in">
+          <div class="profile-upload">
+            <div class="avatar-ring">
+              <div class="static-avatar">
+                <img *ngIf="profileImage" [src]="profileImage" class="user-photo">
+                <i *ngIf="!profileImage" class="fas fa-user-shield"></i>
+              </div>
+              <div class="cam-overlay" (click)="changeProfilePicture()">
+                <i class="fas fa-camera"></i>
+              </div>
+            </div>
+          </div>
+          <div class="input-pill">
+            <label>{{ 'SETTINGS.LABEL_NAME' | translate }}</label>
+            <div class="pill-content">
+              <i class="fas fa-id-badge"></i>
+              <input type="text" [(ngModel)]="rangerName" [readonly]="!isEditMode">
+            </div>
+          </div>
+          <div class="input-pill">
+            <label>{{ 'SETTINGS.LABEL_DIVISION' | translate }}</label>
+            <div class="pill-content">
+              <i class="fas fa-satellite"></i>
+              <input type="text" [(ngModel)]="rangerDivision" [readonly]="!isEditMode">
+            </div>
+          </div>
+
+             <div class="input-pill">
+                    <label>{{ 'SETTINGS.LABEL_COMM' | translate }}</label>
+                    <div class="pill-content">
+                        <i class="fas fa-phone-alt"></i>
+                        <input type="text" [(ngModel)]="rangerPhone" [readonly]="!isEditMode">
+                    </div>
+                </div>
+
+
+        </div>
+
+        <div *ngIf="activeTab === 'pass'" class="fade-in">
+          <div class="input-pill">
+            <label>{{ 'SETTINGS.LABEL_CURR_PASS' | translate }}</label>
+            <div class="pill-content">
+              <i class="fas fa-lock"></i>
+              <input [type]="showPassword ? 'text' : 'password'" [(ngModel)]="currentPassword" [readonly]="!isEditMode">
+              <i *ngIf="isEditMode" class="fas" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword" (click)="showPassword = !showPassword"></i>
+            </div>
+          </div>
+          <div class="input-pill">
+                    <label>{{ 'SETTINGS.LABEL_NEW_KEY' | translate }}</label>
+                    <div class="pill-content">
+                        <i class="fas fa-shield-alt"></i>
+                        <input [type]="showNewPassword ? 'text' : 'password'" [(ngModel)]="rangerPassword" [readonly]="!isEditMode" (click)="togglePasswordVisibility() "
+                               [placeholder]="'SETTINGS.PH_NEW_KEY' | translate">
+                        <i *ngIf="isEditMode" class="fas" [class.fa-eye]="!showNewPassword" [class.fa-eye-slash]="showNewPassword" 
+                           (click)="showNewPassword = !showNewPassword" style="cursor: pointer; opacity: 0.6;"></i>
+                    </div>
+                </div>
+        </div>
+
+
+        
+<div class="auto-slider-container" 
+     [class.active]="isSubmitting" 
+     [class.disabled]="!isEditMode"
+     (touchstart)="onDragStart($event)"
+     (touchmove)="onDragMove($event)"
+     (touchend)="onDragEnd()">
+     
+  <div class="slider-track">
+    <div class="slider-handle" 
+         [style.transform]="'translateX(' + currentTranslateX + 'px)'">
+      <i class="fas fa-save" *ngIf="!isSubmitting"></i>
+      <ion-spinner name="crescent" color="light" *ngIf="isSubmitting"></ion-spinner>
+    </div>
+
+    <span class="slider-text" [style.opacity]="textOpacity">
+      {{ isSubmitting ? 'UPDATING...' : 'UPDATE' }}
+    </span>
+
+    <div class="end-check">
+      <i class="fas fa-check"></i>
+    </div>
+  </div>
+</div>
+      </div>
+    </div>
+
+    
+  </div>
+
+  
+
+
+  <div *ngIf="showLanguageModal" class="language-modal-backdrop">
+    <div class="language-card">
+        
+        <div style="text-align: center; margin-bottom: 25px;">
+            <div style="width: 54px; height: 54px; background: #fffbeb; border-radius: 18px; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; border: 1px solid #fef3c7; box-shadow: 0 10px 20px rgba(251, 191, 36, 0.1);">
+                <i class="fas fa-globe-americas" style="color: #d97706; font-size: 24px;"></i>
+            </div>
+            <h3 style="margin: 0; font-size: 20px; font-weight: 900; color: #1e293b; letter-spacing: -0.5px;">
+                {{ 'LANGUAGE.CHOOSE_TITLE' | translate }}
+            </h3>
+            <p style="margin: 5px 0 0; font-size: 12px; color: #94a3b8; font-weight: 600;">Select your preferred language</p>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            
+            <div (click)="selectedLanguage = 'English'"
+                [style.border-color]="selectedLanguage === 'English' ? '#fbbf24' : '#f1f5f9'"
+                [style.background]="selectedLanguage === 'English' ? '#fffbeb' : '#ffffff'"
+                style="display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-radius: 20px; cursor: pointer; border: 2px solid; transition: all 0.3s ease;">
+                <span [style.color]="selectedLanguage === 'English' ? '#92400e' : '#475569'"
+                    style="font-size: 16px; font-weight: 800;">English</span>
+                <div *ngIf="selectedLanguage === 'English'" style="color: #fbbf24;"><i class="fas fa-check-circle"></i></div>
+            </div>
+
+            <div (click)="selectedLanguage = 'Hindi'"
+                [style.border-color]="selectedLanguage === 'Hindi' ? '#fbbf24' : '#f1f5f9'"
+                [style.background]="selectedLanguage === 'Hindi' ? '#fffbeb' : '#ffffff'"
+                style="display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-radius: 20px; cursor: pointer; border: 2px solid; transition: all 0.3s ease;">
+                <span [style.color]="selectedLanguage === 'Hindi' ? '#92400e' : '#475569'"
+                    style="font-size: 16px; font-weight: 800;">हिन्दी (Hindi)</span>
+                <div *ngIf="selectedLanguage === 'Hindi'" style="color: #fbbf24;"><i class="fas fa-check-circle"></i></div>
+            </div>
+
+            <div (click)="selectedLanguage = 'Marathi'"
+                [style.border-color]="selectedLanguage === 'Marathi' ? '#fbbf24' : '#f1f5f9'"
+                [style.background]="selectedLanguage === 'Marathi' ? '#fffbeb' : '#ffffff'"
+                style="display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-radius: 20px; cursor: pointer; border: 2px solid; transition: all 0.3s ease;">
+                <span [style.color]="selectedLanguage === 'Marathi' ? '#92400e' : '#475569'"
+                    style="font-size: 16px; font-weight: 800;">मराठी (Marathi)</span>
+                <div *ngIf="selectedLanguage === 'Marathi'" style="color: #fbbf24;"><i class="fas fa-check-circle"></i></div>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 15px; margin-top: 30px;">
+            <button (click)="toggleLanguageModal(false)"
+                style="flex: 1; padding: 16px; border-radius: 18px; background: #f1f5f9; color: #64748b; font-weight: 800; border: none; font-size: 14px;">
+                {{ 'COMMON.CANCEL' | translate }}
+            </button>
+            <button (click)="confirmLanguage()"
+                style="flex: 1.5; padding: 16px; border-radius: 18px; background: linear-gradient(135deg, #0d9488 0%, #065f46 100%); color: white; font-weight: 800; border: none; font-size: 14px; box-shadow: 0 10px 20px rgba(13, 148, 136, 0.2);">
+                {{ 'COMMON.CONFIRM' | translate }}
+            </button>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
 </ion-app>
