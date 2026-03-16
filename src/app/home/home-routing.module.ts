@@ -84,6 +84,18 @@ const routes: Routes = [
     path: 'super-admin',
     loadChildren: () => import('./super-admin/super-admin.module').then( m => m.SuperAdminPageModule)
   },
+  {
+    path: 'view-attendance-admin',
+    loadChildren: () => import('./view-attendance-admin/view-attendance-admin.module').then( m => m.ViewAttendanceAdminPageModule)
+  },
+  {
+    path: 'events-triggered-admin',
+    loadChildren: () => import('./events-triggered-admin/events-triggered-admin.module').then( m => m.EventsTriggeredAdminPageModule)
+  },
+  {
+    path: 'todays-patrols-admin',
+    loadChildren: () => import('./todays-patrols-admin/todays-patrols-admin.module').then( m => m.TodaysPatrolsAdminPageModule)
+  },
 
 
  

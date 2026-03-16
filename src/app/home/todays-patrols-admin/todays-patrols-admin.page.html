@@ -1,0 +1,69 @@
+<ion-content [fullscreen]="true">
+  <div class="premium-wrapper">
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <div class="hero-header">
+      <div class="header-overlay"></div>
+      <div class="header-content">
+        <div class="nav-bar">
+          <div class="left-section">
+            <button (click)="dismiss()" class="glass-btn">
+            <ion-icon name="arrow-back-outline"></ion-icon>
+            </button>
+            <h1>Today's Patrols</h1>
+          </div>
+          <div class="right-section">
+            <button class="filter-toggle-btn" (click)="isModalOpen = true">
+              <i class="fas fa-search-location"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-container">
+      <div class="status-tabs-wrapper">
+        <div class="status-tabs">
+          <div class="tab" [class.active]="activeTab === 'active'" (click)="activeTab = 'active'">Ongoing</div>
+          <div class="tab" [class.active]="activeTab === 'completed'" (click)="activeTab = 'completed'">Completed</div>
+        </div>
+      </div>
+
+      <div class="incident-list">
+        <div class="incident-row-compact animate__animated animate__fadeInUp" *ngFor="let patrol of patrolLogs">
+          
+          <div class="mini-thumb">
+            <div class="avatar-circle">
+               <ion-icon name="navigate-circle-outline"></ion-icon>
+            </div>
+            <div class="priority-indicator" [attr.data-status]="patrol.status"></div>
+          </div>
+
+          <div class="row-content">
+            <div class="top-line">
+              <span class="type-text">{{ patrol.rangerId }}</span>
+              <span class="log-date">{{ patrol.startTime }}</span>
+            </div>
+
+            <h2 class="priority-title">{{ patrol.rangerName }}</h2>
+
+            <div class="reporter-line">
+              <ion-icon name="map-outline"></ion-icon>
+              <span>{{ patrol.area }} • {{ patrol.distance }}km</span>
+              <span class="status-pill" [class.active-pill]="patrol.status === 'Active'">{{ patrol.status }}</span>
+            </div>
+            
+            <div class="patrol-progress-bg">
+              <div class="patrol-progress-fill" [style.width]="patrol.progress + '%'"></div>
+            </div>
+          </div>
+
+          <div class="row-actions">
+            <ion-icon name="chevron-forward" class="chevron"></ion-icon>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</ion-content>

@@ -321,76 +321,7 @@
         </div>
     </div>
 </div>
-<!-- 
-<div *ngIf="showLanguageModal" class="fixed inset-0 flex items-center justify-center p-4 z-[10001]">
-    <div (click)="toggleLanguageModal(false)" class="absolute inset-0 backdrop-blur-md bg-slate-900/40"></div>
-    <div class="relative bg-white rounded-[32px] p-7 w-[310px] shadow-2xl border border-white">
-        <div style="text-align: center; margin-bottom: 25px;">
-            <div
-                style="width: 50px; height: 50px; background: #fffbeb; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; border: 1px solid #fef3c7;">
-                <i class="fas fa-globe-americas" style="color: #d97706; font-size: 20px;"></i>
-            </div>
-            <h3 style="margin: 0; font-size: 18px; font-weight: 800; color: #1e293b;">
-                {{ 'LANGUAGE.CHOOSE_TITLE' | translate }}
-            </h3>
-        </div>
 
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-            <label (click)="setLanguage('English')"
-                [style.border-color]="selectedLanguage === 'English' ? '#fbbf24' : 'transparent'"
-                [style.background]="selectedLanguage === 'English' ? '#fff9eb' : '#f8fafc'"
-                style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-radius: 20px; cursor: pointer; border: 2px solid; transition: 0.2s;">
-                <span [style.color]="selectedLanguage === 'English' ? '#92400e' : '#475569'"
-                    style="font-size: 15px; font-weight: 700;">{{ 'LANGUAGE.ENGLISH' | translate }}</span>
-                <div *ngIf="selectedLanguage === 'English'"
-                    style="width: 18px; height: 18px; border-radius: 50%; background: #fbbf24; display: flex; align-items: center; justify-content: center;">
-                    <i class="fas fa-check" style="color: white; font-size: 10px;"></i>
-                </div>
-                <div *ngIf="selectedLanguage !== 'English'"
-                    style="width: 18px; height: 18px; border-radius: 50%; border: 2px solid #e2e8f0;"></div>
-            </label>
-
-            <label (click)="setLanguage('Hindi')"
-                [style.border-color]="selectedLanguage === 'Hindi' ? '#fbbf24' : 'transparent'"
-                [style.background]="selectedLanguage === 'Hindi' ? '#fff9eb' : '#f8fafc'"
-                style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-radius: 20px; cursor: pointer; border: 2px solid; transition: 0.2s;">
-                <span [style.color]="selectedLanguage === 'Hindi' ? '#92400e' : '#475569'"
-                    style="font-size: 15px; font-weight: 700;">{{ 'LANGUAGE.HINDI' | translate }}</span>
-                <div *ngIf="selectedLanguage === 'Hindi'"
-                    style="width: 18px; height: 18px; border-radius: 50%; background: #fbbf24; display: flex; align-items: center; justify-content: center;">
-                    <i class="fas fa-check" style="color: white; font-size: 10px;"></i>
-                </div>
-                <div *ngIf="selectedLanguage !== 'Hindi'"
-                    style="width: 18px; height: 18px; border-radius: 50%; border: 2px solid #e2e8f0;"></div>
-            </label>
-
-            <label (click)="setLanguage('Marathi')"
-                [style.border-color]="selectedLanguage === 'Marathi' ? '#fbbf24' : 'transparent'"
-                [style.background]="selectedLanguage === 'Marathi' ? '#fff9eb' : '#f8fafc'"
-                style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-radius: 20px; cursor: pointer; border: 2px solid; transition: 0.2s;">
-                <span [style.color]="selectedLanguage === 'Marathi' ? '#92400e' : '#475569'"
-                    style="font-size: 15px; font-weight: 700;">{{ 'LANGUAGE.MARATHI' | translate }}</span>
-                <div *ngIf="selectedLanguage === 'Marathi'"
-                    style="width: 18px; height: 18px; border-radius: 50%; background: #fbbf24; display: flex; align-items: center; justify-content: center;">
-                    <i class="fas fa-check" style="color: white; font-size: 10px;"></i>
-                </div>
-                <div *ngIf="selectedLanguage !== 'Marathi'"
-                    style="width: 18px; height: 18px; border-radius: 50%; border: 2px solid #e2e8f0;"></div>
-            </label>
-        </div>
-
-        <div style="display: flex; gap: 12px; margin-top: 25px;">
-            <button (click)="toggleLanguageModal(false)"
-                style="flex: 1; padding: 14px; border-radius: 16px; background: #f1f5f9; color: #64748b; font-weight: 700; border: none;">
-                {{ 'COMMON.CANCEL' | translate }}
-            </button>
-            <button (click)="confirmLanguage()"
-                style="flex: 1; padding: 14px; border-radius: 16px; background: linear-gradient(to right, #5ac78b, #0a6817); color: white; font-weight: 700; border: none;">
-                {{ 'COMMON.CONFIRM' | translate }}
-            </button>
-        </div>
-    </div>
-</div> -->
 
 <div class="nav-fixed-wrap" *ngIf="currentPage === 'home'">
     <div class="custom-nav-bar">

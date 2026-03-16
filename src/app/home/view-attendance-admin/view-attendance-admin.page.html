@@ -1,0 +1,116 @@
+
+
+
+
+<ion-content [fullscreen]="true">
+  <div class="premium-wrapper">
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <div class="hero-header">
+      <div class="header-overlay"></div>
+      <div class="header-content">
+        <div class="nav-bar">
+          <div class="left-section">
+            <button (click)="dismiss()" class="glass-btn">
+            <ion-icon name="arrow-back-outline"></ion-icon>
+            </button>
+            <h1>Attendance Logs</h1>
+          </div>
+
+          <div class="right-section">
+            <button class="filter-toggle-btn" (click)="isModalOpen = true">
+              <i class="fas fa-sliders-h"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false" class="custom-bottom-card">
+      <ng-template>
+        <div class="modal-card-content">
+          <div class="modal-header">
+            <div class="title-row">
+              <ion-icon name="calendar-outline"></ion-icon>
+              <h3>Filter Logs</h3>
+            </div>
+            <p class="subtitle">Select date range to filter attendance</p>
+          </div>
+
+          <div class="filter-body">
+            <div class="date-row">
+              <span class="label">FROM</span>
+              <ion-datetime-button datetime="fromDate"></ion-datetime-button>
+            </div>
+            <div class="date-row">
+              <span class="label">TO</span>
+              <ion-datetime-button datetime="toDate"></ion-datetime-button>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="apply-btn" (click)="applyFilters()">Apply Filter</button>
+            <button class="clear-btn" (click)="resetFilters()">Reset All</button>
+          </div>
+        </div>
+
+        <ion-popover [keepContentsMounted]="true">
+          <ng-template>
+            <ion-datetime id="fromDate" presentation="date" [(ngModel)]="filters.fromDate" [showDefaultButtons]="true"></ion-datetime>
+          </ng-template>
+        </ion-popover>
+        <ion-popover [keepContentsMounted]="true">
+          <ng-template>
+            <ion-datetime id="toDate" presentation="date" [(ngModel)]="filters.toDate" [showDefaultButtons]="true"></ion-datetime>
+          </ng-template>
+        </ion-popover>
+      </ng-template>
+    </ion-modal>
+
+    <div class="main-container">
+      <div class="status-tabs-wrapper">
+        <div class="status-tabs">
+          <div class="tab" [class.active]="activeTab === 'all'" (click)="activeTab = 'all'">Attendance</div>
+          <div class="tab" [class.active]="activeTab === 'present'" (click)="activeTab = 'present'">Onsite-Attendance</div>
+        </div>
+      </div>
+
+      <div class="incident-list">
+        <div class="incident-row-compact animate__animated animate__fadeInUp" *ngFor="let log of attendanceLogs">
+          
+          <div class="mini-thumb">
+            <div class="avatar-circle">{{ log.rangerName.charAt(0) }}</div>
+            <div class="priority-indicator" [attr.data-status]="log.status"></div>
+          </div>
+
+          <div class="row-content">
+            <div class="top-line">
+              <span class="type-text">ID: {{ log.rangerId }}</span>
+              <span class="log-date">{{ log.time }}</span>
+            </div>
+
+            <h2 class="priority-title">
+              {{ log.rangerName }}
+            </h2>
+
+            <div class="reporter-line">
+              <ion-icon name="calendar-clear-outline"></ion-icon>
+              <span>{{ log.date }}</span>
+              <span class="status-pill" [class.late-pill]="log.status === 'Late'">{{ log.status }}</span>
+            </div>
+          </div>
+
+          <div class="row-actions">
+            <ion-icon name="chevron-forward" class="chevron"></ion-icon>
+          </div>
+        </div>
+
+        <div class="empty-state" *ngIf="attendanceLogs.length === 0">
+          <i class="fas fa-user-clock"></i>
+          <p>No attendance logs found</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</ion-content>
