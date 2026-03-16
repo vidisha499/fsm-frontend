@@ -5,11 +5,11 @@
 
 <ng-container *ngIf="translate.currentLang">
     
-    <div id="side-menu-overlay" (click)="toggleMenu(false)"
+    <!-- <div id="side-menu-overlay" (click)="toggleMenu(false)"
     class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9998] hidden transition-opacity duration-300">
-</div>
+</div> -->
 
-<div id="side-menu"
+<!-- <div id="side-menu"
     class="fixed top-0 left-0 h-full w-72 bg-[#f8fafc] border-r border-white shadow-2xl z-[9999] transform -translate-x-full transition-transform duration-300 ease-in-out flex flex-col font-sans">
 
     <div style="background: linear-gradient(135deg, rgba(28, 138, 160, 0.98) 0%, rgba(11, 72, 87, 0.94) 100%), 
@@ -77,6 +77,7 @@
             <span class="font-bold text-sm">{{ 'MENU.CLIENT_VISITS' | translate }}</span>
         </a>
 
+
         <a [routerLink]="['/location']" (click)="toggleMenu(false)"
     class="flex items-center space-x-4 p-3 rounded-2xl bg-white shadow-sm border border-transparent text-slate-600 hover:text-emerald-600 transition-all cursor-pointer">
     <div class="w-10 h-10 flex items-center justify-center bg-emerald-100 rounded-xl">
@@ -113,7 +114,7 @@
     <div class="p-6 text-center bg-[#f8fafc]">
         <span class="text-[9px] font-black text-slate-400 tracking-[0.3em] uppercase">{{ 'COMMON.SYSTEM_TAG' | translate }} v1.2.1</span>
     </div>
-</div>
+</div> -->
 
 <ion-content [fullscreen]="true" style="--background: #fdfdfd;">
 
@@ -126,10 +127,14 @@
             </div>
             <div
                 style="position: relative; padding: 40px 25px; display: flex; justify-content: space-between; align-items: flex-start;">
-                <button (click)="toggleMenu(true)"
+                <!-- <button (click)="toggleMenu(true)"
                     style="background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); color: white; width: 45px; height: 45px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
                     <ion-icon name="menu-outline" style="font-size: 24px;"></ion-icon>
-                </button>
+                </button> -->
+                <button (click)="openMenu()"
+                style="background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); color: white; width: 45px; height: 45px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                <ion-icon name="menu-outline" style="font-size: 24px;"></ion-icon>
+            </button>
 
                 <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end;">
                     <div class="tracking-pill">
@@ -316,7 +321,7 @@
         </div>
     </div>
 </div>
-
+<!-- 
 <div *ngIf="showLanguageModal" class="fixed inset-0 flex items-center justify-center p-4 z-[10001]">
     <div (click)="toggleLanguageModal(false)" class="absolute inset-0 backdrop-blur-md bg-slate-900/40"></div>
     <div class="relative bg-white rounded-[32px] p-7 w-[310px] shadow-2xl border border-white">
@@ -385,9 +390,9 @@
             </button>
         </div>
     </div>
-</div>
+</div> -->
 
-<!-- <div class="nav-fixed-wrap" *ngIf="currentPage === 'home'">
+<div class="nav-fixed-wrap" *ngIf="currentPage === 'home'">
     <div class="custom-nav-bar">
         <div class="nav-tab active"><i class="fas fa-home"></i><span>{{ 'NAV.HOME' | translate }}</span></div>
         <div class="nav-tab" (click)="goToPage('patrol-logs')"><i class="fas fa-shoe-prints"></i><span>{{ 'NAV.PATROL' | translate }}</span></div>
@@ -396,52 +401,5 @@
         </div>
         <div class="nav-tab" (click)="goToPage('incidents')"><i class="fas fa-binoculars"></i><span>{{ 'NAV.ALERTS' | translate }}</span></div>
         <div class="nav-tab" (click)="goToPage('settings')"><i class="fas fa-user-shield"></i><span>{{ 'NAV.RANGER' | translate }}</span></div>
-    </div>
-</div> -->
-
-<div class="nav-fixed-wrap" *ngIf="currentPage === 'home'">
-    <div class="custom-nav-bar">
-        <div class="nav-tab active"><i class="fas fa-home"></i><span>{{ 'NAV.HOME' | translate }}</span></div>
-        <div class="nav-tab" (click)="goToPage('patrol-logs')"><i class="fas fa-shoe-prints"></i><span>{{ 'NAV.PATROL' | translate }}</span></div>
-        
-        <div class="sos-anchor" (click)="toggleSOSModal(true)">
-            <div class="sos-circle">
-                <i class="fas fa-exclamation-triangle"></i>
-                <span>{{ 'NAV.SOS' | translate }}</span>
-            </div>
-        </div>
-
-        <div class="nav-tab" (click)="goToPage('incidents')"><i class="fas fa-binoculars"></i><span>{{ 'NAV.ALERTS' | translate }}</span></div>
-        <div class="nav-tab" (click)="goToPage('settings')"><i class="fas fa-user-shield"></i><span>{{ 'NAV.RANGER' | translate }}</span></div>
-    </div>
-</div>
-
-<div *ngIf="showSOSModal" class="fixed inset-0 z-[10003] flex items-center justify-center p-6">
-    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-md" (click)="toggleSOSModal(false)"></div>
-    
-    <div class="relative bg-white w-full max-w-sm rounded-[32px] p-8 shadow-2xl scale-in-center">
-        <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <i class="fas fa-bullhorn text-2xl text-red-600 animate-pulse"></i>
-        </div>
-        
-        <h3 class="text-xl font-black text-center text-slate-800 mb-2">EMERGENCY</h3>
-        <p class="text-slate-500 text-center text-sm mb-6 px-4">Type a short message for HQ regarding your situation.</p>
-
-        <div class="mb-6">
-            <textarea 
-                [(ngModel)]="sosMessage"
-                placeholder="Type your emergency message..." 
-                class="w-full h-32 p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-red-500 focus:outline-none transition-all text-slate-700 font-medium resize-none"
-            ></textarea>
-        </div>
-
-        <div class="flex flex-col space-y-3">
-            <button (click)="triggerEmergency()" 
-                [disabled]="isSubmitting || !sosMessage"
-                class="w-full py-4 bg-red-600 text-white rounded-2xl font-black shadow-lg shadow-red-200 active:scale-95 transition-all disabled:opacity-50">
-                SEND ALERT
-            </button>
-            <button (click)="toggleSOSModal(false)" class="w-full py-2 text-slate-400 font-bold text-sm">Cancel</button>
-        </div>
     </div>
 </div>
