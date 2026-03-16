@@ -1,0 +1,153 @@
+/* --- SIDE MENU CORE LAYOUT --- */
+#side-menu-overlay {
+    &.hidden {
+        display: none;
+    }
+}
+
+#side-menu {
+    /* Main container transition */
+    &.transform {
+        will-change: transform;
+    }
+    
+    /* Profile Header Styling */
+    .profile-header-wrap {
+        background: linear-gradient(135deg, rgba(28, 138, 160, 0.98) 0%, rgba(11, 72, 87, 0.94) 100%), 
+                    url('https://images.unsplash.com/photo-1473448912268-2022ce9509d8?auto=format&fit=crop&q=80&w=1000'); 
+        background-size: cover; 
+        background-position: center; 
+        padding: 30px 24px; 
+        border-radius: 0 0 40px 0; 
+        box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+    }
+
+    /* Duty Assignment Pill */
+    .duty-card {
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Navigation Area */
+    nav {
+        background: #f8fafc;
+        
+        /* Premium Side Menu Links */
+        a {
+            display: flex;
+            align-items: center;
+            column-gap: 1rem;
+            padding: 0.75rem;
+            border-radius: 1rem;
+            background: white;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            text-decoration: none;
+
+            /* Icon Container inside Nav */
+            .icon-box {
+                width: 2.5rem;
+                height: 2.5rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 0.75rem;
+                
+                i {
+                    font-size: 0.875rem;
+                }
+            }
+
+            span {
+                font-size: 0.875rem;
+                font-weight: 700;
+                color: #475569;
+            }
+
+            /* Active State Branding */
+            &.active-link {
+                border-color: #d1fae5; // Emerald-100
+                color: #047857; // Emerald-700
+                box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.1);
+                
+                .icon-box {
+                    background: #34d399; // Emerald-400
+                    box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2);
+                    i { color: white; }
+                }
+
+                span {
+                    font-weight: 900;
+                    text-transform: uppercase;
+                }
+            }
+
+            /* Hover effects for inactive links */
+            &:hover:not(.active-link) {
+                background: #f1f5f9;
+                transform: translateX(4px);
+            }
+        }
+    }
+
+    /* System Version Footer */
+    .menu-footer {
+        padding: 1.5rem;
+        text-align: center;
+        background: #f8fafc;
+        
+        span {
+            font-size: 9px;
+            font-weight: 900;
+            color: #94a3b8;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+        }
+    }
+}
+
+/* User Avatar Specifics */
+.menu-avatar-wrap {
+    position: relative;
+    
+    img {
+        width: 3.5rem;
+        height: 3.5rem;
+        border-radius: 1rem;
+        border: 2px solid #34d399;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    .online-indicator {
+        position: absolute;
+        bottom: -0.25rem;
+        right: -0.25rem;
+        width: 1rem;
+        height: 1rem;
+        background: #10b981;
+        border: 2px solid #064e3b;
+        border-radius: 9999px;
+    }
+}
+
+/* Red / Logout Link Variance */
+.logout-link {
+    border-color: #fef2f2 !important;
+    color: #ef4444 !important;
+    
+    .icon-box {
+        background: #fee2e2 !important;
+        i { color: #dc2626 !important; }
+    }
+    
+    span {
+        font-weight: 900 !important;
+        text-transform: uppercase;
+    }
+}

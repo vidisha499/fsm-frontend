@@ -121,4 +121,9 @@ checkUserExists(mobile: string) {
   markAttendance(payload: any) {
     return this.http.post(`${this.baseApiUrl}/attendance/beat-attendance`, payload);
   }
+
+postSOS(alertData: any) {
+  // Ensure this is using baseApiUrl and NOT a hardcoded string or missing the /api prefix
+  return this.http.post(`${this.baseApiUrl}/alerts/trigger-sos`, alertData);
+}
 }

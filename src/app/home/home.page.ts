@@ -19,6 +19,7 @@ export class HomePage implements OnInit {
 public textOpacity: number = 1;
 private startX: number = 0;
 private maxSlide: number = 0;
+public sosMessage: string = '';
 
   currentPage: 'home' | 'settings' | 'attendance' = 'home';
   activeTab: string = 'info';
@@ -264,19 +265,7 @@ ionViewWillEnter() {
     this.showSOSModal = status;
   }
 
-  async triggerEmergency() {
-    this.showSOSModal = false;
-
-    // In a real scenario, you would do an http.post to /api/sos here
-    const toast = await this.toastController.create({
-      message: '🚨 EMERGENCY ALERT SENT TO HQ!',
-      duration: 4000,
-      position: 'top',
-      color: 'danger',
-      mode: 'ios'
-    });
-    await toast.present();
-  }
+ 
 
   toggleLanguageModal(status: boolean) {
     this.showLanguageModal = status;
@@ -474,5 +463,66 @@ togglePasswordVisibility() {
   this.passwordType = this.passwordType === 'password' ? 'text' : 'password';
   this.passwordIcon = this.passwordIcon === 'eye-off' ? 'eye' : 'eye-off';
   this.cdr.detectChanges();
+}
+
+
+
+// 2. Update the triggerEmergency function
+async triggerEmergency() {
+  // 1. Validation check
+  if (!this.sosMessage || !this.sosMessage.trim()) {
+    this.showToast('Please enter a message describing the emergency.');
+    return;
+  }
+
+  const rId = this.dataService.getRangerId();
+  if (!rId) {
+    this.showToast('Error: Ranger identity not found. Please re-login.');
+    return;
+  }
+
+  const rName = localStorage.getItem('ranger_username') || 'Ranger';
+
+  // 2. Start UI feedback
+  const loader = await this.loadingController.create({
+    message: 'Transmitting SOS...',
+    spinner: 'crescent',
+    mode: 'ios'
+  });
+  await loader.present();
+
+  this.isSubmitting = true;
+
+  const alertData = {
+    ranger_id: Number(rId),
+    ranger_name: rName,
+    message: this.sosMessage.trim() 
+  };
+
+  // 3. API Call
+  this.dataService.postSOS(alertData).subscribe({
+    next: async () => {
+      await loader.dismiss();
+      this.isSubmitting = false;
+      this.showSOSModal = false;
+      this.sosMessage = ''; // Reset the input
+
+      const toast = await this.toastController.create({
+        message: '🚨 SOS SENT SUCCESSFULLY! HQ has been notified.',
+        duration: 5000,
+        position: 'top',
+        color: 'danger',
+        mode: 'ios',
+        buttons: [{ text: 'DISMISS', role: 'cancel' }]
+      });
+      await toast.present();
+    },
+    error: async (err: any) => { // Added :any to prevent build error
+      await loader.dismiss();
+      this.isSubmitting = false;
+      console.error('SOS Error:', err);
+      this.showToast('Failed to send SOS. Please check your data connection.');
+    }
+  });
 }
 }

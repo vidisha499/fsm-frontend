@@ -1,4 +1,260 @@
-// Reuse your existing animation and pill styles
+// // Reuse your existing animation and pill styles
+// @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&display=swap');
+
+// .tracking-pill {
+//   display: inline-flex;
+//   align-items: center;
+//   gap: 6px;
+//   background: rgba(16, 185, 129, 0.25);
+//   backdrop-filter: blur(4px);
+//   padding: 4px 12px;
+//   border-radius: 20px;
+//   border: 1px solid rgba(52, 211, 153, 0.3);
+//   margin-bottom: 8px;
+//   span { color: #10b981; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
+// }
+
+// .active-dot {
+//   width: 6px; height: 6px; background: #10b981; border-radius: 50%;
+//   animation: pulse-green 2s infinite;
+// }
+
+// .location-container { padding: 0 20px; margin-top: -30px; position: relative; z-index: 10; }
+
+// .location-pill {
+//   background: white; border-radius: 20px; padding: 15px 25px;
+//   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+//   display: flex; align-items: center; justify-content: space-between;
+//   border-left: 5px solid #064e3b;
+// }
+
+// // .section-title {
+// //   font-size: 11px; text-transform: uppercase; letter-spacing: 2px;
+// //   color: #94a3b8; font-weight: 900; margin-bottom: 20px;
+// // }
+
+// .section-title {
+//   font-family: 'Montserrat', sans-serif;
+//   font-size: 11px;
+//   text-transform: uppercase;
+//   letter-spacing: 1.5px; // Keeping the wide tracking for headers
+//   color: #94a3b8;
+//   font-weight: 900;
+//   margin-bottom: 20px;
+// }
+
+
+// .module-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+
+
+// .module-card {
+//   border-radius: 20px; // Slightly smaller radius for smaller cards
+//   padding: 15px;      // Reduced padding
+//   position: relative;
+//   overflow: hidden;
+//   height: 105px;      // Reduced from 135px to 105px
+//   display: flex;
+//   flex-direction: column;
+//   justify-content: space-between;
+//   border: 1px solid rgba(255, 255, 255, 0.8);
+//   box-shadow: 0 6px 15px rgba(0,0,0,0.04);
+//   transition: transform 0.2s ease;
+
+//   &:active { transform: scale(0.96); }
+
+//   .icon-bg {
+//     background: white;
+//     width: 34px;      // Reduced from 42px
+//     height: 34px;     // Reduced from 42px
+//     border-radius: 10px;
+//     display: flex;
+//     align-items: center;
+//     justify-content: center;
+//     box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    
+//     i { font-size: 14px; } // Smaller icon
+//   }
+
+//   p {
+//     margin: 0;
+//     font-weight: 800;
+//     font-size: 11px;  // Reduced from 13px
+//     line-height: 1.1;
+//     z-index: 2;
+//     letter-spacing: 0.2px;
+//   }
+
+//   .watermark {
+//     position: absolute;
+//     right: -6px;
+//     bottom: -6px;
+//     font-size: 45px;  // Reduced from 65px
+//     opacity: 0.08;
+//     z-index: 1;
+//   }
+
+//   // Gradients remain the same for UI consistency
+//   &.card-blue {
+//     background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+//     p { color: #0369a1; }
+//     .icon-bg i { color: #0ea5e9; }
+//     .watermark { color: #0ea5e9; }
+//   }
+
+//   &.card-green {
+//     background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%);
+//     p { color: #166534; }
+//     .icon-bg i { color: #22c55e; }
+//     .watermark { color: #22c55e; }
+//   }
+
+//   &.card-yellow {
+//     background: linear-gradient(135deg, #fef9c3 0%, #fffdf2 100%);
+//     p { color: #854d0e; }
+//     .icon-bg i { color: #eab308; }
+//     .watermark { color: #eab308; }
+//   }
+
+//   &.card-red {
+//     background: linear-gradient(135deg, #fee2e2 0%, #fff1f1 100%);
+//     p { color: #991b1b; }
+//     .icon-bg i { color: #ef4444; }
+//     .watermark { color: #ef4444; }
+//   }
+// }
+
+// /* Ensuring the central circle pops and the bar fits perfectly */
+// .nav-fixed-wrap {
+//   position: fixed;
+//   bottom: 25px; /* Floating above the actual bottom edge */
+//   left: 0;
+//   right: 0;
+//   display: flex;
+//   justify-content: center;
+//   z-index: 1000;
+//   pointer-events: none; /* Allows clicks to pass through empty space around the bar */
+// }
+
+// .custom-nav-bar {
+//   pointer-events: auto; /* Re-enables clicks for the actual bar */
+//   background: #064e3b; /* Deep forest green */
+//   width: 92%;
+//   height: 75px;
+//   border-radius: 40px;
+//   display: flex;
+//   justify-content: space-around;
+//   align-items: center;
+//   box-shadow: 0 20px 40px rgba(6, 78, 59, 0.4);
+  
+//   .nav-tab {
+//     flex: 1;
+//     text-align: center;
+//     color: #edd67c; /* Gold accent color */
+//     opacity: 0.6;
+//     transition: all 0.3s ease;
+
+//     &.active {
+//       opacity: 1;
+//       transform: translateY(-2px);
+//     }
+
+//     i {
+//       font-size: 20px;
+//       display: block;
+//       margin-bottom: 4px;
+//     }
+
+//     span {
+//       font-size: 8px;
+//       font-weight: 900;
+//       text-transform: uppercase;
+//     }
+//   }
+// }
+
+// .sos-anchor {
+//   margin-top: -65px; /* Pulls the circle upward out of the bar */
+//   z-index: 1001;
+// }
+
+// .sos-circle {
+//   /* Using your provided specs for the signature raised button */
+//   width: 78px;
+//   height: 78px;
+//   border-radius: 24px;
+//   border: 6px solid #fdfdfd;
+//   color: white;
+//   display: flex;
+//   flex-direction: column;
+//   align-items: center;
+//   justify-content: center;
+  
+//   i {
+//     font-size: 24px;
+//     margin-bottom: 2px;
+//   }
+  
+//   span {
+//     font-size: 10px;
+//     font-weight: 900;
+//   }
+// }
+
+// .hero-title { // Add this class to your "Super Admin" <p> tag in HTML
+//     font-family: 'Montserrat', sans-serif;
+//     font-weight: 900;
+//     letter-spacing: -1px;
+// }
+// .stat-divider {
+//   width: 1px;
+//   height: 25px;
+//   background: #e2e8f0;
+// }
+
+// .hero-title {
+//   font-family: 'Montserrat', sans-serif;
+//   font-weight: 900;
+//   letter-spacing: -1px;
+//   text-transform: capitalize;
+// }
+
+// .stat-item {
+//   text-align: center;
+//   flex: 1; // Ensures equal spacing for 4 items
+  
+//   h2 {
+//     margin: 0;
+//     font-size: 18px; // Slightly smaller to fit 4 items comfortably
+//     font-weight: 900;
+//   }
+  
+//   .stat-label {
+//     font-size: 8px;
+//     font-weight: 800;
+//     color: #94a3b8;
+//     text-transform: uppercase;
+//   }
+// }
+
+// .warning-text { color: #f59e0b; } // Amber/Orange for Sightings
+// .danger-text { color: #ef4444; }
+// .success-text { color: #10b981; }
+// .primary-text { color: #3b82f6; }
+
+// .mini-tag {
+//   background: #f1f5f9;
+//   color: #64748b;
+//   font-size: 9px;
+//   font-weight: 900;
+//   padding: 4px 10px;
+//   border-radius: 10px;
+//   text-transform: uppercase;
+// }
+
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&display=swap');
+
+// Pill & Dot
 .tracking-pill {
   display: inline-flex;
   align-items: center;
@@ -17,117 +273,109 @@
   animation: pulse-green 2s infinite;
 }
 
-.location-container { padding: 0 20px; margin-top: -30px; position: relative; z-index: 10; }
+// Stats Layout
+.location-container { padding: 0 20px; margin-top: -90px; position: relative; z-index: 10; }
 
 .location-pill {
-  background: white; border-radius: 20px; padding: 15px 25px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-  display: flex; align-items: center; justify-content: space-between;
-  border-left: 5px solid #064e3b;
+  background: white; 
+  border-radius: 24px; 
+  padding: 20px 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  border-left: 6px solid #064e3b;
 }
 
-.section-title {
-  font-size: 11px; text-transform: uppercase; letter-spacing: 2px;
-  color: #94a3b8; font-weight: 900; margin-bottom: 20px;
-}
-
-.module-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-
-// Use your specific card colors
-.module-card {
-  border-radius: 28px; padding: 22px; position: relative; overflow: hidden; height: 125px;
-  display: flex; flex-direction: column; justify-content: space-between;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.03);
-  
-  .icon-bg {
-    background: white; width: 42px; height: 42px; border-radius: 14px;
-    display: flex; align-items: center; justify-content: center;
-    i { font-size: 18px; }
-  }
-  
-  p { margin: 0; font-weight: 800; font-size: 13px; line-height: 1.2; }
-  .watermark { position: absolute; right: -5px; bottom: -5px; font-size: 50px; opacity: 0.05; }
-}
-
-@keyframes pulse-green {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-}
-
-/* Ensuring the central circle pops and the bar fits perfectly */
-.nav-fixed-wrap {
-  position: fixed;
-  bottom: 25px; /* Floating above the actual bottom edge */
-  left: 0;
-  right: 0;
+.stats-grid {
   display: flex;
-  justify-content: center;
-  z-index: 1000;
-  pointer-events: none; /* Allows clicks to pass through empty space around the bar */
+  flex-direction: column;
+  gap: 15px;
+}
+
+.stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  width: 100%;
+  
+  &.secondary-row {
+    border-top: 1px solid #f1f5f9;
+    padding-top: 15px;
+  }
+}
+
+.stat-item {
+  text-align: center;
+  flex: 1;
+  h2 { margin: 0; font-size: 20px; font-weight: 900; }
+  span { font-size: 8px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
+}
+
+.stat-divider { width: 1px; height: 25px; background: #e2e8f0; }
+
+// Module Styling
+.section-title {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #94a3b8;
+  font-weight: 900;
+  margin-bottom: 20px;
+}
+
+.module-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; padding-bottom: 120px; }
+
+.module-card {
+  border-radius: 20px; padding: 15px; position: relative; overflow: hidden; height: 105px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.04);
+  transition: transform 0.2s ease;
+
+  &:active { transform: scale(0.96); }
+  .icon-bg {
+    background: white; width: 34px; height: 34px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    i { font-size: 14px; }
+  }
+  p { margin: 0; font-weight: 800; font-size: 11px; line-height: 1.1; z-index: 2; }
+  .watermark { position: absolute; right: -6px; bottom: -6px; font-size: 45px; opacity: 0.08; z-index: 1; }
+
+  &.card-blue { background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%); p { color: #0369a1; } .icon-bg i, .watermark { color: #0ea5e9; } }
+  &.card-green { background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%); p { color: #166534; } .icon-bg i, .watermark { color: #22c55e; } }
+  &.card-yellow { background: linear-gradient(135deg, #fef9c3 0%, #fffdf2 100%); p { color: #854d0e; } .icon-bg i, .watermark { color: #eab308; } }
+  &.card-red { background: linear-gradient(135deg, #fee2e2 0%, #fff1f1 100%); p { color: #991b1b; } .icon-bg i, .watermark { color: #ef4444; } }
+}
+
+// Navigation Bar
+.nav-fixed-wrap {
+  position: fixed; bottom: 25px; left: 0; right: 0; display: flex; justify-content: center; z-index: 1000; pointer-events: none;
 }
 
 .custom-nav-bar {
-  pointer-events: auto; /* Re-enables clicks for the actual bar */
-  background: #064e3b; /* Deep forest green */
-  width: 92%;
-  height: 75px;
-  border-radius: 40px;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  box-shadow: 0 20px 40px rgba(6, 78, 59, 0.4);
-  
+  pointer-events: auto; background: #064e3b; width: 92%; height: 75px; border-radius: 40px;
+  display: flex; justify-content: space-around; align-items: center; box-shadow: 0 20px 40px rgba(6, 78, 59, 0.4);
   .nav-tab {
-    flex: 1;
-    text-align: center;
-    color: #edd67c; /* Gold accent color */
-    opacity: 0.6;
-    transition: all 0.3s ease;
-
-    &.active {
-      opacity: 1;
-      transform: translateY(-2px);
-    }
-
-    i {
-      font-size: 20px;
-      display: block;
-      margin-bottom: 4px;
-    }
-
-    span {
-      font-size: 8px;
-      font-weight: 900;
-      text-transform: uppercase;
-    }
+    flex: 1; text-align: center; color: #edd67c; opacity: 0.6;
+    &.active { opacity: 1; transform: translateY(-2px); }
+    i { font-size: 18px; display: block; margin-bottom: 4px; }
+    span { font-size: 7px; font-weight: 900; text-transform: uppercase; }
   }
 }
 
-.sos-anchor {
-  margin-top: -65px; /* Pulls the circle upward out of the bar */
-  z-index: 1001;
-}
-
+.sos-anchor { margin-top: -65px; z-index: 1001; }
 .sos-circle {
-  /* Using your provided specs for the signature raised button */
-  width: 78px;
-  height: 78px;
-  border-radius: 24px;
-  border: 6px solid #fdfdfd;
-  color: white;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  
-  i {
-    font-size: 24px;
-    margin-bottom: 2px;
-  }
-  
-  span {
-    font-size: 10px;
-    font-weight: 900;
-  }
+  width: 78px; height: 78px; border-radius: 24px; border: 6px solid #fdfdfd; color: white;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  i { font-size: 24px; margin-bottom: 2px; }
+  span { font-size: 10px; font-weight: 900; }
 }
+
+// Typography Helpers
+.hero-title { font-family: 'Montserrat', sans-serif; font-weight: 900; letter-spacing: -1px; text-transform: capitalize; }
+.danger-text { color: #ef4444; }
+.success-text { color: #10b981; }
+.primary-text { color: #3b82f6; }
+.warning-text { color: #f59e0b; }
+.info-text { color: #06b6d4; }
+.purple-text { color: #8b5cf6; }

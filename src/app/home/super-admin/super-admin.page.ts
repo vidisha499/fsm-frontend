@@ -14,6 +14,19 @@ export class SuperAdminPage implements OnInit {
   ngOnInit() {
   }
 
+  toggleMenu(isOpen: boolean) {
+    const sideMenu = document.getElementById('side-menu');
+    const overlay = document.getElementById('side-menu-overlay');
+
+    if (isOpen) {
+      sideMenu?.classList.remove('-translate-x-full');
+      overlay?.classList.remove('hidden');
+    } else {
+      sideMenu?.classList.add('-translate-x-full');
+      overlay?.classList.add('hidden');
+    }
+  }
+
   goToPage(path: string) {
   this.router.navigate([`/home/super-admin/${path}`]);
 }
@@ -23,4 +36,7 @@ openSettings() {
   // (e.g., setting a visibility flag or navigating to settings)
 }
 
+openProfile(){
+
+}
 }
