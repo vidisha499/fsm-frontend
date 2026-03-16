@@ -1,12 +1,12 @@
 import { NgModule } from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
 
-import { SuperAdminPage } from './super-admin.page';
+import { AdminPage } from './admin.page';
 
 const routes: Routes = [
   {
     path: '',
-    component: SuperAdminPage
+    component: AdminPage // Make sure this is AdminPage, not SuperAdminPage
   }
 ];
 
@@ -14,4 +14,4 @@ const routes: Routes = [
   imports: [RouterModule.forChild(routes)],
   exports: [RouterModule],
 })
-export class SuperAdminPageRoutingModule {}
+export class AdminPageRoutingModule {} // Changed from SuperAdminPageRoutingModule

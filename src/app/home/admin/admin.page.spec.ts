@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { SuperAdminPage } from './super-admin.page';
+import { SuperAdminPage } from './admin.page';
 
 describe('SuperAdminPage', () => {
   let component: SuperAdminPage;

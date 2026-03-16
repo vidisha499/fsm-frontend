@@ -119,24 +119,45 @@ export class AppComponent implements OnInit {
   }
 
   // --- NAVIGATION METHODS ---
-  async goToPage(path: string) {
-    await this.menu.close();
+  // async goToPage(path: string) {
+  //   await this.menu.close();
     
-    if (path === 'settings') {
-      this.currentPage = 'settings'; 
-      this.loadUserData(); // Settings khulte hi data refresh
+  //   if (path === 'settings') {
+  //     this.currentPage = 'settings'; 
+  //     this.loadUserData(); // Settings khulte hi data refresh
+  //   } else {
+  //     this.currentPage = 'home';
+  //     if (path === 'home') {
+  //       this.navCtrl.navigateRoot('/home');
+  //     } else {
+  //       this.navCtrl.navigateForward(`/${path}`).catch(err => {
+  //         console.log("Navigation error:", path);
+  //       });
+  //     }
+  //   }
+  //   this.cdr.detectChanges();
+  // }
+
+  async goToPage(path: string) {
+  await this.menu.close();
+  
+  if (path === 'settings') {
+    this.currentPage = 'settings'; 
+    this.loadUserData(); 
+  } else {
+    this.currentPage = 'home';
+    if (path === 'home') {
+      // Direct the user to the Super Admin route instead of generic home
+      this.navCtrl.navigateRoot('/home/admin'); 
     } else {
-      this.currentPage = 'home';
-      if (path === 'home') {
-        this.navCtrl.navigateRoot('/home');
-      } else {
-        this.navCtrl.navigateForward(`/${path}`).catch(err => {
-          console.log("Navigation error:", path);
-        });
-      }
+      // For other pages like 'attendance', 'updates', etc.
+      this.navCtrl.navigateForward(`/${path}`).catch(err => {
+        console.log("Navigation error for path:", path);
+      });
     }
-    this.cdr.detectChanges();
   }
+  this.cdr.detectChanges();
+}
 
   // --- SETTINGS METHODS ---
   toggleEdit() {
