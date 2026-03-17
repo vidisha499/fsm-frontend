@@ -202,7 +202,7 @@ async login() {
           next: () => {
             // Dashboard par redirect karein
             if (userRole === 1) this.navCtrl.navigateRoot('/super-admin-dashboard'); 
-            else if (userRole === 2) this.navCtrl.navigateRoot('/admin-dashboard'); 
+            else if (userRole === 2) this.navCtrl.navigateRoot('/admin'); 
             else this.navCtrl.navigateRoot('/home');
           }
         });

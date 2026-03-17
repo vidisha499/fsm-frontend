@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { PreloadAllModules, RouterModule, Routes } from '@angular/router';
-import { SuperAdminPageModule } from './home/super-admin/super-admin.module';
+
 
 const routes: Routes = [
   {
@@ -83,12 +83,10 @@ const routes: Routes = [
   path: 'sightings-details/:id',
   loadChildren: () => import('./home/sightings-details/sightings-details.module').then(m => m.SightingsDetailsPageModule)
 },
-// app-routing.module.ts
 {
-  path: 'admin-dashboard', // Browser mein URL yahi rahega
-  loadChildren: () => import('./home/super-admin/super-admin.module').then(m => m.SuperAdminPageModule) 
-  // 👆 Yahan './super-admin/...' kar do kyunki aapka folder 'super-admin' hai
-}
+path:'admin',
+loadChildren:() => import('./home/admin/admin.module').then( m => m.AdminPageModule)
+},
 
 ];
 

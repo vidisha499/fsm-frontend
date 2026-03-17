@@ -76,14 +76,16 @@ const routes: Routes = [
     path: 'attendance-detail',
     loadChildren: () => import('./attendance-detail/attendance-detail.module').then( m => m.AttendanceDetailPageModule)
 
-  },  {
+  },
+  {
     path: 'sightings-details',
     loadChildren: () => import('./sightings-details/sightings-details.module').then( m => m.SightingsDetailsPageModule)
   },
-  {
-    path: 'super-admin',
-    loadChildren: () => import('./super-admin/super-admin.module').then( m => m.SuperAdminPageModule)
-  },
+ 
+{
+path:'admin',
+loadChildren:() => import('./admin/admin.module').then( m => m.AdminPageModule)
+},
   {
     path: 'view-attendance-admin',
     loadChildren: () => import('./view-attendance-admin/view-attendance-admin.module').then( m => m.ViewAttendanceAdminPageModule)
