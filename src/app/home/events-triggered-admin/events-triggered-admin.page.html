@@ -1,3 +1,7 @@
+<!-- 
+
+
+
 <ion-content [fullscreen]="true">
   <div class="premium-wrapper">
     <div class="ambient-glow glow-1"></div>
@@ -9,7 +13,7 @@
         <div class="nav-bar">
           <div class="left-section">
             <button (click)="dismiss()" class="glass-btn">
-            <ion-icon name="arrow-back-outline"></ion-icon>
+              <ion-icon name="arrow-back-outline"></ion-icon>
             </button>
             <h1>Triggered Events</h1>
           </div>
@@ -72,28 +76,37 @@
         </div>
       </div>
 
-      <div class="incident-list">
-        <div class="incident-row-compact animate__animated animate__fadeInUp" *ngFor="let event of eventLogs">
+      <div *ngIf="isLoading" class="ion-text-center ion-padding">
+        <ion-spinner name="crescent" color="primary"></ion-spinner>
+        <p style="color: #94a3b8; font-size: 12px; margin-top: 10px;">Fetching live incidents...</p>
+      </div>
+
+      <div class="incident-list" *ngIf="!isLoading">
+        <div class="incident-row-compact animate__animated animate__fadeInUp" 
+             *ngFor="let incident of incidents"
+             [hidden]="activeTab === 'critical' && incident.responsePriority !== 'High Priority'">
           
           <div class="mini-thumb">
             <div class="icon-circle">
-              <ion-icon [name]="event.icon"></ion-icon>
+              <ion-icon [name]="incident.incidentCriteria === 'Fire Warning' ? 'flame-outline' : 'alert-circle-outline'"></ion-icon>
             </div>
-            <div class="priority-indicator" [attr.data-level]="event.level"></div>
+            <div class="priority-indicator" [attr.data-level]="incident.responsePriority === 'High Priority' ? 'Critical' : 'Info'"></div>
           </div>
 
           <div class="row-content">
             <div class="top-line">
-              <span class="type-text">{{ event.category }}</span>
-              <span class="log-date">{{ event.time }}</span>
+              <span class="type-text">{{ incident.incidentCriteria }}</span>
+              <span class="log-date">{{ incident.createdAt | date:'shortTime' }}</span>
             </div>
 
-            <h2 class="priority-title">{{ event.title }}</h2>
+            <h2 class="priority-title">{{ incident.rootCause }}</h2>
 
             <div class="reporter-line">
-              <ion-icon name="location-outline"></ion-icon>
-              <span>{{ event.location }}</span>
-              <span class="status-pill" [class.critical-pill]="event.level === 'Critical'">{{ event.level }}</span>
+              <ion-icon name="person-outline"></ion-icon>
+              <span>Ranger #{{ incident.rangerId }}</span>
+              <span class="status-pill" [class.critical-pill]="incident.responsePriority === 'High Priority'">
+                {{ incident.responsePriority === 'High Priority' ? 'Critical' : 'Standard' }}
+              </span>
             </div>
           </div>
 
@@ -102,7 +115,133 @@
           </div>
         </div>
 
-        <div class="empty-state" *ngIf="eventLogs.length === 0">
+        <div class="empty-state" *ngIf="incidents.length === 0">
+          <i class="fas fa-bolt"></i>
+          <p>No events triggered yet</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</ion-content> -->
+
+<ion-content [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="doRefresh($event)">
+    <ion-refresher-content pullingText="Pull to refresh..." refreshingSpinner="crescent"></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="premium-wrapper">
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <div class="hero-header">
+      <div class="header-overlay"></div>
+      <div class="header-content">
+        <div class="nav-bar">
+          <div class="left-section">
+            <button (click)="dismiss()" class="glass-btn">
+              <ion-icon name="arrow-back-outline"></ion-icon>
+            </button>
+            <h1>Triggered Events</h1>
+          </div>
+
+          <div class="right-section">
+            <button class="filter-toggle-btn" (click)="isModalOpen = true">
+              <i class="fas fa-sliders-h"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false" class="custom-bottom-card">
+      <ng-template>
+        <div class="modal-card-content">
+          <div class="modal-header">
+            <div class="title-row">
+              <ion-icon name="options-outline"></ion-icon>
+              <h3>Filter Events</h3>
+            </div>
+            <p class="subtitle">Filter logs by specific date range</p>
+          </div>
+
+          <div class="filter-body">
+            <div class="date-row">
+              <span class="label">FROM</span>
+              <ion-datetime-button datetime="eventFromDate"></ion-datetime-button>
+            </div>
+            <div class="date-row">
+              <span class="label">TO</span>
+              <ion-datetime-button datetime="eventToDate"></ion-datetime-button>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="apply-btn" (click)="applyFilters()">Apply Filter</button>
+            <button class="clear-btn" (click)="resetFilters()">Reset All</button>
+          </div>
+        </div>
+
+        <ion-popover [keepContentsMounted]="true">
+          <ng-template>
+            <ion-datetime id="eventFromDate" presentation="date" [(ngModel)]="filters.fromDate" [showDefaultButtons]="true"></ion-datetime>
+          </ng-template>
+        </ion-popover>
+        <ion-popover [keepContentsMounted]="true">
+          <ng-template>
+            <ion-datetime id="eventToDate" presentation="date" [(ngModel)]="filters.toDate" [showDefaultButtons]="true"></ion-datetime>
+          </ng-template>
+        </ion-popover>
+      </ng-template>
+    </ion-modal>
+
+    <div class="main-container">
+      <div class="status-tabs-wrapper">
+        <div class="status-tabs">
+          <div class="tab" [class.active]="activeTab === 'all'" (click)="activeTab = 'all'">All Events</div>
+          <div class="tab" [class.active]="activeTab === 'critical'" (click)="activeTab = 'critical'">Critical</div>
+        </div>
+      </div>
+
+      <div *ngIf="isLoading" class="ion-text-center ion-padding">
+        <ion-spinner name="crescent" color="primary"></ion-spinner>
+        <p style="color: #94a3b8; font-size: 12px; margin-top: 10px;">Fetching live incidents...</p>
+      </div>
+
+      <div class="incident-list" *ngIf="!isLoading">
+        <div class="incident-row-compact animate__animated animate__fadeInUp" 
+             *ngFor="let incident of incidents"
+             [hidden]="activeTab === 'critical' && incident.responsePriority !== 'High Priority'">
+          
+          <div class="mini-thumb">
+            <div class="icon-circle">
+              <ion-icon [name]="incident.incidentCriteria === 'Fire Warning' ? 'flame-outline' : 'alert-circle-outline'"></ion-icon>
+            </div>
+            <div class="priority-indicator" [attr.data-level]="incident.responsePriority === 'High Priority' ? 'Critical' : 'Info'"></div>
+          </div>
+
+          <div class="row-content">
+            <div class="top-line">
+              <span class="type-text">{{ incident.incidentCriteria }}</span>
+              <span class="log-date">{{ incident.createdAt | date:'shortTime' }}</span>
+            </div>
+
+            <h2 class="priority-title">{{ incident.rootCause }}</h2>
+
+            <div class="reporter-line">
+              <ion-icon name="person-outline"></ion-icon>
+              <span>Ranger #{{ incident.rangerId }}</span>
+              <span class="status-pill" [class.critical-pill]="incident.responsePriority === 'High Priority'">
+                {{ incident.responsePriority }}
+              </span>
+            </div>
+          </div>
+
+          <div class="row-actions">
+            <ion-icon name="chevron-forward" class="chevron"></ion-icon>
+          </div>
+        </div>
+
+        <div class="empty-state" *ngIf="incidents.length === 0">
           <i class="fas fa-bolt"></i>
           <p>No events triggered yet</p>
         </div>

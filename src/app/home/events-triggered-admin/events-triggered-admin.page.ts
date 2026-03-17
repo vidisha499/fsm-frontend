@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ModalController } from '@ionic/angular';
+import { IncidentService } from '../../services/incident.service';
 
 @Component({
   selector: 'app-events-triggered-admin',
@@ -9,8 +10,12 @@ import { ModalController } from '@ionic/angular';
 })
 export class EventsTriggeredAdminPage implements OnInit {
 
-  isModalOpen: boolean = false;
   activeTab: string = 'all';
+  
+  isLoading: boolean = true;
+  isModalOpen: boolean = false;
+  incidents: any[] = [];
+ 
   
   filters = {
     fromDate: new Date().toISOString(),
@@ -24,9 +29,17 @@ export class EventsTriggeredAdminPage implements OnInit {
     { title: 'Animal Movement', category: 'MONITORING', location: 'Zone B', time: '07:30 AM', level: 'Info', icon: 'paw-outline' },
   ];
 
-  constructor(private modalCtrl: ModalController) { }
+  constructor(private modalCtrl: ModalController,
+    private incidentService: IncidentService) { }
 
-  ngOnInit() {}
+  ngOnInit() {
+    this.loadIncidents();
+  }
+
+  // This ensures data refreshes every time the admin opens this specific view
+ ionViewWillEnter() {
+  this.loadIncidents();
+}
 
   dismiss() {
     this.modalCtrl.dismiss();
@@ -39,4 +52,51 @@ export class EventsTriggeredAdminPage implements OnInit {
   resetFilters() {
     this.isModalOpen = false;
   }
+
+  // loadIncidents() {
+  //   const companyId = localStorage.getItem('company_id');
+  //   if (companyId) {
+  //     this.incidentService.getCompanyIncidents(Number(companyId)).subscribe({
+  //       next: (data) => {
+  //         this.incidents = data;
+  //         this.isLoading = false;
+  //       },
+  //       error: (err) => {
+  //         console.error('Error fetching admin incidents:', err);
+  //         this.isLoading = false;
+  //       }
+  //     });
+  //   }
+  // }
+
+loadIncidents() {
+  const companyId = localStorage.getItem('company_id');
+  if (companyId) {
+    this.isLoading = true;
+    this.incidentService.getCompanyIncidents(Number(companyId)).subscribe({
+     // Inside your loadIncidents() function:
+next: (data) => {
+  // Sort here so the newest incident (like ID 15) is always at the TOP
+  this.incidents = data.sort((a, b) => b.id - a.id); 
+  this.isLoading = false;
+  console.log('Incidents loaded:', data);
+},
+      error: (err) => {
+        this.isLoading = false;
+      }
+    });
+  }
+}
+
+  doRefresh(event: any) {
+    const companyId = localStorage.getItem('company_id');
+    this.incidentService.getCompanyIncidents(Number(companyId)).subscribe({
+      next: (data) => {
+        this.incidents = data.sort((a, b) => b.id - a.id);
+        event.target.complete();
+      },
+      error: () => event.target.complete()
+    });
+  }
+
 }
