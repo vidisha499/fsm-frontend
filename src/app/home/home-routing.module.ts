@@ -94,10 +94,19 @@ loadChildren:() => import('./admin/admin.module').then( m => m.AdminPageModule)
     path: 'events-triggered-admin',
     loadChildren: () => import('./events-triggered-admin/events-triggered-admin.module').then( m => m.EventsTriggeredAdminPageModule)
   },
+//   {
+//   path: 'incident-detail-admin/:id',
+//   loadChildren: () => import('./home/incident-detail-admin/incident-detail-admin.module').then(m => m.IncidentDetailAdminPageModule)
+// },
   {
     path: 'todays-patrols-admin',
     loadChildren: () => import('./todays-patrols-admin/todays-patrols-admin.module').then( m => m.TodaysPatrolsAdminPageModule)
   },
+  {
+    path: 'incident-detail-admin',
+    loadChildren: () => import('./incident-detail-admin/incident-detail-admin.module').then( m => m.IncidentDetailAdminPageModule)
+  },
+
 
 
  

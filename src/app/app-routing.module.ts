@@ -87,6 +87,10 @@ const routes: Routes = [
 path:'admin',
 loadChildren:() => import('./home/admin/admin.module').then( m => m.AdminPageModule)
 },
+{
+  path: 'incident-detail-admin/:id',
+  loadChildren: () => import('./home/incident-detail-admin/incident-detail-admin.module').then(m => m.IncidentDetailAdminPageModule)
+}
 
 ];
 

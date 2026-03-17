@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { ModalController } from '@ionic/angular';
 import { IncidentService } from '../../services/incident.service';
+import { Router } from '@angular/router';
+import { NavController } from '@ionic/angular';
 
 @Component({
   selector: 'app-events-triggered-admin',
@@ -30,6 +32,8 @@ export class EventsTriggeredAdminPage implements OnInit {
   ];
 
   constructor(private modalCtrl: ModalController,
+    private navCtrl: NavController,
+    private router: Router,
     private incidentService: IncidentService) { }
 
   ngOnInit() {
@@ -98,5 +102,25 @@ next: (data) => {
       error: () => event.target.complete()
     });
   }
+
+// async openIncidentDetail(incident: any) {
+//   if (incident && incident.id) {
+//     // 1. Close the current Modal so the user can see the transition
+//     await this.modalCtrl.dismiss(); 
+    
+//     // 2. Now navigate to the details page
+//     this.router.navigate(['/incident-detail-admin', incident.id]);
+//   }
+// }
+
+async openIncidentDetail(incident: any) {
+  if (incident && incident.id) {
+    // This removes the "Triggered Events" modal overlay
+    await this.modalCtrl.dismiss(); 
+    
+    // This tells the app to transition to the detail page on the main screen
+    this.router.navigate(['/incident-detail-admin', incident.id]);
+  }
+}
 
 }

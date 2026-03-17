@@ -24,4 +24,12 @@ export class IncidentService {
   getCompanyIncidents(companyId: number): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/company/${companyId}`);
   }
+
+  getOne(id: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/${id}`);
+  }
+  updateStatus(id: number, status: string): Observable<any> {
+    // We send an object with the new status to the backend
+    return this.http.patch(`${this.apiUrl}/${id}/status`, { status });
+  }
 }
