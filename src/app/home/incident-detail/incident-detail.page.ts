@@ -64,37 +64,89 @@ export class IncidentDetailPage implements OnInit, OnDestroy {
     }
   }
 
-  fetchIncidentFromBackend(id: string) {
-    this.http.get(`${this.apiUrl}/${id}`).subscribe({
-      next: (data: any) => {
-        let parsedPhotos = [];
-        if (data.photos) {
-          try {
-            parsedPhotos = Array.isArray(data.photos) ? data.photos : JSON.parse(data.photos);
-          } catch (e) {
-            parsedPhotos = [];
-          }
-        }
+  // fetchIncidentFromBackend(id: string) {
+  //   this.http.get(`${this.apiUrl}/${id}`).subscribe({
+  //     next: (data: any) => {
+  //       let parsedPhotos = [];
+  //       if (data.photos) {
+  //         try {
+  //           parsedPhotos = Array.isArray(data.photos) ? data.photos : JSON.parse(data.photos);
+  //         } catch (e) {
+  //           parsedPhotos = [];
+  //         }
+  //       }
 
-        this.incident = {
-          ...data,
-          criteria: data.incidentCriteria,
-          priority: data.responsePriority,
-          latitude: data.latitude,   // Add this
-  longitude: data.longitude,
-          observation: data.fieldObservation,
-          cause: data.rootCause,
-          photos: parsedPhotos.length > 0 ? parsedPhotos : (data.photo ? [data.photo] : []),
-          photo: data.photo || parsedPhotos[0]
-        };
-        setTimeout(() => { this.initDetailMap(); }, 500);
-      },
-      error: async (err) => {
-        const msg = await this.translate.get('INCIDENT.SYNC_ERROR').toPromise();
-        this.presentToast(msg, 'danger');
+  //       this.incident = {
+  //         ...data,
+  //         criteria: data.incidentCriteria,
+  //         priority: data.responsePriority,
+  //         latitude: data.latitude,   // Add this
+  // longitude: data.longitude,
+  //         observation: data.fieldObservation,
+  //         cause: data.rootCause,
+  //         photos: parsedPhotos.length > 0 ? parsedPhotos : (data.photo ? [data.photo] : []),
+  //         photo: data.photo || parsedPhotos[0],
+          
+  //       };
+  //       setTimeout(() => { this.initDetailMap(); }, 500);
+  //     },
+  //     error: async (err) => {
+  //       const msg = await this.translate.get('INCIDENT.SYNC_ERROR').toPromise();
+  //       this.presentToast(msg, 'danger');
+  //     }
+  //   });
+  // }
+
+fetchIncidentFromBackend(id: string) {
+  this.http.get(`${this.apiUrl}/${id}`).subscribe({
+    next: (data: any) => {
+      console.log('Backend Se Raw Data Aaya:', data); // Debugging ke liye
+
+      let rawPhotos = [];
+      if (data.photos) {
+        try {
+          // Check: Agar string hai toh parse karo, agar pehle se array hai toh direct use karo
+          rawPhotos = typeof data.photos === 'string' ? JSON.parse(data.photos) : data.photos;
+        } catch (e) {
+          console.error('JSON Parse Error:', e);
+          rawPhotos = [];
+        }
       }
-    });
-  }
+
+      // --- CRITICAL FIX: Base64 Formatting ---
+      const formatImage = (img: string) => {
+        if (!img) return null;
+        // Agar pehle se prefix hai toh wahi rehne do, nahi toh add karo
+        return img.startsWith('data:image') ? img : `data:image/jpeg;base64,${img}`;
+      };
+
+      const formattedPhotos = Array.isArray(rawPhotos) 
+        ? rawPhotos.map(p => formatImage(p)).filter(p => p !== null)
+        : [];
+
+      this.incident = {
+        ...data,
+        criteria: data.incidentCriteria,
+        priority: data.responsePriority,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        observation: data.fieldObservation,
+        cause: data.rootCause,
+        // Yahan photos aur main photo dono ko format kar diya
+        photos: formattedPhotos,
+        photo: formattedPhotos[0] || formatImage(data.photo)
+      };
+
+      console.log('Incident Data Processed:', this.incident);
+      setTimeout(() => { this.initDetailMap(); }, 500);
+    },
+    error: async (err) => {
+      console.error('Fetch Error:', err);
+      const msg = await this.translate.get('INCIDENT.SYNC_ERROR').toPromise();
+      this.presentToast(msg, 'danger');
+    }
+  });
+}
 
 initDetailMap() {
   if (!this.incident?.latitude || !this.incident?.longitude) return;

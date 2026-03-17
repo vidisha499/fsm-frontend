@@ -87,6 +87,49 @@ allIncidents: any[] = []; // Isme hamesha original poora data rahega
   //     });
   // }
 
+// async loadIncidents() {
+//   const rangerId = localStorage.getItem('ranger_id');
+//   if (!rangerId) return;
+
+//   const msg = await this.translate.get('INCIDENTS.FETCHING').toPromise();
+//   const loader = await this.loadingCtrl.create({
+//     message: msg,
+//     spinner: 'crescent',
+//     mode: 'ios'
+//   });
+//   await loader.present();
+
+//   this.http.get(`${this.apiUrl}/my-reports/${rangerId}`)
+//     .subscribe({
+//       next: (data: any) => { 
+//         const IST_OFFSET = 5.5 * 60 * 60 * 1000; // 5 hours 30 mins
+
+//         const mappedData = data.map((incident: any) => {
+//           // Asli Fix: Backend time se 5.5 hours minus karke IST par laao
+//           const utcDate = new Date(incident.createdAt);
+//           const localTimeAdjusted = new Date(utcDate.getTime() - IST_OFFSET);
+          
+//           return {
+//             ...incident,
+//             // Ab ye localDate filter aur display dono ke liye "Feb 23" dikhayegi
+//             createdAt: localTimeAdjusted.toISOString(), 
+//             localDate: localTimeAdjusted,
+//             photos: Array.isArray(incident.photos) ? incident.photos : JSON.parse(incident.photos || '[]')
+//           };
+//         }); 
+        
+//         this.allIncidents = [...mappedData]; 
+//         this.incidents = [...mappedData]; 
+        
+//         loader.dismiss(); 
+//       },
+//       error: (err) => { 
+//         loader.dismiss();
+//         this.translate.get('INCIDENTS.LOAD_ERROR').subscribe(m => this.presentToast(m, 'warning'));
+//       }
+//     });
+// }
+
 async loadIncidents() {
   const rangerId = localStorage.getItem('ranger_id');
   if (!rangerId) return;
@@ -102,25 +145,31 @@ async loadIncidents() {
   this.http.get(`${this.apiUrl}/my-reports/${rangerId}`)
     .subscribe({
       next: (data: any) => { 
-        const IST_OFFSET = 5.5 * 60 * 60 * 1000; // 5 hours 30 mins
+        const IST_OFFSET = 5.5 * 60 * 60 * 1000;
 
         const mappedData = data.map((incident: any) => {
-          // Asli Fix: Backend time se 5.5 hours minus karke IST par laao
           const utcDate = new Date(incident.createdAt);
           const localTimeAdjusted = new Date(utcDate.getTime() - IST_OFFSET);
           
+          // --- IMAGE PREFIX LOGIC ---
+          let rawPhotos = Array.isArray(incident.photos) ? incident.photos : JSON.parse(incident.photos || '[]');
+          
+          // Har thumbnail ke aage prefix lagao agar missing hai
+          const formattedPhotos = rawPhotos.map((p: string) => 
+            p.startsWith('data:image') ? p : `data:image/jpeg;base64,${p}`
+          );
+
           return {
             ...incident,
-            // Ab ye localDate filter aur display dono ke liye "Feb 23" dikhayegi
             createdAt: localTimeAdjusted.toISOString(), 
             localDate: localTimeAdjusted,
-            photos: Array.isArray(incident.photos) ? incident.photos : JSON.parse(incident.photos || '[]')
+            photos: formattedPhotos,
+            thumbnail: formattedPhotos[0] || null // List mein dikhane ke liye pehli photo
           };
         }); 
         
         this.allIncidents = [...mappedData]; 
         this.incidents = [...mappedData]; 
-        
         loader.dismiss(); 
       },
       error: (err) => { 
@@ -129,7 +178,6 @@ async loadIncidents() {
       }
     });
 }
-
   // Helper for DB Value Mapping
 getTranslationKey(val: string) {
   if (!val) return 'UNKNOWN';

@@ -13,6 +13,7 @@ import { Geolocation } from '@capacitor/geolocation';
   standalone: false
 })
 export class NewIncidentPage implements OnInit {
+  private readonly MAX_WIDTH = 700;
   isSubmitting: boolean = false;
   public capturedPhotos: string[] = []; 
   public currentTranslateX: number = 0;
@@ -109,15 +110,39 @@ async initIncidentMap() {
     await actionSheet.present();
   }
 
+
+// --- IMAGE COMPRESSION LOGIC (The Fix) ---
+  async compressAndResize(base64Str: string): Promise<string> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.src = 'data:image/jpeg;base64,' + base64Str;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 700; // Size aur chota kiya taaki multiple photos aa sakein
+        const scale = MAX_WIDTH / img.width;
+        canvas.width = MAX_WIDTH;
+        canvas.height = img.height * scale;
+
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        // 0.4 = 40% quality. Ye size ko drastically kam kar dega.
+        const compressed = canvas.toDataURL('image/jpeg', 0.4);
+        resolve(compressed); 
+      };
+    });
+  }
+
   async captureImage(source: CameraSource) {
     try {
       const image = await Camera.getPhoto({
-        quality: 50,
+        quality: 40,
         resultType: CameraResultType.Base64,
         source: source
       });
       if (image && image.base64String) {
-        this.capturedPhotos.push(`data:image/jpeg;base64,${image.base64String}`);
+       const compressedPhoto = await this.compressAndResize(image.base64String);
+      this.capturedPhotos.push(compressedPhoto);
       }
     } catch (e) { console.log('Cancelled'); }
   }
@@ -179,55 +204,113 @@ async initIncidentMap() {
   // }
 
 
- async submitReport() {
+//  async submitReport() {
+//   if (this.isSubmitting) return;
+
+//   const rawRangerId = localStorage.getItem('ranger_id');
+  
+//   if (!rawRangerId) {
+//     this.presentToast('Error: Ranger ID not found.', 'danger');
+//     this.resetSlider();
+//     return;
+//   }
+
+//   // Double-check these variables are numbers
+//   if (this.lat === 'Detecting...' || this.lat === 'Location Error') {
+//     this.presentToast('Waiting for GPS...', 'warning');
+//     this.resetSlider();
+//     return;
+//   }
+
+//   this.isSubmitting = true;
+
+//   const finalPhotos = this.capturedPhotos.map(p => p.split(',')[1]);
+
+//   const payload = {
+//     company_id: Number(localStorage.getItem('company_id')),
+//     rangerId: +rawRangerId, 
+//     photos: this.capturedPhotos,
+//     responsePriority: this.incidentData.priority,
+//     incidentCriteria: this.incidentData.criteria,
+//     rootCause: this.incidentData.cause,
+//     fieldObservation: this.incidentData.observation,
+//     // THE CRITICAL LINES:
+//  latitude: Number(this.lat), 
+//   longitude: Number(this.lng)
+//   };
+
+//   console.log('SENDING PAYLOAD:', payload); // Look for this in your browser console!
+
+//   this.http.post(this.apiUrl, payload).subscribe({
+//     next: async (response) => {
+//       // 1. Show success message
+//       const successMsg = await this.translate.get('REPORT.SUCCESS_MSG').toPromise();
+//       this.presentToast(successMsg || 'Incident reported successfully!', 'success');
+      
+//       // 2. Clear state and go back to home
+//       setTimeout(() => {
+//         this.isSubmitting = false;
+//         this.navCtrl.back();
+//       }, 1500);
+//     },
+//     error: (err) => {
+//       console.error('SERVER ERROR:', err); // Check this in F12 console
+//       this.isSubmitting = false;
+//       this.resetSlider();
+//       this.presentToast('Failed to submit. Check server limits.', 'danger');
+//     }
+//   });
+// }
+
+async submitReport() {
   if (this.isSubmitting) return;
 
   const rawRangerId = localStorage.getItem('ranger_id');
+  const rawCompanyId = localStorage.getItem('company_id'); // <--- 1. Company ID uthayi
   
+  // Guard: Agar Company ID nahi hai toh data mix hone se bachao
+  if (!rawCompanyId || rawCompanyId === '0' || rawCompanyId === 'undefined') {
+    this.presentToast('Error: Company session missing. Please re-login.', 'danger');
+    this.resetSlider();
+    return;
+  }
+
   if (!rawRangerId) {
     this.presentToast('Error: Ranger ID not found.', 'danger');
     this.resetSlider();
     return;
   }
 
-  // Double-check these variables are numbers
-  if (this.lat === 'Detecting...' || this.lat === 'Location Error') {
-    this.presentToast('Waiting for GPS...', 'warning');
-    this.resetSlider();
-    return;
-  }
-
   this.isSubmitting = true;
 
+  // 2. Photos se 'data:image/jpeg;base64,' wala part hatao (Backend requirement)
+  const finalPhotos = this.capturedPhotos.map(p => p.split(',')[1]);
+
   const payload = {
-    company_id: Number(localStorage.getItem('company_id')),
+    company_id: Number(rawCompanyId), // <--- Ab ye usi company ki ID jayegi jo logged in hai
     rangerId: +rawRangerId, 
-    photos: this.capturedPhotos,
+    photos: finalPhotos, // <--- Safed Base64 string
     responsePriority: this.incidentData.priority,
     incidentCriteria: this.incidentData.criteria,
     rootCause: this.incidentData.cause,
     fieldObservation: this.incidentData.observation,
-    // THE CRITICAL LINES:
- latitude: Number(this.lat), 
-  longitude: Number(this.lng)
+    latitude: Number(this.lat), 
+    longitude: Number(this.lng)
   };
 
-  console.log('SENDING PAYLOAD:', payload); // Look for this in your browser console!
+  console.log('FINAL PAYLOAD:', payload);
 
   this.http.post(this.apiUrl, payload).subscribe({
     next: async (response) => {
-      // 1. Show success message
-      const successMsg = await this.translate.get('REPORT.SUCCESS_MSG').toPromise();
-      this.presentToast(successMsg || 'Incident reported successfully!', 'success');
-      
-      // 2. Clear state and go back to home
+      const successMsg = 'Incident reported successfully!';
+      this.presentToast(successMsg, 'success');
       setTimeout(() => {
         this.isSubmitting = false;
         this.navCtrl.back();
       }, 1500);
     },
     error: (err) => {
-      console.error('SERVER ERROR:', err); // Check this in F12 console
+      console.error('SERVER ERROR:', err);
       this.isSubmitting = false;
       this.resetSlider();
       this.presentToast('Failed to submit. Check server limits.', 'danger');

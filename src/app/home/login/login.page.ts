@@ -153,17 +153,14 @@ export class LoginPage implements OnInit, OnDestroy {
 //     }
 //   });
 // }
-
-
 async login() {
   if (!this.loginData.phone || !this.loginData.password) {
-    this.presentToast('Please enter both identifier and password', 'warning');
+    this.presentToast('Please enter both contact and password', 'warning');
     return;
   }
 
-  const loading = await this.loadingCtrl.create({
-    message: 'Authenticating...',
-    spinner: 'crescent',
+  const loading = await this.loadingCtrl.create({ 
+    message: 'Authenticating...', 
     mode: 'ios'
   });
   await loading.present();
@@ -176,45 +173,50 @@ async login() {
   this.loginSub = this.dataService.login(payload).subscribe({
     next: async (res: any) => {
       await loading.dismiss();
-      console.log('Full Backend Response:', res); // 👈 Console mein check karo data kaise aa raha hai
 
-      // 1. Backend check: Kya data 'res.user' mein hai ya direct 'res' mein?
-      const userData = res.user ? res.user : res;
-      const userRole = res.role_id || userData.role_id || res.roleId;
+      // Backend se aane wala data (res mein ya res.user mein)
+      const userData = res.user || res;
+      const userRole = parseInt(res.role_id || userData.role_id);
+      
+      // --- FIX: Extract Company ID ---
+      const actualCompanyId = userData.company_id;
+
+      if (actualCompanyId !== undefined && actualCompanyId !== null) {
+        localStorage.setItem('company_id', actualCompanyId.toString());
+        console.log('Login Success! Company ID set to:', actualCompanyId);
+      } else {
+        // Agar ID null hai toh 0 save karo, "1" nahi!
+        console.warn('Warning: No company_id received from backend.');
+        localStorage.setItem('company_id', '0'); 
+      }
 
       if (userData && userData.id) {
-        // 2. Storage mein save karo
+        // Baaki sab data save karein
         localStorage.setItem('ranger_id', userData.id.toString());
-        localStorage.setItem('ranger_username', userData.name);
         localStorage.setItem('user_role', userRole.toString());
+        localStorage.setItem('user_name', userData.name || 'User');
 
         const currentLang = localStorage.getItem('app_language_code') || 'en';
         
         this.translate.use(currentLang).subscribe({
           next: () => {
-            // ✅ 3. REDIRECTION LOGIC (The Main Fix)
-            if (userRole == 1 || userRole == '1') {
-              console.log('Redirecting to Admin Dashboard... Role:', userRole);
-              this.navCtrl.navigateRoot('/admin-dashboard'); 
-            } else {
-              console.log('Redirecting to Ranger Home... Role:', userRole);
-              this.navCtrl.navigateRoot('/home');
-            }
+            // Dashboard par redirect karein
+            if (userRole === 1) this.navCtrl.navigateRoot('/super-admin-dashboard'); 
+            else if (userRole === 2) this.navCtrl.navigateRoot('/admin-dashboard'); 
+            else this.navCtrl.navigateRoot('/home');
           }
         });
 
-        this.presentToast(`Welcome back, ${userData.name}!`, 'success');
-      } else {
-        this.presentToast('Invalid server response structure', 'danger');
+        this.presentToast(`Welcome, ${userData.name}!`, 'success');
       }
     },
     error: async (err) => {
       await loading.dismiss();
-      this.presentToast(err.error?.message || 'Invalid Credentials', 'danger');
+      console.error('Login Error:', err);
+      this.presentToast(err.error?.message || 'Invalid Contact or Password', 'danger');
     }
   });
 }
-
   // --- Password Reset Flow ---
   async forgotPassword() {
     const alert = await this.alertController.create({
