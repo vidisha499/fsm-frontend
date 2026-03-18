@@ -1,6 +1,3 @@
-
-
-
 .premium-wrapper {
   --primary-teal: #0d9488;
   --dark-slate: #0f172a;
@@ -19,13 +16,11 @@
 
   .hero-header {
     position: relative; height: 180px;
-    /* Correct Image URL Added Here */
     background: url('https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&q=80&w=800') center/cover;
     border-radius: 0 0 45px 45px;
     
     .header-overlay {
       position: absolute; inset: 0;
-      /* Updated Bluish-Green Gradient Overlay */
       background: linear-gradient(135deg, rgba(13, 148, 136, 0.95) 0%, rgba(15, 23, 42, 0.8) 100%);
       border-radius: 0 0 45px 45px;
     }
@@ -50,24 +45,28 @@
 
   .main-container {
     margin-top: -30px; padding: 0 18px 100px; position: relative; z-index: 3;
-    .status-tabs {
-      background: white; padding: 5px; border-radius: 16px; display: flex; box-shadow: 0 8px 20px rgba(0,0,0,0.05);
-      .tab {
-        flex: 1; text-align: center; padding: 12px; font-size: 11px; font-weight: 800; color: #94a3b8; border-radius: 12px;
-        &.active { background: var(--dark-slate); color: white; }
-      }
-    }
   }
 
   .incident-list {
-    margin-top: 20px;
+    // margin-top: 10px;
     .incident-row-compact {
       background: white; border-radius: 20px; padding: 12px; margin-bottom: 12px;
       display: flex; align-items: center; gap: 12px; border: 1px solid #f1f5f9;
 
+      // ONSITE CARD EXTRA STYLE
+      &.onsite-card {
+        border-left: 4px solid #7c3aed;
+        background: #fdfaff;
+      }
+
       .mini-thumb {
         position: relative; width: 55px; height: 55px; border-radius: 12px; flex-shrink: 0;
         background: #f1f5f9; display: flex; align-items: center; justify-content: center;
+        overflow: hidden;
+
+        &.photo-thumb { background: #eee; }
+        .onsite-img { width: 100%; height: 100%; object-fit: cover; }
+
         .avatar-circle { font-weight: 900; color: #0d9488; font-size: 20px; }
         .priority-indicator {
           position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
@@ -77,7 +76,7 @@
       }
 
       .row-content {
-        flex: 1;
+        flex: 1; min-width: 0;
         .top-line {
           display: flex; justify-content: space-between;
           .type-text { font-size: 9px; font-weight: 800; color: var(--primary-teal); }
@@ -86,9 +85,11 @@
         .priority-title { font-size: 15px; font-weight: 800; color: var(--dark-slate); margin: 2px 0; }
         .reporter-line {
           display: flex; align-items: center; gap: 6px; font-size: 11px; color: #94a3b8;
+          .location-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
           .status-pill {
             background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 6px; font-size: 9px; font-weight: 800;
             &.late-pill { background: #fef9c3; color: #854d0e; }
+            &.onsite-pill { background: #f3e8ff; color: #7c3aed; }
           }
         }
       }
@@ -97,6 +98,7 @@
   }
 }
 
+// Modal Styling as it was
 .custom-bottom-card {
   --height: auto; --max-height: 80%; --border-radius: 40px 40px 0 0;
   align-items: flex-end;
@@ -106,7 +108,7 @@
     .modal-header {
       text-align: center; margin-bottom: 30px;
       .title-row { display: flex; align-items: center; justify-content: center; gap: 10px;
-        h3 { font-size: 22px; font-weight: 800; }
+        h3 { font-size: 22px; font-weight: 800; margin: 0; }
         ion-icon { color: #0d9488; }
       }
       .subtitle { font-size: 14px; color: #94a3b8; }

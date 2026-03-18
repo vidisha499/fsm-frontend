@@ -134,6 +134,32 @@
   }
 }
 
+.type-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  
+  &.status-pending {
+    background: rgba(255, 196, 9, 0.2); // Yellowish for Pending
+    color: #ffc409;
+  }
+  
+  &.status-approved {
+    background: rgba(45, 211, 111, 0.2); // Greenish for Approved
+    color: #2dd36f;
+  }
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-left: 5px;
+  box-shadow: 0 0 10px currentColor; // Glow effect
+}
 // FAB Button
 .fab-wrapper {
   position: fixed; bottom: 30px; right: 20px;

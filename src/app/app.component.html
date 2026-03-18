@@ -12,13 +12,20 @@
       <div class="header-content">
         <div class="user-profile-section">
           <div class="avatar-box">
-            <img [src]="userPhoto || 'https://placehold.co/56x56/10b981/FFF?text=N'" alt="User">
-            <div class="status-indicator"></div>
-          </div>
-          <div class="user-info">
-            <h2>{{ rangerName || ('COMMON.PENDING_NAME' | translate) }}</h2>
-            <p>{{ rangerDivision || ('COMMON.ASSIGN_DIVISION' | translate) }}</p>
-          </div>
+  <img *ngIf="userPhoto" [src]="userPhoto" alt="User">
+  
+  <div *ngIf="!userPhoto" 
+       class="letter-placeholder" 
+       [style.background-color]="getAvatarColor(rangerName)">
+    {{ getFirstLetter(rangerName) }}
+  </div>
+
+  <div class="status-indicator"></div>
+</div>
+  <div class="user-info">
+  <h2>{{ rangerName }}</h2>
+  <p>{{ rangerDivision }}</p> 
+</div>
         </div>
 
         <div class="duty-card">
@@ -39,10 +46,14 @@
         <div class="item-text"><span>{{ 'MENU.DASHBOARD' | translate }}</span></div>
       </a>
 
-      <a class="menu-item" (click)="goToPage('attendance')" [class.active]="router.url.includes('attendance')">
+      <!-- <a class="menu-item" (click)="goToPage('attendance')" [class.active]="router.url.includes('attendance')">
         <div class="icon-box blue"><i class="fas fa-calendar-check"></i></div>
         <div class="item-text"><span>{{ 'MENU.ATTENDANCE_REQ' | translate }}</span></div>
-      </a>
+      </a> -->
+      <a *ngIf="userRole === '2'" class="menu-item" (click)="goToPage('attendance-requests')">
+    <div class="icon-box amber"><i class="fas fa-user-check"></i></div>
+    <div class="item-text"><span>{{ 'MENU.ATTENDANCE_REQ' | translate }}</span></div>
+  </a>
 
       <a class="menu-item" (click)="goToPage('updates')" [class.active]="router.url.includes('updates')">
         <div class="icon-box purple"><i class="fas fa-newspaper"></i></div>

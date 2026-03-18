@@ -235,51 +235,59 @@ async initLeafletMap() {
     }
     this.cdr.detectChanges();
   }
+async submitAttendance() {
+  if (this.isSubmitting) return; 
 
-  async submitAttendance() {
-    if (this.isSubmitting) return; 
-    if (!this.capturedPhoto) {
-      const msg = await this.translate.get('ATTENDANCE.PHOTO_REQUIRED').toPromise(); // 👈 Translated
-      this.presentToast(msg, 'warning');
-      this.resetSlider();
-      return;
-    }
-
-    this.isSubmitting = true;
-    this.cdr.detectChanges(); 
-    const companyId = localStorage.getItem('company_id');
-
-    const payload = {
-      ranger_id: Number(localStorage.getItem('ranger_id')) || 1,
-      company_id: companyId ? Number(companyId) : null,
-      type: this.isEntry ? 'ENTRY' : 'EXIT',
-      photo: this.capturedPhoto,
-      latitude: this.currentLat,
-      longitude: this.currentLng,
-      geofence: this.currentAddress,
-      rangerName: this.rangerName, 
-    region: this.rangerRegion 
-    };
-
-    this.http.post(this.apiUrl, payload).subscribe({
-      next: async () => {
-        const msg = await this.translate.get('ATTENDANCE.SUCCESS').toPromise(); // 👈 Translated
-        this.presentToast(msg, 'success');
-        setTimeout(() => {
-          this.isSubmitting = false;
-          this.goBack();
-        }, 1500);
-      },
-      error: async () => {
-        this.isSubmitting = false;
-        this.resetSlider();
-        const msg = await this.translate.get('ATTENDANCE.SYNC_ERROR').toPromise(); // 👈 Translated
-        this.presentToast(msg, 'danger');
-      }
-    });
+  // 1. Photo validation
+  if (!this.capturedPhoto) {
+    const msg = await this.translate.get('ATTENDANCE.PHOTO_REQUIRED').toPromise();
+    this.presentToast(msg, 'warning');
+    this.resetSlider();
+    return;
   }
 
+  this.isSubmitting = true;
+  this.cdr.detectChanges(); 
 
+  // 2. LocalStorage se IDs nikaalna (Sahi tarika)
+  const companyId = localStorage.getItem('company_id'); // Make sure ye login ke waqt set ho raha hai
+  const rangerId = localStorage.getItem('ranger_id');
+
+  // 3. Payload taiyar karna
+  const payload = {
+    ranger_id: rangerId ? Number(rangerId) : 0,
+    company_id: companyId ? Number(companyId) : null, // 👈 Admin filtering ke liye ye sabse zaroori hai
+    type: this.isEntry ? 'ENTRY' : 'EXIT',
+    photo: this.capturedPhoto,
+    latitude: this.currentLat,
+    longitude: this.currentLng,
+    geofence: this.currentAddress,
+    rangerName: this.rangerName, 
+    region: this.rangerRegion 
+  };
+
+  // 4. Log check karne ke liye (Sahi variable use kiya hai ab)
+  console.log('Submitting Onsite Attendance for Company:', payload.company_id);
+
+  // 5. API Call
+  this.http.post(this.apiUrl, payload).subscribe({
+    next: async () => {
+      const msg = await this.translate.get('ATTENDANCE.SUCCESS').toPromise();
+      this.presentToast(msg, 'success');
+      setTimeout(() => {
+        this.isSubmitting = false;
+        this.goBack();
+      }, 1500);
+    },
+    error: async (err) => {
+      console.error("Submission Error:", err);
+      this.isSubmitting = false;
+      this.resetSlider();
+      const msg = await this.translate.get('ATTENDANCE.SYNC_ERROR').toPromise();
+      this.presentToast(msg, 'danger');
+    }
+  });
+}
 
   async presentImageSourceOptions() {
     const header = await this.translate.get('ATTENDANCE.SELECT_SOURCE').toPromise();

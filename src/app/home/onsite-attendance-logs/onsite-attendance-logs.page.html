@@ -39,8 +39,10 @@
 
       <div class="info-section">
         <div class="top-meta">
-          <span class="type-label">WORK SHIFT</span>
-          <span class="status-dot"></span>
+          
+          
+          <span class="type-label"  [ngClass]="{'status-pending': log.status === 'pending', 'status-approved': log.status === 'approved'}">{{ (log.status || 'pending') | uppercase }}</span>
+          <span class="status-dot" [style.background]="log.status === 'approved' ? '#2dd36f' : '#ffc409'"></span>
         </div>
         
         <h3 class="date-text-inline">

@@ -1,0 +1,65 @@
+<ion-content [fullscreen]="true" class="premium-wrapper">
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
+  <div class="hero-header">
+    <div class="header-overlay"></div>
+    <div class="header-content">
+      <div class="nav-bar">
+        <div class="left-section">
+          <button class="glass-btn" (click)="goBack()">
+            <ion-icon name="arrow-back-outline"></ion-icon>
+          </button>
+          <h1>Attendance Requests</h1>
+        </div>
+        <div class="auth-badge">
+          <ion-icon name="shield-checkmark"></ion-icon>
+          ADMIN
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-container">
+    <div *ngIf="pendingRequests.length === 0" class="main-card no-data-card">
+      <div class="scanner-section">
+        <ion-icon name="checkmark-done-circle" class="large-icon"></ion-icon>
+        <p class="instruction verified">All Requests Processed</p>
+      </div>
+    </div>
+
+    <div class="main-card request-item animate-in" *ngFor="let req of pendingRequests">
+      <div class="user-profile-section">
+        <div class="image-frame">
+          <img [src]="req.photo" />
+          <div class="status-indicator"></div>
+        </div>
+        <div class="user-detail">
+          <h3>{{ req.ranger }}</h3>
+          <span class="time-stamp">
+            <ion-icon name="time-outline"></ion-icon> {{ req.created_at | date:'hh:mm a' }}
+          </span>
+        </div>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-item">
+          <label>Location</label>
+          <div class="val-box">
+            <ion-icon name="location"></ion-icon>
+            <span>{{ req.geofence || 'Site Location' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-grid">
+        <button class="btn-approve" (click)="updateStatus(req.id, 'approved')">
+          <ion-icon name="checkmark-circle"></ion-icon> Approve
+        </button>
+        <button class="btn-reject" (click)="updateStatus(req.id, 'rejected')">
+          <ion-icon name="close-circle"></ion-icon> Reject
+        </button>
+      </div>
+    </div>
+  </div>
+</ion-content>

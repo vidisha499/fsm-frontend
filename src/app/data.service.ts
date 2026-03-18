@@ -133,4 +133,50 @@ postSOS(alertData: any) {
   // Ensure this is using baseApiUrl and NOT a hardcoded string or missing the /api prefix
   return this.http.post(`${this.baseApiUrl}/alerts/trigger-sos`, alertData);
 }
+
+// --- ADMIN DASHBOARD FUNCTIONS ---
+
+// Admin ke liye: Puri company ki attendance nikalne ke liye
+getAttendanceByCompany(companyId: string) {
+  // Backend URL: /attendance/beat-attendance/company/:id
+  return this.http.get(`${this.baseApiUrl}/attendance/beat-attendance/company/${companyId}`);
+}
+
+// Admin ke liye: Puri company ke incidents nikalne ke liye (Future use)
+getIncidentsByCompany(companyId: string) {
+  return this.http.get(`${this.baseApiUrl}/incidents/company/${companyId}`);
+}
+
+
+// data.service.ts
+
+getRangersByCompany(companyId: string) {
+  // Ye aapke backend ke rangers wale endpoint ko call karega
+  return this.http.get(`${this.baseApiUrl}/rangers/company/${companyId}`);
+}
+
+// --- ONSITE ATTENDANCE (NEW) ---
+
+// 1. Ranger ke liye: Nayi onsite attendance submit karne ke liye
+markOnsiteAttendance(payload: any) {
+  return this.http.post(`${this.baseApiUrl}/onsite-attendance`, payload);
+}
+
+// 2. Admin ke liye: Pending requests fetch karne ke liye (Ye missing tha!)
+getPendingOnsiteRequests(companyId: string) {
+  return this.http.get(`${this.baseApiUrl}/onsite-attendance/company/${companyId}/pending`);
+}
+
+// 3. Admin ke liye: Status update karne ke liye (Approve/Reject)
+updateOnsiteStatus(id: number, status: 'approved' | 'rejected') {
+  return this.http.patch(`${this.baseApiUrl}/onsite-attendance/${id}/status`, { status });
+}
+
+// 4. Ranger ke liye: Apne khud ke logs dekhne ke liye
+getOnsiteLogsByRanger(rangerId: string) {
+  return this.http.get(`${this.baseApiUrl}/onsite-attendance/ranger/${rangerId}`);
+}
+getApprovedOnsiteByCompany(companyId: string) {
+  return this.http.get(`${this.baseApiUrl}/onsite-attendance/company/${companyId}`);
+}
 }
