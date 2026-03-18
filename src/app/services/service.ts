@@ -63,4 +63,6 @@ export class DataService {
   getCompletedPatrolLogs() {
     return this.http.get(`${this.baseUrl}/patrols/logs`);
   }
+  // Inside DataService class
+
 }

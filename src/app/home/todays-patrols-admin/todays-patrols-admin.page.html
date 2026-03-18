@@ -1,4 +1,8 @@
 <ion-content [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="doRefresh($event)">
+    <ion-refresher-content pullingText="Pull to refresh..." refreshingSpinner="crescent"></ion-refresher-content>
+  </ion-refresher>
+
   <div class="premium-wrapper">
     <div class="ambient-glow glow-1"></div>
     <div class="ambient-glow glow-2"></div>
@@ -8,60 +12,57 @@
       <div class="header-content">
         <div class="nav-bar">
           <div class="left-section">
-            <button (click)="dismiss()" class="glass-btn">
-            <ion-icon name="arrow-back-outline"></ion-icon>
+            <button (click)="goBack()" class="glass-btn">
+              <ion-icon name="arrow-back-outline"></ion-icon>
             </button>
             <h1>Today's Patrols</h1>
           </div>
           <div class="right-section">
-            <button class="filter-toggle-btn" (click)="isModalOpen = true">
-              <i class="fas fa-search-location"></i>
-            </button>
+            <span class="count-badge">{{ filteredPatrols.length }} LOGS</span>
           </div>
         </div>
       </div>
     </div>
 
     <div class="main-container">
-      <div class="status-tabs-wrapper">
-        <div class="status-tabs">
-          <div class="tab" [class.active]="activeTab === 'active'" (click)="activeTab = 'active'">Ongoing</div>
-          <div class="tab" [class.active]="activeTab === 'completed'" (click)="activeTab = 'completed'">Completed</div>
-        </div>
+      <div *ngIf="isLoading" class="ion-text-center ion-padding">
+        <ion-spinner name="crescent" color="primary"></ion-spinner>
+        <p style="color: #94a3b8; font-size: 12px; margin-top: 10px;">Syncing patrol movements...</p>
       </div>
 
-      <div class="incident-list">
-        <div class="incident-row-compact animate__animated animate__fadeInUp" *ngFor="let patrol of patrolLogs">
+      <div class="patrol-list" *ngIf="!isLoading">
+        <div class="incident-row-compact animate__animated animate__fadeInUp" 
+             *ngFor="let patrol of filteredPatrols">
           
           <div class="mini-thumb">
-            <div class="avatar-circle">
-               <ion-icon name="navigate-circle-outline"></ion-icon>
+            <div class="icon-circle" [style.background]="patrol.endTime ? 'rgba(34, 197, 94, 0.15)' : 'rgba(234, 179, 8, 0.15)'">
+              <ion-icon [name]="patrol.endTime ? 'checkmark-done-outline' : 'walk-outline'"
+                        [style.color]="patrol.endTime ? '#22c55e' : '#eab308'"></ion-icon>
             </div>
-            <div class="priority-indicator" [attr.data-status]="patrol.status"></div>
+            <div class="priority-indicator" [attr.data-level]="patrol.endTime ? 'Info' : 'Critical'"></div>
           </div>
 
           <div class="row-content">
             <div class="top-line">
-              <span class="type-text">{{ patrol.rangerId }}</span>
-              <span class="log-date">{{ patrol.startTime }}</span>
+              <span class="type-text">PATROL #{{ patrol.id }}</span>
+              <span class="log-date">{{ patrol.createdAt | date:'shortTime' }}</span>
             </div>
 
-            <h2 class="priority-title">{{ patrol.rangerName }}</h2>
+            <h2 class="priority-title">{{ patrol.routeName || 'Standard Route' }}</h2>
 
             <div class="reporter-line">
-              <ion-icon name="map-outline"></ion-icon>
-              <span>{{ patrol.area }} • {{ patrol.distance }}km</span>
-              <span class="status-pill" [class.active-pill]="patrol.status === 'Active'">{{ patrol.status }}</span>
-            </div>
-            
-            <div class="patrol-progress-bg">
-              <div class="patrol-progress-fill" [style.width]="patrol.progress + '%'"></div>
+              <ion-icon name="person-circle-outline"></ion-icon>
+              <span>Ranger #{{ patrol.rangerId }}</span>
+              <span class="status-pill" [class.completed-pill]="patrol.endTime">
+                {{ patrol.endTime ? 'Finished (' + calculateDuration(patrol.startTime, patrol.endTime) + ')' : 'Live Now' }}
+              </span>
             </div>
           </div>
+        </div>
 
-          <div class="row-actions">
-            <ion-icon name="chevron-forward" class="chevron"></ion-icon>
-          </div>
+        <div class="empty-state" *ngIf="filteredPatrols.length === 0">
+          <ion-icon name="footsteps-outline"></ion-icon>
+          <p>No patrols started yet today</p>
         </div>
       </div>
     </div>

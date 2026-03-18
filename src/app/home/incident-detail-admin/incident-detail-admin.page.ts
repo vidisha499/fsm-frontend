@@ -1,66 +1,4 @@
-// import { Component, OnInit } from '@angular/core';
-// import { ActivatedRoute } from '@angular/router';
-// import { IncidentService } from '../../services/incident.service';
-// import { NavController } from '@ionic/angular';
 
-// @Component({
-//   selector: 'app-incident-detail-admin',
-//   templateUrl: './incident-detail-admin.page.html',
-//   styleUrls: ['./incident-detail-admin.page.scss'],
-//   standalone: false
-// })
-// export class IncidentDetailAdminPage implements OnInit {
-//   incident: any;
-//   isLoading: boolean = true;
-
-//   constructor(
-//     private route: ActivatedRoute,
-//     private incidentService: IncidentService,
-//     private navCtrl: NavController
-//   ) {}
-
-//   ngOnInit() {
-//     const id = this.route.snapshot.paramMap.get('id');
-//     if (id) {
-//       this.loadDetails(+id);
-//     }
-//   }
-
-//   loadDetails(id: number) {
-//     this.isLoading = true;
-//     // Explicitly typing data and err to satisfy strict mode
-//     this.incidentService.getOne(id).subscribe({
-//       next: (data: any) => { 
-//         this.incident = data;
-//         this.isLoading = false;
-//       },
-//       error: (err: Error) => {
-//         console.error('Error fetching admin details', err);
-//         this.isLoading = false;
-//       }
-//     });
-//   }
-
-//   goBack() {
-//     this.navCtrl.back();
-//   }
-
-  
-
-
-//   formatImage(photo: any) {
-//   if (!photo) return null;
-  
-//   // If it's already a full data URL, return it
-//   if (photo.startsWith('data:image')) {
-//     return photo;
-//   }
-  
-//   // If it's just the raw base64 string, prepend the header
-//   // Using jpeg as a safe default since most mobile uploads are jpegs
-//   return `data:image/jpeg;base64,${photo}`;
-// }
-// }
 
 
 // import { Component, OnInit, OnDestroy } from '@angular/core';
@@ -161,7 +99,6 @@
 //   closeZoom() { this.selectedZoomImage = null; }
 //   goBack() { this.navCtrl.back(); }
 // }
-
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';

@@ -122,6 +122,13 @@ checkUserExists(mobile: string) {
     return this.http.post(`${this.baseApiUrl}/attendance/beat-attendance`, payload);
   }
 
+// Inside DataService class
+getPatrolsByCompany(companyId: number, date?: string) {
+  // If date is provided, we use it for both 'from' and 'to' to get a single day
+  const params = date ? `?companyId=${companyId}&from=${date}&to=${date}` : `?companyId=${companyId}`;
+  return this.http.get(`${this.baseApiUrl}/patrols/logs${params}`);
+}
+
 postSOS(alertData: any) {
   // Ensure this is using baseApiUrl and NOT a hardcoded string or missing the /api prefix
   return this.http.post(`${this.baseApiUrl}/alerts/trigger-sos`, alertData);

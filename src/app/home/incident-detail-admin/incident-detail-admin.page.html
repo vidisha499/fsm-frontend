@@ -1,4 +1,4 @@
-<!-- 
+
 
 
 
@@ -14,7 +14,7 @@
           <button (click)="goBack()" class="glass-btn">
             <ion-icon name="arrow-back-outline"></ion-icon>
           </button>
-          <h1>Incident Audit</h1>
+          <h1>Event details</h1>
         </div>
         <div class="right-section">
           <span class="id-badge">LOG #{{ incident?.id }}</span>
@@ -45,124 +45,6 @@
           <div class="pill-content map-wrapper">
             <div id="mapDetail" class="map-render"></div>
            
-          </div>
-        </div>
-
-        <div class="input-pill">
-          <label>Root Cause</label>
-          <div class="pill-content">
-            <ion-icon name="flash-outline"></ion-icon>
-            <span class="val">{{ incident?.rootCause }}</span>
-          </div>
-        </div>
-
-        <div class="input-pill">
-          <label>Incident Type</label>
-          <div class="pill-content">
-            <ion-icon name="list-outline"></ion-icon>
-            <span class="val">{{ incident?.incidentCriteria }}</span>
-          </div>
-        </div>
-
-        <div class="input-pill">
-          <label>Field Observation</label>
-          <div class="pill-content">
-            <ion-icon name="document-text-outline"></ion-icon>
-            <div class="observation-box">
-              {{ incident?.fieldObservation || 'No additional notes provided.' }}
-            </div>
-          </div>
-        </div>
-
-        <div class="input-pill">
-          <label>Reporting Source</label>
-          <div class="pill-content">
-            <ion-icon name="person-circle-outline"></ion-icon>
-            <span class="val">Ranger #{{ incident?.rangerId }}</span>
-          </div>
-        </div>
-
-        <div class="input-pill">
-          <label>Detected At</label>
-          <div class="pill-content">
-            <ion-icon name="time-outline"></ion-icon>
-            <span class="val">{{ formatDetailDate(incident?.createdAt) }}</span>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  <div class="zoom-overlay" *ngIf="selectedZoomImage" (click)="closeZoom()">
-    <div class="zoom-container">
-      <img [src]="selectedZoomImage" />
-      <button class="close-zoom" (click)="closeZoom()">
-        <ion-icon name="close-outline"></ion-icon>
-      </button>
-    </div>
-  </div>
-</ion-content> -->
-
-
-<ion-content [fullscreen]="true" class="premium-wrapper">
-  <div class="ambient-glow glow-1"></div>
-  <div class="ambient-glow glow-2"></div>
-
-  <div class="hero-header">
-    <div class="header-overlay"></div>
-    <div class="header-content">
-      <div class="nav-bar">
-        <div class="left-section">
-          <button (click)="goBack()" class="glass-btn">
-            <ion-icon name="arrow-back-outline"></ion-icon>
-          </button>
-          <h1>Incident Audit</h1>
-        </div>
-        <div class="right-section">
-          <span class="id-badge">LOG #{{ incident?.id }}</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="card-container">
-    <div class="main-card animate__animated animate__fadeInUp">
-      
-      <div class="detail-section">
-        <label class="group-label">EVIDENCE / PHOTOS</label>
-        <div class="photo-frame" *ngIf="incident?.photo" (click)="openZoom(formatImage(incident.photo))">
-          <img [src]="formatImage(incident.photo)" class="main-img">
-        </div>
-        <div class="no-photos-box" *ngIf="!incident?.photo">
-          <ion-icon name="camera-reverse-outline"></ion-icon>
-          <p>No Media Captured</p>
-        </div>
-      </div>
-
-      <div class="form-grid">
-        
-        <div class="input-pill status-pill">
-          <label>Update Resolution Status</label>
-          <div class="pill-content">
-            <ion-segment [value]="incident?.status || 'Pending'" (ionChange)="updateStatus($event)" mode="ios">
-              <ion-segment-button value="Pending">
-                <ion-label>Pending</ion-label>
-              </ion-segment-button>
-              <ion-segment-button value="Resolved">
-                <ion-label>Resolved</ion-label>
-              </ion-segment-button>
-            </ion-segment>
-          </div>
-        </div>
-
-        <div class="input-pill">
-          <label>INCIDENT LOCATION</label>
-          <div class="pill-content map-wrapper">
-            <div id="mapDetail" class="map-render"></div>
-            <div class="coords-overlay">
-              {{ incident?.latitude }}, {{ incident?.longitude }}
-            </div>
           </div>
         </div>
 
