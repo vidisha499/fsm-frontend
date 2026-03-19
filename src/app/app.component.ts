@@ -1,6 +1,6 @@
 import { Component, Renderer2, QueryList, ViewChildren, OnInit, ChangeDetectorRef } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { Platform, IonRouterOutlet, ActionSheetController, ModalController, MenuController, NavController, ToastController } from '@ionic/angular';
+import { Platform, IonRouterOutlet, ActionSheetController, ModalController, MenuController, NavController, ToastController ,LoadingController} from '@ionic/angular';
 import { Router } from '@angular/router';
 
 @Component({
@@ -50,7 +50,8 @@ export class AppComponent implements OnInit {
     private navCtrl: NavController,
     private cdr: ChangeDetectorRef, // For Slider & UI updates
     private toastController: ToastController, // For success messages
-    public router: Router 
+    public router: Router ,
+     private loadingCtrl: LoadingController,
   ) {
     this.renderer.removeClass(document.body, 'dark');
     this.renderer.addClass(document.body, 'light');

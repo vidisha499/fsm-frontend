@@ -85,10 +85,10 @@
       <div class="incident-list" *ngIf="!isLoading">
         <div class="incident-row-compact animate__animated animate__fadeInUp" 
              *ngFor="let incident of incidents"
-             (click)="openIncidentDetail(incident)"
-             [hidden]="activeTab === 'critical' && incident.responsePriority !== 'High Priority'">
+             (click)="openIncidentDetail(incident)">
           
           <div class="mini-thumb">
+            
             <div class="icon-circle">
               <ion-icon [name]="incident.incidentCriteria === 'Fire Warning' ? 'flame-outline' : 'alert-circle-outline'"></ion-icon>
             </div>

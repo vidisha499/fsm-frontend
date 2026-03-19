@@ -184,4 +184,5 @@ getOnsiteLogsByRanger(rangerId: string) {
 getApprovedOnsiteByCompany(companyId: string) {
   return this.http.get(`${this.baseApiUrl}/onsite-attendance/company/${companyId}`);
 }
+
 }

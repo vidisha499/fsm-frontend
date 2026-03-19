@@ -203,13 +203,15 @@ async submit() {
   this.cdr.detectChanges(); 
 
   // --- FIX: Get Company ID from localStorage ---
-  const companyId = localStorage.getItem('company_id');
+  // const companyId = localStorage.getItem('company_id');
+  const companyId = localStorage.getItem('company_id') || '1';
   const rangerId = localStorage.getItem('ranger_id');
 
   const onsiteData = {
     ranger_id: rangerId ? Number(rangerId) : 0,
     // company_id: companyId ? Number(companyId) : null, // 👈 Admin filtering ke liye compulsory hai
-    companyId: companyId ? Number(companyId) : null,
+    // company_id: Number(companyId),
+    company_id: companyId ? Number(companyId) : null,
     ranger: this.rangerName,
     geofence: this.currentAddress, 
     attendance_type: 'ON-SITE',
@@ -220,8 +222,7 @@ async submit() {
     created_at: new Date().toISOString() 
   };
 
-  console.log('Submitting Onsite Attendance for Company:', onsiteData.companyId);
-
+  console.log('Submitting Onsite Attendance for Company:', onsiteData.company_id)
   this.http.post(this.apiUrl, onsiteData).subscribe({
     next: async () => {
       const successMsg = await firstValueFrom(this.translate.get('ATTENDANCE.SUCCESS'));

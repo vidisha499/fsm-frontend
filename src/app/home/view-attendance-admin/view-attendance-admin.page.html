@@ -60,7 +60,7 @@
     <div class="main-container">
       <div class="incident-list">
         <div class="incident-row-compact animate__animated animate__fadeInUp" 
-             *ngFor="let log of allMergedLogs" 
+             *ngFor="let log of attendanceLogs" 
              [class.onsite-card]="log.logType === 'onsite'">
           
           <div class="mini-thumb" [class.photo-thumb]="log.logType === 'onsite'">

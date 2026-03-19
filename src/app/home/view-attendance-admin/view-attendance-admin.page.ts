@@ -1,5 +1,5 @@
 import { Component, OnInit , Input } from '@angular/core';
-import { ModalController } from '@ionic/angular';
+import { LoadingController, ModalController } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
 import { DataService } from 'src/app/data.service';
 import { environment } from 'src/environments/environment';
@@ -40,7 +40,8 @@ allMergedLogs: any[] = []; // Backup for filtering
 
   constructor(private modalCtrl: ModalController,
     private http: HttpClient,
-    private dataService: DataService
+    private dataService: DataService,
+     private loadingCtrl: LoadingController,
   ) { }
 
   ngOnInit() {
@@ -54,11 +55,23 @@ allMergedLogs: any[] = []; // Backup for filtering
   }
 
   // Logic for the Filter Modal buttons
+
   applyFilters() {
-    console.log('Filtering from:', this.filters.fromDate, 'to:', this.filters.toDate);
-    this.isModalOpen = false;
-    // Add your backend filtering logic here
-  }
+  const from = new Date(this.filters.fromDate);
+  const to = new Date(this.filters.toDate);
+  
+  // Time ko zero kar dete hain taaki sirf Date match ho
+  from.setHours(0, 0, 0, 0);
+  to.setHours(23, 59, 59, 999);
+
+  this.attendanceLogs = this.allMergedLogs.filter(log => {
+    const logDate = new Date(log.created_at || log.date).getTime();
+    return logDate >= from.getTime() && logDate <= to.getTime();
+  });
+
+  console.log('Filtered Count:', this.attendanceLogs.length);
+  this.isModalOpen = false; // Modal band karne ke liye
+}
 
   resetFilters() {
     this.filters.fromDate = new Date().toISOString();
@@ -131,17 +144,27 @@ fetchAllData() {
     error: (err) => console.error("Regular Fetch Error:", err)
   });
 }
-filterByTab() {
-  if (this.activeTab === 'attendance') {
-    this.attendanceLogs = this.allMergedLogs.filter(log => log.logType === 'regular');
-  } else {
-    this.attendanceLogs = this.allMergedLogs.filter(log => log.logType === 'onsite');
-  }
-}
+// filterByTab() {
+//   if (this.activeTab === 'attendance') {
+//     this.attendanceLogs = this.allMergedLogs.filter(log => log.logType === 'regular');
+//   } else {
+//     this.attendanceLogs = this.allMergedLogs.filter(log => log.logType === 'onsite');
+//   }
+// }
 
 // Tab change function
 setTab(tab: string) {
   this.activeTab = tab;
   this.filterByTab();
 }
+
+filterByTab() {
+    if (this.activeTab === 'all') {
+      this.attendanceLogs = [...this.allMergedLogs];
+    } else if (this.activeTab === 'regular') {
+      this.attendanceLogs = this.allMergedLogs.filter(log => log.logType === 'regular');
+    } else if (this.activeTab === 'onsite') {
+      this.attendanceLogs = this.allMergedLogs.filter(log => log.logType === 'onsite');
+    }
+  }
 }

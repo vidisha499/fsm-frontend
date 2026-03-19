@@ -1,18 +1,34 @@
-<ion-content class="hierarchy-container">
-  <ion-list>
-    <div *ngFor="let item of categories">
-      <ion-item [ngClass]="'level-' + item.layerId">
-        <ion-label>
-          <h2>{{ item.name }}</h2>
-          <p>Layer ID: {{ item.layerId }}</p>
-        </ion-label>
-      </ion-item>
-    </div>
-  </ion-list>
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>Forest Hierarchy</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="openAddModal()">
+        <ion-icon name="add-circle-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
 
-  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-    <ion-fab-button (click)="openAddModal()">
-      <ion-icon name="add"></ion-icon>
-    </ion-fab-button>
-  </ion-fab>
+<ion-content>
+  <div *ngIf="categories.length === 0" class="ion-text-center ion-padding">
+    <ion-note>No hierarchy data found. Add your first Circle!</ion-note>
+  </div>
+
+  <ion-list>
+    <ion-item-group *ngFor="let circle of categories">
+      <ion-item-divider color="secondary">
+        <ion-icon name="map-outline" slot="start"></ion-icon>
+        <ion-label>
+          <h2>{{ circle.name }}</h2>
+          <p>Circle Level</p>
+        </ion-label>
+      </ion-item-divider>
+
+      <ion-item *ngFor="let child of circle.children" class="child-item">
+        <ion-icon name="git-network-outline" slot="start" color="medium"></ion-icon>
+        <ion-label>{{ child.name }}</ion-label>
+        <ion-note slot="end">Division</ion-note>
+      </ion-item>
+    </ion-item-group>
+  </ion-list>
 </ion-content>

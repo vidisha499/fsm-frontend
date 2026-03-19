@@ -62,6 +62,8 @@
       .mini-thumb {
         position: relative; width: 55px; height: 55px; border-radius: 12px; flex-shrink: 0;
         background: #f1f5f9; display: flex; align-items: center; justify-content: center;
+
+        
         .icon-circle { font-size: 22px; color: #64748b; }
         .priority-indicator {
           position: absolute; left: 0; top: 0; bottom: 0; width: 4px;

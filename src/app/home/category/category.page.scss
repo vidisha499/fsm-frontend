@@ -1,35 +1,62 @@
-.hierarchy-container {
-  ion-list {
-    background: transparent;
-  }
+// src/app/home/category/category.page.scss
 
-  .level-1 {
-    --background: #f4f5f8;
+ion-content {
+  --background: #f4f5f8; // Light background for better contrast
+}
+
+ion-item-group {
+  margin-bottom: 15px;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+ion-item-divider {
+  --padding-top: 10px;
+  --padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+
+  h2 {
     font-weight: bold;
-    border-left: 4px solid var(--ion-color-primary);
+    color: var(--ion-color-secondary);
+    margin: 0;
   }
 
-  .level-2 {
-    margin-left: 20px;
-    --background: #ffffff;
-    border-left: 2px solid var(--ion-color-secondary);
+  p {
+    font-size: 0.8em;
+    margin: 2px 0 0 0;
+  }
+}
+
+.child-item {
+  --padding-start: 45px; // 👈 Isse Division thoda andar shift ho jayega
+  --min-height: 50px;
+  
+  ion-icon {
+    font-size: 18px;
+    margin-right: 10px;
   }
 
-  .level-3 {
-    margin-left: 40px;
-    font-size: 0.9em;
-    --background: #fafafa;
-    border-left: 1px dashed #ccc;
+  ion-label {
+    font-weight: 500;
   }
 
-  .level-4 {
-    margin-left: 60px;
-    font-style: italic;
-    color: var(--ion-color-medium);
+  // Visual line connector (optional)
+  &::before {
+    content: '';
+    position: absolute;
+    left: 25px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e0e0e0;
   }
+}
 
-  ion-item {
-    margin-bottom: 2px;
-    --padding-start: 16px;
-  }
+ion-note {
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
