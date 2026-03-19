@@ -1,0 +1,90 @@
+<ion-content [fullscreen]="true">
+  <div class="premium-wrapper">
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <div class="hero-header">
+      <div class="header-overlay"></div>
+      <div class="header-content">
+        <div class="nav-bar">
+          <button (click)="goBack()" class="glass-btn">
+            <ion-icon name="arrow-back-outline"></ion-icon>
+          </button>
+          <h1 *ngIf="patrolData">Patrol #{{ patrolData.id }}</h1>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-container">
+      <div *ngIf="isLoading" class="ion-text-center ion-padding animate__animated animate__fadeIn">
+        <ion-spinner name="crescent" color="primary"></ion-spinner>
+      </div>
+
+      <div *ngIf="!isLoading && patrolData" class="animate__animated animate__fadeInUp">
+        
+        <div class="status-card">
+          <div class="status-header">
+            <div class="status-icon" [class.live]="!patrolData.endTime" [class.done]="patrolData.endTime">
+              <ion-icon [name]="patrolData.endTime ? 'checkmark-circle' : 'radio-outline'"></ion-icon>
+            </div>
+            <div class="status-text">
+              <h3>{{ patrolData.endTime ? 'Patrol Completed' : 'Patrol in Progress' }}</h3>
+              <p>{{ (patrolData.createdAt || patrolData.created_at) | date:'fullDate' }}</p>
+            </div>
+          </div>
+          
+          <div class="stats-grid">
+            <div class="stat-item">
+              <span class="label">Started</span>
+              <span class="value">{{ patrolData.startTime | date:'shortTime' }}</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+              <span class="label">Duration</span>
+              <span class="value">{{ patrolData.endTime ? calculateDuration(patrolData.startTime, patrolData.endTime) : 'Ongoing' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="details-section">
+          <h4 class="section-title">Ranger Information</h4>
+          <div class="info-row">
+            <div class="info-icon"><ion-icon name="person-outline"></ion-icon></div>
+            <div class="info-content">
+              <span class="info-label">Ranger ID</span>
+              <span class="info-value">#{{ patrolData.rangerId }}</span>
+            </div>
+          </div>
+          
+          <div class="info-row">
+            <div class="info-icon"><ion-icon name="business-outline"></ion-icon></div>
+            <div class="info-content">
+              <span class="info-label">Company ID</span>
+              <span class="info-value">#{{ patrolData.companyId || 'N/A' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="details-section">
+          <h4 class="section-title">Route Details</h4>
+          <div class="info-row">
+            <div class="info-icon"><ion-icon name="map-outline"></ion-icon></div>
+            <div class="info-content">
+              <span class="info-label">Assigned Route</span>
+              <span class="info-value">{{ patrolData.routeName || 'Standard Forest Patrol' }}</span>
+            </div>
+          </div>
+          
+          <div class="info-row" *ngIf="patrolData.endTime">
+            <div class="info-icon"><ion-icon name="time-outline"></ion-icon></div>
+            <div class="info-content">
+              <span class="info-label">Finished At</span>
+              <span class="info-value">{{ patrolData.endTime | date:'mediumTime' }}</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</ion-content>

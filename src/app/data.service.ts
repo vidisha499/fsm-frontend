@@ -129,6 +129,11 @@ getPatrolsByCompany(companyId: number, date?: string) {
   return this.http.get(`${this.baseApiUrl}/patrols/logs${params}`);
 }
 
+getPatrolById(id: number) {
+  // Try adding /logs if that's where your patrol data lives
+  return this.http.get(`${this.baseApiUrl}/patrols/logs/${id}`);
+}
+
 postSOS(alertData: any) {
   // Ensure this is using baseApiUrl and NOT a hardcoded string or missing the /api prefix
   return this.http.post(`${this.baseApiUrl}/alerts/trigger-sos`, alertData);

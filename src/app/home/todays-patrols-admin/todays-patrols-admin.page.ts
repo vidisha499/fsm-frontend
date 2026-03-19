@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { NavController } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
 import { DataService } from 'src/app/data.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-todays-patrols-admin',
@@ -17,7 +18,8 @@ export class TodaysPatrolsAdminPage implements OnInit {
   constructor(
     private navCtrl: NavController,
     private http: HttpClient,
-    private dataService: DataService
+    private dataService: DataService,
+    private router: Router
   ) {}
 
   ngOnInit() {
@@ -28,41 +30,10 @@ export class TodaysPatrolsAdminPage implements OnInit {
     this.loadTodayPatrols();
   }
 
-  // loadTodayPatrols() {
-  //   const companyId = localStorage.getItem('company_id');
-  //   const today = new Date().toISOString().split('T')[0];
-  //   if (!companyId) return;
-    
-
-  //   this.isLoading = true;
-  //   // Update this URL to match your patrol endpoint
-  //   const url = `https://forest-backend-pi.vercel.app/api/patrols/company/${companyId}`;
-
-  //   this.http.get<any[]>(url).subscribe({
-  //     next: (data) => {
-  //       const today = new Date().toISOString().split('T')[0];
-        
-  //       // 1. Sort by ID Descending (Newest first)
-  //       this.allPatrols = data.sort((a, b) => b.id - a.id);
-        
-  //       // 2. Filter for today's date only
-  //       this.filteredPatrols = this.allPatrols.filter(p => 
-  //         p.createdAt && p.createdAt.split('T')[0] === today
-  //       );
-
-  //       this.isLoading = false;
-  //     },
-  //     error: (err) => {
-  //       console.error('Error loading patrols', err);
-  //       this.isLoading = false;
-  //     }
-  //   });
-  // }
 
 
-  loadTodayPatrols() {
+ loadTodayPatrols() {
   const companyId = localStorage.getItem('company_id');
-  // Ensures we match the date part of the timestamp: 2026-03-18
   const todayDateStr = new Date().toISOString().split('T')[0]; 
 
   if (companyId) {
@@ -70,10 +41,14 @@ export class TodaysPatrolsAdminPage implements OnInit {
     this.dataService.getPatrolsByCompany(Number(companyId)).subscribe({
       next: (data: any) => {
         this.filteredPatrols = data.filter((p: any) => {
-          // 1. Check Company Match
-          const isCompany = Number(p.companyId) === Number(companyId);
-          // 2. Check Date Match (created_at from your DB)
-          const isToday = p.created_at && p.created_at.split('T')[0] === todayDateStr;
+          // 1. Check Company (Allowing null for now so you can see your data)
+          const isCompany = !p.companyId || Number(p.companyId) === Number(companyId);
+          
+          // 2. Use 'createdAt' (matching your console log) instead of 'created_at'
+          const patrolDate = p.createdAt ? p.createdAt.split('T')[0] : 
+                            (p.created_at ? p.created_at.split('T')[0] : 'No Date');
+          
+          const isToday = patrolDate === todayDateStr;
           
           return isCompany && isToday;
         }).sort((a: any, b: any) => b.id - a.id);
@@ -84,15 +59,27 @@ export class TodaysPatrolsAdminPage implements OnInit {
     });
   }
 }
+  
+goBack() {
+  // navigateBack ensures the transition goes from Left to Right
+  this.navCtrl.navigateBack('/admin', {
+    animated: true,
+    animationDirection: 'back'
+  });
+}
 
-  goBack() {
-    this.navCtrl.back();
-  }
+
+
 
   doRefresh(event: any) {
     this.loadTodayPatrols();
     setTimeout(() => event.target.complete(), 1000);
   }
+  // Add this inside your TodaysPatrolsAdminPage class
+viewPatrolDetails(patrolId: number) {
+  // This navigates to the details page and passes the ID in the URL
+  this.navCtrl.navigateForward([`/todays-patrol-details-admin/${patrolId}`]);
+}
 
   // Helper to calculate patrol duration
   calculateDuration(start: string, end: string) {

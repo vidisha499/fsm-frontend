@@ -1,0 +1,106 @@
+.premium-wrapper {
+  --primary-teal: #0d9488;
+  --dark-slate: #0f172a;
+  --patrol-blue: #3b82f6;
+  --accent-gold: #eab308;
+  
+  min-height: 100vh;
+  background: #f8fafc;
+  position: relative;
+  overflow-x: hidden;
+
+  .ambient-glow {
+    position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.12; z-index: 1; pointer-events: none;
+    &.glow-1 { width: 300px; height: 300px; background: var(--patrol-blue); top: -100px; right: -50px; }
+    &.glow-2 { width: 250px; height: 250px; background: var(--primary-teal); bottom: 50px; left: -100px; }
+  }
+
+  .hero-header {
+    position: relative; height: 160px;
+    background: url('https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&q=80&w=800') center/cover;
+    border-radius: 0 0 45px 45px;
+    
+    .header-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(13, 148, 136, 0.8) 100%);
+      border-radius: 0 0 45px 45px;
+    }
+
+    .header-content {
+      position: relative; z-index: 2; padding: 40px 24px;
+      .nav-bar {
+        display: flex; align-items: center; gap: 16px; margin-top: 20px;
+        h1 { color: white; font-size: 22px; font-weight: 800; margin: 0; }
+        .glass-btn {
+          background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.2);
+          width: 40px; height: 40px; border-radius: 12px; color: white;
+          display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px);
+        }
+      }
+    }
+  }
+
+  .main-container {
+    margin-top: -40px; padding: 0 20px 100px; position: relative; z-index: 3;
+  }
+
+  .status-card {
+    background: white; border-radius: 24px; padding: 20px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08); margin-bottom: 24px;
+
+    .status-header {
+      display: flex; align-items: center; gap: 15px; margin-bottom: 20px;
+      .status-icon {
+        width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+        ion-icon { font-size: 24px; }
+        &.live { 
+          background: #fef9c3; color: #854d0e; 
+          animation: pulse-active 2s infinite; 
+        }
+        &.done { background: #dcfce7; color: #166534; }
+      }
+      .status-text {
+        h3 { margin: 0; font-size: 18px; font-weight: 800; color: var(--dark-slate); }
+        p { margin: 2px 0 0; font-size: 12px; color: #94a3b8; font-weight: 600; }
+      }
+    }
+
+    .stats-grid {
+      display: flex; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 20px;
+      .stat-item {
+        flex: 1; text-align: center;
+        .label { display: block; font-size: 10px; text-transform: uppercase; color: #94a3b8; font-weight: 800; letter-spacing: 1px; }
+        .value { display: block; font-size: 16px; color: var(--dark-slate); font-weight: 700; margin-top: 4px; }
+      }
+      .stat-divider { width: 1px; height: 30px; background: #f1f5f9; }
+    }
+  }
+
+  .details-section {
+    background: white; border-radius: 24px; padding: 20px; margin-bottom: 16px;
+    box-shadow: 0 4px 15px rgba(15, 23, 42, 0.03);
+
+    .section-title {
+      font-size: 11px; font-weight: 800; text-transform: uppercase;
+      color: var(--primary-teal); letter-spacing: 1px; margin: 0 0 15px 0;
+    }
+
+    .info-row {
+      display: flex; align-items: center; gap: 15px; margin-bottom: 15px;
+      &:last-child { margin-bottom: 0; }
+
+      .info-icon {
+        width: 36px; height: 36px; background: #f8fafc; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        ion-icon { font-size: 18px; color: #64748b; }
+      }
+
+      .info-content {
+        .info-label { display: block; font-size: 10px; color: #94a3b8; font-weight: 600; }
+        .info-value { display: block; font-size: 14px; color: var(--dark-slate); font-weight: 700; }
+      }
+    }
+  }
+}
+
+@keyframes pulse-active { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.8; } }
