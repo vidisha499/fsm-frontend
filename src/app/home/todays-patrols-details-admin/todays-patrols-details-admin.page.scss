@@ -1,106 +1,555 @@
+
+
+
+// .premium-wrapper {
+//   --primary-teal: #0d9488;
+//   --dark-slate: #0f172a;
+//   --patrol-blue: #3b82f6;
+//   --accent-gold: #eab308;
+//   --card-bg: rgba(255, 255, 255, 0.95);
+  
+//   min-height: 100vh;
+//   background: #f1f5f9;
+//   position: relative;
+//   overflow-x: hidden;
+
+//   // Background Ambient Effects
+//   .ambient-glow {
+//     position: absolute;
+//     border-radius: 50%;
+//     filter: blur(80px);
+//     opacity: 0.15;
+//     z-index: 1;
+//     pointer-events: none;
+//     &.glow-1 { width: 350px; height: 350px; background: var(--patrol-blue); top: -120px; right: -60px; }
+//     &.glow-2 { width: 300px; height: 300px; background: var(--primary-teal); bottom: 100px; left: -120px; }
+//   }
+
+//   // Hero Header
+//   .hero-header {
+//     position: relative;
+//     height: 180px;
+//     background: url('https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&q=80&w=800') center/cover;
+//     border-radius: 0 0 40px 40px;
+    
+//     .header-overlay {
+//       position: absolute;
+//       inset: 0;
+//        background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(13, 148, 136, 0.8) 100%);
+//       border-radius: 0 0 40px 40px;
+//     }
+
+//     .header-content {
+//       position: relative;
+//       z-index: 2;
+//       padding: 50px 20px;
+
+//       .nav-bar {
+//         display: flex;
+//         align-items: center;
+//         justify-content: space-between;
+        
+//         .left-section {
+//           display: flex;
+//           align-items: center;
+//           gap: 12px;
+//           h1 { color: white; font-size: 22px; font-weight: 800; margin: 0; letter-spacing: -0.5px; }
+//         }
+
+//         .glass-btn {
+//           background: rgba(255, 255, 255, 0.2);
+//           border: 1px solid rgba(255, 255, 255, 0.3);
+//           width: 42px;
+//           height: 42px;
+//           border-radius: 14px;
+//           color: white;
+//           display: flex;
+//           align-items: center;
+//           justify-content: center;
+//           backdrop-filter: blur(10px);
+//           transition: 0.3s;
+//           &:active { transform: scale(0.9); background: rgba(255, 255, 255, 0.3); }
+//         }
+
+//         .priority-chip {
+//           background: #22c55e;
+//           color: white;
+//           padding: 6px 14px;
+//           border-radius: 20px;
+//           font-size: 10px;
+//           font-weight: 900;
+//           letter-spacing: 1px;
+//           box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+//           &.completed { background: #64748b; box-shadow: none; }
+//         }
+//       }
+//     }
+//   }
+
+//   // Content Container
+//   .card-container {
+//     margin-top: -30px;
+//     padding: 0 18px 50px;
+//     position: relative;
+//     z-index: 10;
+//   }
+
+//   .hero-image-container {
+//     margin-bottom: 20px;
+//     .hero-photo {
+//       width: 100%;
+//       height: 220px;
+//       object-fit: cover;
+//       border-radius: 25px;
+//       display: block; // Ensures it takes up space
+//       background: #e2e8f0; // Placeholder color
+//     }
+//   }
+
+//   .embedded-map {
+//     height: 300px; // CRITICAL: Map won't show without explicit height
+//     width: 100%;
+//     border-radius: 20px;
+//     overflow: hidden;
+//     position: relative;
+//     z-index: 5;
+//     border: 1px solid #e2e8f0;
+    
+//     #map {
+//       height: 100%;
+//       width: 100%;
+//     }
+//   }
+
+//   .main-card {
+//     background: var(--card-bg);
+//     backdrop-filter: blur(10px);
+//     border-radius: 30px;
+//     padding: 24px;
+//     box-shadow: 0 20px 40px rgba(15, 23, 42, 0.06);
+//     border: 1px solid rgba(255, 255, 255, 0.7);
+//   }
+
+//   // Stats Grid
+//   .stats-grid {
+//     display: flex;
+//     justify-content: space-between;
+//     align-items: center;
+//     margin-bottom: 20px;
+
+//     .stat-box {
+//       text-align: center;
+//       flex: 1;
+//       .label { display: block; font-size: 10px; color: #94a3b8; font-weight: 800; margin-bottom: 4px; }
+//       .value { display: block; font-size: 17px; color: var(--dark-slate); font-weight: 800; 
+//         small { font-size: 10px; color: #64748b; }
+//       }
+//     }
+//     .v-divider { width: 1px; height: 30px; background: #e2e8f0; }
+//   }
+
+//   .card-divider { border: 0; height: 1px; background: #f1f5f9; margin: 20px 0; }
+//   .inner-section-title { font-size: 13px; font-weight: 900; color: var(--dark-slate); margin-bottom: 15px; letter-spacing: 0.5px; }
+
+//   // Map Styling
+//   .embedded-map {
+//     height: 240px;
+//     border-radius: 20px;
+//     overflow: hidden;
+//     border: 1px solid #e2e8f0;
+//     margin-bottom: 10px;
+//     z-index: 1;
+//   }
+
+//   // Observation Cards
+//   .obs-card {
+//     background: #f8fafc;
+//     border-radius: 20px;
+//     padding: 16px;
+//     margin-bottom: 16px;
+//     border: 1px solid #f1f5f9;
+//     transition: 0.2s;
+
+//     .obs-card-header {
+//       display: flex;
+//       justify-content: space-between;
+//       align-items: center;
+//       margin-bottom: 12px;
+
+//       .obs-badge {
+//         display: flex;
+//         align-items: center;
+//         gap: 8px;
+//         font-size: 10px;
+//         font-weight: 800;
+//         color: var(--dark-slate);
+//         background: white;
+//         padding: 6px 12px;
+//         border-radius: 10px;
+//         border-left: 4px solid var(--primary-teal);
+//         box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+//         i { color: var(--primary-teal); font-size: 12px; }
+//       }
+//       .obs-time { font-size: 11px; color: #94a3b8; font-weight: 700; }
+//     }
+
+//     .obs-body {
+//       h4 { margin: 0; font-size: 16px; font-weight: 800; color: var(--dark-slate); }
+//       p { margin: 4px 0; font-size: 13px; color: #64748b; font-weight: 500; }
+//       .obs-notes {
+//         font-style: italic;
+//         color: #475569;
+//         font-size: 12px;
+//         margin-top: 8px;
+//         background: #fff;
+//         padding: 8px 12px;
+//         border-radius: 8px;
+//         border: 1px dashed #e2e8f0;
+//       }
+//     }
+//   }
+
+//   // Gallery Horizontal Scroll
+//   .obs-gallery {
+//     margin-top: 15px;
+//     .obs-scroll {
+//       display: flex;
+//       gap: 10px;
+//       overflow-x: auto;
+//       padding-bottom: 5px;
+//       &::-webkit-scrollbar { display: none; } // Hide scrollbar
+      
+//       .obs-photo-item {
+//         flex: 0 0 100px;
+//         height: 100px;
+//         border-radius: 12px;
+//         overflow: hidden;
+//         img { width: 100%; height: 100%; object-fit: cover; }
+//       }
+//     }
+//   }
+
+//   // Zoom Overlay
+//   .zoom-overlay {
+//     position: fixed;
+//     inset: 0;
+//     background: rgba(0, 0, 0, 0.9);
+//     z-index: 9999;
+//     display: flex;
+//     align-items: center;
+//     justify-content: center;
+//     padding: 20px;
+//     img { max-width: 100%; max-height: 80%; border-radius: 12px; }
+//   }
+
+//   // Loading & No Data Templates
+//   .loading-wrap, .no-obs-box {
+//     display: flex;
+//     flex-direction: column;
+//     align-items: center;
+//     justify-content: center;
+//     padding: 60px 20px;
+//     text-align: center;
+//     ion-icon { font-size: 48px; color: #cbd5e1; margin-bottom: 12px; }
+//     p { font-size: 14px; color: #64748b; font-weight: 600; }
+//   }
+// }
+
+// // Leaflet specific fix for Custom DivIcon
+// .custom-details-marker {
+//   background: transparent !important;
+//   border: none !important;
+// }
+
+// .embedded-map {
+//   height: 300px; /* Or whatever height you prefer */
+//   width: 100%;
+//   border-radius: 20px;
+//   overflow: hidden;
+//   margin: 15px 0;
+//   border: 1px solid rgba(0, 0, 0, 0.1);
+//   z-index: 1; /* Ensure it stays below dropdowns but above background */
+// }
+
+// #map {
+//   height: 100%;
+//   width: 100%;
+// }
+
+
 .premium-wrapper {
   --primary-teal: #0d9488;
   --dark-slate: #0f172a;
   --patrol-blue: #3b82f6;
   --accent-gold: #eab308;
+  --card-bg: rgba(255, 255, 255, 0.95);
   
   min-height: 100vh;
-  background: #f8fafc;
+  background: #f1f5f9;
   position: relative;
   overflow-x: hidden;
 
+  // Background Ambient Effects
   .ambient-glow {
-    position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.12; z-index: 1; pointer-events: none;
-    &.glow-1 { width: 300px; height: 300px; background: var(--patrol-blue); top: -100px; right: -50px; }
-    &.glow-2 { width: 250px; height: 250px; background: var(--primary-teal); bottom: 50px; left: -100px; }
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.15;
+    z-index: 1;
+    pointer-events: none;
+    &.glow-1 { width: 350px; height: 350px; background: var(--patrol-blue); top: -120px; right: -60px; }
+    &.glow-2 { width: 300px; height: 300px; background: var(--primary-teal); bottom: 100px; left: -120px; }
   }
 
+  // Hero Header
   .hero-header {
-    position: relative; height: 160px;
+    position: relative;
+    height: 180px;
     background: url('https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&q=80&w=800') center/cover;
-    border-radius: 0 0 45px 45px;
+    border-radius: 0 0 40px 40px;
     
     .header-overlay {
-      position: absolute; inset: 0;
-      background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(13, 148, 136, 0.8) 100%);
-      border-radius: 0 0 45px 45px;
+      position: absolute;
+      inset: 0;
+       background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(13, 148, 136, 0.8) 100%);
+      border-radius: 0 0 40px 40px;
     }
 
     .header-content {
-      position: relative; z-index: 2; padding: 40px 24px;
+      position: relative;
+      z-index: 2;
+      padding: 50px 20px;
+
       .nav-bar {
-        display: flex; align-items: center; gap: 16px; margin-top: 20px;
-        h1 { color: white; font-size: 22px; font-weight: 800; margin: 0; }
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        
+        .left-section {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          h1 { color: white; font-size: 22px; font-weight: 800; margin: 0; letter-spacing: -0.5px; }
+        }
+
         .glass-btn {
-          background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.2);
-          width: 40px; height: 40px; border-radius: 12px; color: white;
-          display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px);
+          background: rgba(255, 255, 255, 0.2);
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          width: 42px;
+          height: 42px;
+          border-radius: 14px;
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          backdrop-filter: blur(10px);
+          transition: 0.3s;
+          &:active { transform: scale(0.9); background: rgba(255, 255, 255, 0.3); }
+        }
+
+        .priority-chip {
+          background: #22c55e;
+          color: white;
+          padding: 6px 14px;
+          border-radius: 20px;
+          font-size: 10px;
+          font-weight: 900;
+          letter-spacing: 1px;
+          box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+          &.completed { background: #64748b; box-shadow: none; }
         }
       }
     }
   }
 
-  .main-container {
-    margin-top: -40px; padding: 0 20px 100px; position: relative; z-index: 3;
+  // Content Container
+  .card-container {
+    margin-top: -100px;
+    padding: 0 18px 50px;
+    position: relative;
+    z-index: 10;
   }
 
-  .status-card {
-    background: white; border-radius: 24px; padding: 20px;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08); margin-bottom: 24px;
+  // UPDATED IMAGE STYLES
+// UPDATED IMAGE STYLES
+  .hero-image-container {
+    margin-bottom: 20px;
+    display: flex; // Center the image horizontally
+    justify-content: center;
+    // Moves the image DOWN slightly while maintaining layout position
+    transform: translateY(30px);
+    position: relative;
+    z-index: 15; // Ensure it stays on top of any glows
 
-    .status-header {
-      display: flex; align-items: center; gap: 15px; margin-bottom: 20px;
-      .status-icon {
-        width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
-        ion-icon { font-size: 24px; }
-        &.live { 
-          background: #fef9c3; color: #854d0e; 
-          animation: pulse-active 2s infinite; 
-        }
-        &.done { background: #dcfce7; color: #166534; }
-      }
-      .status-text {
-        h3 { margin: 0; font-size: 18px; font-weight: 800; color: var(--dark-slate); }
-        p { margin: 2px 0 0; font-size: 12px; color: #94a3b8; font-weight: 600; }
-      }
-    }
+    .hero-photo {
+      width: 140px; // Slightly reduced square size for better balance
+      height: 140px;
+      object-fit: cover;
+      border-radius: 25px;
+      // THE NEW WHITE BORDER
+      border: 5px solid rgba(255, 255, 255, 0.95);
+      // Enhanced shadow for premium feel
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.15); 
+      transition: 0.3s ease-in-out;
 
-    .stats-grid {
-      display: flex; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 20px;
-      .stat-item {
-        flex: 1; text-align: center;
-        .label { display: block; font-size: 10px; text-transform: uppercase; color: #94a3b8; font-weight: 800; letter-spacing: 1px; }
-        .value { display: block; font-size: 16px; color: var(--dark-slate); font-weight: 700; margin-top: 4px; }
+      &:active {
+        transform: scale(0.98); // Small tap effect
       }
-      .stat-divider { width: 1px; height: 30px; background: #f1f5f9; }
     }
   }
 
-  .details-section {
-    background: white; border-radius: 24px; padding: 20px; margin-bottom: 16px;
-    box-shadow: 0 4px 15px rgba(15, 23, 42, 0.03);
+  .main-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    border-radius: 30px;
+    padding: 24px;
+  
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+  }
 
-    .section-title {
-      font-size: 11px; font-weight: 800; text-transform: uppercase;
-      color: var(--primary-teal); letter-spacing: 1px; margin: 0 0 15px 0;
+  // Stats Grid
+  .stats-grid {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+
+    .stat-box {
+      text-align: center;
+      flex: 1;
+      .label { display: block; font-size: 10px; color: #94a3b8; font-weight: 800; margin-bottom: 4px; }
+      .value { display: block; font-size: 17px; color: var(--dark-slate); font-weight: 800; 
+        small { font-size: 10px; color: #64748b; }
+      }
+    }
+    .v-divider { width: 1px; height: 30px; background: #e2e8f0; }
+  }
+
+  .card-divider { border: 0; height: 1px; background: #f1f5f9; margin: 20px 0; }
+  .inner-section-title { font-size: 13px; font-weight: 900; color: var(--dark-slate); margin-bottom: 15px; letter-spacing: 0.5px; }
+
+  // Map Styling
+  .embedded-map {
+    height: 240px;
+    border-radius: 20px;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 10px;
+    z-index: 1;
+  }
+
+  // Observation Cards
+  .obs-card {
+    background: #f8fafc;
+    border-radius: 20px;
+    padding: 16px;
+    margin-bottom: 16px;
+    border: 1px solid #f1f5f9;
+    transition: 0.2s;
+
+    .obs-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+
+      .obs-badge {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 10px;
+        font-weight: 800;
+        color: var(--dark-slate);
+        background: white;
+        padding: 6px 12px;
+        border-radius: 10px;
+        border-left: 4px solid var(--primary-teal);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        i { color: var(--primary-teal); font-size: 12px; }
+      }
+      .obs-time { font-size: 11px; color: #94a3b8; font-weight: 700; }
     }
 
-    .info-row {
-      display: flex; align-items: center; gap: 15px; margin-bottom: 15px;
-      &:last-child { margin-bottom: 0; }
-
-      .info-icon {
-        width: 36px; height: 36px; background: #f8fafc; border-radius: 10px;
-        display: flex; align-items: center; justify-content: center;
-        ion-icon { font-size: 18px; color: #64748b; }
-      }
-
-      .info-content {
-        .info-label { display: block; font-size: 10px; color: #94a3b8; font-weight: 600; }
-        .info-value { display: block; font-size: 14px; color: var(--dark-slate); font-weight: 700; }
+    .obs-body {
+      h4 { margin: 0; font-size: 16px; font-weight: 800; color: var(--dark-slate); }
+      p { margin: 4px 0; font-size: 13px; color: #64748b; font-weight: 500; }
+      .obs-notes {
+        font-style: italic;
+        color: #475569;
+        font-size: 12px;
+        margin-top: 8px;
+        background: #fff;
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px dashed #e2e8f0;
       }
     }
+  }
+
+  // Gallery Horizontal Scroll
+  .obs-gallery {
+    margin-top: 15px;
+    .obs-scroll {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 5px;
+      &::-webkit-scrollbar { display: none; } // Hide scrollbar
+      
+      .obs-photo-item {
+        flex: 0 0 100px;
+        height: 100px;
+        border-radius: 12px;
+        overflow: hidden;
+        img { width: 100%; height: 100%; object-fit: cover; }
+      }
+    }
+  }
+
+  // Zoom Overlay
+  .zoom-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    img { max-width: 100%; max-height: 80%; border-radius: 12px; }
+  }
+
+  // Loading & No Data Templates
+  .loading-wrap, .no-obs-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+    ion-icon { font-size: 48px; color: #cbd5e1; margin-bottom: 12px; }
+    p { font-size: 14px; color: #64748b; font-weight: 600; }
   }
 }
 
-@keyframes pulse-active { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.8; } }
+// Leaflet specific fix for Custom DivIcon
+.custom-details-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.embedded-map {
+  height: 300px; /* Or whatever height you prefer */
+  width: 100%;
+  border-radius: 20px;
+  overflow: hidden;
+  margin: 15px 0;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  z-index: 1; /* Ensure it stays below dropdowns but above background */
+}
+
+#map {
+  height: 100%;
+  width: 100%;
+}

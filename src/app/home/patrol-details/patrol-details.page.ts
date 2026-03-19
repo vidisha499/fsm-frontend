@@ -50,34 +50,6 @@ export class PatrolDetailsPage implements OnInit {
   }
 
 
-  // initMap() {
-  //   const mapElement = document.getElementById('detailsMap');
-  //   if (!mapElement || !this.patrol) return;
-
-  //   // Route coordinates handle
-  //   const coords: L.LatLngTuple[] = (this.patrol.route || []).map((p: any) => [p.lat, p.lng] as L.LatLngTuple);
-  //   const center = coords.length > 0 ? coords[0] : [19.95, 79.12];
-
-  //   if (this.map) { this.map.remove(); }
-
-  //   this.map = L.map('detailsMap', { zoomControl: false }).setView(center as L.LatLngExpression, 15);
-    
-  //   L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { 
-  //     subdomains: ['mt0','mt1','mt2','mt3'] 
-  //   }).addTo(this.map);
-
-  //   if (coords.length > 1) {
-  //     const polyline = L.polyline(coords, { color: '#059669', weight: 5, opacity: 0.8 }).addTo(this.map);
-  //     this.map.fitBounds(polyline.getBounds(), { padding: [30, 30] });
-  //   } else if (coords.length === 1) {
-  //     L.marker(coords[0]).addTo(this.map);
-  //   }
-    
-  //   this.mapLoading = false;
-  //   this.cdr.detectChanges();
-  // }
-
-
   initMap() {
   const mapElement = document.getElementById('detailsMap');
   if (!mapElement || !this.patrol) return;
