@@ -173,62 +173,73 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
     });
     await actionSheet.present();
   }
-
-  async captureImage(source: CameraSource) {
-    try {
-      const image = await Camera.getPhoto({ 
-        quality: 50, 
-        resultType: CameraResultType.Base64, 
-        source 
-      });
-      if (image.base64String) {
-        this.capturedPhoto = `data:image/jpeg;base64,${image.base64String}`;
-      }
-    } catch (error) { console.log('User cancelled camera'); }
+async captureImage(source: CameraSource) {
+  try {
+    const image = await Camera.getPhoto({ 
+      quality: 50, 
+      resultType: CameraResultType.Base64, 
+      source,
+      width: 800 // Size control for faster upload
+    });
+    if (image.base64String) {
+      this.capturedPhoto = `data:image/jpeg;base64,${image.base64String}`;
+      this.cdr.detectChanges(); // 👈 UI update ensure karein
+    }
+  } catch (error) { 
+    console.log('User cancelled camera'); 
   }
+}
 
   // --- Submission & Slider ---
-  async submit() {
-    if (!this.capturedPhoto) {
-      const msg = await firstValueFrom(this.translate.get('ATTENDANCE.PHOTO_REQUIRED'));
-      this.presentToast(msg, 'warning');
-      this.resetSlider();
-      return;
-    }
-
-    this.isSubmitting = true;
-    this.cdr.detectChanges(); 
-
-    const onsiteData = {
-      ranger_id: Number(localStorage.getItem('ranger_id')) || 0,
-      ranger: this.rangerName,
-      geofence: this.currentAddress, 
-      attendance_type: 'ON-SITE',
-      photo: this.capturedPhoto,
-      latitude: this.currentLat,
-      longitude: this.currentLng,
-      created_at: new Date().toISOString() 
-    };
-
-    this.http.post(this.apiUrl, onsiteData).subscribe({
-      next: async () => {
-        const successMsg = await firstValueFrom(this.translate.get('ATTENDANCE.SUCCESS'));
-        this.presentToast(successMsg, 'success');
-        setTimeout(() => {
-          this.isSubmitting = false;
-          // this.navCtrl.navigateRoot('/home');
-          this.navCtrl.navigateRoot('/onsite-attendance-logs');
-        }, 1500);
-      },
-      error: async () => {
-        this.isSubmitting = false;
-        this.resetSlider();
-        const errMsg = await firstValueFrom(this.translate.get('ATTENDANCE.SYNC_ERROR'));
-        this.presentToast(errMsg, 'danger');
-      }
-    });
+async submit() {
+  if (!this.capturedPhoto) {
+    const msg = await firstValueFrom(this.translate.get('ATTENDANCE.PHOTO_REQUIRED'));
+    this.presentToast(msg, 'warning');
+    this.resetSlider();
+    return;
   }
 
+  this.isSubmitting = true;
+  this.cdr.detectChanges(); 
+
+  // --- FIX: Get Company ID from localStorage ---
+  const companyId = localStorage.getItem('company_id');
+  const rangerId = localStorage.getItem('ranger_id');
+
+  const onsiteData = {
+    ranger_id: rangerId ? Number(rangerId) : 0,
+    // company_id: companyId ? Number(companyId) : null, // 👈 Admin filtering ke liye compulsory hai
+    companyId: companyId ? Number(companyId) : null,
+    ranger: this.rangerName,
+    geofence: this.currentAddress, 
+    attendance_type: 'ON-SITE',
+    photo: this.capturedPhoto,
+    latitude: this.currentLat,
+    longitude: this.currentLng,
+    status: 'pending',
+    created_at: new Date().toISOString() 
+  };
+
+  console.log('Submitting Onsite Attendance for Company:', onsiteData.companyId);
+
+  this.http.post(this.apiUrl, onsiteData).subscribe({
+    next: async () => {
+      const successMsg = await firstValueFrom(this.translate.get('ATTENDANCE.SUCCESS'));
+      this.presentToast(successMsg, 'success');
+      setTimeout(() => {
+        this.isSubmitting = false;
+        this.navCtrl.navigateRoot('/onsite-attendance-logs');
+      }, 1500);
+    },
+    error: async (err) => {
+      console.error("Onsite Sync Error:", err);
+      this.isSubmitting = false;
+      this.resetSlider();
+      const errMsg = await firstValueFrom(this.translate.get('ATTENDANCE.SYNC_ERROR'));
+      this.presentToast(errMsg, 'danger');
+    }
+  });
+}
   onDragStart(event: TouchEvent) {
     if (this.isSubmitting) return;
     this.startX = event.touches[0].clientX - this.currentTranslateX;

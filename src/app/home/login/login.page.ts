@@ -153,6 +153,75 @@ export class LoginPage implements OnInit, OnDestroy {
 //     }
 //   });
 // }
+
+
+// async login() {
+//   if (!this.loginData.phone || !this.loginData.password) {
+//     this.presentToast('Please enter both contact and password', 'warning');
+//     return;
+//   }
+
+//   const loading = await this.loadingCtrl.create({ 
+//     message: 'Authenticating...', 
+//     mode: 'ios'
+//   });
+//   await loading.present();
+
+//   const payload = { 
+//     identifier: this.loginData.phone.trim(), 
+//     pass: this.loginData.password 
+//   };
+
+//   this.loginSub = this.dataService.login(payload).subscribe({
+//     next: async (res: any) => {
+//       await loading.dismiss();
+
+//       // Backend se aane wala data (res mein ya res.user mein)
+//       const userData = res.user || res;
+//       const userRole = parseInt(res.role_id || userData.role_id);
+      
+//       // --- FIX: Extract Company ID ---
+//       const actualCompanyId = userData.company_id;
+
+//       if (actualCompanyId !== undefined && actualCompanyId !== null) {
+//         localStorage.setItem('company_id', actualCompanyId.toString());
+//         console.log('Login Success! Company ID set to:', actualCompanyId);
+//       } else {
+//         // Agar ID null hai toh 0 save karo, "1" nahi!
+//         console.warn('Warning: No company_id received from backend.');
+//         localStorage.setItem('company_id', '0'); 
+//       }
+
+//       if (userData && userData.id) {
+//         // Baaki sab data save karein
+//         localStorage.setItem('ranger_id', userData.id.toString());
+//         localStorage.setItem('user_role', userRole.toString());
+//         localStorage.setItem('user_name', userData.name || 'User');
+
+//         const currentLang = localStorage.getItem('app_language_code') || 'en';
+        
+//         this.translate.use(currentLang).subscribe({
+//           next: () => {
+//             // Dashboard par redirect karein
+//             if (userRole === 1) this.navCtrl.navigateRoot('/super-admin-dashboard'); 
+//             else if (userRole === 2) this.navCtrl.navigateRoot('/admin'); 
+//             else this.navCtrl.navigateRoot('/home');
+//           }
+//         });
+
+//         this.presentToast(`Welcome, ${userData.name}!`, 'success');
+//       }
+//     },
+//     error: async (err) => {
+//       await loading.dismiss();
+//       console.error('Login Error:', err);
+//       this.presentToast(err.error?.message || 'Invalid Contact or Password', 'danger');
+//     }
+//   });
+// }
+
+
+
 async login() {
   if (!this.loginData.phone || !this.loginData.password) {
     this.presentToast('Please enter both contact and password', 'warning');
@@ -161,7 +230,8 @@ async login() {
 
   const loading = await this.loadingCtrl.create({ 
     message: 'Authenticating...', 
-    mode: 'ios'
+    mode: 'ios',
+    spinner: 'crescent'
   });
   await loading.present();
 
@@ -174,49 +244,67 @@ async login() {
     next: async (res: any) => {
       await loading.dismiss();
 
-      // Backend se aane wala data (res mein ya res.user mein)
+      // Backend se aane wala data extract karein
       const userData = res.user || res;
       const userRole = parseInt(res.role_id || userData.role_id);
-      
-      // --- FIX: Extract Company ID ---
       const actualCompanyId = userData.company_id;
 
-      if (actualCompanyId !== undefined && actualCompanyId !== null) {
-        localStorage.setItem('company_id', actualCompanyId.toString());
-        console.log('Login Success! Company ID set to:', actualCompanyId);
-      } else {
-        // Agar ID null hai toh 0 save karo, "1" nahi!
-        console.warn('Warning: No company_id received from backend.');
-        localStorage.setItem('company_id', '0'); 
-      }
-
       if (userData && userData.id) {
-        // Baaki sab data save karein
+        // --- 1. SESSION STORAGE (Key names matched with Dashboard/Menu) ---
         localStorage.setItem('ranger_id', userData.id.toString());
         localStorage.setItem('user_role', userRole.toString());
-        localStorage.setItem('user_name', userData.name || 'User');
+        
+        // Dashboard aur Side Menu yahi key dhoond rahe hain
+        localStorage.setItem('ranger_username', userData.name || 'User'); 
+        
+        // Division agar backend se aa raha ho, nahi toh default set karein
+        localStorage.setItem('ranger_division', userData.division || 'Washim Division 4.2');
+        
+        // Profile Photo
+        if (userData.photo_url || userData.profile_image) {
+          localStorage.setItem('user_photo', userData.photo_url || userData.profile_image);
+        }
 
+        // Company ID set karna (Attendance filtering ke liye important hai)
+        if (actualCompanyId !== undefined && actualCompanyId !== null) {
+          localStorage.setItem('company_id', actualCompanyId.toString());
+        } else {
+          localStorage.setItem('company_id', '0');
+        }
+
+        // --- 2. LANGUAGE & NAVIGATION ---
         const currentLang = localStorage.getItem('app_language_code') || 'en';
         
         this.translate.use(currentLang).subscribe({
           next: () => {
-            // Dashboard par redirect karein
-            if (userRole === 1) this.navCtrl.navigateRoot('/super-admin-dashboard'); 
-            else if (userRole === 2) this.navCtrl.navigateRoot('/admin'); 
-            else this.navCtrl.navigateRoot('/home');
+            this.presentToast(`Welcome, ${userData.name}!`, 'success');
+
+            // Role based navigation
+            if (userRole === 1) {
+              this.navCtrl.navigateRoot('/super-admin-dashboard'); 
+            } else if (userRole === 2) {
+              this.navCtrl.navigateRoot('/admin'); // Aapka Company Admin Dashboard
+            } else {
+              this.navCtrl.navigateRoot('/home'); // Ranger Dashboard
+            }
+          },
+          error: () => {
+            this.navCtrl.navigateRoot(userRole === 2 ? '/admin' : '/home');
           }
         });
-
-        this.presentToast(`Welcome, ${userData.name}!`, 'success');
+      } else {
+        this.presentToast('User data not found in response', 'danger');
       }
     },
     error: async (err) => {
       await loading.dismiss();
       console.error('Login Error:', err);
-      this.presentToast(err.error?.message || 'Invalid Contact or Password', 'danger');
+      const errorMsg = err.error?.message || 'Invalid Contact or Password';
+      this.presentToast(errorMsg, 'danger');
     }
   });
 }
+
   // --- Password Reset Flow ---
   async forgotPassword() {
     const alert = await this.alertController.create({

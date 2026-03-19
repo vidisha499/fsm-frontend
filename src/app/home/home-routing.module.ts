@@ -105,6 +105,9 @@ loadChildren:() => import('./admin/admin.module').then( m => m.AdminPageModule)
   {
     path: 'incident-detail-admin',
     loadChildren: () => import('./incident-detail-admin/incident-detail-admin.module').then( m => m.IncidentDetailAdminPageModule)
+  },  {
+    path: 'attendance-requests',
+    loadChildren: () => import('./attendance-requests/attendance-requests.module').then( m => m.AttendanceRequestsPageModule)
   },
   {
     path: 'todays-patrols-details-admin',
@@ -115,6 +118,7 @@ loadChildren:() => import('./admin/admin.module').then( m => m.AdminPageModule)
 //   // Note the 's' in the folder name 'todays-patrols-details-admin'
 //   loadChildren: () => import('./todays-patrols-details-admin/todays-patrols-details-admin.module').then(m => m.TodaysPatrolsDetailsAdminPageModule)
 // }
+
 
 
 

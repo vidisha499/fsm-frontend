@@ -1,0 +1,155 @@
+.premium-wrapper {
+  --primary-teal: #0d9488;
+  --accent-gold: #fbbf24;
+  --dark-slate: #0f172a;
+  --danger-red: #ef4444;
+
+  min-height: 100vh;
+  background: #f1f5f9; 
+  position: relative;
+
+  .ambient-glow {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(70px);
+    opacity: 0.2;
+    z-index: 0;
+    &.glow-1 { width: 300px; height: 300px; background: var(--primary-teal); top: -100px; right: -50px; }
+    &.glow-2 { width: 250px; height: 250px; background: var(--accent-gold); bottom: 50px; left: -100px; }
+  }
+
+  .hero-header {
+    position: relative;
+    height: 180px;
+    background: url('https://images.unsplash.com/photo-1557683316-973673baf926?auto=format&fit=crop&q=80&w=800') center/cover;
+    border-radius: 0 0 45px 45px;
+
+    .header-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(13, 148, 136, 0.9) 0%, rgba(15, 23, 42, 0.8) 100%);
+      border-radius: 0 0 45px 45px;
+    }
+
+    .header-content {
+      position: relative;
+      z-index: 2;
+      padding: 40px 20px;
+
+      .nav-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .left-section {
+          display: flex;
+          margin-top: 20px;
+          align-items: center;
+          gap: 12px;
+          h1 { color: white; font-size: 20px; font-weight: 800; margin: 0; }
+        }
+
+        .glass-btn {
+          background: rgba(255, 255, 255, 0.2);
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          width: 35px; height: 35px; border-radius: 10px; color: white;
+        }
+
+        .auth-badge {
+          background: rgba(251, 191, 36, 0.2);
+          border: 1px solid rgba(251, 191, 36, 0.4);
+          padding: 6px 12px; border-radius: 20px;
+          color: var(--accent-gold); font-size: 10px; font-weight: 800;
+          display: flex; align-items: center; gap: 5px;
+        }
+      }
+    }
+  }
+
+  .card-container {
+    margin-top: -40px;
+    padding: 0 18px 40px;
+    position: relative;
+    z-index: 3;
+
+    .main-card {
+      background: white;
+      border-radius: 30px;
+      padding: 20px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.05);
+      margin-bottom: 20px;
+      border: 1px solid rgba(255,255,255,0.8);
+
+      &.no-data-card {
+        text-align: center;
+        .large-icon { font-size: 60px; color: var(--primary-teal); opacity: 0.5; }
+      }
+
+      .user-profile-section {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 18px;
+
+        .image-frame {
+          position: relative;
+          img { width: 55px; height: 55px; border-radius: 16px; object-fit: cover; }
+          .status-indicator {
+            position: absolute; bottom: -2px; right: -2px;
+            width: 14px; height: 14px; background: var(--accent-gold);
+            border: 3px solid white; border-radius: 50%;
+          }
+        }
+
+        .user-detail {
+          h3 { margin: 0; font-size: 17px; font-weight: 700; color: var(--dark-slate); }
+          .time-stamp {
+            font-size: 12px; color: #94a3b8; font-weight: 600;
+            display: flex; align-items: center; gap: 4px;
+          }
+        }
+      }
+
+      .info-grid {
+        .info-item {
+          label { font-size: 10px; font-weight: 800; color: var(--primary-teal); text-transform: uppercase; margin-left: 5px; }
+          .val-box {
+            background: #f8fafc; padding: 10px 14px; border-radius: 15px;
+            display: flex; align-items: center; gap: 10px; margin-top: 5px;
+            ion-icon { color: #64748b; }
+            span { font-size: 13px; font-weight: 600; color: #1e293b; }
+          }
+        }
+      }
+
+      .action-grid {
+        display: flex; gap: 10px; margin-top: 20px;
+
+        button {
+          flex: 1; height: 45px; border-radius: 15px; border: none;
+          font-weight: 700; font-size: 13px; display: flex; align-items: center;
+          justify-content: center; gap: 6px; transition: 0.2s;
+
+          &.btn-approve {
+            background: var(--primary-teal); color: white;
+            box-shadow: 0 8px 15px rgba(13, 148, 136, 0.2);
+          }
+          &.btn-reject {
+            background: #fff; color: var(--danger-red);
+            border: 1px solid #fee2e2;
+          }
+          &:active { transform: scale(0.95); }
+        }
+      }
+    }
+  }
+}
+
+.animate-in {
+  animation: fadeInMove 0.5s ease-out forwards;
+}
+
+@keyframes fadeInMove {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}

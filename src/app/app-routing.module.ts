@@ -92,9 +92,15 @@ loadChildren:() => import('./home/admin/admin.module').then( m => m.AdminPageMod
   loadChildren: () => import('./home/incident-detail-admin/incident-detail-admin.module').then(m => m.IncidentDetailAdminPageModule)
 },
 {
+
   path: 'todays-patrol-details-admin/:id',
   loadChildren: () => import('./home/todays-patrols-details-admin/todays-patrols-details-admin.module').then(m => m.TodaysPatrolsDetailsAdminPageModule)
 },
+{
+    path: 'attendance-requests',
+    loadChildren: () => import('./home/attendance-requests/attendance-requests.module').then(m => m.AttendanceRequestsPageModule)
+},
+
 
 ];
 

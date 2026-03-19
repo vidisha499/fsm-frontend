@@ -18,6 +18,7 @@ export class AppComponent implements OnInit {
   rangerPhone: string = '';
   userPhoto: string = ''; 
   profileImage: string | null = null;
+  userRole: string = '';
 
   // --- UI STATE VARIABLES ---
   showLanguageModal: boolean = false;
@@ -63,18 +64,42 @@ export class AppComponent implements OnInit {
   }
 
   // --- DATA LOADING LOGIC ---
-  loadUserData() {
-    this.rangerName = localStorage.getItem('ranger_username') || 'Ranger';
-    this.rangerPhone = localStorage.getItem('ranger_phone') || ''; 
-    this.rangerDivision = localStorage.getItem('ranger_division') || 'Washim Division 4.2';
+  // loadUserData() {
+  //   const name = localStorage.getItem('user_name');
+  //   this.rangerName = localStorage.getItem('ranger_username') || 'Ranger';
+  //   this.rangerPhone = localStorage.getItem('ranger_phone') || ''; 
+  //   this.rangerDivision = localStorage.getItem('ranger_division') || 'Washim Division 4.2';
     
-    const storedImg = localStorage.getItem('ranger_photo');
-    if (storedImg) {
-      this.profileImage = storedImg;
+  //   const storedImg = localStorage.getItem('ranger_photo');
+  //   if (storedImg) {
+  //     this.profileImage = storedImg;
+  //   }
+  //   this.cdr.detectChanges();
+  // }
+
+loadUserData() {
+  this.userRole = localStorage.getItem('user_role') || '4';
+  this.rangerName = localStorage.getItem('ranger_username') || 'User';
+  this.userPhoto = localStorage.getItem('user_photo') || ''; 
+  this.rangerDivision = localStorage.getItem('ranger_division') || 'Washim Division 4.2';
+
+  // Database se aane wala value (jo abhi khali hai)
+  const dbDivision = localStorage.getItem('ranger_division');
+
+  if (dbDivision && dbDivision !== 'undefined') {
+    // Agar future mein DB mein column daaloge, toh ye chalega
+    this.rangerDivision = dbDivision;
+  } else {
+    // Abhi ke liye fallback logic
+    if (this.userRole === '2') {
+      this.rangerDivision = 'COMPANY ADMIN';
+    } else {
+      this.rangerDivision = 'RANGER UNIT';
     }
-    this.cdr.detectChanges();
   }
 
+  this.cdr.detectChanges();
+}
   initializeApp() {
     document.body.classList.toggle('dark', false);
 
@@ -118,6 +143,32 @@ export class AppComponent implements OnInit {
     });
   }
 
+  // 1. Pehle ye function add karein
+getFirstLetter(name: string): string {
+  if (!name) return 'U';
+  return name.trim().charAt(0).toUpperCase();
+}
+
+// 2. Ye function random/fixed color return karega
+getAvatarColor(name: string): string {
+  if (!name) return '#10b981'; // Default Green
+
+  const firstLetter = name.trim().charAt(0).toUpperCase();
+  
+  // Har letter ke liye ek premium color code
+  const colors: { [key: string]: string } = {
+    'A': '#f87171', 'B': '#fb923c', 'C': '#fbbf24', 'D': '#facc15',
+    'E': '#6366f1', 'F': '#4ade80', 'G': '#34d399', 'H': '#2dd4bf',
+    'I': '#22d3ee', 'J': '#38bdf8', 'K': '#60a5fa', 'L': '#818cf8',
+    'M': '#a3e635', 'N': '#c084fc', 'O': '#e879f9', 'P': '#f472b6',
+    'Q': '#fb7185', 'R': '#475569', 'S': '#10b981', 'T': '#0ea5e9',
+    'U': '#6366f1', 'V': '#8b5cf6', 'W': '#ec4899', 'X': '#f43f5e',
+    'Y': '#14b8a6', 'Z': '#f59e0b'
+  };
+
+  return colors[firstLetter] || '#10b981'; // Agar list mein na ho toh default Green
+}
+
   // --- NAVIGATION METHODS ---
   // async goToPage(path: string) {
   //   await this.menu.close();
@@ -138,26 +189,55 @@ export class AppComponent implements OnInit {
   //   this.cdr.detectChanges();
   // }
 
-  async goToPage(path: string) {
-  await this.menu.close();
+//   async goToPage(path: string) {
+//   await this.menu.close();
+
   
+  
+//   if (path === 'settings') {
+//     this.currentPage = 'settings'; 
+//     this.loadUserData(); 
+//   } else {
+//     this.currentPage = 'home';
+//     if (path === 'home') {
+//       // Direct the user to the Super Admin route instead of generic home
+//       this.navCtrl.navigateRoot('/home/admin'); 
+//     } else {
+//       // For other pages like 'attendance', 'updates', etc.
+//       this.navCtrl.navigateForward(`/${path}`).catch(err => {
+//         console.log("Navigation error for path:", path);
+//       });
+//     }
+//   }
+//   this.cdr.detectChanges();
+// }
+
+async goToPage(path: string) {
+  await this.menu.close();
+
+  // 1. Agar Settings hai toh sirf view toggle karo
   if (path === 'settings') {
     this.currentPage = 'settings'; 
     this.loadUserData(); 
-  } else {
+  } 
+  // 2. Agar Home hai toh Admin Dashboard par bhejo
+  else if (path === 'home') {
     this.currentPage = 'home';
-    if (path === 'home') {
-      // Direct the user to the Super Admin route instead of generic home
-      this.navCtrl.navigateRoot('/home/admin'); 
-    } else {
-      // For other pages like 'attendance', 'updates', etc.
-      this.navCtrl.navigateForward(`/${path}`).catch(err => {
-        console.log("Navigation error for path:", path);
-      });
-    }
+    this.navCtrl.navigateRoot('/home/admin'); 
+  } 
+  // 3. Baaki saare pages (Attendance Requests, Updates, etc.) ke liye
+  else {
+    this.currentPage = 'home'; // Isse settings view band ho jayega aur router-outlet dikhega
+    
+    this.navCtrl.navigateForward(`/${path}`).catch(err => {
+      console.error("Navigation error for path:", path, err);
+      // Agar page nahi mil raha toh check karein routing module
+    });
   }
+
   this.cdr.detectChanges();
 }
+
 
   // --- SETTINGS METHODS ---
   toggleEdit() {

@@ -69,9 +69,9 @@
             color: white;
             text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
           "
-        >
-          Company Admin
+        >{{ rangerName }}
         </p>
+
       </div>
     </div>
   </div>
@@ -165,12 +165,12 @@
   </div>
 </div>
 
-      <div class="stat-card" (click)="openAttendance()">
+      <!-- <div class="stat-card" (click)="openAttendance()">
         <div class="card-inner">
           <div class="left-content">
             <div class="icon-box blue"><i class="fas fa-user-check"></i></div>
             <div class="info">
-              <h3>12</h3>
+              <h3>{{ attendanceCount }}</h3>
               <p>View Attendance</p>
             </div>
           </div>
@@ -184,11 +184,36 @@
                 r="15.9"
                 stroke-dasharray="40, 100"
               ></circle>
-              <text x="18" y="20.5" class="chart-text">40%</text>
+              <text x="18" y="20.5" class="chart-text">{{ attendancePercentage }}%</text>
             </svg>
           </div>
         </div>
+      </div> -->
+
+      <div class="stat-card" (click)="openAttendance()">
+  <div class="card-inner">
+    <div class="left-content">
+      <div class="icon-box blue"><i class="fas fa-user-check"></i></div>
+      <div class="info">
+        <h3>{{ attendanceCount }}</h3>
+        <p>View Attendance</p>
       </div>
+    </div>
+    <div class="chart-box">
+      <svg viewBox="0 0 36 36" class="mini-doughnut">
+        <circle class="ring-bg" cx="18" cy="18" r="15.9"></circle>
+        <circle
+          class="ring-fill blue"
+          cx="18"
+          cy="18"
+          r="15.9"
+          [attr.stroke-dasharray]="attendancePercentage + ', 100'"
+        ></circle>
+        <text x="18" y="20.5" class="chart-text">{{ attendancePercentage }}%</text>
+      </svg>
+    </div>
+  </div>
+</div>
 
       <div class="stat-card" (click)="goToPage('manage-rangers')">
         <div class="card-inner">

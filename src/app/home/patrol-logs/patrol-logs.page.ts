@@ -127,22 +127,22 @@ export class PatrolLogsPage implements OnInit {
   // }
 
 
-  async loadPatrolLogs(from?: string, to?: string) {
+ async loadPatrolLogs(from?: string, to?: string) {
   const loaderMsg = await firstValueFrom(this.translate.get('DETAILS.LOADING'));
   const loader = await this.loadingCtrl.create({ message: loaderMsg, mode: 'ios' });
   await loader.present();
 
-  // 1. LocalStorage se login user ki ID lein
+  // LocalStorage se IDs nikaalna
   const storedRangerId = localStorage.getItem('ranger_id');
+  const storedCompanyId = localStorage.getItem('company_id');
 
   let params = new Array();
   if (from) params.push(`from=${from}`);
   if (to) params.push(`to=${to}`);
   
-  // 2. Ranger ID ko query params mein add karein
-  if (storedRangerId) {
-    params.push(`rangerId=${storedRangerId}`);
-  }
+  // Ranger ID and Company ID ko query params mein add karein
+  if (storedRangerId) params.push(`rangerId=${storedRangerId}`);
+  if (storedCompanyId) params.push(`company_id=${storedCompanyId}`); // 👈 Admin view ke liye zaroori
 
   const queryString = params.length > 0 ? `?${params.join('&')}` : '';
   const url = `${this.apiUrl}/logs${queryString}`;
@@ -161,49 +161,51 @@ export class PatrolLogsPage implements OnInit {
 }
 
   async savePatrol() {
-    if (!this.selectedMethod || !this.selectedType) {
-      const warnMsg = await firstValueFrom(this.translate.get('LIST.SELECT_PLACEHOLDER'));
-      this.presentToast(warnMsg, 'warning');
-      this.resetKnob();
-      return;
-    }
-
-    const storedRangerId = localStorage.getItem('ranger_id'); 
-    if (!storedRangerId) {
-      this.presentToast('User session not found. Please login again.', 'danger');
-      this.navCtrl.navigateRoot('/login');
-      return;
-    }
-
-    this.isSubmitting = true; 
-    const startMsg = await firstValueFrom(this.translate.get('LIST.STARTING'));
-    const loader = await this.loadingCtrl.create({ message: startMsg, mode: 'ios' });
-    await loader.present();
-
-    const payload = { 
-      rangerId: parseInt(storedRangerId),
-      method: this.selectedMethod,
-      type: this.selectedType 
-    };
-
-    this.http.post(`${this.apiUrl}/active`, payload).subscribe({
-      next: (res: any) => {
-        loader.dismiss();
-        localStorage.setItem('active_patrol_id', res.id.toString());
-        localStorage.setItem('temp_patrol_name', `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`);
-        this.isModalOpen = false;
-        this.navCtrl.navigateForward('/patrol-active');
-      },
-      error: async (err) => {
-        loader.dismiss();
-        this.isSubmitting = false;
-        this.resetKnob();
-        const failMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_ERROR'));
-        this.presentToast(failMsg, 'danger');
-      }
-    });
+  if (!this.selectedMethod || !this.selectedType) {
+    const warnMsg = await firstValueFrom(this.translate.get('LIST.SELECT_PLACEHOLDER'));
+    this.presentToast(warnMsg, 'warning');
+    this.resetKnob();
+    return;
   }
 
+  const storedRangerId = localStorage.getItem('ranger_id'); 
+  const storedCompanyId = localStorage.getItem('company_id'); // 👈 Fetch Company ID
+
+  if (!storedRangerId) {
+    this.presentToast('User session not found. Please login again.', 'danger');
+    this.navCtrl.navigateRoot('/login');
+    return;
+  }
+
+  this.isSubmitting = true; 
+  const startMsg = await firstValueFrom(this.translate.get('LIST.STARTING'));
+  const loader = await this.loadingCtrl.create({ message: startMsg, mode: 'ios' });
+  await loader.present();
+
+  const payload = { 
+    rangerId: parseInt(storedRangerId),
+    company_id: storedCompanyId ? parseInt(storedCompanyId) : null, // 👈 Payload mein add kiya
+    method: this.selectedMethod,
+    type: this.selectedType 
+  };
+
+  this.http.post(`${this.apiUrl}/active`, payload).subscribe({
+    next: (res: any) => {
+      loader.dismiss();
+      localStorage.setItem('active_patrol_id', res.id.toString());
+      localStorage.setItem('temp_patrol_name', `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`);
+      this.isModalOpen = false;
+      this.navCtrl.navigateForward('/patrol-active');
+    },
+    error: async (err) => {
+      loader.dismiss();
+      this.isSubmitting = false;
+      this.resetKnob();
+      const failMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_ERROR'));
+      this.presentToast(failMsg, 'danger');
+    }
+  });
+}
 
   setFilterOpen(isOpen: boolean) {
     this.isFilterModalOpen = isOpen;
