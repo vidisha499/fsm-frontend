@@ -228,7 +228,7 @@
         </div>
 
         <div class="map-pins">
-          <div class="mpin" *ngFor="let pin of activePins" [style.left]="pin.l" [style.top]="pin.t">
+          <div class="mpin" *ngFor="let pin of activePinsDisplay" [style.left]="pin.l" [style.top]="pin.t">
             <div class="mpin-ring" [style.border-color]="pin.color"></div>
             <div class="mpin-bub" [style.background]="pin.color">{{ pin.emoji }}</div>
             <div class="mpin-lbl">{{ pin.label }}</div>

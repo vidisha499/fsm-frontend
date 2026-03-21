@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit , ChangeDetectorRef} from '@angular/core';
 import { Router } from '@angular/router'; // 1. Added Router
 import { Chart, registerables, ChartConfiguration } from 'chart.js';
 
@@ -11,6 +11,8 @@ Chart.register(...registerables);
   standalone: false
 })
 export class AdminPage implements OnInit, AfterViewInit {
+
+  public activePinsDisplay: any[] = [];
   // --- Constants ---
   readonly COLORS = {
     p: '#0d9488',
@@ -134,16 +136,28 @@ activeLayers: { [key: string]: any } = {
   private _charts: { [key: string]: Chart } = {};
 
   // 2. Injected Router into Constructor
-  constructor(private router: Router) {}
+  constructor(private router: Router, private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
     this.updateTime();
-    setInterval(() => this.updateTime(), 30000);
+  this.updateVisiblePins(); // Initial load
+  setInterval(() => this.updateTime(), 30000);
+    // this.updateTime();
+    // setInterval(() => this.updateTime(), 30000);
   }
 
   ngAfterViewInit() {
     this.initHomeCharts();
   }
+  updateVisiblePins() {
+  this.activePinsDisplay = this.patrolPins.map(p => ({
+    label: p.name,
+    l: p.x + '%',
+    t: p.y + '%',
+    color: p.color,
+    emoji: p.name.includes('SOS') ? '🚨' : '👤'
+  }));
+}
 
   // --- Navigation & Tab Methods ---
   switchTab(tab: string) {
@@ -183,6 +197,7 @@ activeLayers: { [key: string]: any } = {
       if (this.activeSegment === 'officers') this.initAttChart();
     }, 700);
   }
+
 
   goAnalytics(type: string) {
     console.log('Redirecting to analytics for:', type);
@@ -331,19 +346,33 @@ activeLayers: { [key: string]: any } = {
     });
   }
 
+//   setSegment(segment: string) {
+//   this.activeSegment = segment;
+  
+//   // Delay slightly to allow *ngIf to remove/add elements to the DOM
+//   setTimeout(() => {
+//     if (segment === 'overview') {
+//       this.initHomeCharts(); // Re-render charts when coming back to Overview
+//     }
+//     if (segment === 'map') {
+//       // Logic for map specific init if needed
+//     }
+//   }, 50);
+// }
+
   setSegment(segment: string) {
   this.activeSegment = segment;
-  
-  // Delay slightly to allow *ngIf to remove/add elements to the DOM
+  this.cdr.detectChanges(); //
   setTimeout(() => {
     if (segment === 'overview') {
-      this.initHomeCharts(); // Re-render charts when coming back to Overview
+      this.initHomeCharts();
     }
     if (segment === 'map') {
-      // Logic for map specific init if needed
+      this.updateVisiblePins(); // Map par jaate hi pins calculate karein
     }
   }, 50);
 }
+
 
 toggleComps() {
     this.isCompsActive = !this.isCompsActive;
