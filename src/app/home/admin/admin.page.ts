@@ -1,6 +1,7 @@
 import { Component, OnInit, AfterViewInit } from '@angular/core';
 import { Router } from '@angular/router'; // 1. Added Router
 import { Chart, registerables, ChartConfiguration } from 'chart.js';
+import { ChangeDetectorRef } from '@angular/core';
 
 Chart.register(...registerables);
 
@@ -134,7 +135,9 @@ activeLayers: { [key: string]: any } = {
   private _charts: { [key: string]: Chart } = {};
 
   // 2. Injected Router into Constructor
-  constructor(private router: Router) {}
+  constructor(private router: Router,
+    private cdr: ChangeDetectorRef,
+  ) {}
 
   ngOnInit() {
     this.updateTime();
@@ -146,15 +149,16 @@ activeLayers: { [key: string]: any } = {
   }
 
   // --- Navigation & Tab Methods ---
-  switchTab(tab: string) {
-    this.activeTab = tab;
-    if (tab === 'home') {
-      this.activeSegment = 'overview';
-      this.router.navigate(['/admin']); // Ensure we are on admin root
-      setTimeout(() => this.initHomeCharts(), 50);
-    }
-    console.log('Switched to primary tab:', tab);
-  }
+  // switchTab(tab: string) {
+  //   this.activeTab = tab;
+  //   if (tab === 'home') {
+  //     this.activeSegment = 'overview';
+  //     this.router.navigate(['/admin']); // Ensure we are on admin root
+  //     setTimeout(() => this.initHomeCharts(), 50);
+  //   }
+  //   console.log('Switched to primary tab:', tab);
+  // }
+
 
 
   // --- UI Methods ---
@@ -331,19 +335,7 @@ activeLayers: { [key: string]: any } = {
     });
   }
 
-  setSegment(segment: string) {
-  this.activeSegment = segment;
-  
-  // Delay slightly to allow *ngIf to remove/add elements to the DOM
-  setTimeout(() => {
-    if (segment === 'overview') {
-      this.initHomeCharts(); // Re-render charts when coming back to Overview
-    }
-    if (segment === 'map') {
-      // Logic for map specific init if needed
-    }
-  }, 50);
-}
+
 
 toggleComps() {
     this.isCompsActive = !this.isCompsActive;
@@ -377,4 +369,23 @@ toggleComps() {
     this.activeLayerCount = Object.values(this.layerStates).filter(v => v).length;
   }
 
+  // Add NgZone to your constructor if you haven't already
+// constructor(private zone: NgZone, private cdr: ChangeDetectorRef, ...) {}
+
+setSegment(val: string) {
+  this.activeSegment = val;
+  console.log("Current Segment:", this.activeSegment);
+  
+  // If you are using ChangeDetectorRef
+  this.cdr.detectChanges(); 
+}
+
+switchTab(tab: string) {
+  if (this.activeTab === tab) return; // Don't do anything if clicking the same tab
+
+  this.activeTab = tab;
+  if (tab === 'home') {
+    this.setSegment('overview');
+  }
+}
 }

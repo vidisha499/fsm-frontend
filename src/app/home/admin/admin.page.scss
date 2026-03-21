@@ -546,3 +546,59 @@ ion-content {
   background: rgba(255,255,255,0.9); backdrop-filter: blur(4px);
   padding: 10px 14px; display: flex; justify-content: space-between;
 }
+.map-container {
+  display: block !important; /* Ensure it's not hidden */
+  min-height: 500px;         /* Give it a base height */
+  width: 100%;
+  position: relative;
+  animation: fadeIn 0.3s ease-in; // Smooth transition
+}
+
+.main-content-wrapper {
+  position: relative;
+  width: 100%;
+  min-height: 80vh; /* Ensures there is space for the map to show up */
+}
+
+/* Ensure the map container is forced to show when not hidden */
+.map-container {
+  display: block; 
+  width: 100%;
+}
+
+/* Force the hidden attribute to work with Ionic/Angular */
+[hidden] {
+  display: none !important;
+}
+
+.map-wrap {
+  height: 400px !important; /* Force a height so the map isn't 0px tall */
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.layers-btn {
+  position: absolute; bottom: 60px; right: 12px; z-index: 20;
+  background: var(--p); color: #fff; border: none;
+  padding: 8px 12px; border-radius: 10px;
+  display: flex; align-items: center; gap: 8px;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+}
+
+.layer-panel {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: #fff; border-radius: 20px 20px 0 0;
+  transform: translateY(100%); transition: 0.3s ease;
+  z-index: 30; padding: 20px; box-shadow: 0 -5px 25px rgba(0,0,0,0.1);
+  &.open { transform: translateY(0); }
+}
+
+.ltog {
+  width: 34px; height: 18px; background: #e2e8f0;
+  border-radius: 10px; position: relative;
+  &::after { content: ''; position: absolute; width: 14px; height: 14px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: 0.2s; }
+  &.on { background: var(--p); &::after { left: 18px; } }
+}

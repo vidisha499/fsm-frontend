@@ -84,7 +84,8 @@
     <button class="seg-btn" [class.active]="activeSegment === 'officers'" (click)="setSegment('officers')">Officers</button>
   </div>
 
-  <div class="overview-container" *ngIf="activeSegment === 'overview'">
+  <!-- <div class="overview-container" *ngIf="activeSegment === 'overview'"> -->
+    <div class="main-content-wrapper"> <div class="overview-container" *ngIf="activeSegment === 'overview'">
     
     <div class="status-header">
       <div class="live-indicator">
@@ -215,7 +216,7 @@
 
   
   </div>
-   <div class="map-container" *ngIf="activeSegment === 'map'">
+  <div class="map-container" [hidden]="activeSegment !== 'map'">
     <div style="padding:10px 14px 8px;font-size:10px;color:var(--tx2);display:flex;align-items:center;gap:5px;">
       <span class="ldot-anim"></span>18 Active Patrols · 
       <strong style="color:var(--p)">{{ activeLayerCount }} layers active</strong>
@@ -285,6 +286,8 @@
       </div>
     </div>
   </div>
+  </div> <div style="height: 100px; width: 100%;"></div>
+
 
   <div class="alerts-container" *ngIf="activeSegment === 'alerts'">
     </div>
