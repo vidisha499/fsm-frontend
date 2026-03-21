@@ -1,7 +1,7 @@
-import { Component, OnInit, AfterViewInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit , ChangeDetectorRef} from '@angular/core';
 import { Router } from '@angular/router'; // 1. Added Router
 import { Chart, registerables, ChartConfiguration } from 'chart.js';
-import { ChangeDetectorRef } from '@angular/core';
+
 
 Chart.register(...registerables);
 
@@ -12,6 +12,8 @@ Chart.register(...registerables);
   standalone: false
 })
 export class AdminPage implements OnInit, AfterViewInit {
+
+  public activePinsDisplay: any[] = [];
   // --- Constants ---
   readonly COLORS = {
     p: '#0d9488',
@@ -135,18 +137,31 @@ activeLayers: { [key: string]: any } = {
   private _charts: { [key: string]: Chart } = {};
 
   // 2. Injected Router into Constructor
-  constructor(private router: Router,
-    private cdr: ChangeDetectorRef,
-  ) {}
+
+
+  constructor(private router: Router, private cdr: ChangeDetectorRef) {}
+
 
   ngOnInit() {
     this.updateTime();
-    setInterval(() => this.updateTime(), 30000);
+  this.updateVisiblePins(); // Initial load
+  setInterval(() => this.updateTime(), 30000);
+    // this.updateTime();
+    // setInterval(() => this.updateTime(), 30000);
   }
 
   ngAfterViewInit() {
     this.initHomeCharts();
   }
+  updateVisiblePins() {
+  this.activePinsDisplay = this.patrolPins.map(p => ({
+    label: p.name,
+    l: p.x + '%',
+    t: p.y + '%',
+    color: p.color,
+    emoji: p.name.includes('SOS') ? '🚨' : '👤'
+  }));
+}
 
   // --- Navigation & Tab Methods ---
   // switchTab(tab: string) {
@@ -187,6 +202,7 @@ activeLayers: { [key: string]: any } = {
       if (this.activeSegment === 'officers') this.initAttChart();
     }, 700);
   }
+
 
   goAnalytics(type: string) {
     console.log('Redirecting to analytics for:', type);
@@ -337,6 +353,10 @@ activeLayers: { [key: string]: any } = {
 
 
 
+
+
+
+
 toggleComps() {
     this.isCompsActive = !this.isCompsActive;
   }
@@ -372,12 +392,17 @@ toggleComps() {
   // Add NgZone to your constructor if you haven't already
 // constructor(private zone: NgZone, private cdr: ChangeDetectorRef, ...) {}
 
-setSegment(val: string) {
-  this.activeSegment = val;
-  console.log("Current Segment:", this.activeSegment);
-  
-  // If you are using ChangeDetectorRef
-  this.cdr.detectChanges(); 
+setSegment(segment: string) {
+  this.activeSegment = segment;
+  this.cdr.detectChanges();
+  setTimeout(() => {
+    if (segment === 'overview') {
+      this.initHomeCharts();
+    }
+    if (segment === 'map') {
+      this.updateVisiblePins();
+    }
+  }, 50);
 }
 
 switchTab(tab: string) {

@@ -127,22 +127,66 @@ export class PatrolLogsPage implements OnInit {
   // }
 
 
- async loadPatrolLogs(from?: string, to?: string) {
+//  async loadPatrolLogs(from?: string, to?: string) {
+//   const loaderMsg = await firstValueFrom(this.translate.get('DETAILS.LOADING'));
+//   const loader = await this.loadingCtrl.create({ message: loaderMsg, mode: 'ios' });
+//   await loader.present();
+
+//   // LocalStorage se IDs nikaalna
+//   const storedRangerId = localStorage.getItem('ranger_id');
+//   const storedCompanyId = localStorage.getItem('company_id');
+
+//   let params = new Array();
+//   if (from) params.push(`from=${from}`);
+//   if (to) params.push(`to=${to}`);
+  
+//   // Ranger ID and Company ID ko query params mein add karein
+//   if (storedRangerId) params.push(`rangerId=${storedRangerId}`);
+//   if (storedCompanyId) params.push(`company_id=${storedCompanyId}`); // 👈 Admin view ke liye zaroori
+
+//   const queryString = params.length > 0 ? `?${params.join('&')}` : '';
+//   const url = `${this.apiUrl}/logs${queryString}`;
+
+//   this.http.get(url).subscribe({
+//     next: (data: any) => { 
+//       this.patrolLogs = data; 
+//       loader.dismiss(); 
+//     },
+//     error: async () => { 
+//       loader.dismiss(); 
+//       const errMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_ERROR'));
+//       this.presentToast(errMsg, 'danger'); 
+//     }
+//   });
+// }
+
+async loadPatrolLogs(from?: string, to?: string) {
   const loaderMsg = await firstValueFrom(this.translate.get('DETAILS.LOADING'));
   const loader = await this.loadingCtrl.create({ message: loaderMsg, mode: 'ios' });
   await loader.present();
 
-  // LocalStorage se IDs nikaalna
+  // 1. Get IDs from LocalStorage
   const storedRangerId = localStorage.getItem('ranger_id');
   const storedCompanyId = localStorage.getItem('company_id');
+  const userRole = localStorage.getItem('user_role'); // Assuming you store role (e.g., 'ADMIN' or 'RANGER')
 
-  let params = new Array();
+  let params: string[] = [];
+
+  // 2. Date Filters
   if (from) params.push(`from=${from}`);
   if (to) params.push(`to=${to}`);
   
-  // Ranger ID and Company ID ko query params mein add karein
-  if (storedRangerId) params.push(`rangerId=${storedRangerId}`);
-  if (storedCompanyId) params.push(`company_id=${storedCompanyId}`); // 👈 Admin view ke liye zaroori
+  // 3. Role-Based Logic
+  // If the user is a RANGER, we must send rangerId to filter their own logs.
+  // If the user is an ADMIN, we ONLY send companyId to see everyone's logs.
+  if (userRole === 'RANGER' && storedRangerId) {
+    params.push(`rangerId=${storedRangerId}`);
+  }
+  
+  // 4. Send companyId (Matched to Backend @Query('companyId'))
+  if (storedCompanyId) {
+    params.push(`companyId=${storedCompanyId}`); 
+  }
 
   const queryString = params.length > 0 ? `?${params.join('&')}` : '';
   const url = `${this.apiUrl}/logs${queryString}`;
@@ -151,6 +195,7 @@ export class PatrolLogsPage implements OnInit {
     next: (data: any) => { 
       this.patrolLogs = data; 
       loader.dismiss(); 
+      this.cdr.detectChanges();
     },
     error: async () => { 
       loader.dismiss(); 
@@ -160,7 +205,54 @@ export class PatrolLogsPage implements OnInit {
   });
 }
 
-  async savePatrol() {
+//   async savePatrol() {
+//   if (!this.selectedMethod || !this.selectedType) {
+//     const warnMsg = await firstValueFrom(this.translate.get('LIST.SELECT_PLACEHOLDER'));
+//     this.presentToast(warnMsg, 'warning');
+//     this.resetKnob();
+//     return;
+//   }
+
+//   const storedRangerId = localStorage.getItem('ranger_id'); 
+//   const storedCompanyId = localStorage.getItem('company_id'); // 👈 Fetch Company ID
+
+//   if (!storedRangerId) {
+//     this.presentToast('User session not found. Please login again.', 'danger');
+//     this.navCtrl.navigateRoot('/login');
+//     return;
+//   }
+
+//   this.isSubmitting = true; 
+//   const startMsg = await firstValueFrom(this.translate.get('LIST.STARTING'));
+//   const loader = await this.loadingCtrl.create({ message: startMsg, mode: 'ios' });
+//   await loader.present();
+
+//   const payload = { 
+//     rangerId: parseInt(storedRangerId),
+//     company_id: storedCompanyId ? parseInt(storedCompanyId) : null, // 👈 Payload mein add kiya
+//     method: this.selectedMethod,
+//     type: this.selectedType 
+//   };
+
+//   this.http.post(`${this.apiUrl}/active`, payload).subscribe({
+//     next: (res: any) => {
+//       loader.dismiss();
+//       localStorage.setItem('active_patrol_id', res.id.toString());
+//       localStorage.setItem('temp_patrol_name', `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`);
+//       this.isModalOpen = false;
+//       this.navCtrl.navigateForward('/patrol-active');
+//     },
+//     error: async (err) => {
+//       loader.dismiss();
+//       this.isSubmitting = false;
+//       this.resetKnob();
+//       const failMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_ERROR'));
+//       this.presentToast(failMsg, 'danger');
+//     }
+//   });
+// }
+
+async savePatrol() {
   if (!this.selectedMethod || !this.selectedType) {
     const warnMsg = await firstValueFrom(this.translate.get('LIST.SELECT_PLACEHOLDER'));
     this.presentToast(warnMsg, 'warning');
@@ -169,7 +261,7 @@ export class PatrolLogsPage implements OnInit {
   }
 
   const storedRangerId = localStorage.getItem('ranger_id'); 
-  const storedCompanyId = localStorage.getItem('company_id'); // 👈 Fetch Company ID
+  const storedCompanyId = localStorage.getItem('company_id');
 
   if (!storedRangerId) {
     this.presentToast('User session not found. Please login again.', 'danger');
@@ -182,9 +274,11 @@ export class PatrolLogsPage implements OnInit {
   const loader = await this.loadingCtrl.create({ message: startMsg, mode: 'ios' });
   await loader.present();
 
+  // FIX: Change 'company_id' to 'companyId' to match your NestJS Entity/DTO
   const payload = { 
     rangerId: parseInt(storedRangerId),
-    company_id: storedCompanyId ? parseInt(storedCompanyId) : null, // 👈 Payload mein add kiya
+    // companyId: storedCompanyId ? parseInt(storedCompanyId) : null, 
+    companyId: storedCompanyId ? parseInt(storedCompanyId) : null,
     method: this.selectedMethod,
     type: this.selectedType 
   };
@@ -192,8 +286,10 @@ export class PatrolLogsPage implements OnInit {
   this.http.post(`${this.apiUrl}/active`, payload).subscribe({
     next: (res: any) => {
       loader.dismiss();
+      // Store the active ID so we can update the route later
       localStorage.setItem('active_patrol_id', res.id.toString());
       localStorage.setItem('temp_patrol_name', `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`);
+      
       this.isModalOpen = false;
       this.navCtrl.navigateForward('/patrol-active');
     },
