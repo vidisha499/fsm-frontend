@@ -87,18 +87,12 @@ const routes: Routes = [
 path:'admin',
 loadChildren:() => import('./home/admin/admin.module').then( m => m.AdminPageModule)
 },
-{
-  path: 'incident-detail-admin/:id',
-  loadChildren: () => import('./home/incident-detail-admin/incident-detail-admin.module').then(m => m.IncidentDetailAdminPageModule)
-},
-// {
-//   path: 'todays-patrols-details-admin/:id', // Added 's' to match the other file
-//   loadChildren: () => import('./home/todays-patrols-details-admin/todays-patrols-details-admin.module').then(m => m.TodaysPatrolsDetailsAdminPageModule)
-// },
+
 {
     path: 'attendance-requests',
     loadChildren: () => import('./home/attendance-requests/attendance-requests.module').then(m => m.AttendanceRequestsPageModule)
 },
+
 
 
 ];

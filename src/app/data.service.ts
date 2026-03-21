@@ -122,9 +122,15 @@ checkUserExists(mobile: string) {
     return this.http.post(`${this.baseApiUrl}/attendance/beat-attendance`, payload);
   }
 
-// Inside DataService class
+// // Inside DataService class
+// getPatrolsByCompany(companyId: number, date?: string) {
+//   // If date is provided, we use it for both 'from' and 'to' to get a single day
+//   const params = date ? `?companyId=${companyId}&from=${date}&to=${date}` : `?companyId=${companyId}`;
+//   return this.http.get(`${this.baseApiUrl}/patrols/logs${params}`);
+// }
+
 getPatrolsByCompany(companyId: number, date?: string) {
-  // If date is provided, we use it for both 'from' and 'to' to get a single day
+  // Logic: if date is provided, it filters for that specific day
   const params = date ? `?companyId=${companyId}&from=${date}&to=${date}` : `?companyId=${companyId}`;
   return this.http.get(`${this.baseApiUrl}/patrols/logs${params}`);
 }
@@ -184,5 +190,8 @@ getOnsiteLogsByRanger(rangerId: string) {
 getApprovedOnsiteByCompany(companyId: string) {
   return this.http.get(`${this.baseApiUrl}/onsite-attendance/company/${companyId}`);
 }
+
+
+
 
 }

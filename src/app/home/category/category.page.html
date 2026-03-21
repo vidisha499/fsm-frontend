@@ -1,4 +1,4 @@
-<ion-header>
+<!-- <ion-header>
   <ion-toolbar color="primary">
     <ion-title>Forest Hierarchy</ion-title>
     <ion-buttons slot="end">
@@ -14,21 +14,107 @@
     <ion-note>No hierarchy data found. Add your first Circle!</ion-note>
   </div>
 
-  <ion-list>
-    <ion-item-group *ngFor="let circle of categories">
-      <ion-item-divider color="secondary">
-        <ion-icon name="map-outline" slot="start"></ion-icon>
+<ion-list>
+  <ion-item-group *ngFor="let circle of categories">
+    <ion-item-divider color="primary">
+      <ion-label>{{ circle.name }} (Circle)</ion-label>
+      <ion-button fill="clear" color="light" slot="end" (click)="deleteItem(circle.id)">
+        <ion-icon name="trash"></ion-icon>
+      </ion-button>
+    </ion-item-divider>
+
+    <div *ngFor="let division of circle.children">
+      <ion-item lines="none" class="ion-margin-start">
+        <ion-icon name="chevron-forward-outline" slot="start"></ion-icon>
+        <ion-label>{{ division.name }} (Division)</ion-label>
+        <ion-button fill="clear" color="danger" slot="end" (click)="deleteItem(division.id)">
+          <ion-icon name="trash-outline"></ion-icon>
+        </ion-button>
+      </ion-item>
+
+      <div *ngFor="let range of division.children" style="margin-left: 40px;">
+        <ion-item lines="none">
+          <ion-icon name="leaf-outline" slot="start" color="success"></ion-icon>
+          <ion-label>{{ range.name }} (Range)</ion-label>
+          <ion-button fill="clear" color="danger" slot="end" (click)="deleteItem(range.id)">
+            <ion-icon name="trash-outline"></ion-icon>
+          </ion-button>
+        </ion-item>
+
+        <ion-item *ngFor="let beat of range.children" style="margin-left: 60px;">
+          <ion-icon name="pin-outline" slot="start" color="medium"></ion-icon>
+          <ion-label>{{ beat.name }} (Beat)</ion-label>
+          <ion-button fill="clear" color="danger" slot="end" (click)="deleteItem(beat.id)">
+            <ion-icon name="trash-outline"></ion-icon>
+          </ion-button>
+        </ion-item>
+      </div>
+    </div>
+  </ion-item-group>
+</ion-list>
+</ion-content> -->
+
+
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>Forest Hierarchy</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="openAddModal()">
+        <ion-icon name="add-circle-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div *ngIf="categories.length === 0" class="ion-text-center ion-padding empty-state">
+    <ion-icon name="folder-open-outline" color="medium" style="font-size: 64px;"></ion-icon>
+    <p><ion-note>No hierarchy data found. Add your first Circle!</ion-note></p>
+  </div>
+
+  <ion-list lines="none" class="hierarchy-container">
+    <ion-item-group *ngFor="let circle of categories" class="circle-group">
+      
+      <ion-item-divider sticky="true" class="circle-header">
+        <ion-icon name="business" slot="start" color="primary"></ion-icon>
         <ion-label>
-          <h2>{{ circle.name }}</h2>
-          <p>Circle Level</p>
+          <h2 class="circle-title">{{ circle.name }}</h2>
+          <ion-note color="primary">Circle ID: {{ circle.id }}</ion-note>
         </ion-label>
+        <ion-button fill="clear" color="danger" slot="end" (click)="deleteItem(circle.id)">
+          <ion-icon name="trash"></ion-icon>
+        </ion-button>
       </ion-item-divider>
 
-      <ion-item *ngFor="let child of circle.children" class="child-item">
-        <ion-icon name="git-network-outline" slot="start" color="medium"></ion-icon>
-        <ion-label>{{ child.name }}</ion-label>
-        <ion-note slot="end">Division</ion-note>
-      </ion-item>
+      <div *ngFor="let division of circle.children" class="branch division-branch">
+        <ion-item class="child-item">
+          <ion-icon name="chevron-forward-circle" slot="start" color="secondary"></ion-icon>
+          <ion-label>
+            <h3>{{ division.name }}</h3>
+            <ion-note>Division (ID: {{ division.id }})</ion-note>
+          </ion-label>
+        </ion-item>
+
+        <div *ngFor="let range of division.children" class="branch range-branch">
+          <ion-item class="child-item">
+            <ion-icon name="leaf" slot="start" color="success"></ion-icon>
+            <ion-label>
+              <h4>{{ range.name }}</h4>
+              <ion-note>Range (ID: {{ range.id }})</ion-note>
+            </ion-label>
+          </ion-item>
+
+          <div *ngFor="let beat of range.children" class="branch beat-branch">
+            <ion-item class="child-item beat-item">
+              <ion-icon name="pin" slot="start" color="warning"></ion-icon>
+              <ion-label>
+                <p class="beat-text">{{ beat.name }}</p>
+                <ion-note class="tiny-note">Beat ID: (ID:{{ beat.id }})</ion-note>
+              </ion-label>
+            </ion-item>
+          </div>
+        </div>
+      </div>
     </ion-item-group>
   </ion-list>
 </ion-content>

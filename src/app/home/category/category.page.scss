@@ -1,62 +1,139 @@
-// src/app/home/category/category.page.scss
+// // src/app/home/category/category.page.scss
+
+// ion-content {
+//   --background: #f4f5f8; // Light background for better contrast
+// }
+
+// ion-item-group {
+//   margin-bottom: 15px;
+//   background: white;
+//   border-radius: 8px;
+//   overflow: hidden;
+//   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+// }
+
+// ion-item-divider {
+//   --padding-top: 10px;
+//   --padding-bottom: 10px;
+//   border-bottom: 1px solid #eee;
+
+//   h2 {
+//     font-weight: bold;
+//     color: var(--ion-color-secondary);
+//     margin: 0;
+//   }
+
+//   p {
+//     font-size: 0.8em;
+//     margin: 2px 0 0 0;
+//   }
+// }
+
+// .child-item {
+//   --padding-start: 45px; // 👈 Isse Division thoda andar shift ho jayega
+//   --min-height: 50px;
+  
+//   ion-icon {
+//     font-size: 18px;
+//     margin-right: 10px;
+//   }
+
+//   ion-label {
+//     font-weight: 500;
+//   }
+
+//   // Visual line connector (optional)
+//   &::before {
+//     content: '';
+//     position: absolute;
+//     left: 25px;
+//     top: 0;
+//     bottom: 0;
+//     width: 2px;
+//     background: #e0e0e0;
+//   }
+// }
+
+// ion-note {
+//   font-size: 0.75rem;
+//   font-weight: bold;
+//   text-transform: uppercase;
+//   letter-spacing: 0.5px;
+// }
+
 
 ion-content {
-  --background: #f4f5f8; // Light background for better contrast
+  --background: #f8f9fa;
 }
 
-ion-item-group {
-  margin-bottom: 15px;
+.hierarchy-container {
+  padding: 12px;
+}
+
+.circle-group {
+  margin-bottom: 24px;
   background: white;
-  border-radius: 8px;
+  border-radius: 16px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
   overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  border: 1px solid #edf2f7;
 }
 
-ion-item-divider {
-  --padding-top: 10px;
-  --padding-bottom: 10px;
-  border-bottom: 1px solid #eee;
+.circle-header {
+  --background: #ffffff;
+  --padding-top: 16px;
+  --padding-bottom: 16px;
+  border-bottom: 2px solid #f7fafc;
 
-  h2 {
-    font-weight: bold;
-    color: var(--ion-color-secondary);
-    margin: 0;
+  .circle-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--ion-color-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
   }
 
-  p {
-    font-size: 0.8em;
-    margin: 2px 0 0 0;
+  ion-icon[slot="start"] {
+    font-size: 24px;
+    margin-right: 12px;
   }
+
+  // Making the trash icon bigger since it's the main action
+  ion-icon[name="trash"] {
+    font-size: 22px;
+  }
+}
+
+// Visual Tree Connectors
+.branch {
+  position: relative;
+  margin-left: 24px;
+  border-left: 2px dashed #cbd5e0; 
 }
 
 .child-item {
-  --padding-start: 45px; // 👈 Isse Division thoda andar shift ho jayega
+  --background: transparent;
   --min-height: 50px;
-  
-  ion-icon {
-    font-size: 18px;
-    margin-right: 10px;
-  }
+  margin-left: 8px;
 
-  ion-label {
-    font-weight: 500;
-  }
+  h3 { font-size: 1rem; font-weight: 700; color: #2d3748; }
+  h4 { font-size: 0.9rem; font-weight: 600; color: #4a5568; }
+  .beat-text { font-size: 0.85rem; font-weight: 500; color: #718096; }
 
-  // Visual line connector (optional)
-  &::before {
-    content: '';
-    position: absolute;
-    left: 25px;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: #e0e0e0;
+  ion-note {
+    font-size: 0.7rem;
+    letter-spacing: 0.3px;
   }
 }
 
-ion-note {
-  font-size: 0.75rem;
-  font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.division-branch { margin-left: 20px; }
+.range-branch { margin-left: 28px; }
+.beat-branch { 
+  margin-left: 28px; 
+  border-left: 2px solid #edf2f7; // Solid line for the deepest level
+}
+
+.empty-state {
+  margin-top: 120px;
+  opacity: 0.6;
 }

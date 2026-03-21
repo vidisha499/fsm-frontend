@@ -1,14 +1,3 @@
-// import { Injectable } from '@angular/core';
-
-// @Injectable({
-//   providedIn: 'root',
-// })
-// export class Incident {
-  
-// }
-
-
-
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -32,4 +21,10 @@ export class IncidentService {
     // We send an object with the new status to the backend
     return this.http.patch(`${this.apiUrl}/${id}/status`, { status });
   }
+
+  // src/services/incident.service.ts
+
+getStats(companyId: number): Observable<any> {
+  return this.http.get(`${this.apiUrl}/stats/${companyId}`);
+}
 }

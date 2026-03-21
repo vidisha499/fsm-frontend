@@ -50,6 +50,8 @@ async onAddCategory() {
     }
   });
 }
+
+
   async openAddModal() {
   const alert = await this.alertCtrl.create({
     header: 'Add New Hierarchy',
@@ -65,20 +67,32 @@ async onAddCategory() {
         placeholder: 'Layer Level (1=Circle, 2=Div, 3=Range)',
         min: 1,
         max: 5
-      }
+      },
+      {
+        name: 'parentId', // New Parent ID field
+        type: 'number',
+        placeholder: 'Parent ID (Leave empty for Circle)'
+      },
+      
     ],
     buttons: [
       { text: 'Cancel', role: 'cancel' },
       {
         text: 'Save',
-        handler: (data) => {
-          if (data.name && data.layerId) {
-            // Hum yahan saveCategory call karenge
-            // ParentId abhi manually pucha ja sakta hai ya default null
-            this.hierarchyService.saveCategory(data.name, parseInt(data.layerId), null).subscribe({
-              next: () => this.loadCategories(),
-              error: (err) => console.error(err)
-            });
+       handler: (data) => {
+  if (data.name && data.layerId) {
+    // Convert to number, or null if the input is empty
+    const pId = data.parentId ? parseInt(data.parentId) : null;
+    
+    this.hierarchyService.saveCategory(
+      data.name, 
+      parseInt(data.layerId), 
+      pId
+    ).subscribe({
+      next: () => this.loadCategories(),
+      error: (err) => console.error('Save failed:', err)
+    });
+  
           }
         }
       }
@@ -87,6 +101,8 @@ async onAddCategory() {
 
   await alert.present();
 }
+
+
 async addHierarchyItem() {
   const newItem = {
     name: 'Nagpur Circle', // Ye aap input se lenge
@@ -102,5 +118,24 @@ async addHierarchyItem() {
       },
       error: (err) => console.error('Error saving:', err)
     });
+}
+
+
+async deleteItem(id: number) {
+  const alert = await this.alertCtrl.create({
+    header: 'Delete Full Hierarchy?',
+    message: 'This will permanently remove this Circle and ALL its Divisions, Ranges, and Beats.',
+    buttons: [
+      { text: 'Cancel', role: 'cancel' },
+      {
+        text: 'Delete Everything',
+        role: 'destructive',
+        handler: () => {
+          this.hierarchyService.deleteCategory(id).subscribe(() => this.loadCategories());
+        }
+      }
+    ]
+  });
+  await alert.present();
 }
 }

@@ -86,38 +86,17 @@ const routes: Routes = [
 path:'admin',
 loadChildren:() => import('./admin/admin.module').then( m => m.AdminPageModule)
 },
-  {
-    path: 'view-attendance-admin',
-    loadChildren: () => import('./view-attendance-admin/view-attendance-admin.module').then( m => m.ViewAttendanceAdminPageModule)
-  },
-  {
-    path: 'events-triggered-admin',
-    loadChildren: () => import('./events-triggered-admin/events-triggered-admin.module').then( m => m.EventsTriggeredAdminPageModule)
-  },
-//   {
-//   path: 'incident-detail-admin/:id',
-//   loadChildren: () => import('./home/incident-detail-admin/incident-detail-admin.module').then(m => m.IncidentDetailAdminPageModule)
-// },
-  {
-    path: 'todays-patrols-admin',
-    loadChildren: () => import('./todays-patrols-admin/todays-patrols-admin.module').then( m => m.TodaysPatrolsAdminPageModule)
-  },
-  {
-    path: 'incident-detail-admin',
-    loadChildren: () => import('./incident-detail-admin/incident-detail-admin.module').then( m => m.IncidentDetailAdminPageModule)
-  },
+
   {
     path: 'attendance-requests',
     loadChildren: () => import('./attendance-requests/attendance-requests.module').then( m => m.AttendanceRequestsPageModule)
   },
-{
-    path: 'todays-patrols-details-admin/:id', // <--- Add /:id here
-    loadChildren: () => import('./todays-patrols-details-admin/todays-patrols-details-admin.module').then(m => m.TodaysPatrolsDetailsAdminPageModule)
-  },  {
+
+  {
     path: 'category',
     loadChildren: () => import('./category/category.module').then( m => m.CategoryPageModule)
-  }
-
+  },
+ 
 
 
 

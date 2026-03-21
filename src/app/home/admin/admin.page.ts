@@ -1,219 +1,380 @@
+import { Component, OnInit, AfterViewInit } from '@angular/core';
+import { Router } from '@angular/router'; // 1. Added Router
+import { Chart, registerables, ChartConfiguration } from 'chart.js';
 
-
-
-
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
-import { ModalController } from '@ionic/angular';
-import { MenuController } from '@ionic/angular';
-import { DataService } from 'src/app/data.service';
-// Ensure this path matches where you created the new page
-
-import { EventsTriggeredAdminPage } from '../events-triggered-admin/events-triggered-admin.page';
-import { ViewAttendanceAdminPage } from '../view-attendance-admin/view-attendance-admin.page';
-import { TodaysPatrolsAdminPage } from '../todays-patrols-admin/todays-patrols-admin.page';
+Chart.register(...registerables);
 
 @Component({
   selector: 'app-admin',
   templateUrl: './admin.page.html',
   styleUrls: ['./admin.page.scss'],
-  standalone: false,
+  standalone: false
 })
-// Change SuperAdminPage to AdminPage
-export class AdminPage implements OnInit {
-  unreadAlertCount: number = 0;
-  attendanceCount: number = 0;
-  public displayName: string = ''; // Generic name variable
-  totalRangers: number = 0;
-  attendancePercentage: number = 0;
-  // public displayRole: string = '';
-  // public userPhoto: string | null = null;
-  public rangerName: string = '';
-  public rangerDivision: string = '';
-  public userPhoto: string | null = null;
-  public companyId: string | null = null;
+export class AdminPage implements OnInit, AfterViewInit {
+  // --- Constants ---
+  readonly COLORS = {
+    p: '#0d9488',
+    rose: '#f43f5e',
+    amber: '#f59e0b',
+    orange: '#f97316',
+    blue: '#3b82f6',
+    ind: '#6366f1',
+    slate: '#64748b',
+    slateLight: '#94a3b8'
+  };
 
+  // --- Chart Configurations ---
+  readonly CD: any = {
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: "rgba(15,23,42,.9)",
+        padding: 10,
+        cornerRadius: 8,
+        titleFont: { size: 11, family: "Poppins", weight: "600" },
+        bodyFont: { size: 10, family: "Poppins" },
+        displayColors: true,
+        boxWidth: 8,
+        boxHeight: 8
+      }
+    },
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: { x: { display: false }, y: { display: false } }
+  };
 
-  constructor(
-    private router: Router,
-    private modalCtrl: ModalController,
-    private menuCtrl: MenuController ,// Added ModalController
-    private cdr: ChangeDetectorRef,
-    private dataService: DataService
-  ) { }
+  readonly CDAX: any = {
+    plugins: {
+      legend: {
+        display: true,
+        position: "bottom",
+        labels: { color: "#64748b", font: { size: 9, family: "Poppins" }, boxWidth: 8, padding: 10, usePointStyle: true }
+      },
+      tooltip: this.CD.plugins.tooltip
+    },
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      x: { display: true, ticks: { color: "#94a3b8", font: { size: 9, family: "Poppins" } }, grid: { display: false }, border: { display: false } },
+      y: { display: true, ticks: { color: "#94a3b8", font: { size: 9, family: "Poppins" }, maxTicksLimit: 5 }, grid: { color: "rgba(241,245,249,.8)" }, border: { display: false } }
+    }
+  };
+
+  // --- UI State ---
+  currentTime: string = '';
+  activeTab: string = 'home'; 
+  activeSegment: string = 'overview'; 
+  activeDateFilter: string = 'month';
+  isFilterCollapsed: boolean = true;
+  isRefreshing: boolean = false;
+  isSpinning: boolean = false;
+  selectedRange: string = 'all';
+  selectedBeat: string = 'all';
+  dateFrom: string = '';
+  dateTo: string = '';
+  isLayerVisible: boolean = true;
+  // --- Map & Layer State ---
+  isCompsActive: boolean = false;
+  isLayerPanelOpen: boolean = false;
+  activeLayerCount: number = 2; // Initial count of active layers
+  layerStates: { [key: string]: boolean } = {
+    'patrols': true,
+    'sos': true,
+    'fire': false,
+    'wildlife': false
+  };
+
+// Define a specific interface or use 'any' to bypass strict template checking
+activeLayers: { [key: string]: any } = {
+  personnel: {
+    label: 'Personnel',
+    emoji: '👥',
+    items: [
+      { id: 'patrols', label: 'Active Patrols', emoji: '👮', bg: '#eff6ff', color: '#3b82f6' },
+      { id: 'sos', label: 'SOS Units', emoji: '🚨', bg: '#fff1f2', color: '#f43f5e' }
+    ]
+  },
+  threats: {
+    label: 'Safety',
+    emoji: '⚠️',
+    items: [
+      { id: 'fire', label: 'Fire Zones', emoji: '🔥', bg: '#fff7ed', color: '#f97316' },
+      { id: 'wildlife', label: 'Wildlife Activity', emoji: '🐾', bg: '#f0fdfa', color: '#0d9488' }
+    ]
+  }
+};
+
+  // Logic for pins displayed on the map
+  get activePins() {
+    // You can filter this.patrolPins based on layerStates if you want it dynamic
+    return this.patrolPins.map(p => ({
+      label: p.name,
+      l: p.x + '%',
+      t: p.y + '%',
+      color: p.color,
+      emoji: p.name.includes('SOS') ? '🚨' : '👤'
+    }));
+  }
+  patrolPins = [
+    { name: 'Ranger A-1', x: 25, y: 35, color: '#0d9488' },
+    { name: 'Ranger B-4', x: 60, y: 25, color: '#3b82f6' },
+    { name: 'SOS Unit', x: 45, y: 55, color: '#ef4444' },
+    { name: 'Patrol G', x: 75, y: 70, color: '#f59e0b' },
+    { name: 'Eco-Guard', x: 30, y: 75, color: '#8b5cf6' }
+  ];
+  
+  // --- Data ---
+  beatCoverage = [
+    { label: 'North Division', val: 94, color: this.COLORS.p },
+    { label: 'South Valley', val: 88, color: this.COLORS.blue },
+    { label: 'East Plateau', val: 76, color: this.COLORS.amber },
+    { label: 'River Buffer', val: 82, color: this.COLORS.ind }
+  ];
+
+  private _charts: { [key: string]: Chart } = {};
+
+  // 2. Injected Router into Constructor
+  constructor(private router: Router) {}
 
   ngOnInit() {
-    this.loadUserData();
-    this.fetchDashboardStats();
+    this.updateTime();
+    setInterval(() => this.updateTime(), 30000);
   }
 
-  ionViewWillEnter() {
-    this.loadUserData();
-    this.fetchDashboardStats();
+  ngAfterViewInit() {
+    this.initHomeCharts();
   }
 
-// admin.page.ts mein fetchDashboardStats update karein
-// fetchDashboardStats() {
-//   const companyId = localStorage.getItem('company_id');
-//   if (!companyId) return;
+  // --- Navigation & Tab Methods ---
+  switchTab(tab: string) {
+    this.activeTab = tab;
+    if (tab === 'home') {
+      this.activeSegment = 'overview';
+      this.router.navigate(['/admin']); // Ensure we are on admin root
+      setTimeout(() => this.initHomeCharts(), 50);
+    }
+    console.log('Switched to primary tab:', tab);
+  }
 
-//   // 1. Total Rangers fetch karein
-//   this.dataService.getRangersByCompany(companyId).subscribe({
-//     next: (rangers: any) => {
-//       this.totalRangers = rangers.length || 0;
-      
-//       // 2. Attendance fetch karein (Sirf jab rangers mil jayein)
-//       this.dataService.getAttendanceByCompany(companyId).subscribe({
-//         next: (attendance: any) => {
-//           this.attendanceCount = attendance.length || 0;
-          
-//           // 3. Percentage Calculation
-//           if (this.totalRangers > 0) {
-//             this.attendancePercentage = Math.round((this.attendanceCount / this.totalRangers) * 100);
-//           } else {
-//             this.attendancePercentage = 0;
-//           }
-//           this.cdr.detectChanges();
-//         }
-//       });
-//     },
-//     error: (err) => {
-//       console.error("Dashboard error:", err);
-//       // Agar API fail ho jaye toh 0 dikhaye, page white na ho
-//       this.totalRangers = 0;
-//       this.attendancePercentage = 0;
-//       this.cdr.detectChanges();
-//     }
-//   });
-// }
 
-fetchDashboardStats() {
-  const companyId = localStorage.getItem('company_id');
-  if (!companyId) return;
+  // --- UI Methods ---
+  updateTime() {
+    const now = new Date();
+    this.currentTime = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  }
 
-  // 1. Total Rangers fetch karein
-  this.dataService.getRangersByCompany(companyId).subscribe({
-    next: (rangers: any) => {
-      this.totalRangers = rangers.length || 0;
-      
-      // 2. Regular Attendance fetch karein
-      this.dataService.getAttendanceByCompany(companyId).subscribe({
-        next: (regAttendance: any) => {
-          const regCount = Array.isArray(regAttendance) ? regAttendance.length : 0;
+  toggleFilterBar() {
+    this.isFilterCollapsed = !this.isFilterCollapsed;
+  }
 
-          // 3. Approved Onsite Attendance fetch karein
-          // Note: Backend endpoint match hona chahiye (/pending hata kar)
-          this.dataService.getApprovedOnsiteByCompany(companyId).subscribe({
-            next: (onsiteAttendance: any) => {
-              const onsiteData = Array.isArray(onsiteAttendance) ? onsiteAttendance : [];
-              // Sirf 'approved' wale count karein
-              const approvedOnsiteCount = onsiteData.filter((log: any) => log.status === 'approved').length;
+  setDateFilter(type: string) {
+    this.activeDateFilter = type;
+    this.doRefresh();
+  }
 
-              // 4. Total Calculation (Regular + Approved Onsite)
-              this.attendanceCount = regCount + approvedOnsiteCount;
-              
-              if (this.totalRangers > 0) {
-                this.attendancePercentage = Math.round((this.attendanceCount / this.totalRangers) * 100);
-              } else {
-                this.attendancePercentage = 0;
-              }
+  doRefresh() {
+    this.isRefreshing = true;
+    this.isSpinning = true;
+    setTimeout(() => {
+      this.isRefreshing = false;
+      this.isSpinning = false;
+      this.randomizeStats();
+      if (this.activeSegment === 'overview') this.initHomeCharts();
+      if (this.activeSegment === 'officers') this.initAttChart();
+    }, 700);
+  }
 
-              this.cdr.detectChanges();
-            },
-            error: (err) => {
-              console.error("Onsite count error:", err);
-              // Agar onsite fail ho toh sirf regular dikhaye
-              this.attendanceCount = regCount;
-              this.cdr.detectChanges();
-            }
-          });
+  goAnalytics(type: string) {
+    console.log('Redirecting to analytics for:', type);
+    this.activeTab = 'analytics';
+    // Add router navigation here if analytics is a separate page
+  }
+
+  // --- Chart Logic ---
+  private mkG(ctx: CanvasRenderingContext2D, color: string, h: number = 130) {
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, color + "44");
+    g.addColorStop(1, color + "00");
+    return g;
+  }
+
+  private mkChart(id: string, config: ChartConfiguration | any) {
+    const prev = this._charts[id];
+    if (prev) {
+      try { prev.destroy(); } catch (e) {}
+    }
+    const canvas = document.getElementById(id) as HTMLCanvasElement;
+    const ctx = canvas?.getContext("2d");
+    if (!ctx) return null;
+
+    const c = new Chart(ctx, config);
+    this._charts[id] = c;
+    return c;
+  }
+
+  private rnd(n: number, max: number, min: number = 5) {
+    return Array.from({ length: n }, () => Math.floor(Math.random() * (max - min)) + min);
+  }
+
+  initHomeCharts() {
+    // Check if element exists before trying to render (prevents errors on other segments)
+    const tCanvas = document.getElementById("c-trend") as HTMLCanvasElement;
+    if (!tCanvas) return;
+    const tCtx = tCanvas.getContext("2d");
+    if (!tCtx) return;
+
+    this.mkChart("c-trend", {
+      type: "line",
+      data: {
+        labels: Array.from({ length: 30 }, (_, i) => `D${i + 1}`),
+        datasets: [{
+          data: this.rnd(30, 60, 15),
+          borderColor: this.COLORS.p,
+          backgroundColor: this.mkG(tCtx, this.COLORS.p),
+          fill: true,
+          tension: .4,
+          pointRadius: 0,
+          borderWidth: 2,
+          label: "Incidents"
+        }]
+      },
+      options: {
+        ...this.CDAX,
+        plugins: { ...this.CDAX.plugins, legend: { display: false } },
+        scales: {
+          x: { ...this.CDAX.scales.x, display: true, title: { display: true, text: "Days", color: "#94a3b8", font: { size: 9 } } },
+          y: { ...this.CDAX.scales.y, title: { display: true, text: "No. of Incidents", color: "#94a3b8", font: { size: 9 } } }
         }
+      }
+    });
+
+    const pairs: [string, number[], string, string?][] = [
+      ["mc-crim", this.rnd(15, 20, 5), this.COLORS.rose],
+      ["mc-events", this.rnd(15, 50, 20), this.COLORS.amber],
+      ["mc-fire", this.rnd(15, 8, 1), this.COLORS.orange, "bar"],
+      ["mc-assets", this.rnd(15, 99, 85), this.COLORS.p],
+      ["mc-duty", this.rnd(7, 420, 390), this.COLORS.blue, "bar"]
+    ];
+
+    pairs.forEach(([id, data, color, type = "line"]) => {
+      const el = document.getElementById(id) as HTMLCanvasElement;
+      if (!el) return;
+      const ctx = el.getContext("2d");
+      if (!ctx) return;
+      
+      this.mkChart(id, {
+        type: type as any,
+        data: {
+          labels: data.map((_, i) => i),
+          datasets: [{
+            data,
+            borderColor: color,
+            backgroundColor: type === "bar" ? color + "99" : this.mkG(ctx, color, 55),
+            fill: type === "line",
+            tension: .4,
+            pointRadius: 0,
+            borderWidth: 1.5,
+            borderRadius: 3,
+            label: "Value"
+          }]
+        },
+        options: this.CD
       });
-    },
-    error: (err) => {
-      console.error("Dashboard error:", err);
-      this.totalRangers = 0;
-      this.attendancePercentage = 0;
-      this.cdr.detectChanges();
-    }
-  });
-}
-
-toggleMenu() {
-    // This 'main-menu' now matches the ID we added above
-    this.menuCtrl.open('main-menu'); 
-}
-
-  goToPage(path: string) {
-    this.router.navigate([`/home/admin/${path}`]);
-  }
-
-  // loadUserData() {
-  //   // Login ke waqt set kiya gaya data fetch karein
-  //   this.rangerName = localStorage.getItem('ranger_username') || 'User';
-  //   this.rangerDivision = localStorage.getItem('ranger_division') || 'Forest Dept';
-  //   this.userPhoto = localStorage.getItem('user_photo');
-  //   this.companyId = localStorage.getItem('company_id');
-
-  //   console.log("Logged in user:", this.rangerName);
-  //   this.cdr.detectChanges(); // UI update force karne ke liye
-  // }
-
-  loadUserData() {
-  // Same key use karni hai jo app.component mein hai
-  this.rangerName = localStorage.getItem('ranger_username') || 'Admin';
-  this.rangerDivision = localStorage.getItem('ranger_division') || 'Forest Dept';
-  this.companyId = localStorage.getItem('company_id');
-  this.cdr.detectChanges();
-}
-
-  openSettings() {
-    // Logic to show settings view
-  }
-
-  openProfile() {
-    // Logic to show profile
-  }
-
-
- async openEvents() {
-    const modal = await this.modalCtrl.create({
-      component: EventsTriggeredAdminPage,
-      cssClass: 'custom-modal-canvas'
     });
-    return await modal.present();
   }
 
-  async openPatrols() {
-    const modal = await this.modalCtrl.create({
-      component: TodaysPatrolsAdminPage,
-      cssClass: 'custom-modal-canvas' 
+  initAttChart() {
+    const el = document.getElementById("c-att");
+    if (!el) return;
+
+    this.mkChart("c-att", {
+      type: "bar",
+      data: {
+        labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        datasets: [
+          { label: "On Duty", data: this.rnd(7, 420, 395), backgroundColor: this.COLORS.p + "CC", borderRadius: 5 },
+          { label: "On Leave", data: this.rnd(7, 60, 20), backgroundColor: this.COLORS.amber + "88", borderRadius: 5 }
+        ]
+      },
+      options: this.CDAX
     });
-    return await modal.present();
   }
 
-  getFirstLetter(name: string): string {
-  return name ? name.charAt(0).toUpperCase() : '?';
-}
+  private randomizeStats() {
+    const kpiIds = ['kv-crim', 'kv-events', 'kv-fire', 'kv-assets'];
+    kpiIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        const v = parseInt(el.textContent?.replace(/,/g, "") || "0");
+        el.textContent = (v + Math.floor(Math.random() * 11) - 5).toLocaleString();
+      }
+    });
 
-getAvatarColor(name: string): string {
-  const colors = ['#0d9488', '#1e293b', '#4338ca', '#b91c1c', '#c2410c'];
-  if (!name) return colors[0];
-  const index = name.length % colors.length;
-  return colors[index];
-}
+    this.beatCoverage = this.beatCoverage.map(item => ({
+      ...item,
+      val: Math.floor(Math.random() * (98 - 70)) + 70
+    }));
+  }
 
-async openAttendance() {
-  const modal = await this.modalCtrl.create({
-    component: ViewAttendanceAdminPage,
-    cssClass: 'attendance-modal',
-    componentProps: {
-      adminCompanyId: this.companyId// 👈 Ye dashboard se uthayi hui ID bhej raha hai
-    }
-  });
+  get timeLabel() {
+    const labels: any = { today: 'For Today', week: 'Last 7 Days', month: 'Last 30 Days', custom: 'Custom Range' };
+    return labels[this.activeDateFilter] || 'Last Month';
+  }
+
+ 
+
+  // Optional: Add randomization to pins when segment changes to make it look "Live"
+  updatePinLocations() {
+    this.patrolPins.forEach(p => {
+       p.x += (Math.random() - 0.5) * 2;
+       p.y += (Math.random() - 0.5) * 2;
+    });
+  }
+
+  setSegment(segment: string) {
+  this.activeSegment = segment;
   
-  return await modal.present();
+  // Delay slightly to allow *ngIf to remove/add elements to the DOM
+  setTimeout(() => {
+    if (segment === 'overview') {
+      this.initHomeCharts(); // Re-render charts when coming back to Overview
+    }
+    if (segment === 'map') {
+      // Logic for map specific init if needed
+    }
+  }, 50);
 }
 
+toggleComps() {
+    this.isCompsActive = !this.isCompsActive;
+  }
+
+  toggleLayerPanel() {
+    this.isLayerPanelOpen = !this.isLayerPanelOpen;
+  }
+
+  // Update toggleLayer to accept an ID as seen in your HTML
+  toggleLayer(id?: string) {
+    if (id) {
+      this.layerStates[id] = !this.layerStates[id];
+      this.updateLayerCount();
+    } else {
+      this.isLayerVisible = !this.isLayerVisible;
+    }
+  }
+
+  layerAllOn() {
+    Object.keys(this.layerStates).forEach(k => this.layerStates[k] = true);
+    this.updateLayerCount();
+  }
+
+  layerAllOff() {
+    Object.keys(this.layerStates).forEach(k => this.layerStates[k] = false);
+    this.updateLayerCount();
+  }
+
+  private updateLayerCount() {
+    this.activeLayerCount = Object.values(this.layerStates).filter(v => v).length;
+  }
 
 }

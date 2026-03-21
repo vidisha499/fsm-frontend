@@ -23,4 +23,8 @@ getHierarchy() { // Make sure this name matches exactly
     const payload = { name, layerId, parentId };
     return this.http.post(this.apiUrl, payload);
   }
+
+  deleteCategory(id: number) {
+  return this.http.delete(`${this.apiUrl}/hierarchy/${id}`);
+}
 }
