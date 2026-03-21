@@ -1,11 +1,11 @@
- <ion-content [fullscreen]="true">
 
+
+<ion-content [fullscreen]="true">
   <div class="header-section">
-    
     <div class="toolbar">
       <div class="tbar-left">
         <div class="tbar-logo">
-          <img src="assets/icon/logo.png" alt="logo">
+          <img src="assets/icon/logo.png" alt="logo" />
         </div>
         <div>
           <div class="tbar-title">ForestFix</div>
@@ -16,24 +16,71 @@
       <div class="tbar-right">
         <div class="notif-wrap">
           <button class="tbar-btn">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <svg
+              width="18"
+              height="18"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"
+              />
+            </svg>
           </button>
           <div class="notif-dot"></div>
         </div>
-        
+
         <button class="tbar-btn refresh-btn" (click)="doRefresh()">
-          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          <svg
+            width="14"
+            height="14"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2.5"
+          >
+            <polyline points="23 4 23 10 17 10" />
+            <polyline points="1 20 1 14 7 14" />
+            <path
+              d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+            />
+          </svg>
         </button>
       </div>
     </div>
 
     <div class="search-row">
       <div class="search-box">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-        <input type="text" placeholder="Search patrol or officer...">
+        <svg
+          width="16"
+          height="16"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2.5"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <path d="M21 21l-4.35-4.35" />
+        </svg>
+        <input type="text" placeholder="Search patrol or officer..." />
       </div>
-      <button class="filter-icon-btn" [class.active-filter]="!isFilterCollapsed" (click)="toggleFilterBar()">
-        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+      <button
+        class="filter-icon-btn"
+        [class.active-filter]="!isFilterCollapsed"
+        (click)="toggleFilterBar()"
+      >
+        <svg
+          width="18"
+          height="18"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2.5"
+        >
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+        </svg>
         <div class="filter-active-dot" *ngIf="!isFilterCollapsed"></div>
       </button>
     </div>
@@ -41,7 +88,11 @@
 
   <div class="filter-bar" [class.collapsed]="isFilterCollapsed">
     <div class="filter-group">
-      <select class="fselect" [(ngModel)]="selectedRange" (change)="doRefresh()">
+      <select
+        class="fselect"
+        [(ngModel)]="selectedRange"
+        (change)="doRefresh()"
+      >
         <option value="all">All Ranges</option>
         <option value="north">North Division</option>
         <option value="south">South Valley</option>
@@ -55,279 +106,683 @@
         <option value="buffer">River Buffer</option>
       </select>
 
-      <button class="refresh-btn" [class.spinning]="isRefreshing" (click)="doRefresh()">
-        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-          <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
-          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+      <button
+        class="refresh-btn"
+        [class.spinning]="isRefreshing"
+        (click)="doRefresh()"
+      >
+        <svg
+          width="13"
+          height="13"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2.5"
+        >
+          <polyline points="23 4 23 10 17 10" />
+          <polyline points="1 20 1 14 7 14" />
+          <path
+            d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+          />
         </svg>
       </button>
     </div>
 
     <div class="date-chips">
-      <div class="dchip" [class.active]="activeDateFilter === 'today'" (click)="setDateFilter('today')">Today</div>
-      <div class="dchip" [class.active]="activeDateFilter === 'week'" (click)="setDateFilter('week')">Week</div>
-      <div class="dchip" [class.active]="activeDateFilter === 'month'" (click)="setDateFilter('month')">Month</div>
-      <div class="dchip" [class.active]="activeDateFilter === 'custom'" (click)="setDateFilter('custom')">Custom</div>
+      <div
+        class="dchip"
+        [class.active]="activeDateFilter === 'today'"
+        (click)="setDateFilter('today')"
+      >
+        Today
+      </div>
+      <div
+        class="dchip"
+        [class.active]="activeDateFilter === 'week'"
+        (click)="setDateFilter('week')"
+      >
+        Week
+      </div>
+      <div
+        class="dchip"
+        [class.active]="activeDateFilter === 'month'"
+        (click)="setDateFilter('month')"
+      >
+        Month
+      </div>
+      <div
+        class="dchip"
+        [class.active]="activeDateFilter === 'custom'"
+        (click)="setDateFilter('custom')"
+      >
+        Custom
+      </div>
     </div>
 
     <div class="custom-dates" *ngIf="activeDateFilter === 'custom'">
-      <input type="date" [(ngModel)]="dateFrom" (change)="doRefresh()">
+      <input type="date" [(ngModel)]="dateFrom" (change)="doRefresh()" />
       <span>to</span>
-      <input type="date" [(ngModel)]="dateTo" (change)="doRefresh()">
+      <input type="date" [(ngModel)]="dateTo" (change)="doRefresh()" />
     </div>
   </div>
 
   <div class="segment">
-    <button class="seg-btn" [class.active]="activeSegment === 'overview'" (click)="setSegment('overview')">Overview</button>
-    <button class="seg-btn" [class.active]="activeSegment === 'map'" (click)="setSegment('map')">Map View</button>
-    <button class="seg-btn" [class.active]="activeSegment === 'alerts'" (click)="setSegment('alerts')">Alerts</button>
-    <button class="seg-btn" [class.active]="activeSegment === 'officers'" (click)="setSegment('officers')">Officers</button>
+    <button
+      class="seg-btn"
+      [class.active]="activeSegment === 'overview'"
+      (click)="setSegment('overview')"
+    >
+      Overview
+    </button>
+    <button
+      class="seg-btn"
+      [class.active]="activeSegment === 'map'"
+      (click)="setSegment('map')"
+    >
+      Map View
+    </button>
+    <button
+      class="seg-btn"
+      [class.active]="activeSegment === 'alerts'"
+      (click)="setSegment('alerts')"
+    >
+      Alerts
+    </button>
+    <button
+      class="seg-btn"
+      [class.active]="activeSegment === 'officers'"
+      (click)="setSegment('officers')"
+    >
+      Officers
+    </button>
   </div>
 
-  <!-- <div class="overview-container" *ngIf="activeSegment === 'overview'"> -->
-    <div class="main-content-wrapper"> <div class="overview-container" *ngIf="activeSegment === 'overview'">
-    
-    <div class="status-header">
-      <div class="live-indicator">
-        <span class="ldot-anim"></span>
-        Live · {{ activeDateFilter | titlecase }}
+ 
+  <div class="overview-container" *ngIf="activeSegment === 'overview'">
+  
+  <div class="status-header">
+    <div class="live-indicator">
+      <span class="ldot-anim"></span>
+      Live · {{ activeDateFilter | titlecase }}
+    </div>
+    <div class="time-label">{{ timeLabel }}</div>
+  </div>
+
+  <div class="shdr">
+    <div class="shdr-title">Key Indicators</div>
+    <div class="shdr-link" (click)="setSegment('alerts')">Analytics →</div>
+  </div>
+
+  <div class="kpi-scroll">
+    <div class="kpi-card" data-c="blue">
+      <div class="kpi-ico" style="background:#eff6ff">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#3b82f6" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
       </div>
-      <div class="time-label">{{ timeLabel }}</div>
+      <div class="kpi-val" id="kv-duty">412</div>
+      <div class="kpi-lbl">On Duty Officers</div>
+      <div class="kpi-trend up">▲ 98% Attendance</div>
     </div>
 
-    <div class="shdr">
-      <div class="shdr-title">Key Indicators</div>
-      <div class="shdr-link" (click)="setSegment('alerts')">Analytics →</div>
+    <div class="kpi-card" data-c="teal">
+      <div class="kpi-ico" style="background:#f0fdfa">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#0d9488" stroke-width="2">
+          <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+        </svg>
+      </div>
+      <div class="kpi-val">1,204</div>
+      <div class="kpi-lbl">Patrol Beats Covered</div>
+      <div class="kpi-trend up">▲ All Covered</div>
     </div>
 
-    <div class="kpi-scroll">
-      <div class="kpi-card" data-c="blue">
-        <div class="kpi-ico" style="background:#eff6ff">
-          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#3b82f6" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        </div>
-        <div class="kpi-val" id="kv-duty">412</div>
-        <div class="kpi-lbl">On Duty Officers</div>
-        <div class="kpi-trend up">▲ 98% Attendance</div>
+    <div class="kpi-card" data-c="rose" (click)="goAnalytics('criminal')">
+      <div class="kpi-ico" style="background:#fff1f2">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#f43f5e" stroke-width="2">
+          <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
       </div>
-
-      <div class="kpi-card" data-c="teal">
-        <div class="kpi-ico" style="background:#f0fdfa">
-          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#0d9488" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-        </div>
-        <div class="kpi-val">1,204</div>
-        <div class="kpi-lbl">Patrol Beats Covered</div>
-        <div class="kpi-trend up">▲ All Covered</div>
-      </div>
-
-      <div class="kpi-card" data-c="rose" (click)="goAnalytics('criminal')">
-        <div class="kpi-ico" style="background:#fff1f2">
-          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#f43f5e" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        </div>
-        <div class="kpi-val" id="kv-crim">87</div>
-        <div class="kpi-lbl">Criminal Activity</div>
-        <div class="kpi-trend dn">▼ Tap to analyse</div>
-      </div>
-
-      <div class="kpi-card" data-c="amber" (click)="goAnalytics('events')">
-        <div class="kpi-ico" style="background:#fffbeb">
-          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#f59e0b" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        </div>
-        <div class="kpi-val" id="kv-events">342</div>
-        <div class="kpi-lbl">Events & Monitoring</div>
-        <div class="kpi-trend up">▲ Tap to analyse</div>
-      </div>
-
-      <div class="kpi-card" data-c="orange" (click)="goAnalytics('fire')">
-        <div class="kpi-ico" style="background:#fff7ed">
-          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#f97316" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
-        </div>
-        <div class="kpi-val" id="kv-fire">12</div>
-        <div class="kpi-lbl">Fire Alerts</div>
-        <div class="kpi-trend dn">▼ High risk zones</div>
-      </div>
-
-      <div class="kpi-card" data-c="ind" (click)="goAnalytics('assets')">
-        <div class="kpi-ico" style="background:#f5f3ff">
-          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#6366f1" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        </div>
-        <div class="kpi-val" id="kv-assets">1,450</div>
-        <div class="kpi-lbl">Assets & Tools</div>
-        <div class="kpi-trend up">▲ 94% Operational</div>
-      </div>
+      <div class="kpi-val" id="kv-crim">87</div>
+      <div class="kpi-lbl">Criminal Activity</div>
+      <div class="kpi-trend dn">▼ Tap to analyse</div>
     </div>
 
-    <div class="card">
-      <div class="card-hdr">
-        <div><div class="card-title">Incident Trend</div><div class="card-sub">All categories · Selected period</div></div>
-        <div class="card-pill" id="trend-pill">↓ 14% MoM</div>
+    <div class="kpi-card" data-c="amber" (click)="goAnalytics('events')">
+      <div class="kpi-ico" style="background:#fffbeb">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#f59e0b" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
       </div>
-      <div class="card-body">
-        <div style="height:140px;position:relative"><canvas id="c-trend"></canvas></div>
-        <div class="chart-axis-labels"><span class="chart-axis-label">← Earlier</span><span class="chart-axis-label">Days →</span></div>
-        <div style="display:flex;justify-content:center;margin-top:4px;"><span style="font-size:8px;color:var(--tx3);font-weight:600;">Y-AXIS: No. of Incidents</span></div>
-      </div>
+      <div class="kpi-val" id="kv-events">342</div>
+      <div class="kpi-lbl">Events & Monitoring</div>
+      <div class="kpi-trend up">▲ Tap to analyse</div>
     </div>
 
-    <div class="shdr" style="padding-bottom:6px">
-      <div class="shdr-title">Category Snapshot</div>
-      <div class="shdr-link" style="font-size:9px;color:var(--tx3)">scroll →</div>
-    </div>
-    <div class="mini-scroll">
-      <div class="mini-card" data-cat="criminal" (click)="goAnalytics('criminal')">
-        <div class="mini-lbl">🌲 Criminal Activity</div><div class="mini-val" style="color:var(--rose)" id="ms-crim">87</div>
-        <div class="mini-ch"><canvas id="mc-crim"></canvas></div>
-        <div class="mini-meta">Y: Cases · X: 15 days</div>
+    <div class="kpi-card" data-c="orange" (click)="goAnalytics('fire')">
+      <div class="kpi-ico" style="background:#fff7ed">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#f97316" stroke-width="2">
+          <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+        </svg>
       </div>
-      <div class="mini-card" data-cat="events" (click)="goAnalytics('events')">
-        <div class="mini-lbl">🐾 Events & Monitor.</div><div class="mini-val" style="color:var(--amber)" id="ms-events">342</div>
-        <div class="mini-ch"><canvas id="mc-events"></canvas></div>
-        <div class="mini-meta">Y: Events · X: 15 days</div>
-      </div>
-      <div class="mini-card" data-cat="fire" (click)="goAnalytics('fire')">
-        <div class="mini-lbl">🔥 Fire Incidents</div><div class="mini-val" style="color:var(--orange)" id="ms-fire">12</div>
-        <div class="mini-ch"><canvas id="mc-fire"></canvas></div>
-        <div class="mini-meta">Y: Alerts · X: 15 days</div>
-      </div>
-      <div class="mini-card" data-cat="assets">
-        <div class="mini-lbl">🛡️ Assets & Tools</div><div class="mini-val" style="color:var(--p)" id="ms-assets">94%</div>
-        <div class="mini-ch"><canvas id="mc-assets"></canvas></div>
-        <div class="mini-meta">Y: Util. % · X: 15 days</div>
-      </div>
+      <div class="kpi-val" id="kv-fire">12</div>
+      <div class="kpi-lbl">Fire Alerts</div>
+      <div class="kpi-trend dn">▼ High risk zones</div>
     </div>
 
-    <div class="card">
-      <div class="card-hdr">
-        <div class="card-title">Beat Coverage by Range</div>
+    <div class="kpi-card" data-c="ind" (click)="goAnalytics('assets')">
+      <div class="kpi-ico" style="background:#f5f3ff">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#6366f1" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
       </div>
-      <div class="card-body">
-        <div class="prog-list">
-          <div class="prog-item" *ngFor="let item of beatCoverage">
-            <div class="prog-row">
-              <span class="prog-lbl">{{ item.label }}</span>
-              <span class="prog-val">{{ item.val }}%</span>
-            </div>
-            <div class="prog-bg">
-              <div class="prog-fill" [style.width]="item.val + '%'" [style.background]="item.color"></div>
-            </div>
+      <div class="kpi-val" id="kv-assets">1,450</div>
+      <div class="kpi-lbl">Assets & Tools</div>
+      <div class="kpi-trend up">▲ 94% Operational</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr">
+      <div>
+        <div class="card-title">Incident Trend</div>
+        <div class="card-sub">All categories · Selected period</div>
+      </div>
+      <div class="card-pill" id="trend-pill">↓ 14% MoM</div>
+    </div>
+    <div class="card-body">
+      <div style="height:140px;position:relative">
+        <canvas id="c-trend"></canvas>
+      </div>
+      <div class="chart-axis-labels">
+        <span class="chart-axis-label">← Earlier</span>
+        <span class="chart-axis-label">Days →</span>
+      </div>
+      <div style="display:flex;justify-content:center;margin-top:4px;">
+        <span style="font-size:8px;color:var(--tx3);font-weight:600;">Y-AXIS: No. of Incidents</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="shdr" style="padding-bottom:6px">
+    <div class="shdr-title">Category Snapshot</div>
+    <div class="shdr-link" style="font-size:9px;color:var(--tx3)">scroll →</div>
+  </div>
+  
+  <div class="mini-scroll">
+    <div class="mini-card" data-cat="criminal" (click)="goAnalytics('criminal')">
+      <div class="mini-lbl">🌲 Criminal Activity</div>
+      <div class="mini-val" style="color:var(--rose)" id="ms-crim">87</div>
+      <div class="mini-ch"><canvas id="mc-crim"></canvas></div>
+      <div class="mini-meta">Y: Cases · X: 15 days</div>
+    </div>
+
+    <div class="mini-card" data-cat="events" (click)="goAnalytics('events')">
+      <div class="mini-lbl">🐾 Events & Monitor.</div>
+      <div class="mini-val" style="color:var(--amber)" id="ms-events">342</div>
+      <div class="mini-ch"><canvas id="mc-events"></canvas></div>
+      <div class="mini-meta">Y: Events · X: 15 days</div>
+    </div>
+
+    <div class="mini-card" data-cat="fire" (click)="goAnalytics('fire')">
+      <div class="mini-lbl">🔥 Fire Incidents</div>
+      <div class="mini-val" style="color:var(--orange)" id="ms-fire">12</div>
+      <div class="mini-ch"><canvas id="mc-fire"></canvas></div>
+      <div class="mini-meta">Y: Alerts · X: 15 days</div>
+    </div>
+
+    <div class="mini-card" data-cat="assets">
+      <div class="mini-lbl">🛡️ Assets & Tools</div>
+      <div class="mini-val" style="color:var(--p)" id="ms-assets">94%</div>
+      <div class="mini-ch"><canvas id="mc-assets"></canvas></div>
+      <div class="mini-meta">Y: Util. % · X: 15 days</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-title">Beat Coverage by Range</div>
+    </div>
+    <div class="card-body">
+      <div class="prog-list">
+        <div class="prog-item" *ngFor="let item of beatCoverage">
+          <div class="prog-row">
+            <span class="prog-lbl">{{ item.label }}</span>
+            <span class="prog-val">{{ item.val }}%</span>
+          </div>
+          <div class="prog-bg">
+            <div class="prog-fill" [style.width]="item.val + '%'" [style.background]="item.color"></div>
           </div>
         </div>
       </div>
     </div>
-
-  
   </div>
-  <div class="map-container" [hidden]="activeSegment !== 'map'">
-    <div style="padding:10px 14px 8px;font-size:10px;color:var(--tx2);display:flex;align-items:center;gap:5px;">
-      <span class="ldot-anim"></span>18 Active Patrols · 
-      <strong style="color:var(--p)">{{ activeLayerCount }} layers active</strong>
+</div>
+
+  <div class="map-container" *ngIf="activeSegment === 'map'">
+    <div
+      style="
+        padding: 10px 14px 8px;
+        font-size: 10px;
+        color: var(--tx2);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      "
+    >
+      <span class="ldot-anim"></span>18 Active Patrols · 4 Ranges ·
+      <strong style="color: var(--p)">{{ activeLayerCount }} layers</strong>
     </div>
 
     <div class="map-wrap">
       <div class="map-canvas">
-        <div *ngIf="isCompsActive" style="position:absolute;inset:0;pointer-events:none;z-index:1;">
-          <div class="comp-poly" style="left:18%;top:22%;width:28%;height:24%;border-color:#0d9488;background:#0d9488;opacity:0.2;transform:skewX(-3deg)"></div>
+        <div
+          *ngIf="isCompsActive"
+          style="position: absolute; inset: 0; pointer-events: none; z-index: 1"
+        >
+          <div
+            class="comp-poly"
+            style="
+              left: 18%;
+              top: 22%;
+              width: 28%;
+              height: 24%;
+              border-color: #0d9488;
+              background: #0d9488;
+            "
+          ></div>
+          <div
+            class="comp-poly"
+            style="
+              left: 48%;
+              top: 14%;
+              width: 22%;
+              height: 28%;
+              border-color: #3b82f6;
+              background: #3b82f6;
+            "
+          ></div>
+          <div
+            class="comp-poly"
+            style="
+              left: 22%;
+              top: 50%;
+              width: 25%;
+              height: 22%;
+              border-color: #f59e0b;
+              background: #f59e0b;
+            "
+          ></div>
         </div>
 
         <div class="map-pins">
-          <div class="mpin" *ngFor="let pin of activePinsDisplay" [style.left]="pin.l" [style.top]="pin.t">
-            <div class="mpin-ring" [style.border-color]="pin.color"></div>
-            <div class="mpin-bub" [style.background]="pin.color">{{ pin.emoji }}</div>
+          <div
+            class="mpin"
+            *ngFor="let pin of activePins"
+            [style.left]="pin.l"
+            [style.top]="pin.t"
+          >
+            <div
+              class="mpin-ring"
+              [style.border-color]="pin.color"
+              [style.animation-delay.s]="pin.delay"
+            ></div>
+            <div class="mpin-bub" [style.background]="pin.color">
+              {{ pin.emoji }}
+            </div>
             <div class="mpin-lbl">{{ pin.label }}</div>
           </div>
         </div>
 
-        <button class="comps-btn" [class.active]="isCompsActive" (click)="toggleComps()">
-          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        <div class="map-compass">
+          <svg viewBox="0 0 24 24" fill="none" width="20" height="20">
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="#e2e8f0"
+              stroke-width="1.5"
+            />
+            <polygon points="12,3 14,12 12,10 10,12" fill="#ef4444" />
+            <polygon points="12,21 10,12 12,14 14,12" fill="#94a3b8" />
+            <circle cx="12" cy="12" r="1.5" fill="#0f172a" />
+          </svg>
+        </div>
+
+        <button
+          class="comps-btn"
+          [class.active]="isCompsActive"
+          (click)="toggleComps()"
+        >
+          <svg
+            width="12"
+            height="12"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2.5"
+          >
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
+          </svg>
           Compartments
         </button>
 
-        <button class="layers-btn" [class.open]="isLayerPanelOpen" (click)="toggleLayerPanel()">
-          <div class="lbtn-ico"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="m12 2 10 6.5-10 6.5L2 8.5z"/><path d="m2 15.5 10 6.5 10-6.5"/><path d="m2 12 10 6.5 10-6.5"/></svg></div>
-          <span>Layers</span><div class="lbtn-badge">{{ activeLayerCount }}</div>
+        <button
+          class="layers-btn"
+          [class.open]="isLayerPanelOpen"
+          (click)="toggleLayerPanel()"
+        >
+          <div class="lbtn-ico">
+            <svg
+              width="14"
+              height="14"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path d="m12 2 10 6.5-10 6.5L2 8.5z" />
+              <path d="m2 15.5 10 6.5 10-6.5" />
+              <path d="m2 12 10 6.5 10-6.5" />
+            </svg>
+          </div>
+          <span>Layers</span>
+          <div class="lbtn-badge">{{ activeLayerCount }}</div>
         </button>
 
         <div class="layer-panel" [class.open]="isLayerPanelOpen">
           <div class="lp-handle"></div>
           <div class="lp-hdr">
-            <div class="lp-title">Map Layers</div>
+            <div>
+              <div class="lp-title">Map Layers</div>
+              <div class="lp-sub">Toggle map visibility</div>
+            </div>
             <button class="lp-close" (click)="toggleLayerPanel()">✕</button>
           </div>
-
           <div class="lp-qrow">
-            <div class="qchip" (click)="layerAllOn()">All On</div>
+            <div class="qchip" [class.on]="allLayersOn" (click)="layerAllOn()">
+              All On
+            </div>
             <div class="qchip" (click)="layerAllOff()">All Off</div>
           </div>
-
           <div class="lp-body">
-            <div *ngFor="let cat of activeLayers | keyvalue" class="lp-cat">
-             <div class="lp-cat-hdr">{{ $any(cat.value).emoji }} {{ $any(cat.value).label }}</div>
-<div class="lp-item" *ngFor="let item of $any(cat.value).items" (click)="toggleLayer(item.id)">
-                <div class="lp-item-ico" [style.background]="item.bg">{{ item.emoji }}</div>
-                <div class="lp-item-lbl">{{ item.label }}</div>
-                <div class="ltog" [class.on]="layerStates[item.id]"></div>
+            <div
+              class="layer-cat-group"
+              *ngFor="let cat of LAYERS_DATA | keyvalue"
+            >
+              <div class="layer-cat-label">{{ $any(cat.value).title }}</div>
+
+              <div
+                class="layer-item-row"
+                *ngFor="let layer of $any(cat.value).items"
+                (click)="toggleLayer(layer.id)"
+              >
+                <div class="litem-left">
+                  <span class="litem-emoji">{{ layer.emoji }}</span>
+                  <span class="litem-text">{{ layer.label }}</span>
+                </div>
+                <ion-checkbox
+                  [checked]="layerStates[layer.id]"
+                  mode="md"
+                  style="pointer-events: none"
+                ></ion-checkbox>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      <div class="map-foot">
+        <div>
+          <div class="map-sn" style="color: var(--p)">18</div>
+          <div class="map-sl">Patrols</div>
+        </div>
+        <div>
+          <div class="map-sn" style="color: #ef4444">3</div>
+          <div class="map-sl">Alerts</div>
+        </div>
+        <div>
+          <div class="map-sn" style="color: var(--amber)">7</div>
+          <div class="map-sl">Posts</div>
+        </div>
+      </div>
     </div>
 
-    <div class="legend-card" style="margin: 14px;">
-      <div class="legend-hdr"><div class="legend-title">Active Layers</div></div>
+    <div class="legend-section">
+      <div class="legend-header">
+        <span class="legend-title">Active Layers Legend</span>
+        <button class="refresh-link" (click)="updateVisiblePins()">
+          Refresh
+        </button>
+      </div>
       <div class="legend-grid">
-        <ng-container *ngFor="let cat of activeLayers | keyvalue">
-          <ng-container *ngFor="let item of $any(cat.value).items">
-            <div class="legend-item" *ngIf="layerStates[item.id]">
-              <div class="legend-dot" [style.background]="item.color"></div>
-              <div class="legend-lbl">{{ item.emoji }} {{ item.label }}</div>
-            </div>
-          </ng-container>
-        </ng-container>
+        <div class="legend-item" *ngFor="let item of activeLegendItems">
+          <div class="legend-dot" [style.background]="item.color"></div>
+          <span class="legend-icon">{{ item.emoji }}</span>
+          <span class="legend-label">{{ item.label }}</span>
+        </div>
+        <div class="legend-empty" *ngIf="activeLegendItems.length === 0">
+          No active layers selected
+        </div>
       </div>
     </div>
   </div>
-  </div> <div style="height: 100px; width: 100%;"></div>
 
+  <div id="seg-alerts" *ngIf="activeSegment === 'alerts'">
+    <div class="alert-filter-row">
+    <div class="qchip" [class.on]="activeAlertFilter === 'all'" (click)="setAlertFilter('all')">
+      All
+    </div>
+    <div class="qchip crit" [class.on]="activeAlertFilter === 'crit'" (click)="setAlertFilter('crit')">
+      Critical (4)
+    </div>
+    <div class="qchip warn" [class.on]="activeAlertFilter === 'warn'" (click)="setAlertFilter('warn')">
+      Warning (7)
+    </div>
+    <div class="qchip info" [class.on]="activeAlertFilter === 'info'" (click)="setAlertFilter('info')">
+      Info (12)
+    </div>
+  </div>
 
-  <div class="alerts-container" *ngIf="activeSegment === 'alerts'">
+    <div class="alert-card">
+      <div class="alert-list">
+        <div
+          class="alert-row"
+          *ngFor="let alert of filteredAlerts"
+          [class]="alert.type"
+        >
+          <div class="alert-ico">{{ alert.icon }}</div>
+          <div class="alert-body">
+            <div class="alert-title">{{ alert.title }}</div>
+            <div class="alert-desc">{{ alert.desc }}</div>
+            <div class="alert-time">⏱ {{ alert.time }}</div>
+          </div>
+          <div
+            class="abadge"
+            [style.background]="alert.bg"
+            [style.color]="alert.color"
+          >
+            {{ alert.label }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="seg-officers" *ngIf="activeSegment === 'officers'">
+  
+  <div class="stat-row" style="padding: 12px 14px;">
+    <div class="stat-box">
+      <div class="stat-n" style="color:#0d9488">412</div>
+      <div class="stat-l">On Duty</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-n" style="color:#f59e0b">28</div>
+      <div class="stat-l">On Leave</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-n" style="color:#f43f5e">6</div>
+      <div class="stat-l">Inactive</div>
+    </div>
+  </div>
+
+  <div class="off-grid">
+    <div class="off-card">
+      <div class="off-av" style="background:#eff6ff;color:#3b82f6">RP</div>
+      <div class="off-nm">R. Patil</div>
+      <div class="off-rl">Range Off. · Beat A</div>
+      <div class="srow">
+        <div class="sdot on"></div>
+        <div class="slbl" style="color:#16a34a">On Patrol</div>
+      </div>
     </div>
 
-  <div class="officers-container" *ngIf="activeSegment === 'officers'">
+    <div class="off-card">
+      <div class="off-av" style="background:#f0fdfa;color:#0d9488">SM</div>
+      <div class="off-nm">S. Mehta</div>
+      <div class="off-rl">Guard · South Valley</div>
+      <div class="srow">
+        <div class="sdot on"></div>
+        <div class="slbl" style="color:#16a34a">On Patrol</div>
+      </div>
     </div>
 
+    <div class="off-card">
+      <div class="off-av" style="background:#fffbeb;color:#d97706">AK</div>
+      <div class="off-nm">A. Kumar</div>
+      <div class="off-rl">Guard · East Plateau</div>
+      <div class="srow">
+        <div class="sdot idle"></div>
+        <div class="slbl" style="color:#d97706">Checkpost</div>
+      </div>
+    </div>
+
+    <div class="off-card">
+      <div class="off-av" style="background:#fff1f2;color:#ef4444">PD</div>
+      <div class="off-nm">P. Desai</div>
+      <div class="off-rl">Sr. Guard · North</div>
+      <div class="srow">
+        <div class="sdot off"></div>
+        <div class="slbl" style="color:#ef4444">On Leave</div>
+      </div>
+    </div>
+
+    <div class="off-card">
+      <div class="off-av" style="background:#f0fdfa;color:#0d9488">VJ</div>
+      <div class="off-nm">V. Joshi</div>
+      <div class="off-rl">Fire Watch · East P.</div>
+      <div class="srow">
+        <div class="sdot on"></div>
+        <div class="slbl" style="color:#16a34a">On Patrol</div>
+      </div>
+    </div>
+
+    <div class="off-card">
+      <div class="off-av" style="background:#f5f3ff;color:#6366f1">MR</div>
+      <div class="off-nm">M. Rao</div>
+      <div class="off-rl">Guard · River Buffer</div>
+      <div class="srow">
+        <div class="sdot idle"></div>
+        <div class="slbl" style="color:#d97706">Base Camp</div>
+      </div>
+    </div>
+  </div>
+
+<div class="card officer-chart-card">
+  <div class="card-hdr">
+    <div>
+      <div class="card-title">Weekly Attendance</div>
+      <div class="card-sub">On Duty vs On Leave · Current Week</div>
+    </div>
+    <div class="card-pill">98% avg</div>
+  </div>
+  
+  <div class="card-body">
+    <div class="chart-container-with-axis">
+      <div class="vertical-axis-label">Officer Count</div>
+      
+      <div style="flex: 1; height: 160px; position: relative;">
+        <canvas id="c-att"></canvas>
+      </div>
+    </div>
+    
+    <div class="chart-footer-labels">
+      <span class="f-label">← MON</span>
+      <span class="f-label">SUN →</span>
+    </div>
+    <div style="text-align:center; margin-top:10px;">
+      <span class="axis-hint">Y-AXIS: Officer Count</span>
+    </div>
+  </div>
+</div>
+</div>
+
+  <div style="height: 100px; width: 100%"></div>
 </ion-content>
 
-<div style="height: 100px; width: 100%;"></div>
-
 <nav class="ion-tab-bar">
-  <button 
-    class="tab-btn" 
-    [class.active]="activeTab === 'home'" 
-    (click)="switchTab('home')">
-    <svg class="tab-ico" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+  <button
+    class="tab-btn"
+    [class.active]="activeTab === 'home'"
+    (click)="switchTab('home')"
+  >
+    <svg
+      class="tab-ico"
+      width="22"
+      height="22"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      stroke-width="2"
+    >
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
     </svg>
     <span class="tab-lbl">Home</span>
   </button>
 
-  <button 
-    class="tab-btn" 
-    [class.active]="activeTab === 'analytics'" 
-    (click)="switchTab('analytics')">
-    <svg class="tab-ico" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-      <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+  <button
+    class="tab-btn"
+    [class.active]="activeTab === 'analytics'"
+    (click)="switchTab('analytics')"
+  >
+    <svg
+      class="tab-ico"
+      width="22"
+      height="22"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      stroke-width="2"
+    >
+      <line x1="18" y1="20" x2="18" y2="10" />
+      <line x1="12" y1="20" x2="12" y2="4" />
+      <line x1="6" y1="20" x2="6" y2="14" />
     </svg>
     <span class="tab-lbl">Analytics</span>
   </button>
 
-  <button 
-    class="tab-btn" 
-    [class.active]="activeTab === 'settings'" 
-    (click)="switchTab('settings')">
-    <svg class="tab-ico" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-      <circle cx="12" cy="12" r="3"/>
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+  <button
+    class="tab-btn"
+    [class.active]="activeTab === 'settings'"
+    (click)="switchTab('settings')"
+  >
+    <svg
+      class="tab-ico"
+      width="22"
+      height="22"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      stroke-width="2"
+    >
+      <circle cx="12" cy="12" r="3" />
+      <path
+        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+      />
     </svg>
     <span class="tab-lbl">Settings</span>
   </button>
-</nav> 
+</nav>
