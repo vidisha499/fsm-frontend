@@ -106,7 +106,7 @@ public fireAlertsCount: number = 0;
   activeLayerCount: number = 4;
   public activeAlertFilter: string = 'all';
   private dataInterval: any;
- 
+ attendancePercent: number = 0; 
   showCompartments: boolean = false;
   
   
@@ -328,32 +328,40 @@ ngOnInit() {
   }, 30000);
 }
 
-loadData() {
-  // 1. Storage se user ki details nikalein (Washim Division/Company ID)
-  const user = JSON.parse(localStorage.getItem('user_data') || '{}');
-  const myCompanyId = user.company_id; 
+// admin.page.ts ke andar loadData()
+// admin.page.ts ke andar
 
-  if (!myCompanyId) return;
-
-  // 2. Aaj ki date (YYYY-MM-DD format) agar filter ke liye chahiye
-  const today = new Date().toISOString().split('T')[0];
-
-  // 3. API Call: Attendance table se On-Duty count lana
-  // Aapka service method aisa dikh sakta hai: getOnDutyCount(companyId, date)
-  this.adminService.getOnDutyCount(myCompanyId, today).subscribe({
-    next: (res: any) => {
-      // Maan lijiye API return karta hai { count: 45 }
-      this.onDutyCount = res.count;
-      
-      // UI update trigger karein
-      this.cdr.detectChanges(); 
-    },
-    error: (err) => {
-      console.error('Attendance fetch error:', err);
-    }
-  });
+ionViewWillEnter() {
+  this.loadData(); // Har baar jab admin page dikhega, ye refresh hoga
 }
 
+loadData() {
+  // 1. Hamesha CURRENT DATE nikalo (Local Timezone ke hisab se)
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60000;
+  const localISOTime = (new Date(now.getTime() - offset)).toISOString().split('T')[0];
+  
+  const storageData = localStorage.getItem('user_data');
+  if (!storageData) return;
+
+  const user = JSON.parse(storageData);
+  const myCompanyId = user.company_id;
+
+  if (myCompanyId) {
+    // 2. API ko hamesha "Aaj ki date" bhejo
+    this.adminService.getOnDutyCount(myCompanyId, localISOTime).subscribe({
+      next: (res: any) => {
+        this.onDutyCount = res.count || 0;
+        
+        // Percentage calculation
+        const totalStrength = 100; 
+        this.attendancePercent = Math.round((this.onDutyCount / totalStrength) * 100);
+        
+        this.cdr.detectChanges();
+      }
+    });
+  }
+}
   ngAfterViewInit() {
     this.initHomeCharts();
   }
@@ -756,7 +764,6 @@ setAlertFilter(filter: string) {
       }
     });
   }
-
 openAnalytics() {
   // 1. Sabse pehle interval band karein
   if (this.dataInterval) {
@@ -775,5 +782,6 @@ openAnalytics() {
   // 3. Navigate karein
   this.navCtrl.navigateForward('/home/admin-analytics');
 }
+
 }
 
