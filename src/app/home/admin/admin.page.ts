@@ -1,8 +1,8 @@
-import {Component,OnInit,AfterViewInit,ChangeDetectorRef,} from '@angular/core';
-import { Router } from '@angular/router'; // 1. Added Router
-import { Chart, registerables, ChartConfiguration } from 'chart.js';
+import {Component,OnInit,AfterViewInit,ChangeDetectorRef, } from '@angular/core';
+import { Router , } from '@angular/router'; // 1. Added Router
 import { NavController } from '@ionic/angular';
-
+import { Chart, registerables, ChartConfiguration } from 'chart.js';
+import { AdminDataService } from 'src/app/services/admin-data';
 
 Chart.register(...registerables);
 
@@ -84,6 +84,9 @@ export class AdminPage implements OnInit, AfterViewInit {
   };
 
   // --- UI State ---
+  public onDutyCount: number = 0;
+public incidentsCount: number = 0;
+public fireAlertsCount: number = 0;
   currentTime: string = '';
   activeTab: string = 'home';
   activeSegment: string = 'overview';
@@ -102,6 +105,7 @@ export class AdminPage implements OnInit, AfterViewInit {
   isLayerPanelOpen: boolean = false;
   activeLayerCount: number = 4;
   public activeAlertFilter: string = 'all';
+  private dataInterval: any;
  
   showCompartments: boolean = false;
   
@@ -306,24 +310,59 @@ get allLayersOn(): boolean {
   private _charts: { [key: string]: Chart } = {};
 
   // 2. Injected Router into Constructor
-
-  constructor(
-    private router: Router,
-    private navCtrl: NavController,
-    private cdr: ChangeDetectorRef,
+  constructor(private router: Router,
+     private cdr: ChangeDetectorRef,
+    private adminService: AdminDataService,
+    private navCtrl : NavController,
   ) {}
 
-  ngOnInit() {
+ngOnInit() {
+  this.loadData();
+  this.updateTime();
+  this.updateVisiblePins();
+
+  // Store the interval
+  this.dataInterval = setInterval(() => {
     this.updateTime();
-    this.updateVisiblePins(); // Initial load
-    setInterval(() => this.updateTime(), 30000);
-    // this.updateTime();
-    // setInterval(() => this.updateTime(), 30000);
-  }
+    this.loadData(); 
+  }, 30000);
+}
+
+loadData() {
+  // 1. Storage se user ki details nikalein (Washim Division/Company ID)
+  const user = JSON.parse(localStorage.getItem('user_data') || '{}');
+  const myCompanyId = user.company_id; 
+
+  if (!myCompanyId) return;
+
+  // 2. Aaj ki date (YYYY-MM-DD format) agar filter ke liye chahiye
+  const today = new Date().toISOString().split('T')[0];
+
+  // 3. API Call: Attendance table se On-Duty count lana
+  // Aapka service method aisa dikh sakta hai: getOnDutyCount(companyId, date)
+  this.adminService.getOnDutyCount(myCompanyId, today).subscribe({
+    next: (res: any) => {
+      // Maan lijiye API return karta hai { count: 45 }
+      this.onDutyCount = res.count;
+      
+      // UI update trigger karein
+      this.cdr.detectChanges(); 
+    },
+    error: (err) => {
+      console.error('Attendance fetch error:', err);
+    }
+  });
+}
 
   ngAfterViewInit() {
     this.initHomeCharts();
   }
+
+  ngOnDestroy() {
+  if (this.dataInterval) {
+    clearInterval(this.dataInterval);
+  }
+}
 
   updateVisiblePins() {
     const pins: any[] = [];
@@ -718,12 +757,23 @@ setAlertFilter(filter: string) {
     });
   }
 
-  openAnalytics() {
-  this.activeTab = 'analytics';
-  
-  // Navigate to the nested path
+openAnalytics() {
+  // 1. Sabse pehle interval band karein
+  if (this.dataInterval) {
+    clearInterval(this.dataInterval);
+    this.dataInterval = null;
+  }
+
+  // 2. Saare charts destroy karein
+  if (this._charts) {
+    Object.values(this._charts).forEach(c => {
+      if (c) c.destroy();
+    });
+    this._charts = {};
+  }
+
+  // 3. Navigate karein
   this.navCtrl.navigateForward('/home/admin-analytics');
 }
-
 }
 

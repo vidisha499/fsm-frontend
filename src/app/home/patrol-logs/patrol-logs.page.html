@@ -41,12 +41,21 @@
           </div>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
-          <span class="status-pill" [class.completed]="log.status === 'COMPLETED'" [class.pending]="log.status !== 'COMPLETED'">
-            {{ log.status }}
-          </span>
-          <ion-button fill="clear" color="danger" (click)="deleteLog(log.id, $event)" style="margin: 0;">
+         <span class="status-pill" 
+      [ngClass]="{
+        'completed': log.status === 'COMPLETED',
+        'pending': log.status === 'ACTIVE' || log.status === 'PENDING'
+      }">
+  {{ log.status === 'ACTIVE' ? 'ON-DUTY' : log.status }}
+</span>
+          <!-- <ion-button fill="clear" color="danger" (click)="deleteLog(log.id, $event)" style="margin: 0;">
             <ion-icon slot="icon-only" name="trash-outline" style="font-size: 18px;"></ion-icon>
-          </ion-button>
+          </ion-button> -->
+          <ion-button *ngIf="log.status === 'COMPLETED'" 
+            fill="clear" color="danger" 
+            (click)="deleteLog(log.id, $event)">
+  <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+</ion-button>
         </div>
       </div>
     </div>

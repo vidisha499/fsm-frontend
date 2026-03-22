@@ -8,6 +8,7 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import * as L from 'leaflet';
 import { ModalController } from '@ionic/angular';
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-patrol-active',
@@ -61,18 +62,65 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     private translate: TranslateService,
     private cdr: ChangeDetectorRef,
     private modalCtrl: ModalController,
+    private route: ActivatedRoute
   ) { }
 
+  // ngOnInit() {
+  //   this.activePatrolId = localStorage.getItem('active_patrol_id');
+  //   this.patrolName = localStorage.getItem('temp_patrol_name') || 'Active Patrol';
+
+  //   if (!this.activePatrolId) {
+  //     this.navCtrl.navigateRoot('/patrol-logs'); 
+  //     return;
+  //   }
+    
+  //   this.startTimer();
+  // }
+
   ngOnInit() {
-    this.activePatrolId = localStorage.getItem('active_patrol_id');
+  // 1. Pehle Check karein ki kya URL mein koi ID aayi hai (Resume Case)
+  this.route.queryParams.subscribe(params => {
+    const resumeId = params['id'];
+    const isResuming = params['isResuming'];
+
+    if (resumeId) {
+      // Agar Logs page se click karke aaye hain
+      this.activePatrolId = resumeId;
+      localStorage.setItem('active_patrol_id', resumeId); // Sync storage
+      console.log("Resuming Patrol ID:", this.activePatrolId);
+    } else {
+      // 2. Agar normal start karke aaye hain
+      this.activePatrolId = localStorage.getItem('active_patrol_id');
+    }
+
     this.patrolName = localStorage.getItem('temp_patrol_name') || 'Active Patrol';
 
+    // 3. Protection: Agar dono jagah se ID nahi mili toh hi wapas bhejein
     if (!this.activePatrolId) {
+      console.warn("No Active Patrol ID found, redirecting...");
       this.navCtrl.navigateRoot('/patrol-logs'); 
       return;
     }
+
+    // 4. Timer start karein
     this.startTimer();
-  }
+    
+    // 5. (Optional) Agar Resume ho raha hai toh purana data fetch karein
+    if (isResuming) {
+      // Yahan aap ek function call kar sakte hain purani route fetch karne ke liye
+      // this.loadExistingPatrolData(this.activePatrolId);
+    }
+  });
+}
+
+ionViewWillLeave() {
+  // Jab user page chhod raha ho, toh agar koi loading overlay khula hai toh use band kar dein
+  this.loadingCtrl.dismiss().catch(() => {});
+}
+  goBack() {
+  // Simple navigation wapas logs page par
+  this.navCtrl.navigateBack('/patrol-logs');
+}
 
   ngAfterViewInit() {
     this.initMap();
@@ -91,6 +139,21 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
       });
     }
   }
+// Is function ko replace karein
+viewDetails(log: any) {
+  if (log.status === 'PENDING') {
+    // Agar status PENDING hai (Active Patrol table se aaya hai)
+    this.navCtrl.navigateForward(['/home/patrol-active'], { // <--- Path check kar lein (/home/ ya direct)
+      queryParams: { 
+        id: log.id,
+        isResuming: true 
+      }
+    });
+  } else {
+    // Agar COMPLETED hai (Logs table se aaya hai)
+    this.navCtrl.navigateForward(['/patrol-details', log.id]);
+  }
+}
 
 
 
@@ -287,10 +350,11 @@ async startTracking() {
   }
 
   // --- Trip End Logic ---
-  async handleEndTrip() {
-    if (this.isSubmitting) return;
-    this.isSubmitting = true;
+  async handleEndTrip(isManual: boolean = false) {
+    if (!isManual || this.isSubmitting) return;
 
+  this.isSubmitting = true;
+    
     const loaderMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_FINAL'));
     const loader = await this.loadingCtrl.create({ message: loaderMsg, mode: 'ios' });
     await loader.present();
@@ -304,6 +368,7 @@ async startTracking() {
       distanceKm: parseFloat(this.totalDistanceKm.toFixed(2)),
       duration: this.timerDisplay,
       status: 'COMPLETED',
+      
       photos: this.capturedPhotos, 
       route: this.routePoints,
       observationData: { Details: this.recentSightings }
@@ -329,6 +394,7 @@ async startTracking() {
   }
 
   
+  
 
   setupEndTripGesture() {
     if (!this.endTripKnob) return;
@@ -343,14 +409,24 @@ async startTracking() {
         let x = Math.max(0, Math.min(ev.deltaX, max));
         this.domCtrl.write(() => knob.style.transform = `translateX(${x}px)`);
       },
-      onEnd: ev => {
-        const max = track.clientWidth - knob.clientWidth - 12;
-        if (ev.deltaX > max * 0.8) {
-          this.handleEndTrip();
-        } else {
-          this.domCtrl.write(() => knob.style.transform = `translateX(0px)`);
-        }
-      }
+      // onEnd: ev => {
+      //   const max = track.clientWidth - knob.clientWidth - 12;
+      //   if (ev.deltaX > max * 0.8) {
+      //     this.handleEndTrip();
+      //   } else {
+      //     this.domCtrl.write(() => knob.style.transform = `translateX(0px)`);
+      //   }
+      // }
+      // setupEndTripGesture function ke andar
+onEnd: ev => {
+    const max = track.clientWidth - knob.clientWidth - 12;
+    if (ev.deltaX > max * 0.8) {
+        // Yahan 'true' pass karein taaki function ko pata chale slide hua hai
+        this.handleEndTrip(true); 
+    } else {
+        this.domCtrl.write(() => knob.style.transform = `translateX(0px)`);
+    }
+}
     });
     gesture.enable(true);
   }

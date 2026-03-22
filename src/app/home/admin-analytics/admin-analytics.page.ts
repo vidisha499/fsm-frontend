@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy , ChangeDetectorRef , ChangeDetectionStrategy} from '@angular/core';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
@@ -22,7 +22,8 @@ const CDAX: any = {
   selector: 'app-admin-analytics',
   templateUrl: './admin-analytics.page.html',
   styleUrls: ['./admin-analytics.page.scss'],
-  standalone: false
+  standalone: false,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AdminAnalyticsPage implements OnInit, OnDestroy {
   activeTab: string = 'criminal';
@@ -31,6 +32,13 @@ export class AdminAnalyticsPage implements OnInit, OnDestroy {
   isFilterCollapsed: boolean = true;
   isRefreshing: boolean = false;
   private chartInstances: Map<string, Chart> = new Map();
+  public processedProgList: any[] = [];
+  public currentProgList: any[] = [];
+  public currentActivity: any[] = [];
+public displayProgList: any[] = [];
+public currentSubCharts: any[] = [];
+public displayActivity: any[] = [];
+public currentCatSubsCount: number = 0;
 
   catList = [
     { id: 'criminal', label: '🌲 Criminal' },
@@ -55,7 +63,7 @@ export class AdminAnalyticsPage implements OnInit, OnDestroy {
     // ... Copy the rest of your ANA_CONFIG objects (fire, assets, etc.) here
   };
 
-  constructor() {}
+  constructor( private cdr: ChangeDetectorRef) { }
 
   ngOnInit() { this.setAnaCat('criminal'); }
   ngOnDestroy() { this.destroyCharts(); }
@@ -66,15 +74,87 @@ export class AdminAnalyticsPage implements OnInit, OnDestroy {
     if (cat?.subs?.length) this.setAnaSub(cat.subs[0].id);
   }
 
-  setAnaSub(id: string) {
-    this.activeSubId = id;
-    this.destroyCharts();
-    setTimeout(() => this.renderSubCharts(), 100);
+  // setAnaSub(id: string) {
+  //   this.activeSubId = id;
+  //   this.destroyCharts();
+  //   setTimeout(() => this.renderSubCharts(), 100);
+  // }
+
+ updateUIData() {
+  const cat = this.getCurrentCat();
+  const sub = this.getCurrentSub();
+
+  if (cat) {
+    this.currentCatSubsCount = cat.subs?.length || 0;
+    const max = Math.max(...cat.subs.map((s: any) => s.val || 1));
+    this.displayProgList = cat.subs.map((s: any) => ({
+      ...s,
+      pct: Math.round((s.val / max) * 100)
+    }));
   }
 
-  renderSubCharts() {
+  this.currentSubCharts = sub?.charts || [];
+
+  const actMap: any = {
+    felling: [{ d: COLORS.rose, t: "Illegal Felling · Beat Alpha", m: "14 min ago" }],
+    transport: [{ d: COLORS.amber, t: "Truck Intercepted · Route 44", m: "2h ago" }]
+  };
+  this.displayActivity = actMap[this.activeSubId] || [];
+  
+  this.cdr.markForCheck(); // UI refresh trigger karein
+}
+
+setAnaSub(id: string) {
+  this.activeSubId = id;
+  this.destroyCharts(); // Cleanup
+  this.updateUIData();  // Calculate data ONCE
+  
+  this.cdr.detectChanges(); 
+  setTimeout(() => {
+    this.renderSubCharts();
+  }, 150);
+}
+
+
+  updateUIComponents() {
+    // Progress Bar data calculate karein
+    const cat = this.getCurrentCat();
+    if (cat) {
+      const max = Math.max(...cat.subs.map((s: any) => s.val || 1));
+      this.currentProgList = cat.subs.map((s: any) => ({
+        ...s,
+        pct: Math.round((s.val / max) * 100)
+      }));
+    }
+
+    // Activity log data calculate karein
+    const activityMap: any = {
+      felling: [{ d: COLORS.rose, t: "Illegal Felling · Beat Alpha", m: "14 min ago" }],
+      transport: [{ d: COLORS.amber, t: "Truck Intercepted · Route 44", m: "2h ago" }]
+    };
+    this.currentActivity = activityMap[this.activeSubId] || [{ d: COLORS.sl, t: "No recent activity", m: "" }];
+  }
+  updateProgList() {
+    const cat = this.getCurrentCat();
+    if (!cat) { this.processedProgList = []; return; }
+    const max = Math.max(...cat.subs.map((s: any) => s.val || 1));
+    this.processedProgList = cat.subs.map((s: any) => ({ 
+      ...s, 
+      pct: Math.round((s.val / max) * 100) 
+    }));
+  }
+
+ renderSubCharts() {
     const sub = this.getCurrentSub();
-    if (sub) sub.charts.forEach((ch: any) => ch.render(ch.id));
+    if (!sub) return;
+
+    // Check if canvas exists before rendering
+    sub.charts.forEach((ch: any) => {
+      const el = document.getElementById(ch.id);
+      if (el) {
+        ch.render(ch.id);
+      }
+    });
   }
 
   getCurrentCat() { return this.ANA_CONFIG[this.activeTab]; }

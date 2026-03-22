@@ -36,6 +36,16 @@
 .act-ttl { font-size: 11px; font-weight: 600; color: var(--tx); line-height: 1.3; }
 .act-meta { font-size: 10px; color: var(--tx2); margin-top: 2px; }
 
+canvas {
+  image-rendering: -webkit-optimize-contrast;
+  transform: translateZ(0); // Hardware acceleration trigger karega
+  backface-visibility: hidden;
+}
+
+.card {
+  contain: content; // Browser ko batata hai ki card ke bahar ka UI affect nahi hoga
+}
+
 /* --- ANIMATIONS --- */
 .spinning { animation: rotation 1s infinite linear; }
 @keyframes rotation { from { transform: rotate(0deg); } to { transform: rotate(359deg); } }

@@ -59,14 +59,14 @@
       </div>
 
       <div id="ana-charts-area">
-        <div class="card" *ngIf="getProgNorm().length">
+        <div class="card" *ngIf="displayProgList.length">
           <div class="card-hdr">
             <div class="card-title">Sub-Category Overview</div>
-            <div class="card-pill">{{ getCurrentCat()?.subs.length }} categories</div>
+            <div class="card-pill">{{ currentCatSubsCount }} categories</div>
           </div>
           <div class="card-body">
             <div class="prog-list">
-              <div class="prog-item" *ngFor="let p of getProgNorm()">
+              <div class="prog-item" *ngFor="let p of displayProgList">
                 <div class="prog-row">
                   <span class="prog-lbl">{{p.emoji}} {{p.label}}</span>
                   <span class="prog-val">{{p.val?.toLocaleString()}}</span>
@@ -96,7 +96,7 @@
         <div class="card">
           <div class="card-hdr"><div class="card-title">Recent Activity</div></div>
           <div class="act-log">
-            <div class="act-item" *ngFor="let a of getActivity()">
+            <div class="act-item"*ngFor="let a of displayActivity">
               <div class="act-dcol">
                 <div class="act-dot" [style.background]="a.d"></div>
                 <div class="act-line"></div>

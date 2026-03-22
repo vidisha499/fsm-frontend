@@ -4,6 +4,7 @@ import { NavController, ToastController, AlertController, LoadingController, Ges
 import { HttpClient } from '@angular/common/http';
 import { TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
+import { forkJoin } from 'rxjs';
 import * as L from 'leaflet';
 
 @Component({
@@ -165,42 +166,56 @@ async loadPatrolLogs(from?: string, to?: string) {
   const loader = await this.loadingCtrl.create({ message: loaderMsg, mode: 'ios' });
   await loader.present();
 
-  // 1. Get IDs from LocalStorage
+  // 1. LocalStorage se IDs aur Role nikalna
   const storedRangerId = localStorage.getItem('ranger_id');
   const storedCompanyId = localStorage.getItem('company_id');
-  const userRole = localStorage.getItem('user_role'); // Assuming you store role (e.g., 'ADMIN' or 'RANGER')
+  const userRole = localStorage.getItem('user_role');
 
   let params: string[] = [];
-
-  // 2. Date Filters
   if (from) params.push(`from=${from}`);
   if (to) params.push(`to=${to}`);
   
-  // 3. Role-Based Logic
-  // If the user is a RANGER, we must send rangerId to filter their own logs.
-  // If the user is an ADMIN, we ONLY send companyId to see everyone's logs.
+  // Role-based filtering logic
   if (userRole === 'RANGER' && storedRangerId) {
     params.push(`rangerId=${storedRangerId}`);
   }
-  
-  // 4. Send companyId (Matched to Backend @Query('companyId'))
   if (storedCompanyId) {
     params.push(`companyId=${storedCompanyId}`); 
   }
 
   const queryString = params.length > 0 ? `?${params.join('&')}` : '';
-  const url = `${this.apiUrl}/logs${queryString}`;
 
-  this.http.get(url).subscribe({
-    next: (data: any) => { 
-      this.patrolLogs = data; 
-      loader.dismiss(); 
+  // 2. API URLs taiyar karein
+  // Active patrols ke liye hum query params bhej rahe hain taaki wahi dikhe jo on-duty hai
+  const activeUrl = `${this.apiUrl}/active${queryString}`;
+  const logsUrl = `${this.apiUrl}/logs${queryString}`;
+
+  // 3. forkJoin se dono requests ko ek saath chalayein
+  forkJoin({
+    active: this.http.get(activeUrl),
+    history: this.http.get(logsUrl)
+  }).subscribe({
+    next: (res: any) => {
+      // Active results ko "PENDING" status mein convert karein
+      const pendingLogs = res.active.map((p: any) => ({
+        ...p,
+        status: 'PENDING', // Force status so UI shows yellow/pending
+        patrolName: p.method ? `${p.method.toUpperCase()} Patrol` : 'Active Patrol',
+        // StartTime check karein kyunki list mein date dikhani hoti hai
+        startTime: p.startTime || new Date().toISOString() 
+      }));
+
+      // Dono arrays ko merge karein: Pending pehle, phir History
+      this.patrolLogs = [...pendingLogs, ...res.history];
+      
+      loader.dismiss();
       this.cdr.detectChanges();
     },
-    error: async () => { 
-      loader.dismiss(); 
+    error: async (err) => {
+      console.error("Combined Fetch Error:", err);
+      loader.dismiss();
       const errMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_ERROR'));
-      this.presentToast(errMsg, 'danger'); 
+      this.presentToast(errMsg, 'danger');
     }
   });
 }
@@ -353,14 +368,28 @@ applyFilter() {
     }
   }
 
-  viewDetails(patrol: any) {
-    const pId = patrol.id; 
-    if (pId) {
-      this.navCtrl.navigateForward(['/patrol-details', pId]); 
-    } else {
-      this.presentToast("Error: ID not found", "danger");
-    }
+  // viewDetails(patrol: any) {
+  //   const pId = patrol.id; 
+  //   if (pId) {
+  //     this.navCtrl.navigateForward(['/patrol-details', pId]); 
+  //   } else {
+  //     this.presentToast("Error: ID not found", "danger");
+  //   }
+  // }
+  viewDetails(log: any) {
+  if (log.status === 'PENDING') {
+    // Agar status PENDING hai (Active Patrol table se aaya hai)
+    this.navCtrl.navigateForward(['/home/patrol-active'], { // <--- Path check kar lein (/home/ ya direct)
+      queryParams: { 
+        id: log.id,
+        isResuming: true 
+      }
+    });
+  } else {
+    // Agar COMPLETED hai (Logs table se aaya hai)
+    this.navCtrl.navigateForward(['/patrol-details', log.id]);
   }
+}
 
   async deleteLog(id: number, event: Event) {
     event.stopPropagation();
