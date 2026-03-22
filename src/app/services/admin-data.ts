@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 @Injectable({
   providedIn: 'root' // Iska matlab ye service pure app mein kahi bhi use ho sakti hai
@@ -15,14 +16,11 @@ export class AdminDataService {
 
   constructor(private http: HttpClient) { }
 
-// src/app/services/admin-data.ts
-// src/app/services/admin-data.ts
-getOnDutyCount(companyId: number, date: string) {
-  return this.http.get<any>(`${this.API_URL}/attendance/count`, {
+// admin.service.ts
+getOnDutyCount(companyId: any, date: string) {
+  // Ensure karo ki URL mein /api/admin... sahi hai
+  return this.http.get(`${environment.apiUrl}/admin/on-duty-count`, {
     params: { companyId, date }
   });
 }
-
-  // Future mein aap yahan aur bhi functions add kar sakte hain
-  // Jaise: getIncidents(), getMapPins(), etc.
 }
