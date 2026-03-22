@@ -1,0 +1,41 @@
+/* --- WRAPPER & TABS --- */
+.screen { background: var(--bg); min-height: 100vh; display: flex; flex-direction: column; }
+.content { flex: 1; overflow-y: auto; padding-bottom: 30px; scrollbar-width: none; &::-webkit-scrollbar { display: none; } }
+
+.cat-tabs { display: flex; gap: 7px; padding: 12px 14px 8px; overflow-x: auto; scrollbar-width: none; &::-webkit-scrollbar { display: none; } }
+.ctab {
+  flex-shrink: 0; padding: 8px 14px; border-radius: 20px; border: 1.5px solid var(--bord);
+  background: var(--surf); font-size: 10px; font-weight: 700; color: var(--tx2); transition: all 0.2s;
+  &.active { background: var(--p); color: #fff; border-color: var(--p); box-shadow: 0 3px 10px rgba(13,148,136,.28); }
+}
+
+/* --- KPI TILES --- */
+.sub-tabs { display: flex; gap: 8px; padding: 4px 14px 12px; overflow-x: auto; scrollbar-width: none; &::-webkit-scrollbar { display: none; } }
+.stile {
+  flex-shrink: 0; background: var(--surf); border: 1.5px solid var(--bord); border-radius: var(--r);
+  padding: 12px 14px; min-width: 100px; box-shadow: var(--sh); transition: all 0.22s;
+  &.active { border-color: var(--p); box-shadow: 0 0 0 2px rgba(13,148,136,.12); }
+}
+.stile-val { font-size: 22px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; margin-bottom: 4px; }
+.stile-lbl { font-size: 9px; font-weight: 600; color: var(--tx2); }
+.stile.active .stile-lbl { color: var(--p); }
+
+/* --- PROGRESS --- */
+.prog-list { display: flex; flex-direction: column; gap: 12px; }
+.prog-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.prog-lbl, .prog-val { font-size: 10px; font-weight: 600; color: var(--tx); }
+.prog-bg { height: 6px; background: var(--bord); border-radius: 3px; overflow: hidden; }
+.prog-fill { height: 100%; transition: width 0.8s ease; }
+
+/* --- ACTIVITY --- */
+.act-log { padding: 0 14px 14px; }
+.act-item { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--bord2); }
+.act-dcol { display: flex; flex-direction: column; align-items: center; padding-top: 3px; }
+.act-dot { width: 8px; height: 8px; border-radius: 50%; }
+.act-line { width: 1.5px; flex: 1; background: var(--bord); margin-top: 4px; }
+.act-ttl { font-size: 11px; font-weight: 600; color: var(--tx); line-height: 1.3; }
+.act-meta { font-size: 10px; color: var(--tx2); margin-top: 2px; }
+
+/* --- ANIMATIONS --- */
+.spinning { animation: rotation 1s infinite linear; }
+@keyframes rotation { from { transform: rotate(0deg); } to { transform: rotate(359deg); } }

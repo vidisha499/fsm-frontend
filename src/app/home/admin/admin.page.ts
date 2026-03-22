@@ -1,6 +1,8 @@
 import {Component,OnInit,AfterViewInit,ChangeDetectorRef,} from '@angular/core';
 import { Router } from '@angular/router'; // 1. Added Router
 import { Chart, registerables, ChartConfiguration } from 'chart.js';
+import { NavController } from '@ionic/angular';
+
 
 Chart.register(...registerables);
 
@@ -242,6 +244,7 @@ export class AdminPage implements OnInit, AfterViewInit {
   { id: 5, type: 'crit', icon: '🐾', title: 'Poaching Suspect Held', desc: 'East Plateau · 2 armed poachers arrested', time: '5h ago · Case filed', label: 'CRITICAL', bg: '#fff1f2', color: '#ef4444' },
   { id: 6, type: 'safe', icon: '✅', title: 'Patrol Completed · Beat Beta', desc: 'South Valley · 22km covered, all clear', time: '2h ago · S. Mehta', label: 'CLEAR', bg: '#f0fdfa', color: '#0d9488' }
 ];
+  
 
   // Logic for pins displayed on the map
   // get activePins() {
@@ -306,6 +309,7 @@ get allLayersOn(): boolean {
 
   constructor(
     private router: Router,
+    private navCtrl: NavController,
     private cdr: ChangeDetectorRef,
   ) {}
 
@@ -714,6 +718,12 @@ setAlertFilter(filter: string) {
     });
   }
 
+  openAnalytics() {
+  this.activeTab = 'analytics';
+  
+  // Navigate to the nested path
+  this.navCtrl.navigateForward('/home/admin-analytics');
+}
 
 }
 

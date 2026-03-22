@@ -93,6 +93,12 @@ loadChildren:() => import('./home/admin/admin.module').then( m => m.AdminPageMod
     loadChildren: () => import('./home/attendance-requests/attendance-requests.module').then(m => m.AttendanceRequestsPageModule)
 },
 
+  {
+    path: 'admin-analytics',
+    loadChildren: () => import('./home/admin-analytics/admin-analytics.module').then(m => m.AdminAnalyticsPageModule)
+  }
+
+
 
 
 ];
