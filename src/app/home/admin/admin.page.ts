@@ -757,7 +757,6 @@ setAlertFilter(filter: string) {
     });
   }
 
-<<<<<<< Updated upstream
 openAnalytics() {
   // 1. Sabse pehle interval band karein
   if (this.dataInterval) {
@@ -776,8 +775,5 @@ openAnalytics() {
   // 3. Navigate karein
   this.navCtrl.navigateForward('/home/admin-analytics');
 }
-=======
-
->>>>>>> Stashed changes
 }
 

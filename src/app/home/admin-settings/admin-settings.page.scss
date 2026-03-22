@@ -1,0 +1,202 @@
+:root {
+  /* Brand Colors */
+//   --p: #10b981;    
+--p-dark: #008775;    /* Primary Emerald */
+  --p-dark: #065f46;   /* Dark Forest Green */
+  
+  /* Backgrounds & Surfaces */
+  --bg: #f1f5f9;       /* Light Slate base */
+  --surf: #ffffff;     /* Card surface */
+  --surf2: #f8fafc;    /* Secondary surface */
+  
+  /* Typography */
+  --tx: #1e293b;       /* Main text */
+  --tx2: #64748b;      /* Secondary/Desc text */
+  --tx3: #94a3b8;      /* Muted/Label text */
+  
+  /* Borders & Shadows */
+  --bord: #e2e8f0;
+  --bord2: #f1f5f9;
+  --r: 20px;           /* Large, modern border radius */
+  --sh: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.profile-card{background:linear-gradient(135deg,var(--p),#0f766e);border-radius:var(--r);margin:14px 14px;padding:18px;display:flex;gap:14px;align-items:center;box-shadow:0 4px 14px rgba(13,148,136,.3);}
+// .pav{width:52px;height:52px;border-radius:14px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0;border:2px solid rgba(255,255,255,.3);}
+// .pname{font-size:15px;font-weight:800;color:#fff;}
+// .prole{font-size:10px;color:rgba(255,255,255,.72);margin-top:2px;}
+// .pbadges{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;}
+// .pbadge{font-size:8px;font-weight:700;padding:2px 7px;border-radius:5px;text-transform:uppercase;background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.28);}
+    
+.profile-card {
+  /* Force the solid dark teal background from your reference */
+  background: #0d8a76 !important; 
+  border-radius: 24px;
+  margin: 16px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 8px 24px rgba(13, 138, 118, 0.2);
+
+  /* Ensure all child text is white for contrast */
+  .pname {
+    color: #ffffff !important;
+    font-size: 19px;
+    font-weight: 800;
+  }
+
+  .prole {
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-size: 12px;
+  }
+}
+
+// .pbadge {
+//   /* Fix invisible badges */
+//   background: rgba(255, 255, 255, 0.15) !important;
+//   color: #ffffff !important;
+//   border: 1px solid rgba(255, 255, 255, 0.3) !important;
+//   font-size: 9px;
+//   font-weight: 700;
+//   padding: 4px 10px;
+//   border-radius: 8px;
+//   text-transform: uppercase;
+// }
+
+.pbadge {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  white-space: nowrap;    // Keeps badge text on one line
+}
+    
+
+.toolbar{background:linear-gradient(135deg,var(--p) 0%,var(--ps) 100%);padding:10px 16px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 2px 8px rgba(13,148,136,.25);}
+.tbar-left{display:flex;align-items:center;gap:10px;}
+.tbar-logo{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid rgba(255,255,255,.25);}
+
+.tbar-title{color:#fff;font-size:16px;font-weight:800;letter-spacing:-.02em;}
+.tbar-sub{color:rgba(255,255,255,.65);font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;}
+.tbar-right{display:flex;gap:6px;}
+.tbar-btn{width:34px;height:34px;border-radius:9px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;transition:all .2s;}
+.tbar-btn:hover{background:rgba(255,255,255,.25);}
+.notif-wrap{position:relative;}
+.notif-dot{position:absolute;top:-2px;right:-2px;width:8px;height:8px;background:#ef4444;border-radius:50%;border:1.5px solid var(--p);}
+
+/* Profile Header Card */
+.profile-card {
+  background: linear-gradient(135deg, var(--p), var(--p-dark));
+  border-radius: var(--r);
+  margin: 16px;
+  padding: 24px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.3);
+
+  .pav {
+    width: 60px;
+    height: 60px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    font-weight: 800;
+    font-size: 22px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+}
+
+/* Settings List Group */
+.sett-sec {
+  padding: 0 16px;
+
+  .sett-gt {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--tx3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 20px 0 10px 4px;
+  }
+}
+
+.sett-card {
+  background: var(--surf);
+  border-radius: var(--r);
+  border: 1px solid var(--bord);
+  box-shadow: var(--sh);
+  overflow: hidden;
+
+  .sett-item {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    gap: 14px;
+    border-bottom: 1px solid var(--bord2);
+    transition: background 0.2s;
+    cursor: pointer;
+
+    &:active { background: var(--surf2); }
+    &:last-child { border-bottom: none; }
+
+    .sett-ico {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 18px;
+    }
+
+    .sett-txt {
+      flex: 1;
+      .sett-lbl { font-size: 14px; font-weight: 600; color: var(--tx); }
+      .sett-desc { font-size: 11px; color: var(--tx2); margin-top: 2px; }
+    }
+  }
+}
+
+/* Modern Custom Toggle */
+.tog {
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: #e2e8f0;
+  position: relative;
+  transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 2px;
+    top: 2px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: 0.3s;
+  }
+
+  &.on {
+    background: var(--p);
+    &::after { transform: translateX(20px); }
+  }
+}
+
+/* Navigation Arrow */
+.chevron {
+  color: var(--tx3);
+  font-size: 18px;
+  font-family: serif; /* Gives that thin '›' look */
+}
