@@ -41,13 +41,18 @@
           </button>
         </div>
 
-       <div class="sub-tabs">
-  <div *ngFor="let s of displayProgList" 
-       class="stile" 
-       [class.active]="activeSubId === s.id" 
-       (click)="setAnaSub(s.id)">
-    <div class="stile-val" [style.color]="s.color">{{ s.val?.toLocaleString() }}</div>
-    <div class="stile-lbl">{{ s.emoji }} {{ s.label }}</div>
+   
+<div class="sub-tabs-container">
+  <div class="sub-tabs">
+    <div *ngFor="let s of displayProgList" 
+         class="stile" 
+         [class.active]="activeSubId === s.id" 
+         (click)="setAnaSub(s.id)">
+      <div class="stile-val" [style.color]="s.color">
+        {{ s.val?.toLocaleString() }}
+      </div>
+      <div class="stile-lbl">{{ s.emoji }} {{ s.label }}</div>
+    </div>
   </div>
 </div>
 
@@ -72,7 +77,7 @@
     </div>
   </div>
 
-  <div class="card" *ngFor="let ch of currentSubCharts">
+  <!-- <div class="card" *ngFor="let ch of currentSubCharts">
     <div class="card-hdr">
       <div>
         <div class="card-title">{{ ch.title }}</div>
@@ -84,7 +89,21 @@
         <canvas [id]="ch.id"></canvas>
       </div>
     </div>
+  </div> -->
+
+  <div class="card" *ngFor="let ch of currentSubCharts">
+  <div class="card-hdr">
+    <div>
+      <div class="card-title">{{ ch.title }}</div>
+      <div class="card-sub">{{ ch.sub }}</div>
+    </div>
   </div>
+  <div class="card-body">
+    <div style="height:200px; position:relative"> 
+      <canvas [id]="ch.id"></canvas>
+    </div>
+  </div>
+</div>
 
 
           <div class="card">

@@ -2,7 +2,7 @@ import {Component,OnInit,AfterViewInit,ChangeDetectorRef, } from '@angular/core'
 import { Router , } from '@angular/router'; // 1. Added Router
 import { NavController } from '@ionic/angular';
 import { Chart, registerables, ChartConfiguration } from 'chart.js';
-import { AdminDataService } from 'src/app/services/admin-data';
+import { DataService } from 'src/app/data.service';
 
 Chart.register(...registerables);
 
@@ -106,9 +106,9 @@ public fireAlertsCount: number = 0;
   activeLayerCount: number = 4;
   public activeAlertFilter: string = 'all';
   private dataInterval: any;
- attendancePercent: number = 0; 
+ filteredRangers: any[] = [];
   showCompartments: boolean = false;
-  
+  attendancePercent: number = 0;
   
   layerStates: { [key: string]: boolean } = {
     patrols: true,
@@ -312,7 +312,7 @@ get allLayersOn(): boolean {
   // 2. Injected Router into Constructor
   constructor(private router: Router,
      private cdr: ChangeDetectorRef,
-    private adminService: AdminDataService,
+     private dataService: DataService,
     private navCtrl : NavController,
   ) {}
 
@@ -328,40 +328,27 @@ ngOnInit() {
   }, 30000);
 }
 
-// admin.page.ts ke andar loadData()
-// admin.page.ts ke andar
-
-ionViewWillEnter() {
-  this.loadData(); // Har baar jab admin page dikhega, ye refresh hoga
-}
 
 loadData() {
-  // 1. Hamesha CURRENT DATE nikalo (Local Timezone ke hisab se)
-  const now = new Date();
-  const offset = now.getTimezoneOffset() * 60000;
-  const localISOTime = (new Date(now.getTime() - offset)).toISOString().split('T')[0];
-  
-  const storageData = localStorage.getItem('user_data');
-  if (!storageData) return;
-
-  const user = JSON.parse(storageData);
+  const user = JSON.parse(localStorage.getItem('user_data') || '{}');
   const myCompanyId = user.company_id;
+  
+  console.log('Fetching rangers for Company ID:', myCompanyId); // <--- Check this in console
 
-  if (myCompanyId) {
-    // 2. API ko hamesha "Aaj ki date" bhejo
-    this.adminService.getOnDutyCount(myCompanyId, localISOTime).subscribe({
-      next: (res: any) => {
-        this.onDutyCount = res.count || 0;
-        
-        // Percentage calculation
-        const totalStrength = 100; 
-        this.attendancePercent = Math.round((this.onDutyCount / totalStrength) * 100);
-        
-        this.cdr.detectChanges();
-      }
-    });
+  if (!myCompanyId) {
+    console.error('No Company ID found in localStorage!');
+    return;
   }
+
+  this.dataService.getUsersByCompany(myCompanyId).subscribe({
+    next: (res: any) => {
+       console.log('Rangers received:', res);
+       this.filterRangersByCompany(res, Number(myCompanyId));
+    },
+    error: (err) => console.error('Full Error Object:', err)
+  });
 }
+
   ngAfterViewInit() {
     this.initHomeCharts();
   }
@@ -764,6 +751,7 @@ setAlertFilter(filter: string) {
       }
     });
   }
+
 openAnalytics() {
   // 1. Sabse pehle interval band karein
   if (this.dataInterval) {
@@ -783,5 +771,39 @@ openAnalytics() {
   this.navCtrl.navigateForward('/home/admin-analytics');
 }
 
+filterRangersByCompany(allOfficers: any[], targetCompanyId: number) {
+  this.filteredRangers = allOfficers.filter(officer => 
+    Number(officer.roleId) === 4 && 
+    Number(officer.company_id) === targetCompanyId
+  );
+  
+  // Call this to update the UI numbers
+  this.onDutyCount = this.filteredRangers.filter(r => r.status === 1).length;
+  this.calculateStats();
+  this.cdr.detectChanges();
 }
+
+// Helper for initials (e.g., "R. Patil" -> "RP")
+getInitials(name: string) {
+  return name.split(' ').map(n => n[0]).join('').toUpperCase();
+}
+
+getRangerColor(name: string): string {
+    const colors = ['#eff6ff', '#f0fdfa', '#fffbeb', '#fff1f2', '#f5f3ff'];
+    // Simple logic to pick a color based on the name string
+    const index = name.length % colors.length;
+    return colors[index];
+  }
+
+  // 3. Ensure your filteredRangers logic updates the attendance percent
+  calculateStats() {
+    if (this.filteredRangers.length > 0) {
+      const onDuty = this.filteredRangers.filter(r => r.status === 'active').length;
+      this.attendancePercent = Math.round((onDuty / this.filteredRangers.length) * 100);
+    } else {
+      this.attendancePercent = 0;
+    }
+  }
+}
+
 

@@ -1,16 +1,27 @@
-import { Component, OnInit, OnDestroy , ChangeDetectorRef , ChangeDetectionStrategy} from '@angular/core';
+
+
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
 
-const COLORS = { p: '#0d9488', rose: '#f43f5e', amber: '#f59e0b', orange: '#fb923c', red: '#ef4444', pur: '#8b5cf6', sl: '#64748b', teal: '#14b8a6', blue: '#3b82f6', ind: '#6366f1', green: '#10b981' };
+// ═══════════════════════════════════════════
+//  CONSTANTS & CONFIG
+// ═══════════════════════════════════════════
+const COLORS = { 
+  p: '#0d9488', rose: '#f43f5e', amber: '#f59e0b', orange: '#fb923c', 
+  red: '#ef4444', pur: '#8b5cf6', sl: '#64748b', teal: '#14b8a6', 
+  blue: '#3b82f6', ind: '#6366f1', green: '#10b981' 
+};
+
 const SPECIES = ['Teak', 'Sal', 'Sandalwood', 'Rosewood', 'Pine', 'Bamboo', 'Sagaon', 'Beeja'];
 const REGIONS = ['North Division', 'South Valley', 'East Plateau', 'River Buffer', 'West Ridge'];
-const ANIMALS = ['Tiger', 'Elephant', 'Leopard', 'Deer', 'Bison'];
+const ANIMALS = ['Tiger', 'Elephant', 'Leopard', 'Deer', 'Bison', 'Wild Boar', 'Sloth Bear'];
 const PALETTE = [COLORS.p, COLORS.rose, COLORS.amber, COLORS.ind, COLORS.pur];
 
 const CDAX: any = {
-  responsive: true, maintainAspectRatio: false,
+  responsive: true,
+  maintainAspectRatio: false,
   plugins: { legend: { display: false } },
   scales: {
     x: { grid: { display: false }, ticks: { font: { size: 9 }, color: '#94a3b8' } },
@@ -26,19 +37,20 @@ const CDAX: any = {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AdminAnalyticsPage implements OnInit, OnDestroy {
+  // State variables
   activeTab: string = 'criminal';
   activeSubId: string = 'felling';
   activeDateFilter: string = 'month';
   isFilterCollapsed: boolean = true;
   isRefreshing: boolean = false;
+
+  // Display arrays for HTML
+  public displayProgList: any[] = [];
+  public currentSubCharts: any[] = [];
+  public displayActivity: any[] = [];
+  public currentCatSubsCount: number = 0;
+
   private chartInstances: Map<string, Chart> = new Map();
-  public processedProgList: any[] = [];
-  public currentProgList: any[] = [];
-  public currentActivity: any[] = [];
-public displayProgList: any[] = [];
-public currentSubCharts: any[] = [];
-public displayActivity: any[] = [];
-public currentCatSubsCount: number = 0;
 
   catList = [
     { id: 'criminal', label: '🌲 Criminal' },
@@ -47,130 +59,169 @@ public currentCatSubsCount: number = 0;
     { id: 'assets', label: '🛡️ Assets' }
   ];
 
+  // ═══════════════════════════════════════════
+  //  THE MAIN CONFIG OBJECT
+  // ═══════════════════════════════════════════
   ANA_CONFIG: any = {
     criminal: {
       label: "🌲 Criminal Activity",
       subs: [
         { id: "felling", label: "Illegal Felling", emoji: "🪓", color: COLORS.rose, val: 20, charts: [
-          { title: "Volume by Species", sub: "Quantity of timber illegally felled", id: "ac-f1", render: (id: string) => this.mkChart(id, { type: "bar", data: { labels: SPECIES, datasets: [{ label: "Qty", data: this.rnd(8, 150, 10), backgroundColor: COLORS.rose + "CC", borderRadius: 4 }] }, options: CDAX }) },
-          { title: "Probable Reason", sub: "Trade / Fuel / Agri / Other", id: "ac-f2", render: (id: string) => this.mkChart(id, { type: "pie", data: { labels: ["Trade", "Fuel", "Agri", "Other"], datasets: [{ data: [45, 25, 20, 10], backgroundColor: PALETTE }] }, options: { ...CDAX, plugins: { legend: { display: true, position: 'bottom' } } } }) }
+          { title: "Volume by Species", sub: "Quantity of timber illegally felled per species", id: "ac-f1", render: (id: string) => this.mkChart(id, { type: "bar", data: { labels: SPECIES, datasets: [{ label: "Qty", data: this.rnd(8, 150, 10), backgroundColor: COLORS.rose + "CC", borderRadius: 4 }] }, options: CDAX }) },
+          { title: "Probable Reason", sub: "Trade / Fuel / Agri / Other", id: "ac-f2", render: (id: string) => this.mkChart(id, { type: "pie", data: { labels: ["Trade", "Fuel", "Agri", "Other"], datasets: [{ data: [45, 25, 20, 10], backgroundColor: PALETTE }] }, options: { ...CDAX, plugins: { legend: { display: true, position: 'bottom' } } } }) },
+          { 
+  title: "Range-wise Felling", 
+  sub: "Incidents per forest range", 
+  id: "ac-f3", 
+  render: (id: string) => this.mkChart(id, { 
+    type: "bar", 
+    data: { 
+      labels: ["North Div", "South Valley", "East Plateau", "River Buffer", "West Ridge"], 
+      datasets: [{ 
+        label: "Incidents", 
+        data: [45, 25, 32, 18, 40], // Example data from your SS
+        backgroundColor: COLORS.teal + "CC", 
+        borderRadius: 4 
+      }] 
+    }, 
+    options: { 
+      ...CDAX, 
+      indexAxis: 'y', // This makes the bar chart horizontal
+      scales: { 
+        x: { display: true, grid: { display: false }, ticks: { font: { size: 9 } } }, 
+        y: { display: true, grid: { display: false }, ticks: { font: { size: 9 } } } 
+      } 
+    } 
+  }) 
+}
         ]},
         { id: "transport", label: "Timber Transport", emoji: "🚛", color: COLORS.amber, val: 15, charts: [
-          { title: "Vehicle Type Analytics", sub: "Timber smuggling by vehicle type", id: "ac-t1", render: (id: string) => this.mkChart(id, { type: "bar", data: { labels: ["Truck", "Tractor", "Tempo", "Private"], datasets: [{ data: this.rnd(4, 300, 20), backgroundColor: COLORS.ind + "CC", borderRadius: 4 }] }, options: CDAX }) }
+          { title: "Vehicle Type Analytics", id: "ac-t1", render: (id: string) => this.mkChart(id, { type: "bar", data: { labels: ["Truck", "Tractor", "Tempo", "Private"], datasets: [{ data: this.rnd(4, 300, 20), backgroundColor: COLORS.ind + "CC", borderRadius: 4 }] }, options: CDAX }) }
+        ]},
+        { id: "storage", label: "Timber Storage", emoji: "📦", color: COLORS.orange, val: 12, charts: [
+          { title: "Storage by Species", id: "ac-s1", render: (id: string) => this.mkChart(id, { type: "bar", data: { labels: SPECIES.slice(0, 6), datasets: [{ label: "Godown", data: this.rnd(6, 100, 10), backgroundColor: COLORS.amber + "BB" }, { label: "Open", data: this.rnd(6, 50, 5), backgroundColor: COLORS.p + "BB" }] }, options: { ...CDAX, scales: { x: { stacked: true }, y: { stacked: true } } } }) }
+        ]},
+        { id: "poaching", label: "Poaching", emoji: "🐾", color: COLORS.red, val: 18, charts: [
+          { title: "Species vs Incidents", id: "ac-p1", render: (id: string) => this.mkChart(id, { type: "bar", data: { labels: ANIMALS.slice(0, 5), datasets: [{ label: "Incidents", data: this.rnd(5, 20, 2), backgroundColor: COLORS.rose + "CC" }] }, options: CDAX }) }
+        ]},
+        { id: "encroach", label: "Encroachment", emoji: "🚧", color: COLORS.pur, val: 16, charts: [
+          { title: "Encroachment Scale", sub: "Area (Ha) per range", id: "ac-e1", render: (id: string) => this.mkChart(id, { type: "bar", data: { labels: REGIONS, datasets: [{ data: this.rnd(5, 50, 5), backgroundColor: COLORS.pur + "CC" }] }, options: CDAX }) }
+        ]},
+        { id: "mining", label: "Illegal Mining", emoji: "⛏️", color: COLORS.sl, val: 8, charts: [
+          { title: "Mining by Region", id: "ac-m1", render: (id: string) => this.mkChart(id, { type: "bar", data: { labels: REGIONS, datasets: [{ data: this.rnd(5, 15, 1), backgroundColor: COLORS.sl + "CC" }] }, options: { ...CDAX, indexAxis: 'y' } }) }
         ]}
       ]
     },
-    // ... Copy the rest of your ANA_CONFIG objects (fire, assets, etc.) here
+    events: {
+      label: "🐾 Events & Monitoring",
+      subs: [
+        { id: "wildlife", label: "Wild Animal Sighting", emoji: "🦌", color: COLORS.green, val: 18, charts: [
+          { title: "Sightings Trend", id: "ac-w1", render: (id: string) => this.mkChart(id, { type: "line", data: { labels: ['D1', 'D2', 'D3', 'D4', 'D5'], datasets: [{ data: this.rnd(5, 30, 5), borderColor: COLORS.green, fill: true, tension: 0.4 }] }, options: CDAX }) }
+        ]},
+        { id: "water", label: "Water Source Status", emoji: "💧", color: COLORS.blue, val: 12, charts: [
+          { title: "Water Level %", id: "ac-ws1", render: (id: string) => this.mkChart(id, { type: "bar", data: { labels: ["Lake A", "River B", "Tank C"], datasets: [{ data: [80, 45, 90], backgroundColor: COLORS.blue }] }, options: CDAX }) }
+        ]},
+        { id: "compensation", label: "Wildlife Compensation", emoji: "💰", color: COLORS.teal, val: 7, charts: [
+          { title: "Cases by Range", id: "ac-c1", render: (id: string) => this.mkChart(id, { type: "bar", data: { labels: REGIONS, datasets: [{ label: "Cases", data: this.rnd(5, 10, 1), backgroundColor: COLORS.teal }] }, options: CDAX }) }
+        ]}
+      ]
+    },
+    fire: {
+      label: "🔥 Fire Incidents",
+      subs: [
+        { id: "fire_incidents", label: "Fire Alerts", emoji: "🔥", color: COLORS.orange, val: 12, charts: [
+          { title: "30-Day Fire Trend", id: "ac-fi1", render: (id: string) => this.mkChart(id, { type: "line", data: { labels: ['W1', 'W2', 'W3', 'W4'], datasets: [{ data: [2, 8, 4, 1], borderColor: COLORS.orange }] }, options: CDAX }) }
+        ]}
+      ]
+    },
+    assets: {
+      label: "🛡️ Assets & Tools",
+      subs: [
+        { id: "inventory", label: "Asset Inventory", emoji: "🛡️", color: COLORS.p, val: 1450, charts: [
+          { title: "Asset Distribution", id: "ac-a1", render: (id: string) => this.mkChart(id, { type: "pie", data: { labels: ["Vehicles", "Gear", "Checks"], datasets: [{ data: [245, 320, 42], backgroundColor: PALETTE }] }, options: CDAX }) }
+        ]},
+        { id: "vehicles", label: "Vehicles", emoji: "🚙", color: COLORS.teal, val: 245, charts: [
+          { title: "Vehicle Status", id: "ac-v1", render: (id: string) => this.mkChart(id, { type: "doughnut", data: { labels: ["Deployed", "Maintenance"], datasets: [{ data: [180, 65], backgroundColor: [COLORS.p, COLORS.amber] }] }, options: CDAX }) }
+        ]},
+        { id: "checkposts", label: "Checkposts", emoji: "🏠", color: COLORS.ind, val: 42, charts: [
+          { title: "Activity", id: "ac-cp1", render: (id: string) => this.mkChart(id, { type: "bar", data: { labels: ["CP-1", "CP-2", "CP-3"], datasets: [{ data: [120, 95, 200], backgroundColor: COLORS.ind }] }, options: CDAX }) }
+        ]}
+      ]
+    }
   };
 
-  constructor( private cdr: ChangeDetectorRef) { }
+  constructor(private cdr: ChangeDetectorRef) { }
 
-  ngOnInit() { this.setAnaCat('criminal'); }
-  ngOnDestroy() { this.destroyCharts(); }
+  ngOnInit() { 
+    this.setAnaCat('criminal'); 
+  }
+
+  ngOnDestroy() { 
+    this.destroyCharts(); 
+  }
+
+  // ═══════════════════════════════════════════
+  //  LOGIC & RENDERING
+  // ═══════════════════════════════════════════
 
   setAnaCat(id: string) {
     this.activeTab = id;
     const cat = this.ANA_CONFIG[id];
-    if (cat?.subs?.length) this.setAnaSub(cat.subs[0].id);
+    if (cat?.subs?.length) {
+      this.setAnaSub(cat.subs[0].id);
+    }
   }
 
-  // setAnaSub(id: string) {
-  //   this.activeSubId = id;
-  //   this.destroyCharts();
-  //   setTimeout(() => this.renderSubCharts(), 100);
-  // }
-
- updateUIData() {
-  const cat = this.getCurrentCat();
-  const sub = this.getCurrentSub();
-
-  if (cat) {
-    this.currentCatSubsCount = cat.subs?.length || 0;
-    const max = Math.max(...cat.subs.map((s: any) => s.val || 1));
-    this.displayProgList = cat.subs.map((s: any) => ({
-      ...s,
-      pct: Math.round((s.val / max) * 100)
-    }));
+  setAnaSub(id: string) {
+    this.activeSubId = id;
+    this.destroyCharts();
+    this.updateUIData();
+    
+    this.cdr.detectChanges(); // Force view update to create canvas elements
+    setTimeout(() => {
+      this.renderSubCharts();
+    }, 150);
   }
 
-  this.currentSubCharts = sub?.charts || [];
-
-  const actMap: any = {
-    felling: [{ d: COLORS.rose, t: "Illegal Felling · Beat Alpha", m: "14 min ago" }],
-    transport: [{ d: COLORS.amber, t: "Truck Intercepted · Route 44", m: "2h ago" }]
-  };
-  this.displayActivity = actMap[this.activeSubId] || [];
-  
-  this.cdr.markForCheck(); // UI refresh trigger karein
-}
-
-setAnaSub(id: string) {
-  this.activeSubId = id;
-  this.destroyCharts(); // Cleanup
-  this.updateUIData();  // Calculate data ONCE
-  
-  this.cdr.detectChanges(); 
-  setTimeout(() => {
-    this.renderSubCharts();
-  }, 150);
-}
-
-
-  updateUIComponents() {
-    // Progress Bar data calculate karein
+  updateUIData() {
     const cat = this.getCurrentCat();
+    const sub = this.getCurrentSub();
+
     if (cat) {
+      this.currentCatSubsCount = cat.subs?.length || 0;
       const max = Math.max(...cat.subs.map((s: any) => s.val || 1));
-      this.currentProgList = cat.subs.map((s: any) => ({
+      this.displayProgList = cat.subs.map((s: any) => ({
         ...s,
         pct: Math.round((s.val / max) * 100)
       }));
     }
 
-    // Activity log data calculate karein
-    const activityMap: any = {
-      felling: [{ d: COLORS.rose, t: "Illegal Felling · Beat Alpha", m: "14 min ago" }],
-      transport: [{ d: COLORS.amber, t: "Truck Intercepted · Route 44", m: "2h ago" }]
+    this.currentSubCharts = sub?.charts || [];
+    this.displayActivity = this.getActivity(this.activeSubId);
+    this.cdr.markForCheck();
+  }
+
+  // renderSubCharts() {
+  //   const sub = this.getCurrentSub();
+  //   if (!sub) return;
+  //   sub.charts.forEach((ch: any) => {
+  //     ch.render(ch.id);
+  //   });
+  // }
+
+  getActivity(subId: string) {
+    const map: any = {
+      felling: [{ d: COLORS.rose, t: "Illegal Felling · Beat Alpha", m: "14 min ago" }, { d: COLORS.amber, t: "Chainsaw seized", m: "3h ago" }],
+      transport: [{ d: COLORS.amber, t: "Truck Intercepted · Route 44", m: "2h ago" }],
+      poaching: [{ d: COLORS.rose, t: "2 poachers arrested", m: "5h ago" }],
+      fire_incidents: [{ d: COLORS.orange, t: "Fire Alert Zone C-4", m: "38 min ago" }],
+      wildlife: [{ d: COLORS.green, t: "Tiger sighting near river", m: "1h ago" }]
     };
-    this.currentActivity = activityMap[this.activeSubId] || [{ d: COLORS.sl, t: "No recent activity", m: "" }];
-  }
-  updateProgList() {
-    const cat = this.getCurrentCat();
-    if (!cat) { this.processedProgList = []; return; }
-    const max = Math.max(...cat.subs.map((s: any) => s.val || 1));
-    this.processedProgList = cat.subs.map((s: any) => ({ 
-      ...s, 
-      pct: Math.round((s.val / max) * 100) 
-    }));
-  }
-
- renderSubCharts() {
-    const sub = this.getCurrentSub();
-    if (!sub) return;
-
-    // Check if canvas exists before rendering
-    sub.charts.forEach((ch: any) => {
-      const el = document.getElementById(ch.id);
-      if (el) {
-        ch.render(ch.id);
-      }
-    });
+    return map[subId] || [{ d: COLORS.sl, t: "No recent activity", m: "" }];
   }
 
   getCurrentCat() { return this.ANA_CONFIG[this.activeTab]; }
   getCurrentSub() { return this.getCurrentCat()?.subs.find((s: any) => s.id === this.activeSubId); }
-
-  getProgNorm() {
-    const cat = this.getCurrentCat();
-    if (!cat) return [];
-    const max = Math.max(...cat.subs.map((s: any) => s.val || 0));
-    return cat.subs.map((s: any) => ({ ...s, pct: Math.round((s.val / max) * 100) }));
-  }
-
-  doRefresh() {
-    this.isRefreshing = true;
-    setTimeout(() => { this.isRefreshing = false; this.renderSubCharts(); }, 800);
-  }
 
   private mkChart(id: string, config: any) {
     const canvas = document.getElementById(id) as HTMLCanvasElement;
@@ -188,12 +239,24 @@ setAnaSub(id: string) {
     return Array.from({ length: len }, () => Math.floor(Math.random() * (max - min + 1) + min));
   }
 
-  getActivity() {
-    const map: any = {
-      felling: [{ d: COLORS.rose, t: "Illegal Felling · Beat Alpha", m: "14 min ago" }],
-      transport: [{ d: COLORS.amber, t: "Truck Intercepted · Route 44", m: "2h ago" }]
-    };
-    return map[this.activeSubId] || [{ d: COLORS.sl, t: "No recent activity", m: "" }];
+  doRefresh() {
+    this.isRefreshing = true;
+    setTimeout(() => { 
+      this.isRefreshing = false; 
+      this.setAnaSub(this.activeSubId);
+    }, 800);
   }
+
+  renderSubCharts() {
+  const sub = this.getCurrentSub();
+  if (!sub || !sub.charts) return;
   
+  // This clears old charts and renders all new ones in the array
+  sub.charts.forEach((ch: any) => {
+    const el = document.getElementById(ch.id);
+    if (el) {
+      ch.render(ch.id);
+    }
+  });
+}
 }

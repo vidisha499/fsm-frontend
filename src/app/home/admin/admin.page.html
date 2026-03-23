@@ -626,7 +626,7 @@
     </div>
   </div>
 
-  <div class="off-grid">
+  <!-- <div class="off-grid">
     <div class="off-card">
       <div class="off-av" style="background:#eff6ff;color:#3b82f6">RP</div>
       <div class="off-nm">R. Patil</div>
@@ -686,7 +686,27 @@
         <div class="slbl" style="color:#d97706">Base Camp</div>
       </div>
     </div>
+  </div> -->
+
+  <div class="off-grid">
+  <div class="off-card" *ngFor="let ranger of filteredRangers">
+    <div class="off-av" [style.background]="getRangerColor(ranger.name)">
+      {{ getInitials(ranger.name) }}
+    </div>
+    <div class="off-nm">{{ ranger.name }}</div>
+    <div class="off-rl">Ranger · {{ ranger.range_name || 'Forest Division' }}</div>
+    <div class="srow">
+      <div class="sdot" [class.on]="ranger.status === 'active'" [class.off]="ranger.status !== 'active'"></div>
+      <div class="slbl" [style.color]="ranger.status === 'active' ? '#16a34a' : '#ef4444'">
+        {{ ranger.status === 'active' ? 'On Patrol' : 'Off Duty' }}
+      </div>
+    </div>
   </div>
+  
+  <div *ngIf="filteredRangers.length === 0" class="empty-state">
+    No rangers found for this company.
+  </div>
+</div>
 
 <div class="card officer-chart-card">
   <div class="card-hdr">

@@ -192,6 +192,9 @@ getApprovedOnsiteByCompany(companyId: string) {
 }
 
 
-
+getUsersByCompany(companyId: any) {
+  // Correct: baseApiUrl has /api, so we just add /users/...
+  return this.http.get(`${this.baseApiUrl}/users/company/${companyId}`);
+}
 
 }

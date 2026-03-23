@@ -13,17 +13,11 @@
 
   <div class="content">
 <div class="profile-card">
-  <div class="pav">AC</div>
+  <div class="pav">{{ adminUser.initials }}</div>
 
   <div class="pinfo">
-    <div class="pname">Anand C.</div>
-    <div class="prole">Super Admin • All Ranges</div>
-    
-    <div class="pbadges">
-      <div class="pbadge">Super Admin</div>
-      <div class="pbadge">Analytics</div>
-      <div class="pbadge">Reports</div>
-    </div>
+    <div class="pname">{{ adminUser.name }}</div>
+    <div class="prole">{{ adminUser.role }} • {{ adminUser.ranges }}</div>
   </div>
 </div>
 
