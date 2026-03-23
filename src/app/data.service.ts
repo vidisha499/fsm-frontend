@@ -197,4 +197,14 @@ getUsersByCompany(companyId: any) {
   return this.http.get(`${this.baseApiUrl}/users/company/${companyId}`);
 }
 
+getWeeklyAttendanceStats(companyId: any, rangerId?: any) {
+  // Ensure we don't send "undefined" as a string in the URL
+  let url = `${this.baseApiUrl}/attendance/stats/weekly?companyId=${companyId}`;
+  
+  if (rangerId) {
+    url += `&rangerId=${rangerId}`;
+  }
+  
+  return this.http.get<number[]>(url);
+}
 }

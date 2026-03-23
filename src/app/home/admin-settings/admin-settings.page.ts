@@ -35,6 +35,8 @@ export class AdminSettingsPage implements OnInit {
   openExport() { console.log('Opening export options...'); }
   changeSync() { console.log('Opening sync settings...'); }
 
+
+
   goBack() {
     // This will take the user back to admin-analytics or the previous view
     this.navCtrl.back();

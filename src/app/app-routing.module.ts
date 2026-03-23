@@ -96,7 +96,11 @@ loadChildren:() => import('./home/admin/admin.module').then( m => m.AdminPageMod
   {
     path: 'admin-analytics',
     loadChildren: () => import('./home/admin-analytics/admin-analytics.module').then(m => m.AdminAnalyticsPageModule)
-  }
+  },
+  {
+    path: 'admin-settings',
+    loadChildren: () => import('./home/admin-settings/admin-settings.module').then(m => m.AdminSettingsPageModule)
+  },
 
 
 

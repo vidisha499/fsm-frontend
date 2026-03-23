@@ -609,7 +609,7 @@
     </div>
   </div>
 
-  <div id="seg-officers" *ngIf="activeSegment === 'officers'">
+  <!-- <div id="seg-officers" *ngIf="activeSegment === 'officers'">
   
   <div class="stat-row" style="padding: 12px 14px;">
     <div class="stat-box">
@@ -625,68 +625,6 @@
       <div class="stat-l">Inactive</div>
     </div>
   </div>
-
-  <!-- <div class="off-grid">
-    <div class="off-card">
-      <div class="off-av" style="background:#eff6ff;color:#3b82f6">RP</div>
-      <div class="off-nm">R. Patil</div>
-      <div class="off-rl">Range Off. · Beat A</div>
-      <div class="srow">
-        <div class="sdot on"></div>
-        <div class="slbl" style="color:#16a34a">On Patrol</div>
-      </div>
-    </div>
-
-    <div class="off-card">
-      <div class="off-av" style="background:#f0fdfa;color:#0d9488">SM</div>
-      <div class="off-nm">S. Mehta</div>
-      <div class="off-rl">Guard · South Valley</div>
-      <div class="srow">
-        <div class="sdot on"></div>
-        <div class="slbl" style="color:#16a34a">On Patrol</div>
-      </div>
-    </div>
-
-    <div class="off-card">
-      <div class="off-av" style="background:#fffbeb;color:#d97706">AK</div>
-      <div class="off-nm">A. Kumar</div>
-      <div class="off-rl">Guard · East Plateau</div>
-      <div class="srow">
-        <div class="sdot idle"></div>
-        <div class="slbl" style="color:#d97706">Checkpost</div>
-      </div>
-    </div>
-
-    <div class="off-card">
-      <div class="off-av" style="background:#fff1f2;color:#ef4444">PD</div>
-      <div class="off-nm">P. Desai</div>
-      <div class="off-rl">Sr. Guard · North</div>
-      <div class="srow">
-        <div class="sdot off"></div>
-        <div class="slbl" style="color:#ef4444">On Leave</div>
-      </div>
-    </div>
-
-    <div class="off-card">
-      <div class="off-av" style="background:#f0fdfa;color:#0d9488">VJ</div>
-      <div class="off-nm">V. Joshi</div>
-      <div class="off-rl">Fire Watch · East P.</div>
-      <div class="srow">
-        <div class="sdot on"></div>
-        <div class="slbl" style="color:#16a34a">On Patrol</div>
-      </div>
-    </div>
-
-    <div class="off-card">
-      <div class="off-av" style="background:#f5f3ff;color:#6366f1">MR</div>
-      <div class="off-nm">M. Rao</div>
-      <div class="off-rl">Guard · River Buffer</div>
-      <div class="srow">
-        <div class="sdot idle"></div>
-        <div class="slbl" style="color:#d97706">Base Camp</div>
-      </div>
-    </div>
-  </div> -->
 
   <div class="off-grid">
   <div class="off-card" *ngFor="let ranger of filteredRangers">
@@ -735,6 +673,92 @@
     </div>
   </div>
 </div>
+</div> -->
+
+<div id="seg-officers" *ngIf="activeSegment === 'officers'">
+
+  <div class="stat-row" style="padding: 12px 14px;">
+    <div class="stat-box">
+      <div class="stat-n" style="color:#0d9488">412</div>
+      <div class="stat-l">On Duty</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-n" style="color:#f59e0b">28</div>
+      <div class="stat-l">On Leave</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-n" style="color:#f43f5e">6</div>
+      <div class="stat-l">Inactive</div>
+    </div>
+  </div>
+
+  <div class="off-grid">
+    <div 
+      class="off-card" 
+      *ngFor="let ranger of filteredRangers"
+      [class.selected]="selectedRanger?.id === ranger.id"
+      (click)="selectRanger(ranger)"
+    >
+      <div class="off-av" [style.background]="getRangerColor(ranger.name)">
+        {{ getInitials(ranger.name) }}
+      </div>
+      <div class="off-nm">{{ ranger.name }}</div>
+      <div class="off-rl">Ranger · {{ ranger.range_name || 'Forest Division' }}</div>
+      <div class="srow">
+        <div class="sdot" [class.on]="ranger.status === 1" [class.off]="ranger.status !== 1"></div>
+        <div class="slbl" [style.color]="ranger.status === 1 ? '#16a34a' : '#ef4444'">
+          {{ ranger.status === 1 ? 'On Patrol' : 'Off Duty' }}
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="filteredRangers.length === 0" class="empty-state">
+      No rangers found for this company.
+    </div>
+  </div>
+
+  <div class="card officer-chart-card">
+    <div class="card-hdr">
+      <div>
+        <div class="card-title">
+          {{ selectedRanger ? selectedRanger.name + "'s Attendance" : "Weekly Attendance" }}
+        </div>
+        <div class="card-sub">
+          {{ selectedRanger ? 'Individual Activity' : 'On Duty vs On Leave' }} · Current Week
+        </div>
+      </div>
+      
+      <button 
+        *ngIf="selectedRanger" 
+        class="card-pill" 
+        style="border: none; background: var(--p); color: white; cursor: pointer;"
+        (click)="selectedRanger = null; initAttChart()"
+      >
+        Reset to Global ✕
+      </button>
+      
+      <div class="card-pill" *ngIf="!selectedRanger">98% avg</div>
+    </div>
+
+    <div class="card-body">
+      <div class="chart-container-with-axis">
+        <div class="vertical-axis-label">Officer Count</div>
+
+        <div style="flex: 1; height: 160px; position: relative;">
+          <canvas id="c-att"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-footer-labels">
+        <span class="f-label">← MON</span>
+        <span class="f-label">SUN →</span>
+      </div>
+      <div style="text-align:center; margin-top:10px;">
+        <span class="axis-hint">Y-AXIS: {{ selectedRanger ? 'Duty Hours' : 'Officer Count' }}</span>
+      </div>
+    </div>
+  </div>
+
 </div>
 
   <div style="height: 100px; width: 100%"></div>

@@ -109,6 +109,7 @@ public fireAlertsCount: number = 0;
  filteredRangers: any[] = [];
   showCompartments: boolean = false;
   attendancePercent: number = 0;
+  public selectedRanger: any = null;
   
   layerStates: { [key: string]: boolean } = {
     patrols: true,
@@ -327,6 +328,17 @@ ngOnInit() {
     this.loadData(); 
   }, 30000);
 }
+
+ionViewWillEnter() {
+  const navigation = this.router.getCurrentNavigation();
+  if (navigation?.extras.state && navigation.extras.state['openSegment']) {
+    // 1. Switch the main bottom tab to Home
+    this.activeTab = 'home'; 
+    // 2. Switch the segment to Officers
+    this.activeSegment = navigation.extras.state['openSegment']; 
+  }
+}
+
 
 
 loadData() {
@@ -556,32 +568,52 @@ loadData() {
     });
   }
 
-  initAttChart() {
-    const el = document.getElementById('c-att');
-    if (!el) return;
 
-    this.mkChart('c-att', {
-      type: 'bar',
-      data: {
-        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-        datasets: [
-          {
-            label: 'On Duty',
-            data: this.rnd(7, 420, 395),
-            backgroundColor: this.COLORS.p + 'CC',
-            borderRadius: 5,
-          },
-          {
-            label: 'On Leave',
-            data: this.rnd(7, 60, 20),
-            backgroundColor: this.COLORS.amber + '88',
-            borderRadius: 5,
-          },
-        ],
-      },
-      options: this.CDAX,
-    });
-  }
+
+initAttChart() {
+  const user = JSON.parse(localStorage.getItem('user_data') || '{}');
+  // Use a fallback to 0 if company_id is missing to prevent errors
+  const companyId = user.company_id ? Number(user.company_id) : 0;
+
+  // We explicitly cast the ID to a number or null to match the Service/API expectations
+  const rangerId = this.selectedRanger?.id ? Number(this.selectedRanger.id) : undefined;
+
+  this.dataService.getWeeklyAttendanceStats(companyId, rangerId).subscribe({
+    next: (realData: number[]) => {
+      const el = document.getElementById('c-att') as HTMLCanvasElement;
+      if (!el) return;
+
+      // Important: We use the actual data from the database now
+      this.mkChart('c-att', {
+        type: 'line',
+        data: {
+          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          datasets: [{
+            label: this.selectedRanger ? `${this.selectedRanger.name}'s Activity` : 'Total Personnel On-Duty',
+            data: realData, 
+            borderColor: this.COLORS.p,
+            backgroundColor: this.mkG(el.getContext('2d')!, this.COLORS.p, 100),
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4
+          }]
+        },
+        options: {
+          ...this.CDAX,
+          scales: {
+            x: { display: true, ticks: { color: '#94a3b8' } },
+            y: { 
+              display: true, 
+              beginAtZero: true,
+              ticks: { stepSize: 1, color: '#94a3b8' } 
+            }
+          }
+        }
+      });
+    },
+    error: (err) => console.error('Database Fetch Error:', err)
+  });
+}
 
   private randomizeStats() {
     const kpiIds = ['kv-crim', 'kv-events', 'kv-fire', 'kv-assets'];
@@ -648,27 +680,42 @@ loadData() {
   // Add NgZone to your constructor if you haven't already
   // constructor(private zone: NgZone, private cdr: ChangeDetectorRef, ...) {}
 
-  setSegment(segment: string) {
+setSegment(segment: string) {
     this.activeSegment = segment;
-    this.cdr.detectChanges();
+    this.cdr.detectChanges(); // Force Angular to render the HTML first
+    
     setTimeout(() => {
       if (segment === 'overview') {
         this.initHomeCharts();
-      }
-      if (segment === 'map') {
+      } else if (segment === 'map') {
         this.updateVisiblePins();
+      } else if (segment === 'officers') {
+        // This is the missing link!
+        this.initAttChart(); 
       }
-    }, 50);
+    }, 100);
   }
 
-  switchTab(tab: string) {
-    if (this.activeTab === tab) return; // Don't do anything if clicking the same tab
+ switchTab(tab: string) {
+  if (this.activeTab === tab) return;
 
-    this.activeTab = tab;
-    if (tab === 'home') {
-      this.setSegment('overview');
-    }
+  this.activeTab = tab;
+
+  if (tab === 'home') {
+    this.setSegment('overview');
+  } 
+  // Add this block below
+  else if (tab === 'settings') {
+    // 1. Navigate to the admin-settings page
+    this.navCtrl.navigateForward('/admin-settings');
+
+    // 2. Optional: Reset the active tab back to 'home' 
+    // so it doesn't stay "blue" when the user returns
+    setTimeout(() => {
+      this.activeTab = 'home';
+    }, 500);
   }
+}
 
   get filteredAlerts() {
   if (this.activeAlertFilter === 'all') return this.alertsData;
@@ -679,78 +726,6 @@ setAlertFilter(filter: string) {
   this.activeAlertFilter = filter;
 }
 
-
-
-  createAttendanceChart() {
-    const ctx = document.getElementById('c-att') as HTMLCanvasElement;
-    if (!ctx) return;
-
-    if (this.attendanceChart) {
-      this.attendanceChart.destroy();
-    }
-
-    this.attendanceChart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-        datasets: [
-          {
-            label: 'On Duty',
-            data: [400, 412, 405, 408, 415, 410, 418],
-            backgroundColor: '#4db6ac',
-            borderRadius: 6,
-            borderSkipped: false,
-            barPercentage: 0.6,
-            categoryPercentage: 0.5
-          },
-          {
-            label: 'On Leave',
-            data: [40, 35, 20, 25, 30, 38, 32],
-            backgroundColor: '#ffd54f',
-            borderRadius: 6,
-            borderSkipped: false,
-            barPercentage: 0.6,
-            categoryPercentage: 0.5
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: true,
-            position: 'bottom',
-            labels: {
-              usePointStyle: true,
-              pointStyle: 'rectRounded',
-              // 2. FIX THIS LINE: Changed '600' to 'bold' to fix TS2322 error
-              font: { size: 10, weight: 'bold' }, 
-              padding: 15
-            }
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            grid: { color: '#f1f5f9' },
-            ticks: {
-              font: { size: 10 },
-              color: '#94a3b8',
-              stepSize: 200
-            }
-          },
-          x: {
-            grid: { display: false },
-            ticks: {
-              font: { size: 10 },
-              color: '#94a3b8'
-            }
-          }
-        }
-      }
-    });
-  }
 
 openAnalytics() {
   // 1. Sabse pehle interval band karein
@@ -804,6 +779,53 @@ getRangerColor(name: string): string {
       this.attendancePercent = 0;
     }
   }
+
+selectRanger(ranger: any) {
+    this.selectedRanger = ranger;
+    this.cdr.detectChanges();
+    
+    setTimeout(() => {
+      this.initAttChart(); 
+    }, 100);
+}
+// 3. Add logic to render specific data
+updateUserAttendanceChart(ranger: any) {
+  const canvas = document.getElementById('c-att') as HTMLCanvasElement;
+  if (!canvas) return;
+
+  // Mock data for the specific user (Replace this with an API call later)
+  // Logic: Generating random attendance for the last 7 days
+  const onDutyData = this.rnd(7, 10, 4); // Random hours worked
+  const leaveData = [0, 0, 1, 0, 0, 0, 0]; // Example: took leave on Wednesday
+
+  this.mkChart('c-att', {
+    type: 'bar',
+    data: {
+      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      datasets: [
+        {
+          label: `${ranger.name}'s Hours`,
+          data: onDutyData,
+          backgroundColor: this.COLORS.p + 'CC',
+          borderRadius: 5,
+        },
+        {
+          label: 'Leave Hours',
+          data: leaveData,
+          backgroundColor: this.COLORS.rose + '88',
+          borderRadius: 5,
+        }
+      ],
+    },
+    options: {
+      ...this.CDAX,
+      plugins: {
+        ...this.CDAX.plugins,
+        legend: { display: true, position: 'top' }
+      }
+    },
+  });
+}
 }
 
 
