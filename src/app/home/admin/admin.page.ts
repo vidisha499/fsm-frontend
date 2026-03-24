@@ -110,6 +110,8 @@ public fireAlertsCount: number = 0;
   showCompartments: boolean = false;
   attendancePercent: number = 0;
   public selectedRanger: any = null;
+  // Replace your hardcoded alertsData with an empty array
+public alertsData: any[] = [];
   
   layerStates: { [key: string]: boolean } = {
     patrols: true,
@@ -241,27 +243,15 @@ public fireAlertsCount: number = 0;
     ],
   };
 
-  public alertsData = [
-  { id: 1, type: 'crit', icon: '🪓', title: 'Illegal Felling · Beat Alpha', desc: '3 trees, ~2.4 cmt teak · North Division', time: '14 min ago · R. Patil responding', label: 'CRITICAL', bg: '#fff1f2', color: '#ef4444' },
-  { id: 2, type: 'warn', icon: '🔥', title: 'Fire Alert · Zone C-4', desc: 'East Plateau · Smoke detected, low intensity', time: '38 min ago · Fire watch deployed', label: 'WARNING', bg: '#fffbeb', color: '#d97706' },
-  { id: 3, type: 'info', icon: '🦌', title: 'Wild Animal Sighting', desc: 'River Buffer · Tiger near village boundary', time: '1h 12m ago · Forest dept alerted', label: 'INFO', bg: '#eff6ff', color: '#3b82f6' },
-  { id: 4, type: 'warn', icon: '🚛', title: 'Timber Transport Spotted', desc: 'South Valley · Unregistered truck Route-44', time: '2h 5m ago · Checkpoint alerted', label: 'WARNING', bg: '#fffbeb', color: '#d97706' },
-  { id: 5, type: 'crit', icon: '🐾', title: 'Poaching Suspect Held', desc: 'East Plateau · 2 armed poachers arrested', time: '5h ago · Case filed', label: 'CRITICAL', bg: '#fff1f2', color: '#ef4444' },
-  { id: 6, type: 'safe', icon: '✅', title: 'Patrol Completed · Beat Beta', desc: 'South Valley · 22km covered, all clear', time: '2h ago · S. Mehta', label: 'CLEAR', bg: '#f0fdfa', color: '#0d9488' }
-];
+//   public alertsData = [
+//   { id: 1, type: 'crit', icon: '🪓', title: 'Illegal Felling · Beat Alpha', desc: '3 trees, ~2.4 cmt teak · North Division', time: '14 min ago · R. Patil responding', label: 'CRITICAL', bg: '#fff1f2', color: '#ef4444' },
+//   { id: 2, type: 'warn', icon: '🔥', title: 'Fire Alert · Zone C-4', desc: 'East Plateau · Smoke detected, low intensity', time: '38 min ago · Fire watch deployed', label: 'WARNING', bg: '#fffbeb', color: '#d97706' },
+//   { id: 3, type: 'info', icon: '🦌', title: 'Wild Animal Sighting', desc: 'River Buffer · Tiger near village boundary', time: '1h 12m ago · Forest dept alerted', label: 'INFO', bg: '#eff6ff', color: '#3b82f6' },
+//   { id: 4, type: 'warn', icon: '🚛', title: 'Timber Transport Spotted', desc: 'South Valley · Unregistered truck Route-44', time: '2h 5m ago · Checkpoint alerted', label: 'WARNING', bg: '#fffbeb', color: '#d97706' },
+//   { id: 5, type: 'crit', icon: '🐾', title: 'Poaching Suspect Held', desc: 'East Plateau · 2 armed poachers arrested', time: '5h ago · Case filed', label: 'CRITICAL', bg: '#fff1f2', color: '#ef4444' },
+//   { id: 6, type: 'safe', icon: '✅', title: 'Patrol Completed · Beat Beta', desc: 'South Valley · 22km covered, all clear', time: '2h ago · S. Mehta', label: 'CLEAR', bg: '#f0fdfa', color: '#0d9488' }
+// ];
   
-
-  // Logic for pins displayed on the map
-  // get activePins() {
-  //   // You can filter this.patrolPins based on layerStates if you want it dynamic
-  //   return this.patrolPins.map(p => ({
-  //     label: p.name,
-  //     l: p.x + '%',
-  //     t: p.y + '%',
-  //     color: p.color,
-  //     emoji: p.name.includes('SOS') ? '🚨' : '👤'
-  //   }));
-  // }
 
   get activePins() {
     // This is now handled by updateVisiblePins(),
@@ -340,25 +330,138 @@ ionViewWillEnter() {
 }
 
 
+// loadData() {
+//   console.log('--- Starting loadData() ---');
+
+//   const userDataString = localStorage.getItem('user_data');
+//   console.log('Raw user_data from localStorage:', userDataString);
+
+//   const user = JSON.parse(userDataString || '{}');
+//   const myCompanyId = user.company_id;
+
+//   console.log('Extracted myCompanyId:', myCompanyId);
+
+//   if (!myCompanyId) {
+//     console.error('CRITICAL: myCompanyId is missing! Stopping API calls.');
+//     return;
+//   }
+
+//   const numericId = Number(myCompanyId);
+//   console.log('Numeric Company ID for API:', numericId);
+
+//   // 1. Fetch Rangers
+//   console.log(`Calling getUsersByCompany with ID: ${numericId}`);
+//   this.dataService.getUsersByCompany(numericId).subscribe({
+//     next: (res: any) => {
+//       console.log('Users fetch SUCCESS:', res);
+//       this.filterRangersByCompany(res, numericId);
+//     },
+//     error: (err) => {
+//       console.error('Users fetch ERROR (check if route /users/company/:id exists):', err);
+//     }
+//   });
+
+//   // 2. Fetch Live Alerts
+//   console.log(`Calling getLatestAlerts with ID: ${numericId}`);
+//   this.dataService.getLatestAlerts(numericId).subscribe({
+//     next: (alerts: any[]) => {
+//       console.log('Alerts fetch SUCCESS. Number of alerts received:', alerts?.length);
+      
+//       if (!alerts || !Array.isArray(alerts)) {
+//         console.warn('Alerts received but is not an array:', alerts);
+//       }
+
+//       // Map backend data to your UI format
+//       this.alertsData = alerts.map(alert => {
+//         const theme = this.getAlertTheme(alert.type);
+//         return {
+//           ...alert,
+//           bg: theme.bg,
+//           color: theme.color,
+//           icon: theme.icon
+//         };
+//       });
+
+//       console.log('Mapped Alerts Data for UI:', this.alertsData);
+//       this.cdr.detectChanges();
+//     },
+//     error: (err) => {
+//       console.error('Alerts fetch ERROR (404 likely means /alerts/:id is wrong):', err);
+//       console.error('Full Error Object:', err);
+//     }
+//   });
+// }
 
 loadData() {
-  const user = JSON.parse(localStorage.getItem('user_data') || '{}');
+  console.log('--- [DEBUG] Starting loadData ---');
+
+  const userDataString = localStorage.getItem('user_data');
+  const user = JSON.parse(userDataString || '{}');
   const myCompanyId = user.company_id;
-  
-  console.log('Fetching rangers for Company ID:', myCompanyId); // <--- Check this in console
 
   if (!myCompanyId) {
-    console.error('No Company ID found in localStorage!');
+    console.error('--- [ERROR] No Company ID found in localStorage ---');
     return;
   }
 
-  this.dataService.getUsersByCompany(myCompanyId).subscribe({
+  const numericId = Number(myCompanyId);
+
+  // 1. Fetch Rangers (This is working fine in your logs)
+  this.dataService.getUsersByCompany(numericId).subscribe({
     next: (res: any) => {
-       console.log('Rangers received:', res);
-       this.filterRangersByCompany(res, Number(myCompanyId));
+      console.log('--- [SUCCESS] Rangers Loaded ---');
+      this.filterRangersByCompany(res, numericId);
     },
-    error: (err) => console.error('Full Error Object:', err)
+    error: (err) => console.error('--- [ERROR] Rangers API Failed ---', err)
   });
+
+  // 2. Fetch Alerts (This is the 404 target)
+  this.dataService.getLatestAlerts(numericId).subscribe({
+    next: (alerts: any[]) => {
+      console.log('--- [SUCCESS] Alerts Received ---', alerts);
+      if (alerts && Array.isArray(alerts)) {
+        // We use alertsData because filteredAlerts is read-only
+        this.alertsData = alerts.map(alert => {
+          const theme = this.getAlertTheme(alert.type || 'info');
+          return {
+            ...alert,
+            bg: theme.bg,
+            color: theme.color,
+            icon: theme.icon
+          };
+        });
+      } else {
+        this.alertsData = [];
+      }
+      this.cdr.detectChanges();
+    },
+    error: (err) => {
+      console.error('--- [ERROR] ALERTS 404 ---');
+      console.error('The backend URL is NOT FOUND:', err.url);
+    }
+  });
+}
+
+
+getAlertTheme(type: string) {
+  const themes: any = {
+    // Critical Alerts
+    'INCIDENT': { bg: '#fff1f2', color: '#ef4444', icon: '🚨', label: 'CRITICAL' },
+    
+    // Warning Alerts
+    'ONSITE_ATTENDANCE': { bg: '#fffbeb', color: '#d97706', icon: '📍', label: 'VERIFY' },
+    
+    // Info/Action Alerts
+    'PATROL_START': { bg: '#eff6ff', color: '#3b82f6', icon: '🛡️', label: 'ACTIVE' },
+    'ATTENDANCE': { bg: '#f5f3ff', color: '#8b5cf6', icon: '👤', label: 'ON-DUTY' },
+    
+    // Success/Safe Alerts
+    'PATROL_END': { bg: '#f0fdfa', color: '#0d9488', icon: '✅', label: 'COMPLETED' },
+    
+    // Fallback
+    'info': { bg: '#f8fafc', color: '#64748b', icon: '🔔', label: 'INFO' }
+  };
+  return themes[type] || themes['info'];
 }
 
   ngAfterViewInit() {

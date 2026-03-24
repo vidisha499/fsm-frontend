@@ -584,7 +584,7 @@
     </div>
   </div>
 
-    <div class="alert-card">
+    <!-- <div class="alert-card">
       <div class="alert-list">
         <div
           class="alert-row"
@@ -606,74 +606,24 @@
           </div>
         </div>
       </div>
-    </div>
-  </div>
+    </div> -->
 
-  <!-- <div id="seg-officers" *ngIf="activeSegment === 'officers'">
-  
-  <div class="stat-row" style="padding: 12px 14px;">
-    <div class="stat-box">
-      <div class="stat-n" style="color:#0d9488">412</div>
-      <div class="stat-l">On Duty</div>
+    <div class="alerts-container">
+  <div class="alert-card" *ngFor="let alert of filteredAlerts" [style.background]="alert.bg">
+    <div class="alert-icon">{{ alert.icon }}</div>
+    <div class="alert-content">
+      <h4 [style.color]="alert.color">{{ alert.title }}</h4>
+      <p>{{ alert.desc }}</p>
+      <span class="alert-time">{{ alert.time | date:'shortTime' }}</span>
     </div>
-    <div class="stat-box">
-      <div class="stat-n" style="color:#f59e0b">28</div>
-      <div class="stat-l">On Leave</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-n" style="color:#f43f5e">6</div>
-      <div class="stat-l">Inactive</div>
-    </div>
-  </div>
-
-  <div class="off-grid">
-  <div class="off-card" *ngFor="let ranger of filteredRangers">
-    <div class="off-av" [style.background]="getRangerColor(ranger.name)">
-      {{ getInitials(ranger.name) }}
-    </div>
-    <div class="off-nm">{{ ranger.name }}</div>
-    <div class="off-rl">Ranger · {{ ranger.range_name || 'Forest Division' }}</div>
-    <div class="srow">
-      <div class="sdot" [class.on]="ranger.status === 'active'" [class.off]="ranger.status !== 'active'"></div>
-      <div class="slbl" [style.color]="ranger.status === 'active' ? '#16a34a' : '#ef4444'">
-        {{ ranger.status === 'active' ? 'On Patrol' : 'Off Duty' }}
-      </div>
-    </div>
-  </div>
-  
-  <div *ngIf="filteredRangers.length === 0" class="empty-state">
-    No rangers found for this company.
-  </div>
-</div>
-
-<div class="card officer-chart-card">
-  <div class="card-hdr">
-    <div>
-      <div class="card-title">Weekly Attendance</div>
-      <div class="card-sub">On Duty vs On Leave · Current Week</div>
-    </div>
-    <div class="card-pill">98% avg</div>
-  </div>
-  
-  <div class="card-body">
-    <div class="chart-container-with-axis">
-      <div class="vertical-axis-label">Officer Count</div>
-      
-      <div style="flex: 1; height: 160px; position: relative;">
-        <canvas id="c-att"></canvas>
-      </div>
-    </div>
-    
-    <div class="chart-footer-labels">
-      <span class="f-label">← MON</span>
-      <span class="f-label">SUN →</span>
-    </div>
-    <div style="text-align:center; margin-top:10px;">
-      <span class="axis-hint">Y-AXIS: Officer Count</span>
+    <div class="alert-badge" [style.background]="alert.color">
+       {{ alert.label }}
     </div>
   </div>
 </div>
-</div> -->
+  </div>
+
+ 
 
 <div id="seg-officers" *ngIf="activeSegment === 'officers'">
 
