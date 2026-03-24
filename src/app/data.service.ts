@@ -217,4 +217,9 @@ getDashboardStats(companyId: number) {
   // Ensure karo apiUrl sahi hai (e.g., https://forest-backend-pi.vercel.app/api)
   return this.http.get(`${this.baseApiUrl}/incidents/stats/${companyId}`);
 }
+
+getIncidentTrend(companyId: number): Observable<any> {
+  // Base URL check kar lena, agar incidents controller mein hai toh:
+  return this.http.get(`${this.baseApiUrl}/incidents/trend/${companyId}`);
+}
 }

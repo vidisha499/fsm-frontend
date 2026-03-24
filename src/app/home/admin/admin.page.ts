@@ -99,6 +99,9 @@ export class AdminPage implements OnInit, AfterViewInit {
   };
 
   // --- UI State ---
+  momStatus: string = '0% MoM';
+isGoodTrend: boolean = true;
+  trendChart: any;
   rangers: any[] = [];
   private dataSubscription: any;
   allRangers: number = 0;
@@ -346,7 +349,7 @@ ngOnInit() {
   this.dataInterval = setInterval(() => {
     this.loadData(); 
   }, 30000); // 30 seconds
-  
+  this.loadTrendData();
   this.updateTime();
   this.updateVisiblePins();
 }
@@ -1000,6 +1003,65 @@ getStatusColor(ranger: any): string {
 
   return colors[status] || '#6b7280';
 }
+
+loadTrendData() {
+  const myCompanyId = 1; 
+  this.dataService.getIncidentTrend(myCompanyId).subscribe({
+    next: (data) => {
+      // Backend se jo naya data aayega usse yahan map karo
+      this.momStatus = data.momLabel || '0% MoM';
+      this.isGoodTrend = data.isImprovement; // true matlab incidents kam hue (Green)
+      
+      // Tera existing chart logic
+      this.initTrendChart(data.labels, data.values);
+    },
+    error: (err) => console.error("Trend Chart Error:", err)
+  });
+}
+initTrendChart(labels: string[], values: number[]) {
+  if (this.trendChart) this.trendChart.destroy();
+
+  const ctx = document.getElementById('c-trend') as HTMLCanvasElement;
+  
+  // Gradient effect for the area under the line
+  const gradient = ctx.getContext('2d')?.createLinearGradient(0, 0, 0, 140);
+  gradient?.addColorStop(0, 'rgba(0, 137, 123, 0.3)');
+  gradient?.addColorStop(1, 'rgba(0, 137, 123, 0)');
+
+  this.trendChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Incidents',
+        data: values,
+        borderColor: '#00897b', // Dark Forest Green
+        backgroundColor: gradient,
+        fill: true,
+        tension: 0.4, // Isse curve smooth aayega (Screenshot jaisa)
+        borderWidth: 2,
+        pointRadius: 0, // Points hide karke clean line dikhayenge
+        pointHoverRadius: 5
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { display: false }, // X-axis hide (labels niche manually span mein hain)
+        y: {
+          display: true,
+          beginAtZero: true,
+          grid: { color: 'rgba(0,0,0,0.03)', drawTicks: false },
+          ticks: { font: { size: 9 }, stepSize: 10 }
+        }
+      }
+    }
+  });
+}
+
+
 }
 
 
