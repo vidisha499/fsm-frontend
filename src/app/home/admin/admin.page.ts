@@ -108,6 +108,7 @@ export class AdminPage implements OnInit, AfterViewInit {
 public inactiveCount: number = 0;
 public incidentsCount: number = 0;
 public fireAlertsCount: number = 0;
+criminalActivityCount: number = 0;
   currentTime: string = '';
   activeTab: string = 'home';
   activeSegment: string = 'overview';
@@ -352,6 +353,8 @@ ngOnInit() {
 
 
 
+
+
 ionViewWillEnter() {
    this.loadData();
   const navigation = this.router.getCurrentNavigation();
@@ -362,72 +365,6 @@ ionViewWillEnter() {
     this.activeSegment = navigation.extras.state['openSegment']; 
   }
 }
-
-
-// loadData() {
-//   if (this.isFetching) return;
-
-//   const storageData = localStorage.getItem('user_data');
-//   if (!storageData) return;
-
-//   const user = JSON.parse(storageData);
-//   const myCompanyId = Number(user.company_id);
-//   const localISOTime = new Date().toISOString().split('T')[0];
-
-//   this.isFetching = true;
-
-//   // KPI Fetches (Keep these as they are)
-//   this.adminService.getFireAlertsCount(myCompanyId, localISOTime).subscribe({ next: (res: any) => this.fireAlertsCount = res.count || 0 });
-//   this.adminService.getOnDutyCount(myCompanyId, localISOTime).subscribe({ next: (res: any) => this.onDutyCount = res.count || 0 });
-//   this.adminService.getOnLeaveCount(myCompanyId).subscribe({ next: (res: any) => this.onLeaveCount = res.count || 0 });
-//   this.adminService.getInactiveCount(myCompanyId, localISOTime).subscribe({ next: (res: any) => this.inactiveCount = res.count || 0 });
-
-//   // Rangers List (Keep this as it is)
-//   this.dataService.getUsersByCompany(myCompanyId).subscribe({
-//     next: (res: any) => {
-//       const allUsers = res.data || res;
-//       if (Array.isArray(allUsers)) {
-//         this.rangers = allUsers.filter((u: any) => {
-//           const rId = u.role_id || u.roleId || u.roleid;
-//           const rName = String(u.role || '').toLowerCase();
-//           return Number(rId) === 4 || rName.includes('ranger');
-//         });
-//         this.filteredRangers = [...this.rangers];
-//         this.allRangers = this.rangers.length;
-//       }
-//     },
-//     error: () => this.isFetching = false,
-//     complete: () => setTimeout(() => { this.isFetching = false; this.cdr.detectChanges(); }, 500)
-//   });
-
-//   // --- ALERTS FIX ---
-//   this.dataService.getLatestAlerts(myCompanyId).subscribe({
-//     next: (alerts: any[]) => {
-//       console.log('Alerts from DB:', alerts);
-//       if (alerts && Array.isArray(alerts)) {
-//         // Map themes so the glassmorphism UI has colors/icons
-//         this.alertsData = alerts.map(alert => {
-//           // Identify the type (handle both 'type' or 'label' from backend)
-//           const typeKey = alert.type || alert.label || 'info';
-//           const theme = this.getAlertTheme(typeKey.toUpperCase());
-          
-//           return {
-//             ...alert,
-//             type: typeKey.toLowerCase(), // Ensure type matches your filter logic
-//             bg: theme.bg,
-//             color: theme.color,
-//             icon: theme.icon,
-//             label: theme.label
-//           };
-//         });
-//       } else {
-//         this.alertsData = [];
-//       }
-//       this.cdr.detectChanges();
-//     },
-//     error: (err) => console.error('Alerts Fetch Error:', err)
-//   });
-// }
 
 loadData() {
   if (this.isFetching) return;
@@ -442,10 +379,18 @@ loadData() {
   this.isFetching = true;
 
   // KPI Fetches (Keep these as they are)
-  this.adminService.getFireAlertsCount(myCompanyId, localISOTime).subscribe({ next: (res: any) => this.fireAlertsCount = res.count || 0 });
-  this.adminService.getOnDutyCount(myCompanyId, localISOTime).subscribe({ next: (res: any) => this.onDutyCount = res.count || 0 });
-  this.adminService.getOnLeaveCount(myCompanyId).subscribe({ next: (res: any) => this.onLeaveCount = res.count || 0 });
-  this.adminService.getInactiveCount(myCompanyId, localISOTime).subscribe({ next: (res: any) => this.inactiveCount = res.count || 0 });
+  this.adminService.getFireAlertsCount(myCompanyId, localISOTime).subscribe({ 
+    next: (res: any) => this.fireAlertsCount = res.count || 0 
+  });
+  this.adminService.getOnDutyCount(myCompanyId, localISOTime).subscribe({ 
+    next: (res: any) => this.onDutyCount = res.count || 0 
+  });
+  this.adminService.getOnLeaveCount(myCompanyId).subscribe({ 
+    next: (res: any) => this.onLeaveCount = res.count || 0 
+  });
+  this.adminService.getInactiveCount(myCompanyId, localISOTime).subscribe({ 
+    next: (res: any) => this.inactiveCount = res.count || 0 
+  });
 
   // Rangers List (Keep this as it is)
   this.dataService.getUsersByCompany(myCompanyId).subscribe({
@@ -454,57 +399,63 @@ loadData() {
       if (Array.isArray(allUsers)) {
         this.rangers = allUsers.filter((u: any) => {
           const rId = u.role_id || u.roleId || u.roleid;
-          const rName = String(u.role || '').toLowerCase();
-          return Number(rId) === 4 || rName.includes('ranger');
+          return Number(rId) === 4;
         });
         this.filteredRangers = [...this.rangers];
         this.allRangers = this.rangers.length;
       }
     },
     error: () => this.isFetching = false,
-    complete: () => setTimeout(() => { this.isFetching = false; this.cdr.detectChanges(); }, 500)
+    complete: () => setTimeout(() => { 
+      this.isFetching = false; 
+      this.cdr.detectChanges(); 
+    }, 500)
   });
 
-  // --- ALERTS FIX (Updated for Professional UI) ---
- // --- ALERTS FIX (Update this section in your loadData) ---
-this.dataService.getLatestAlerts(myCompanyId).subscribe({
-  next: (alerts: any[]) => {
-    console.log('Alerts from DB:', alerts);
-    if (alerts && Array.isArray(alerts)) {
-      // We map EVERYTHING here so it works without needing a click
-      this.alertsData = alerts.map(alert => {
-        const rawType = (alert.type || alert.label || alert.severity || 'info').toLowerCase();
-        
-        // Map to your CSS classes: crit, warn, info
-        let cssClass = 'info';
-        if (rawType.includes('crit')) cssClass = 'crit';
-        else if (rawType.includes('warn')) cssClass = 'warn';
-        else if (rawType.includes('safe')) cssClass = 'safe';
+  // --- ALERTS FIX (Corrected Syntax & Mapping) ---
+  this.dataService.getLatestAlerts(myCompanyId).subscribe({
+    next: (alerts: any[]) => {
+      console.log('Alerts from DB:', alerts);
+      if (alerts && Array.isArray(alerts)) {
+        // Map everything here so UI looks correct without needing a click
+        this.alertsData = alerts.map(alert => {
+          const rawType = (alert.type || alert.label || alert.severity || 'info').toLowerCase();
+          
+          // Map to your CSS classes for the side-strip: crit, warn, info
+          let cssClass = 'info';
+          if (rawType.includes('crit')) cssClass = 'crit';
+          else if (rawType.includes('warn')) cssClass = 'warn';
+          else if (rawType.includes('safe')) cssClass = 'safe';
 
-        const theme = this.getAlertTheme(rawType.toUpperCase());
-        
-        return {
-          ...alert,
-          type: cssClass, // Matches .alert-row.crit in SCSS
-          displayTitle: alert.title || `${alert.category || 'Forest'} · ${alert.beat_name || 'Division'}`,
-          displayDesc: alert.description || 'No additional details available.',
-          displayTime: alert.created_at ? this.formatTime(alert.created_at) : 'Just now',
-          bg: theme.bg,
-          color: theme.color,
-          icon: theme.icon,
-          label: theme.label
-        };
-      });
-    } else {
-      this.alertsData = [];
+          const theme = this.getAlertTheme(rawType.toUpperCase());
+          
+          return {
+            ...alert,
+            type: cssClass, // Matches .alert-row.crit in SCSS
+            displayTitle: alert.title || `${alert.category || 'Forest'} · ${alert.beat_name || 'Division'}`,
+            displayDesc: alert.description || 'No additional details available.',
+            displayTime: alert.created_at ? this.formatTime(alert.created_at) : 'Just now',
+            bg: theme.bg,
+            color: theme.color,
+            icon: theme.icon,
+            label: theme.label
+          };
+        });
+      } else {
+        this.alertsData = [];
+      }
+      this.cdr.detectChanges();
+    },
+    error: (err) => {
+      console.error('Alerts Fetch Error:', err);
+      this.isFetching = false;
+    },
+    complete: () => {
+      this.isFetching = false;
+      this.cdr.detectChanges();
     }
-    // Force UI update immediately
-    this.cdr.detectChanges();
-  },
-  error: (err) => console.error('Alerts Fetch Error:', err)
-});
+  });
 }
-
 
 getAlertTheme(type: string) {
   const t = String(type).toUpperCase(); // Normalize to Uppercase
