@@ -3,6 +3,8 @@ import { Router , } from '@angular/router'; // 1. Added Router
 import { NavController } from '@ionic/angular';
 import { Chart, registerables, ChartConfiguration } from 'chart.js';
 import { DataService } from 'src/app/data.service';
+import { AdminDataService } from 'src/app/services/admin-data';
+
 
 Chart.register(...registerables);
 
@@ -84,7 +86,13 @@ export class AdminPage implements OnInit, AfterViewInit {
   };
 
   // --- UI State ---
+  rangers: any[] = [];
+  private dataSubscription: any;
+  allRangers: number = 0;
+  private isFetching: boolean = false;
   public onDutyCount: number = 0;
+  public onLeaveCount: number = 0;
+public inactiveCount: number = 0;
 public incidentsCount: number = 0;
 public fireAlertsCount: number = 0;
   currentTime: string = '';
@@ -305,21 +313,30 @@ get allLayersOn(): boolean {
      private cdr: ChangeDetectorRef,
      private dataService: DataService,
     private navCtrl : NavController,
+    private adminService: AdminDataService,
   ) {}
 
 ngOnInit() {
+ 
   this.loadData();
+  
+  // Pehle check karo agar koi purana interval hai toh usey maro
+  if (this.dataInterval) {
+    clearInterval(this.dataInterval);
+  }
+
+  this.dataInterval = setInterval(() => {
+    this.loadData(); 
+  }, 30000); // 30 seconds
+  
   this.updateTime();
   this.updateVisiblePins();
-
-  // Store the interval
-  this.dataInterval = setInterval(() => {
-    this.updateTime();
-    this.loadData(); 
-  }, 30000);
 }
 
+
+
 ionViewWillEnter() {
+   this.loadData();
   const navigation = this.router.getCurrentNavigation();
   if (navigation?.extras.state && navigation.extras.state['openSegment']) {
     // 1. Switch the main bottom tab to Home
@@ -330,93 +347,77 @@ ionViewWillEnter() {
 }
 
 
-// loadData() {
-//   console.log('--- Starting loadData() ---');
-
-//   const userDataString = localStorage.getItem('user_data');
-//   console.log('Raw user_data from localStorage:', userDataString);
-
-//   const user = JSON.parse(userDataString || '{}');
-//   const myCompanyId = user.company_id;
-
-//   console.log('Extracted myCompanyId:', myCompanyId);
-
-//   if (!myCompanyId) {
-//     console.error('CRITICAL: myCompanyId is missing! Stopping API calls.');
-//     return;
-//   }
-
-//   const numericId = Number(myCompanyId);
-//   console.log('Numeric Company ID for API:', numericId);
-
-//   // 1. Fetch Rangers
-//   console.log(`Calling getUsersByCompany with ID: ${numericId}`);
-//   this.dataService.getUsersByCompany(numericId).subscribe({
-//     next: (res: any) => {
-//       console.log('Users fetch SUCCESS:', res);
-//       this.filterRangersByCompany(res, numericId);
-//     },
-//     error: (err) => {
-//       console.error('Users fetch ERROR (check if route /users/company/:id exists):', err);
-//     }
-//   });
-
-//   // 2. Fetch Live Alerts
-//   console.log(`Calling getLatestAlerts with ID: ${numericId}`);
-//   this.dataService.getLatestAlerts(numericId).subscribe({
-//     next: (alerts: any[]) => {
-//       console.log('Alerts fetch SUCCESS. Number of alerts received:', alerts?.length);
-      
-//       if (!alerts || !Array.isArray(alerts)) {
-//         console.warn('Alerts received but is not an array:', alerts);
-//       }
-
-//       // Map backend data to your UI format
-//       this.alertsData = alerts.map(alert => {
-//         const theme = this.getAlertTheme(alert.type);
-//         return {
-//           ...alert,
-//           bg: theme.bg,
-//           color: theme.color,
-//           icon: theme.icon
-//         };
-//       });
-
-//       console.log('Mapped Alerts Data for UI:', this.alertsData);
-//       this.cdr.detectChanges();
-//     },
-//     error: (err) => {
-//       console.error('Alerts fetch ERROR (404 likely means /alerts/:id is wrong):', err);
-//       console.error('Full Error Object:', err);
-//     }
-//   });
-// }
-
 loadData() {
-  console.log('--- [DEBUG] Starting loadData ---');
+  if (this.isFetching) return;
 
-  const userDataString = localStorage.getItem('user_data');
-  const user = JSON.parse(userDataString || '{}');
-  const myCompanyId = user.company_id;
+  const storageData = localStorage.getItem('user_data');
+  if (!storageData) return;
 
-  if (!myCompanyId) {
-    console.error('--- [ERROR] No Company ID found in localStorage ---');
-    return;
-  }
+  const user = JSON.parse(storageData);
+  const myCompanyId = Number(user.company_id);
+  const localISOTime = new Date().toISOString().split('T')[0];
 
-  const numericId = Number(myCompanyId);
+  this.isFetching = true;
 
-  // 1. Fetch Rangers (This is working fine in your logs)
-  this.dataService.getUsersByCompany(numericId).subscribe({
+  // --- 1. KPI Fetch Section ---
+
+  // Fire Alerts
+  this.adminService.getFireAlertsCount(myCompanyId, localISOTime).subscribe({
+    next: (res: any) => this.fireAlertsCount = res.count || 0
+  });
+
+  // On Duty (Dynamic)
+  this.adminService.getOnDutyCount(myCompanyId, localISOTime).subscribe({
+    next: (res: any) => this.onDutyCount = res.count || 0
+  });
+
+  // On Leave (Dynamic) - New Call
+  this.adminService.getOnLeaveCount(myCompanyId).subscribe({
+    next: (res: any) => this.onLeaveCount = res.count || 0
+  });
+
+  // Inactive (Dynamic) - New Call
+  this.adminService.getInactiveCount(myCompanyId, localISOTime).subscribe({
+    next: (res: any) => this.inactiveCount = res.count || 0
+  });
+
+
+  // --- 2. Rangers List Fetch Section ---
+  this.dataService.getUsersByCompany(myCompanyId).subscribe({
     next: (res: any) => {
-      console.log('--- [SUCCESS] Rangers Loaded ---');
-      this.filterRangersByCompany(res, numericId);
+      const allUsers = res.data || res;
+      console.log("DB se aaya data:", allUsers);
+
+      if (Array.isArray(allUsers)) {
+        this.rangers = allUsers.filter((u: any) => {
+          if (!u) return false;
+          const rId = u.role_id || u.roleId || u.roleid;
+          const rName = String(u.role || '').toLowerCase();
+          return Number(rId) === 4 || rName.includes('ranger');
+        });
+
+        // Loop ke liye data set karein
+        this.filteredRangers = [...this.rangers];
+        this.allRangers = this.rangers.length;
+        
+        console.log("Total Rangers Found (ID 4):", this.allRangers);
+      }
     },
-    error: (err) => console.error('--- [ERROR] Rangers API Failed ---', err)
+    error: (err) => {
+      console.error("API Error:", err);
+      this.isFetching = false;
+    },
+    complete: () => {
+      // Thoda delay taaki UI smooth lage
+      setTimeout(() => {
+        this.isFetching = false;
+        this.cdr.detectChanges(); 
+      }, 500);
+    }
   });
 
   // 2. Fetch Alerts (This is the 404 target)
-  this.dataService.getLatestAlerts(numericId).subscribe({
+  this.dataService.getLatestAlerts(myCompanyId).subscribe({
     next: (alerts: any[]) => {
       console.log('--- [SUCCESS] Alerts Received ---', alerts);
       if (alerts && Array.isArray(alerts)) {
@@ -463,6 +464,8 @@ getAlertTheme(type: string) {
   };
   return themes[type] || themes['info'];
 }
+
+
 
   ngAfterViewInit() {
     this.initHomeCharts();
@@ -928,6 +931,38 @@ updateUserAttendanceChart(ranger: any) {
       }
     },
   });
+}
+
+getStatusText(ranger: any): string {
+  if (ranger.status === 2) return 'On Leave';
+  if (ranger.status === 0) return 'Off Duty';
+
+  if (ranger.status === 1) {
+    // 1. Pehle check karo patrolling chalu hai kya
+    if (ranger.is_patrolling) return 'On Patrol';
+    
+    // 2. Agar patrolling nahi hai par attendance hai, toh On Duty
+    if (ranger.hasAttended) return 'On Duty';
+    
+    // 3. Agar kuch nahi hai toh Inactive
+    return 'Inactive';
+  }
+  return 'Off Duty';
+}
+getStatusColor(ranger: any): string {
+  const status = this.getStatusText(ranger);
+  
+  // 💡 Yahan 'Record<string, string>' add kiya hai taaki TypeScript index error na de
+  const colors: Record<string, string> = {
+    'On Patrol': '#16a34a', // Green
+    'On Duty': '#0284c7',   // Blue
+    'On Leave': '#f59e0b',  // Orange
+    'Inactive': '#f43f5e',  // Red
+    'Off Duty': '#6b7280',  // Grey
+    'Unknown': '#6b7280'    // 💡 Ye missing tha, isliye error aa raha tha
+  };
+
+  return colors[status] || '#6b7280';
 }
 }
 

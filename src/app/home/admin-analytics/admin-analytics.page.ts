@@ -1,5 +1,3 @@
-
-
 import { Component, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { Chart, registerables } from 'chart.js';
 

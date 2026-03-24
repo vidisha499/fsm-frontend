@@ -88,6 +88,13 @@ ion-content {
   background: white; color: var(--p);
 }
 
+/* admin.page.scss */
+.dot-patrol { background-color: #16a34a; box-shadow: 0 0 5px #16a34a; }
+.dot-duty { background-color: #0284c7; }
+.dot-leave { background-color: #f59e0b; }
+.dot-inactive { background-color: #f43f5e; }
+.dot-off { background-color: #6b7280; }
+
 /* --- FILTER BAR --- */
 .filter-bar {
   background: var(--surf);
