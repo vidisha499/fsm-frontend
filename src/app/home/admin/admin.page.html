@@ -568,7 +568,7 @@
     </div>
   </div>
 
-  <div id="seg-alerts" *ngIf="activeSegment === 'alerts'">
+  <!-- <div id="seg-alerts" *ngIf="activeSegment === 'alerts'">
     <div class="alert-filter-row">
     <div class="qchip" [class.on]="activeAlertFilter === 'all'" (click)="setAlertFilter('all')">
       All
@@ -582,33 +582,9 @@
     <div class="qchip info" [class.on]="activeAlertFilter === 'info'" (click)="setAlertFilter('info')">
       Info (12)
     </div>
-  </div>
+  </div> -->
 
-    <!-- <div class="alert-card">
-      <div class="alert-list">
-        <div
-          class="alert-row"
-          *ngFor="let alert of filteredAlerts"
-          [class]="alert.type"
-        >
-          <div class="alert-ico">{{ alert.icon }}</div>
-          <div class="alert-body">
-            <div class="alert-title">{{ alert.title }}</div>
-            <div class="alert-desc">{{ alert.desc }}</div>
-            <div class="alert-time">⏱ {{ alert.time }}</div>
-          </div>
-          <div
-            class="abadge"
-            [style.background]="alert.bg"
-            [style.color]="alert.color"
-          >
-            {{ alert.label }}
-          </div>
-        </div>
-      </div>
-    </div> -->
-
-    <div class="alerts-container">
+    <!-- <div class="alerts-container">
   <div class="alert-card" *ngFor="let alert of filteredAlerts" [style.background]="alert.bg">
     <div class="alert-icon">{{ alert.icon }}</div>
     <div class="alert-content">
@@ -621,8 +597,76 @@
     </div>
   </div>
 </div>
+  </div> -->
+
+ <div id="seg-alerts" [class.hidden]="activeSegment !== 'alerts'">
+  <!-- <div style="padding:10px 14px 4px; display:flex; gap:6px; overflow-x:auto; scrollbar-width:none;">
+    <div class="qchip" [class.on]="activeAlertFilter === 'all'" (click)="setAlertFilter('all')">
+      All ({{ alertsData?.length || 0 }})
+    </div>
+    <div class="qchip crit" [class.on]="activeAlertFilter === 'crit'" (click)="setAlertFilter('crit')">
+      🔴 Critical ({{ getCount('crit') }})
+    </div>
+    <div class="qchip warn" [class.on]="activeAlertFilter === 'warn'" (click)="setAlertFilter('warn')">
+      🟡 Warning ({{ getCount('warn') }})
+    </div>
+    <div class="qchip info" [class.on]="activeAlertFilter === 'info'" (click)="setAlertFilter('info')">
+      🔵 Info ({{ getCount('info') }})
+    </div>
+  </div> -->
+  <div class="filter-tabs">
+  <div class="qchip all" 
+       [class.on]="activeAlertFilter === 'all'" 
+       (click)="setAlertFilter('all')">
+    All ({{ alertsData?.length || 0 }})
   </div>
 
+  <div class="qchip crit" 
+       [class.on]="activeAlertFilter === 'crit'" 
+       (click)="setAlertFilter('crit')">
+    <span class="dot crit"></span> Critical ({{ getCount('crit') }})
+  </div>
+
+  <div class="qchip warn" 
+       [class.on]="activeAlertFilter === 'warn'" 
+       (click)="setAlertFilter('warn')">
+    <span class="dot warn"></span> Warning ({{ getCount('warn') }})
+  </div>
+
+  <div class="qchip info" 
+       [class.on]="activeAlertFilter === 'info'" 
+       (click)="setAlertFilter('info')">
+    <span class="dot info"></span> Info ({{ getCount('info') }})
+  </div>
+</div>
+
+  <div class="card" style="margin-top:10px; padding:0; overflow:hidden; background: white; border-radius: 12px; border: 1px solid var(--bord);">
+   <div class="alert-list">
+  <div *ngFor="let alert of filteredAlerts" 
+       class="alert-row" 
+       [ngClass]="alert.type">
+    
+    <div class="alert-ico">{{ alert.icon }}</div>
+    
+    <div class="alert-body">
+      <div class="alert-title">{{ alert.displayTitle }}</div>
+      <div class="alert-desc">{{ alert.displayDesc }}</div>
+      <div class="alert-time">⏱ {{ alert.displayTime }}</div>
+    </div>
+
+    <div class="abadge" [style.background]="alert.bg" [style.color]="alert.color">
+      {{ alert.label }}
+    </div>
+  </div>
+
+
+      <div *ngIf="filteredAlerts.length === 0" style="padding: 40px; text-align: center; color: var(--tx3); font-size: 11px;">
+        No alerts found for this category.
+      </div>
+    </div>
+  </div>
+</div>
+  
  
 
 <div id="seg-officers" *ngIf="activeSegment === 'officers'">

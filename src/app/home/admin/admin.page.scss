@@ -698,56 +698,259 @@ ion-content {
 }
 
 /* ALERTS CONTAINER */
-.alert-filter-row {
-  padding: 12px 16px;
+// .alert-filter-row {
+//   padding: 12px 16px;
+//   display: flex;
+//   gap: 8px;
+//   overflow-x: auto;
+//   scrollbar-width: none;
+//   &::-webkit-scrollbar { display: none; }
+// }
+
+// .alert-card {
+//   margin: 0 16px 20px;
+//   background: #ffffff;
+//   border-radius: 16px;
+//   border: 1px solid #f1f5f9;
+//   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+//   overflow: hidden;
+// }
+
+// /* INDIVIDUAL ROWS */
+// .alert-row {
+//   display: flex;
+//   gap: 12px;
+//   align-items: flex-start;
+//   padding: 14px;
+//   border-bottom: 1px solid #f1f5f9;
+//   position: relative;
+//   transition: all 0.2s;
+
+//   &:last-child { border-bottom: none; }
+//   &:active { background: #f8fafc; }
+
+//   // The colored vertical bar on the left
+//   &::before {
+//     content: "";
+//     position: absolute;
+//     left: 0; top: 0; bottom: 0;
+//     width: 4px;
+//     border-radius: 0 4px 4px 0;
+//   }
+
+//   &.crit::before { background: #ef4444; }
+//   &.warn::before { background: #f59e0b; }
+//   &.info::before { background: #3b82f6; }
+//   &.safe::before { background: #0d9488; }
+// }
+
+// .alert-ico {
+//   font-size: 16px;
+//   width: 36px;
+//   height: 36px;
+//   background: #f8fafc;
+//   border-radius: 10px;
+//   display: flex;
+//   align-items: center;
+//   justify-content: center;
+//   flex-shrink: 0;
+//   border: 1px solid #e2e8f0;
+// }
+
+// .alert-body {
+//   flex: 1;
+//   min-width: 0;
+// }
+
+// .alert-title {
+//   font-size: 12px;
+//   font-weight: 700;
+//   color: #1e293b;
+// }
+
+// .alert-desc {
+//   font-size: 11px;
+//   color: #64748b;
+//   margin-top: 2px;
+//   line-height: 1.4;
+// }
+
+// .alert-time {
+//   font-size: 10px;
+//   color: #94a3b8;
+//   margin-top: 6px;
+//   font-weight: 500;
+// }
+
+// /* BADGES */
+// .abadge {
+//   padding: 4px 8px;
+//   border-radius: 6px;
+//   font-size: 8px;
+//   font-weight: 800;
+//   text-transform: uppercase;
+//   letter-spacing: 0.05em;
+//   flex-shrink: 0;
+// }
+
+// .alert-filter-row {
+//   display: flex;
+//   gap: 8px;
+//   padding: 12px 16px;
+//   overflow-x: auto;
+//   background: #fff;
+//   white-space: nowrap;
+  
+//   // Hide scrollbar but allow scrolling
+//   &::-webkit-scrollbar { display: none; }
+// }
+
+// .qchip {
+//   padding: 6px 14px;
+//   border-radius: 20px; // Makes it a pill shape
+//   font-size: 11px;
+//   font-weight: 600;
+//   color: #64748b;
+//   background: #f1f5f9;
+//   transition: all 0.2s ease;
+//   border: 1px solid transparent;
+
+//   &.on {
+//     border-color: rgba(0,0,0,0.1);
+//   }
+
+//   // Critical Style (Red)
+//   &.crit {
+//     color: #e11d48;
+//     background: #fff1f2;
+//     &.on { background: #ffe4e6; box-shadow: 0 2px 4px rgba(225, 29, 72, 0.1); }
+//   }
+
+//   // Warning Style (Yellow/Amber)
+//   &.warn {
+//     color: #d97706;
+//     background: #fffbeb;
+//     &.on { background: #fef3c7; box-shadow: 0 2px 4px rgba(217, 119, 6, 0.1); }
+//   }
+
+//   // Info Style (Blue)
+//   &.info {
+//     color: #2563eb;
+//     background: #eff6ff;
+//     &.on { background: #dbeafe; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1); }
+//   }
+// }
+
+
+// --- Alert List Variables ---
+:host {
+  --crit-bg: #fff1f2;
+  --crit-tx: #ef4444;
+  --warn-bg: #fffbeb;
+  --warn-tx: #d97706;
+  --info-bg: #eff6ff;
+  --info-tx: #3b82f6;
+  --safe-bg: #f0fdfa;
+  --safe-tx: #0d9488;
+  --bord2: #f1f5f9;
+}
+
+.filter-tabs {
   display: flex;
-  gap: 8px;
+  gap: 4px; // Very tight spacing as requested
+  padding: 10px 12px;
   overflow-x: auto;
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }
 }
 
-.alert-card {
-  margin: 0 16px 20px;
-  background: #ffffff;
-  border-radius: 16px;
-  border: 1px solid #f1f5f9;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
+.qchip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px; // Oval shape
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  background: #f1f5f9; // Default background
+  color: #64748b;
+  border: 1px solid #e2e8f0; // Boundary for all chips
+  transition: all 0.2s ease;
+
+  &.on {
+    &.all { border-color: #cbd5e1; color: #1e293b; }
+    &.crit { background: #fff1f2; color: #ef4444; border-color: #fecaca; }
+    &.warn { background: #fffbeb; color: #d97706; border-color: #fde68a; }
+    &.info { background: #eff6ff; color: #3b82f6; border-color: #bfdbfe; }
+  }
 }
 
-/* INDIVIDUAL ROWS */
+// 3D sphere effect for the dots
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  &.crit { background: radial-gradient(circle at 30% 30%, #ff5f6d, #ef4444); }
+  &.warn { background: radial-gradient(circle at 30% 30%, #ffdb6d, #f59e0b); }
+  &.info { background: radial-gradient(circle at 30% 30%, #6da5ff, #3b82f6); }
+}
+
+// --- Alert List Container ---
+.alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: #fff;
+}
+
+// --- Individual Row ---
 .alert-row {
   display: flex;
   gap: 12px;
   align-items: flex-start;
-  padding: 14px;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--bord2);
   position: relative;
-  transition: all 0.2s;
+  transition: background 0.2s ease;
+  cursor: pointer;
 
-  &:last-child { border-bottom: none; }
-  &:active { background: #f8fafc; }
+  &:last-child {
+    border-bottom: none;
+  }
 
-  // The colored vertical bar on the left
+  &:hover {
+    background: #f8fafc;
+  }
+
+  // The Left Colored Strip
   &::before {
     content: "";
     position: absolute;
-    left: 0; top: 0; bottom: 0;
+    left: 0;
+    top: 0;
+    bottom: 0;
     width: 4px;
-    border-radius: 0 4px 4px 0;
+    border-radius: 0 2px 2px 0;
+    transition: width 0.2s;
   }
 
-  &.crit::before { background: #ef4444; }
-  &.warn::before { background: #f59e0b; }
-  &.info::before { background: #3b82f6; }
-  &.safe::before { background: #0d9488; }
+  &:active::before {
+    width: 6px;
+  }
+
+  // Left Strip Colors based on Type Class
+  &.crit::before { background: var(--crit-tx); }
+  &.warn::before { background: var(--warn-tx); }
+  &.info::before { background: var(--info-tx); }
+  &.safe::before { background: var(--safe-tx); }
 }
 
+// --- Icon Box ---
 .alert-ico {
-  font-size: 16px;
-  width: 36px;
-  height: 36px;
+  font-size: 18px;
+  width: 38px;
+  height: 38px;
   background: #f8fafc;
   border-radius: 10px;
   display: flex;
@@ -757,15 +960,19 @@ ion-content {
   border: 1px solid #e2e8f0;
 }
 
+// --- Text Content ---
 .alert-body {
   flex: 1;
-  min-width: 0;
+  min-width: 0; // Prevents text overflow
 }
 
 .alert-title {
   font-size: 12px;
   font-weight: 700;
   color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .alert-desc {
@@ -773,6 +980,10 @@ ion-content {
   color: #64748b;
   margin-top: 2px;
   line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .alert-time {
@@ -780,66 +991,42 @@ ion-content {
   color: #94a3b8;
   margin-top: 6px;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-/* BADGES */
+// --- The Status Badge (abadge) ---
 .abadge {
-  padding: 4px 8px;
+  padding: 4px 10px;
   border-radius: 6px;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   flex-shrink: 0;
+  align-self: flex-start;
 }
 
-.alert-filter-row {
-  display: flex;
-  gap: 8px;
-  padding: 12px 16px;
-  overflow-x: auto;
-  background: #fff;
-  white-space: nowrap;
-  
-  // Hide scrollbar but allow scrolling
-  &::-webkit-scrollbar { display: none; }
-}
-
+// --- Filter Chips (Top Bar) ---
 .qchip {
-  padding: 6px 14px;
-  border-radius: 20px; // Makes it a pill shape
+  padding: 8px 14px;
+  border-radius: 100px;
   font-size: 11px;
   font-weight: 600;
-  color: #64748b;
-  background: #f1f5f9;
-  transition: all 0.2s ease;
+  white-space: nowrap;
   border: 1px solid transparent;
+  transition: all 0.2s;
+  background: #f1f5f9;
+  color: #64748b;
 
   &.on {
-    border-color: rgba(0,0,0,0.1);
-  }
-
-  // Critical Style (Red)
-  &.crit {
-    color: #e11d48;
-    background: #fff1f2;
-    &.on { background: #ffe4e6; box-shadow: 0 2px 4px rgba(225, 29, 72, 0.1); }
-  }
-
-  // Warning Style (Yellow/Amber)
-  &.warn {
-    color: #d97706;
-    background: #fffbeb;
-    &.on { background: #fef3c7; box-shadow: 0 2px 4px rgba(217, 119, 6, 0.1); }
-  }
-
-  // Info Style (Blue)
-  &.info {
-    color: #2563eb;
-    background: #eff6ff;
-    &.on { background: #dbeafe; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1); }
+    &.crit { background: var(--crit-bg); color: var(--crit-tx); border-color: #fecaca; }
+    &.warn { background: var(--warn-bg); color: var(--warn-tx); border-color: #fde68a; }
+    &.info { background: var(--info-bg); color: var(--info-tx); border-color: #bfdbfe; }
   }
 }
+
 
 /* Stats Row Styling */
 .stat-row {

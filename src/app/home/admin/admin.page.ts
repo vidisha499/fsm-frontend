@@ -8,6 +8,19 @@ import { AdminDataService } from 'src/app/services/admin-data';
 
 Chart.register(...registerables);
 
+
+interface ForestAlert {
+  id?: number;
+  title: string;
+  description: string;
+  severity: 'critical' | 'warning' | 'info' | 'clear';
+  category: string;
+  beat_name?: string;
+  created_at: string;
+  assigned_ranger?: string;
+}
+
+
 @Component({
   selector: 'app-admin',
   templateUrl: './admin.page.html',
@@ -120,6 +133,10 @@ public fireAlertsCount: number = 0;
   public selectedRanger: any = null;
   // Replace your hardcoded alertsData with an empty array
 public alertsData: any[] = [];
+alerts: ForestAlert[] = []; 
+
+
+
   
   layerStates: { [key: string]: boolean } = {
     patrols: true,
@@ -347,6 +364,71 @@ ionViewWillEnter() {
 }
 
 
+// loadData() {
+//   if (this.isFetching) return;
+
+//   const storageData = localStorage.getItem('user_data');
+//   if (!storageData) return;
+
+//   const user = JSON.parse(storageData);
+//   const myCompanyId = Number(user.company_id);
+//   const localISOTime = new Date().toISOString().split('T')[0];
+
+//   this.isFetching = true;
+
+//   // KPI Fetches (Keep these as they are)
+//   this.adminService.getFireAlertsCount(myCompanyId, localISOTime).subscribe({ next: (res: any) => this.fireAlertsCount = res.count || 0 });
+//   this.adminService.getOnDutyCount(myCompanyId, localISOTime).subscribe({ next: (res: any) => this.onDutyCount = res.count || 0 });
+//   this.adminService.getOnLeaveCount(myCompanyId).subscribe({ next: (res: any) => this.onLeaveCount = res.count || 0 });
+//   this.adminService.getInactiveCount(myCompanyId, localISOTime).subscribe({ next: (res: any) => this.inactiveCount = res.count || 0 });
+
+//   // Rangers List (Keep this as it is)
+//   this.dataService.getUsersByCompany(myCompanyId).subscribe({
+//     next: (res: any) => {
+//       const allUsers = res.data || res;
+//       if (Array.isArray(allUsers)) {
+//         this.rangers = allUsers.filter((u: any) => {
+//           const rId = u.role_id || u.roleId || u.roleid;
+//           const rName = String(u.role || '').toLowerCase();
+//           return Number(rId) === 4 || rName.includes('ranger');
+//         });
+//         this.filteredRangers = [...this.rangers];
+//         this.allRangers = this.rangers.length;
+//       }
+//     },
+//     error: () => this.isFetching = false,
+//     complete: () => setTimeout(() => { this.isFetching = false; this.cdr.detectChanges(); }, 500)
+//   });
+
+//   // --- ALERTS FIX ---
+//   this.dataService.getLatestAlerts(myCompanyId).subscribe({
+//     next: (alerts: any[]) => {
+//       console.log('Alerts from DB:', alerts);
+//       if (alerts && Array.isArray(alerts)) {
+//         // Map themes so the glassmorphism UI has colors/icons
+//         this.alertsData = alerts.map(alert => {
+//           // Identify the type (handle both 'type' or 'label' from backend)
+//           const typeKey = alert.type || alert.label || 'info';
+//           const theme = this.getAlertTheme(typeKey.toUpperCase());
+          
+//           return {
+//             ...alert,
+//             type: typeKey.toLowerCase(), // Ensure type matches your filter logic
+//             bg: theme.bg,
+//             color: theme.color,
+//             icon: theme.icon,
+//             label: theme.label
+//           };
+//         });
+//       } else {
+//         this.alertsData = [];
+//       }
+//       this.cdr.detectChanges();
+//     },
+//     error: (err) => console.error('Alerts Fetch Error:', err)
+//   });
+// }
+
 loadData() {
   if (this.isFetching) return;
 
@@ -359,110 +441,119 @@ loadData() {
 
   this.isFetching = true;
 
-  // --- 1. KPI Fetch Section ---
+  // KPI Fetches (Keep these as they are)
+  this.adminService.getFireAlertsCount(myCompanyId, localISOTime).subscribe({ next: (res: any) => this.fireAlertsCount = res.count || 0 });
+  this.adminService.getOnDutyCount(myCompanyId, localISOTime).subscribe({ next: (res: any) => this.onDutyCount = res.count || 0 });
+  this.adminService.getOnLeaveCount(myCompanyId).subscribe({ next: (res: any) => this.onLeaveCount = res.count || 0 });
+  this.adminService.getInactiveCount(myCompanyId, localISOTime).subscribe({ next: (res: any) => this.inactiveCount = res.count || 0 });
 
-  // Fire Alerts
-  this.adminService.getFireAlertsCount(myCompanyId, localISOTime).subscribe({
-    next: (res: any) => this.fireAlertsCount = res.count || 0
-  });
-
-  // On Duty (Dynamic)
-  this.adminService.getOnDutyCount(myCompanyId, localISOTime).subscribe({
-    next: (res: any) => this.onDutyCount = res.count || 0
-  });
-
-  // On Leave (Dynamic) - New Call
-  this.adminService.getOnLeaveCount(myCompanyId).subscribe({
-    next: (res: any) => this.onLeaveCount = res.count || 0
-  });
-
-  // Inactive (Dynamic) - New Call
-  this.adminService.getInactiveCount(myCompanyId, localISOTime).subscribe({
-    next: (res: any) => this.inactiveCount = res.count || 0
-  });
-
-
-  // --- 2. Rangers List Fetch Section ---
+  // Rangers List (Keep this as it is)
   this.dataService.getUsersByCompany(myCompanyId).subscribe({
     next: (res: any) => {
       const allUsers = res.data || res;
-      console.log("DB se aaya data:", allUsers);
-
       if (Array.isArray(allUsers)) {
         this.rangers = allUsers.filter((u: any) => {
-          if (!u) return false;
           const rId = u.role_id || u.roleId || u.roleid;
           const rName = String(u.role || '').toLowerCase();
           return Number(rId) === 4 || rName.includes('ranger');
         });
-
-        // Loop ke liye data set karein
         this.filteredRangers = [...this.rangers];
         this.allRangers = this.rangers.length;
-        
-        console.log("Total Rangers Found (ID 4):", this.allRangers);
       }
     },
-    error: (err) => {
-      console.error("API Error:", err);
-      this.isFetching = false;
-    },
-    complete: () => {
-      // Thoda delay taaki UI smooth lage
-      setTimeout(() => {
-        this.isFetching = false;
-        this.cdr.detectChanges(); 
-      }, 500);
-    }
+    error: () => this.isFetching = false,
+    complete: () => setTimeout(() => { this.isFetching = false; this.cdr.detectChanges(); }, 500)
   });
 
-  // 2. Fetch Alerts (This is the 404 target)
-  this.dataService.getLatestAlerts(myCompanyId).subscribe({
-    next: (alerts: any[]) => {
-      console.log('--- [SUCCESS] Alerts Received ---', alerts);
-      if (alerts && Array.isArray(alerts)) {
-        // We use alertsData because filteredAlerts is read-only
-        this.alertsData = alerts.map(alert => {
-          const theme = this.getAlertTheme(alert.type || 'info');
-          return {
-            ...alert,
-            bg: theme.bg,
-            color: theme.color,
-            icon: theme.icon
-          };
-        });
-      } else {
-        this.alertsData = [];
-      }
-      this.cdr.detectChanges();
-    },
-    error: (err) => {
-      console.error('--- [ERROR] ALERTS 404 ---');
-      console.error('The backend URL is NOT FOUND:', err.url);
+  // --- ALERTS FIX (Updated for Professional UI) ---
+ // --- ALERTS FIX (Update this section in your loadData) ---
+this.dataService.getLatestAlerts(myCompanyId).subscribe({
+  next: (alerts: any[]) => {
+    console.log('Alerts from DB:', alerts);
+    if (alerts && Array.isArray(alerts)) {
+      // We map EVERYTHING here so it works without needing a click
+      this.alertsData = alerts.map(alert => {
+        const rawType = (alert.type || alert.label || alert.severity || 'info').toLowerCase();
+        
+        // Map to your CSS classes: crit, warn, info
+        let cssClass = 'info';
+        if (rawType.includes('crit')) cssClass = 'crit';
+        else if (rawType.includes('warn')) cssClass = 'warn';
+        else if (rawType.includes('safe')) cssClass = 'safe';
+
+        const theme = this.getAlertTheme(rawType.toUpperCase());
+        
+        return {
+          ...alert,
+          type: cssClass, // Matches .alert-row.crit in SCSS
+          displayTitle: alert.title || `${alert.category || 'Forest'} · ${alert.beat_name || 'Division'}`,
+          displayDesc: alert.description || 'No additional details available.',
+          displayTime: alert.created_at ? this.formatTime(alert.created_at) : 'Just now',
+          bg: theme.bg,
+          color: theme.color,
+          icon: theme.icon,
+          label: theme.label
+        };
+      });
+    } else {
+      this.alertsData = [];
     }
-  });
+    // Force UI update immediately
+    this.cdr.detectChanges();
+  },
+  error: (err) => console.error('Alerts Fetch Error:', err)
+});
 }
 
 
 getAlertTheme(type: string) {
+  const t = String(type).toUpperCase(); // Normalize to Uppercase
+  
   const themes: any = {
-    // Critical Alerts
     'INCIDENT': { bg: '#fff1f2', color: '#ef4444', icon: '🚨', label: 'CRITICAL' },
+    'CRIT': { bg: '#fff1f2', color: '#ef4444', icon: '🚨', label: 'CRITICAL' },
     
-    // Warning Alerts
     'ONSITE_ATTENDANCE': { bg: '#fffbeb', color: '#d97706', icon: '📍', label: 'VERIFY' },
+    'WARN': { bg: '#fffbeb', color: '#d97706', icon: '🔥', label: 'WARNING' },
     
-    // Info/Action Alerts
     'PATROL_START': { bg: '#eff6ff', color: '#3b82f6', icon: '🛡️', label: 'ACTIVE' },
     'ATTENDANCE': { bg: '#f5f3ff', color: '#8b5cf6', icon: '👤', label: 'ON-DUTY' },
     
-    // Success/Safe Alerts
     'PATROL_END': { bg: '#f0fdfa', color: '#0d9488', icon: '✅', label: 'COMPLETED' },
+    'SAFE': { bg: '#f0fdfa', color: '#0d9488', icon: '✅', label: 'CLEAR' },
     
-    // Fallback
-    'info': { bg: '#f8fafc', color: '#64748b', icon: '🔔', label: 'INFO' }
+    'INFO': { bg: '#f8fafc', color: '#64748b', icon: '🔔', label: 'INFO' }
   };
-  return themes[type] || themes['info'];
+
+  return themes[t] || themes['INFO'];
+}
+
+getAlertIcon(category: string): string {
+  const map: any = {
+    'fire': '🔥',
+    'timber': '🪓',
+    'animal': '🐾',
+    'poaching': '👣',
+    'patrol': '✅'
+  };
+  return map[category?.toLowerCase()] || '🔔';
+}
+
+getCount(sev: string): number {
+  // Add (a: ForestAlert) here
+  return this.alerts.filter((a: ForestAlert) => a.severity === sev).length;
+}
+
+formatTime(dateStr: string) {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffInMin = Math.floor((now.getTime() - date.getTime()) / 60000);
+
+  if (diffInMin < 1) return 'Just now';
+  if (diffInMin < 60) return `${diffInMin} min ago`;
+  const hours = Math.floor(diffInMin / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return date.toLocaleDateString();
 }
 
 
@@ -507,16 +598,7 @@ getAlertTheme(type: string) {
     this.cdr.detectChanges();
   }
 
-  // --- Navigation & Tab Methods ---
-  // switchTab(tab: string) {
-  //   this.activeTab = tab;
-  //   if (tab === 'home') {
-  //     this.activeSegment = 'overview';
-  //     this.router.navigate(['/admin']); // Ensure we are on admin root
-  //     setTimeout(() => this.initHomeCharts(), 50);
-  //   }
-  //   console.log('Switched to primary tab:', tab);
-  // }
+ 
 
   // --- UI Methods ---
   updateTime() {
@@ -551,10 +633,9 @@ getAlertTheme(type: string) {
   goAnalytics(type: string) {
     console.log('Redirecting to analytics for:', type);
     this.activeTab = 'analytics';
-    // Add router navigation here if analytics is a separate page
+   
   }
 
-  // --- Chart Logic ---
   private mkG(ctx: CanvasRenderingContext2D, color: string, h: number = 130) {
     const g = ctx.createLinearGradient(0, 0, 0, h);
     g.addColorStop(0, color + '44');
@@ -678,10 +759,9 @@ getAlertTheme(type: string) {
 
 initAttChart() {
   const user = JSON.parse(localStorage.getItem('user_data') || '{}');
-  // Use a fallback to 0 if company_id is missing to prevent errors
   const companyId = user.company_id ? Number(user.company_id) : 0;
 
-  // We explicitly cast the ID to a number or null to match the Service/API expectations
+
   const rangerId = this.selectedRanger?.id ? Number(this.selectedRanger.id) : undefined;
 
   this.dataService.getWeeklyAttendanceStats(companyId, rangerId).subscribe({
@@ -783,9 +863,6 @@ initAttChart() {
     ).length;
   }
 
-  // Add NgZone to your constructor if you haven't already
-  // constructor(private zone: NgZone, private cdr: ChangeDetectorRef, ...) {}
-
 setSegment(segment: string) {
     this.activeSegment = segment;
     this.cdr.detectChanges(); // Force Angular to render the HTML first
@@ -812,25 +889,33 @@ setSegment(segment: string) {
   } 
   // Add this block below
   else if (tab === 'settings') {
-    // 1. Navigate to the admin-settings page
+   
     this.navCtrl.navigateForward('/admin-settings');
 
-    // 2. Optional: Reset the active tab back to 'home' 
-    // so it doesn't stay "blue" when the user returns
     setTimeout(() => {
       this.activeTab = 'home';
     }, 500);
   }
 }
 
-  get filteredAlerts() {
-  if (this.activeAlertFilter === 'all') return this.alertsData;
-  return this.alertsData.filter(a => a.type === this.activeAlertFilter);
-}
-
+// This handles the logic for the filter chips
 setAlertFilter(filter: string) {
   this.activeAlertFilter = filter;
 }
+
+// This is the getter that the HTML uses to display the list
+get filteredAlerts() {
+  if (!this.alertsData) return [];
+  if (this.activeAlertFilter === 'all') return this.alertsData;
+  
+  return this.alertsData.filter(a => 
+    String(a.type).toLowerCase() === this.activeAlertFilter.toLowerCase()
+  );
+}
+
+
+
+
 
 
 openAnalytics() {
