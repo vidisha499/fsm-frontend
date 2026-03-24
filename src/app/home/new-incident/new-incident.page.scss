@@ -270,3 +270,10 @@
 #incidentMap {
   z-index: 1; /* Ensure map stays below glassmorphism overlays if any */
 }
+
+.geofence-badge input {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  font-size: 0.9rem; // Slightly smaller if the address is long
+}

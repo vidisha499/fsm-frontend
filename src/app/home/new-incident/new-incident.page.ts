@@ -13,6 +13,8 @@ import { Geolocation } from '@capacitor/geolocation';
   standalone: false
 })
 export class NewIncidentPage implements OnInit {
+  // Inside NewIncidentPage class
+private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw';
   private readonly MAX_WIDTH = 700;
   isSubmitting: boolean = false;
   public capturedPhotos: string[] = []; 
@@ -24,12 +26,26 @@ export class NewIncidentPage implements OnInit {
   lat: any = 'Detecting...';
   lng: any = 'Detecting...';
   
-  public incidentData = {
-    priority: 'High Priority',
-    criteria: 'Fire Warning',
-    cause: 'Short Circuit',
-    observation: ''
-  };
+public incidentData = {
+  priority: 'High Priority',
+  criteria: 'Criminal Activity',
+  subCategory: 'illegal felling', // New field
+  species: 'sagvan',     // New field
+  cause: 'human error',
+  reason: 'Trade',
+  observation: '',
+  vehicleType: 'truck', // New
+  route: 'village route',
+  storageArea: 'godown',
+  range: '',
+  fireStage: '',
+  assetInventory: '',
+  vehicleInfo: '',
+  checkpost: '',
+  rangerName: '', // Will be auto-filled
+  geofence: '',
+  
+};
 
   private apiUrl: string = 'https://forest-backend-pi.vercel.app/api/incidents';
 
@@ -44,44 +60,109 @@ export class NewIncidentPage implements OnInit {
   ) { }
 
  ngOnInit() { 
+  this.loadDefaultData();
   setTimeout(() => {
     this.initIncidentMap();
   }, 600);
 }
 
+async loadDefaultData() {
+  // 1. Get Ranger Name from your Auth/Storage service
+  // Replace 'current_user' logic with however you store your user data
+  const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+  this.incidentData.rangerName = userData.name || 'Unknown Ranger';
+
+  // 2. Fetch Geofence/Location
+  // Since you have the map already, we use the lat/lng to define the geofence
+  // If you have a specific 'Area' name, you can assign it here
+  if (this.lat && this.lng) {
+    this.incidentData.geofence = `Lat: ${this.lat.toFixed(4)}, Lng: ${this.lng.toFixed(4)}`;
+  } else {
+    // Fallback if map hasn't loaded coordinates yet
+    this.incidentData.geofence = "Detecting location...";
+  }
+}
+
+// async initIncidentMap() {
+//   try {
+//     const coordinates = await Geolocation.getCurrentPosition();
+//     this.lat = coordinates.coords.latitude.toFixed(6);
+//     this.lng = coordinates.coords.longitude.toFixed(6);
+
+//     // Create map
+//     this.map = L.map('incidentMap', {
+//       zoomControl: false,
+//       attributionControl: false
+//     }).setView([this.lat, this.lng], 15);
+
+//     // Add Google Maps layer
+//     L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+//       maxZoom: 20,
+//       subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+//     }).addTo(this.map);
+
+//     // Add the 📍 icon we used in the previous page
+//     const incidentIcon = L.divIcon({
+//       className: 'incident-pin',
+//       html: `<div style="font-size: 24px;">📍</div>`,
+//       iconSize: [30, 30],
+//       iconAnchor: [15, 30]
+//     });
+
+//     L.marker([this.lat, this.lng], { icon: incidentIcon }).addTo(this.map);
+
+//   } catch (error) {
+//     console.error('Error getting location', error);
+//     this.lat = 'Location Error';
+//     this.lng = 'Location Error';
+//   }
+// }
+
 async initIncidentMap() {
   try {
     const coordinates = await Geolocation.getCurrentPosition();
-    this.lat = coordinates.coords.latitude.toFixed(6);
-    this.lng = coordinates.coords.longitude.toFixed(6);
+    this.lat = coordinates.coords.latitude;
+    this.lng = coordinates.coords.longitude;
 
-    // Create map
+    // Call the reverse geocoding function
+    this.updateAddress(this.lat, this.lng);
+
     this.map = L.map('incidentMap', {
       zoomControl: false,
       attributionControl: false
     }).setView([this.lat, this.lng], 15);
 
-    // Add Google Maps layer
+    // ... (rest of your existing map/tilelayer code)
     L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
       maxZoom: 20,
       subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
     }).addTo(this.map);
 
-    // Add the 📍 icon we used in the previous page
-    const incidentIcon = L.divIcon({
-      className: 'incident-pin',
-      html: `<div style="font-size: 24px;">📍</div>`,
-      iconSize: [30, 30],
-      iconAnchor: [15, 30]
-    });
-
-    L.marker([this.lat, this.lng], { icon: incidentIcon }).addTo(this.map);
+    L.marker([this.lat, this.lng], { 
+      icon: L.divIcon({ className: 'incident-pin', html: `📍`, iconSize: [30, 30] }) 
+    }).addTo(this.map);
 
   } catch (error) {
-    console.error('Error getting location', error);
-    this.lat = 'Location Error';
-    this.lng = 'Location Error';
+    this.incidentData.geofence = 'Location Error';
   }
+}
+
+
+async updateAddress(lat: number, lng: number) {
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${this.googleApiKey}`;
+  try {
+    const data: any = await this.http.get(url).toPromise(); // Use toPromise or firstValueFrom
+    if (data.status === 'OK' && data.results.length > 0) {
+      // This sets the Green Geofence field to the actual address name
+      this.incidentData.geofence = data.results[0].formatted_address;
+    } else {
+      this.incidentData.geofence = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    }
+  } catch (err) {
+    console.error("Geocoding error", err);
+    this.incidentData.geofence = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  }
+  this.cdr.detectChanges(); // Refresh UI
 }
 
   goBack() { this.navCtrl.back(); }
@@ -175,17 +256,63 @@ async submitReport() {
   // 2. Photos se 'data:image/jpeg;base64,' wala part hatao (Backend requirement)
   const finalPhotos = this.capturedPhotos.map(p => p.split(',')[1]);
 
-  const payload = {
-    company_id: Number(rawCompanyId), // <--- Ab ye usi company ki ID jayegi jo logged in hai
-    rangerId: +rawRangerId, 
-    photos: finalPhotos, // <--- Safed Base64 string
-    responsePriority: this.incidentData.priority,
-    incidentCriteria: this.incidentData.criteria,
-    rootCause: this.incidentData.cause,
-    fieldObservation: this.incidentData.observation,
-    latitude: Number(this.lat), 
-    longitude: Number(this.lng)
-  };
+ 
+//   const payload = {
+//   company_id: Number(rawCompanyId),
+//   rangerId: +rawRangerId, 
+//   photos: finalPhotos,
+//   responsePriority: this.incidentData.priority,
+//   incidentCriteria: this.incidentData.criteria,
+//   rootCause: this.incidentData.cause,
+//   fieldObservation: this.incidentData.observation,
+//   subCategory: this.incidentData.subCategory,
+//   incidentReason: this.incidentData.reason,
+//   species: this.incidentData.species,
+//   vehicleType: this.incidentData.vehicleType,
+//   transportRoute: this.incidentData.route,
+//   storageArea: this.incidentData.storageArea,
+//   fireStage: this.incidentData.fireStage,
+  
+//   // FIX THESE THREE LINES:
+//   assetInventory: this.incidentData.assetInventory, 
+//   vehicleInfo: this.incidentData.vehicleInfo,    
+//   checkpost: this.incidentData.checkpost,
+  
+//   // ADD THESE TWO LINES:
+//   rangerName: this.incidentData.rangerName, // Change from reportingOfficer
+//   geofence: this.incidentData.geofence,
+
+//   latitude: Number(this.lat), 
+//   longitude: Number(this.lng)
+// };
+
+const payload = {
+  company_id: Number(rawCompanyId),
+  rangerId: +rawRangerId, 
+  photos: finalPhotos,
+  responsePriority: this.incidentData.priority,
+  incidentCriteria: this.incidentData.criteria,
+  rootCause: this.incidentData.cause,
+  fieldObservation: this.incidentData.observation,
+  subCategory: this.incidentData.subCategory,
+  
+  // MATCH THESE TO YOUR ENTITY NAMES:
+  incidentReason: this.incidentData.reason, 
+  species: this.incidentData.species,
+  vehicleType: this.incidentData.vehicleType,
+  transportRoute: this.incidentData.route,
+  storageArea: this.incidentData.storageArea,
+  fireStage: this.incidentData.fireStage,
+  assetInventory: this.incidentData.assetInventory, 
+  vehicleInfo: this.incidentData.vehicleInfo,    
+  checkpost: this.incidentData.checkpost,
+  rangerName: this.incidentData.rangerName,
+  geofence: this.incidentData.geofence,
+
+  latitude: Number(this.lat), 
+  longitude: Number(this.lng),
+  status: 'Pending'
+};
 
   console.log('FINAL PAYLOAD:', payload);
 
@@ -257,4 +384,32 @@ async submitReport() {
     this.map.remove();
   }
 }
+
+resetSubFields() {
+  // 1. DO NOT reset this.incidentData.subCategory here! 
+  // If you reset it, the UI won't know what to show.
+
+  // 2. Clear ONLY the detail fields
+  this.incidentData.species = '';
+  this.incidentData.vehicleType = '';
+  this.incidentData.route = '';
+  this.incidentData.storageArea = '';
+  this.incidentData.reason = '';
+  this.incidentData.range = ''; 
+  this.incidentData.fireStage = '';
+  this.incidentData.assetInventory = '';
+  this.incidentData.vehicleInfo = '';
+  this.incidentData.checkpost = '';
+
+  // 3. Set specific defaults based on the subCategory
+  if (this.incidentData.subCategory === 'Poaching') {
+    this.incidentData.cause = 'Natural';
+  } else if (this.incidentData.subCategory === 'illegal felling') {
+    this.incidentData.reason = 'Trade';
+    this.incidentData.cause = 'Human Error';
+  } else {
+    this.incidentData.cause = 'Human Error';
+  }
+}
+
 }

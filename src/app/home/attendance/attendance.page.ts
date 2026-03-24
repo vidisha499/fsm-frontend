@@ -15,6 +15,7 @@ import { TranslateService } from '@ngx-translate/core'; // 👈 Import Translate
   standalone: false
 })
 export class AttendancePage implements OnInit, OnDestroy {
+  
   // Leaflet variables
   map!: L.Map;
   marker!: L.Marker;
