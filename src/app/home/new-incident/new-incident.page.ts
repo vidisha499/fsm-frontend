@@ -67,22 +67,17 @@ public incidentData = {
 }
 
 async loadDefaultData() {
-  // 1. Get Ranger Name from your Auth/Storage service
-  // Replace 'current_user' logic with however you store your user data
   const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
   this.incidentData.rangerName = userData.name || 'Unknown Ranger';
 
-  // 2. Fetch Geofence/Location
-  // Since you have the map already, we use the lat/lng to define the geofence
-  // If you have a specific 'Area' name, you can assign it here
-  if (this.lat && this.lng) {
+  // FIX: Pehle check karo ki lat/lng numbers hain ya nahi
+  if (typeof this.lat === 'number' && typeof this.lng === 'number') {
     this.incidentData.geofence = `Lat: ${this.lat.toFixed(4)}, Lng: ${this.lng.toFixed(4)}`;
   } else {
-    // Fallback if map hasn't loaded coordinates yet
+    // Agar abhi tak detect nahi hua toh wait karein
     this.incidentData.geofence = "Detecting location...";
   }
 }
-
 // async initIncidentMap() {
 //   try {
 //     const coordinates = await Geolocation.getCurrentPosition();
@@ -117,22 +112,22 @@ async loadDefaultData() {
 //     this.lng = 'Location Error';
 //   }
 // }
-
 async initIncidentMap() {
   try {
     const coordinates = await Geolocation.getCurrentPosition();
+    // Inhe numbers ki tarah save karo, string ki tarah nahi
     this.lat = coordinates.coords.latitude;
     this.lng = coordinates.coords.longitude;
 
-    // Call the reverse geocoding function
+    // Address update karo
     this.updateAddress(this.lat, this.lng);
 
+    // Map initialize
     this.map = L.map('incidentMap', {
       zoomControl: false,
       attributionControl: false
     }).setView([this.lat, this.lng], 15);
 
-    // ... (rest of your existing map/tilelayer code)
     L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
       maxZoom: 20,
       subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
@@ -143,10 +138,10 @@ async initIncidentMap() {
     }).addTo(this.map);
 
   } catch (error) {
+    console.error('Location error:', error);
     this.incidentData.geofence = 'Location Error';
   }
 }
-
 
 async updateAddress(lat: number, lng: number) {
   const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${this.googleApiKey}`;
@@ -254,7 +249,8 @@ async submitReport() {
   this.isSubmitting = true;
 
   // 2. Photos se 'data:image/jpeg;base64,' wala part hatao (Backend requirement)
-  const finalPhotos = this.capturedPhotos.map(p => p.split(',')[1]);
+  const finalPhotos = this.capturedPhotos.map(p => p.includes(',') ? p.split(',')[1] : p);
+  // const finalPhotos = this.capturedPhotos.map(p => p.split(',')[1]);
 
  
 //   const payload = {

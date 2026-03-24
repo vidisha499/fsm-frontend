@@ -71,4 +71,7 @@ export class AdminDataService {
   // Is URL ko apne backend endpoint se match karein
   return this.http.get(`${this.baseApiUrl}/rangers-status/${companyId}`);
 }
+
+// admin-data.service.ts mein add karo
+
 }

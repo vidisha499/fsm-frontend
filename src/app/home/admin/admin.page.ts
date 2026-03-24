@@ -95,6 +95,7 @@ export class AdminPage implements OnInit, AfterViewInit {
 public inactiveCount: number = 0;
 public incidentsCount: number = 0;
 public fireAlertsCount: number = 0;
+criminalActivityCount: number = 0;
   currentTime: string = '';
   activeTab: string = 'home';
   activeSegment: string = 'overview';
@@ -335,6 +336,8 @@ ngOnInit() {
 
 
 
+
+
 ionViewWillEnter() {
    this.loadData();
   const navigation = this.router.getCurrentNavigation();
@@ -359,90 +362,66 @@ loadData() {
 
   this.isFetching = true;
 
-  // --- 1. KPI Fetch Section ---
+  // --- 1. Dashboard Stats (Criminal Activity, Total Events, etc.) ---
+  // Is API se Criminal Activity (87) aur Resolved % fill hoga
+  this.dataService.getDashboardStats(myCompanyId).subscribe({
+    next: (stats: any) => {
+      this.incidentsCount = stats.totalEvents || 0;
+      this.criminalActivityCount = stats.criminalEvents || 0; // Card: 87
+      this.attendancePercent = stats.resolvedPercentage || 0; // Donut Chart logic
+      this.cdr.detectChanges();
+    },
+    error: (err) => console.error("Stats Fetch Error:", err)
+  });
 
-  // Fire Alerts
+  // --- 2. KPI Fetch Section (Existing) ---
   this.adminService.getFireAlertsCount(myCompanyId, localISOTime).subscribe({
     next: (res: any) => this.fireAlertsCount = res.count || 0
   });
 
-  // On Duty (Dynamic)
   this.adminService.getOnDutyCount(myCompanyId, localISOTime).subscribe({
     next: (res: any) => this.onDutyCount = res.count || 0
   });
 
-  // On Leave (Dynamic) - New Call
   this.adminService.getOnLeaveCount(myCompanyId).subscribe({
     next: (res: any) => this.onLeaveCount = res.count || 0
   });
 
-  // Inactive (Dynamic) - New Call
   this.adminService.getInactiveCount(myCompanyId, localISOTime).subscribe({
     next: (res: any) => this.inactiveCount = res.count || 0
   });
 
-
-  // --- 2. Rangers List Fetch Section ---
+  // --- 3. Rangers List ---
   this.dataService.getUsersByCompany(myCompanyId).subscribe({
     next: (res: any) => {
       const allUsers = res.data || res;
-      console.log("DB se aaya data:", allUsers);
-
       if (Array.isArray(allUsers)) {
         this.rangers = allUsers.filter((u: any) => {
-          if (!u) return false;
           const rId = u.role_id || u.roleId || u.roleid;
-          const rName = String(u.role || '').toLowerCase();
-          return Number(rId) === 4 || rName.includes('ranger');
+          return Number(rId) === 4;
         });
-
-        // Loop ke liye data set karein
         this.filteredRangers = [...this.rangers];
         this.allRangers = this.rangers.length;
-        
-        console.log("Total Rangers Found (ID 4):", this.allRangers);
       }
     },
-    error: (err) => {
-      console.error("API Error:", err);
-      this.isFetching = false;
-    },
     complete: () => {
-      // Thoda delay taaki UI smooth lage
-      setTimeout(() => {
-        this.isFetching = false;
-        this.cdr.detectChanges(); 
-      }, 500);
+      this.isFetching = false;
+      this.cdr.detectChanges();
     }
   });
 
-  // 2. Fetch Alerts (This is the 404 target)
+  // --- 4. Alerts Section ---
   this.dataService.getLatestAlerts(myCompanyId).subscribe({
     next: (alerts: any[]) => {
-      console.log('--- [SUCCESS] Alerts Received ---', alerts);
       if (alerts && Array.isArray(alerts)) {
-        // We use alertsData because filteredAlerts is read-only
         this.alertsData = alerts.map(alert => {
-          const theme = this.getAlertTheme(alert.type || 'info');
-          return {
-            ...alert,
-            bg: theme.bg,
-            color: theme.color,
-            icon: theme.icon
-          };
+          const theme = this.getAlertTheme(alert.type);
+          return { ...alert, bg: theme.bg, color: theme.color, icon: theme.icon };
         });
-      } else {
-        this.alertsData = [];
       }
-      this.cdr.detectChanges();
-    },
-    error: (err) => {
-      console.error('--- [ERROR] ALERTS 404 ---');
-      console.error('The backend URL is NOT FOUND:', err.url);
     }
   });
 }
-
 
 getAlertTheme(type: string) {
   const themes: any = {
