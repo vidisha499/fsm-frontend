@@ -223,4 +223,15 @@ getIncidentTrend(companyId: number): Observable<any> {
   // Base URL check kar lena, agar incidents controller mein hai toh:
   return this.http.get(`${this.baseApiUrl}/incidents/trend/${companyId}`);
 }
+
+// Inside AdminDataService
+getSightingCount(companyId: number, from?: string, to?: string) {
+  return this.http.get(`${this.baseApiUrl}/patrols/stats/sightings-count`, {
+    params: { 
+      companyId: companyId.toString(),
+      ...(from && { from }),
+      ...(to && { to })
+    }
+  });
+}
 }

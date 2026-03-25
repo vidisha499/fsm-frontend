@@ -245,7 +245,7 @@
       <div class="kpi-trend dn">▼ Tap to analyse</div>
     </div>
 
-    <div class="kpi-card" data-c="amber" (click)="goAnalytics('events')">
+    <!-- <div class="kpi-card" data-c="amber" (click)="goAnalytics('events')">
       <div class="kpi-ico" style="background:#fffbeb">
         <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#f59e0b" stroke-width="2">
           <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
@@ -254,7 +254,19 @@
       <div class="kpi-val" id="kv-events">342</div>
       <div class="kpi-lbl">Events & Monitoring</div>
       <div class="kpi-trend up">▲ Tap to analyse</div>
-    </div>
+    </div> -->
+
+    <div class="kpi-card" data-c="teal">
+  <div class="kpi-ico" style="background:#f0fdfa">
+    <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#0d9488" stroke-width="2">
+      <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+    </svg>
+  </div>
+  <div class="kpi-val">{{ sightingsCount }}</div>
+  <div class="kpi-lbl">Events & Monitoring</div>
+  <div class="kpi-trend up">▲ Tap to analyse</div>
+</div>
+   
 
     <div class="kpi-card" data-c="orange" (click)="goAnalytics('fire')">
       <div class="kpi-ico" style="background:#fff7ed">
@@ -320,6 +332,7 @@
       <div class="mini-ch"><canvas id="mc-events"></canvas></div>
       <div class="mini-meta">Y: Events · X: 15 days</div>
     </div>
+    
 
     <div class="mini-card" data-cat="fire" (click)="goAnalytics('fire')">
       <div class="mini-lbl">🔥 Fire Incidents</div>
@@ -568,52 +581,8 @@
     </div>
   </div>
 
-  <!-- <div id="seg-alerts" *ngIf="activeSegment === 'alerts'">
-    <div class="alert-filter-row">
-    <div class="qchip" [class.on]="activeAlertFilter === 'all'" (click)="setAlertFilter('all')">
-      All
-    </div>
-    <div class="qchip crit" [class.on]="activeAlertFilter === 'crit'" (click)="setAlertFilter('crit')">
-      Critical (4)
-    </div>
-    <div class="qchip warn" [class.on]="activeAlertFilter === 'warn'" (click)="setAlertFilter('warn')">
-      Warning (7)
-    </div>
-    <div class="qchip info" [class.on]="activeAlertFilter === 'info'" (click)="setAlertFilter('info')">
-      Info (12)
-    </div>
-  </div> -->
-
-    <!-- <div class="alerts-container">
-  <div class="alert-card" *ngFor="let alert of filteredAlerts" [style.background]="alert.bg">
-    <div class="alert-icon">{{ alert.icon }}</div>
-    <div class="alert-content">
-      <h4 [style.color]="alert.color">{{ alert.title }}</h4>
-      <p>{{ alert.desc }}</p>
-      <span class="alert-time">{{ alert.time | date:'shortTime' }}</span>
-    </div>
-    <div class="alert-badge" [style.background]="alert.color">
-       {{ alert.label }}
-    </div>
-  </div>
-</div>
-  </div> -->
-
  <div id="seg-alerts" [class.hidden]="activeSegment !== 'alerts'">
-  <!-- <div style="padding:10px 14px 4px; display:flex; gap:6px; overflow-x:auto; scrollbar-width:none;">
-    <div class="qchip" [class.on]="activeAlertFilter === 'all'" (click)="setAlertFilter('all')">
-      All ({{ alertsData?.length || 0 }})
-    </div>
-    <div class="qchip crit" [class.on]="activeAlertFilter === 'crit'" (click)="setAlertFilter('crit')">
-      🔴 Critical ({{ getCount('crit') }})
-    </div>
-    <div class="qchip warn" [class.on]="activeAlertFilter === 'warn'" (click)="setAlertFilter('warn')">
-      🟡 Warning ({{ getCount('warn') }})
-    </div>
-    <div class="qchip info" [class.on]="activeAlertFilter === 'info'" (click)="setAlertFilter('info')">
-      🔵 Info ({{ getCount('info') }})
-    </div>
-  </div> -->
+
   <div class="filter-tabs">
   <div class="qchip all" 
        [class.on]="activeAlertFilter === 'all'" 

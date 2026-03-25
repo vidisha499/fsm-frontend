@@ -303,6 +303,7 @@ async savePatrol() {
   };
 
   this.http.post(`${this.apiUrl}/active`, payload).subscribe({
+  
     next: (res: any) => {
       loader.dismiss();
       // Store the active ID so we can update the route later
@@ -321,6 +322,8 @@ async savePatrol() {
     }
   });
 }
+
+
 
   setFilterOpen(isOpen: boolean) {
     this.isFilterModalOpen = isOpen;
