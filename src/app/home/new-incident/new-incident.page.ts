@@ -79,40 +79,7 @@ async loadDefaultData() {
     this.incidentData.geofence = "Detecting location...";
   }
 }
-// async initIncidentMap() {
-//   try {
-//     const coordinates = await Geolocation.getCurrentPosition();
-//     this.lat = coordinates.coords.latitude.toFixed(6);
-//     this.lng = coordinates.coords.longitude.toFixed(6);
 
-//     // Create map
-//     this.map = L.map('incidentMap', {
-//       zoomControl: false,
-//       attributionControl: false
-//     }).setView([this.lat, this.lng], 15);
-
-//     // Add Google Maps layer
-//     L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-//       maxZoom: 20,
-//       subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-//     }).addTo(this.map);
-
-//     // Add the 📍 icon we used in the previous page
-//     const incidentIcon = L.divIcon({
-//       className: 'incident-pin',
-//       html: `<div style="font-size: 24px;">📍</div>`,
-//       iconSize: [30, 30],
-//       iconAnchor: [15, 30]
-//     });
-
-//     L.marker([this.lat, this.lng], { icon: incidentIcon }).addTo(this.map);
-
-//   } catch (error) {
-//     console.error('Error getting location', error);
-//     this.lat = 'Location Error';
-//     this.lng = 'Location Error';
-//   }
-// }
 async initIncidentMap() {
   try {
     const coordinates = await Geolocation.getCurrentPosition();
@@ -251,10 +218,8 @@ async submitReport() {
 
   // 2. Photos se 'data:image/jpeg;base64,' wala part hatao (Backend requirement)
   const finalPhotos = this.capturedPhotos.map(p => p.includes(',') ? p.split(',')[1] : p);
-  // const finalPhotos = this.capturedPhotos.map(p => p.split(',')[1]);
 
- 
-//   const payload = {
+// const payload = {
 //   company_id: Number(rawCompanyId),
 //   rangerId: +rawRangerId, 
 //   photos: finalPhotos,
@@ -263,37 +228,37 @@ async submitReport() {
 //   rootCause: this.incidentData.cause,
 //   fieldObservation: this.incidentData.observation,
 //   subCategory: this.incidentData.subCategory,
-//   incidentReason: this.incidentData.reason,
+  
+//   // MATCH THESE TO YOUR ENTITY NAMES:
+//   incidentReason: this.incidentData.reason, 
 //   species: this.incidentData.species,
 //   vehicleType: this.incidentData.vehicleType,
 //   transportRoute: this.incidentData.route,
 //   storageArea: this.incidentData.storageArea,
 //   fireStage: this.incidentData.fireStage,
-  
-//   // FIX THESE THREE LINES:
 //   assetInventory: this.incidentData.assetInventory, 
 //   vehicleInfo: this.incidentData.vehicleInfo,    
 //   checkpost: this.incidentData.checkpost,
-  
-//   // ADD THESE TWO LINES:
-//   rangerName: this.incidentData.rangerName, // Change from reportingOfficer
+//   rangerName: this.incidentData.rangerName,
 //   geofence: this.incidentData.geofence,
 
 //   latitude: Number(this.lat), 
-//   longitude: Number(this.lng)
+//   longitude: Number(this.lng),
+  
+//   location_name: this.currentAddress,
+//   status: 'Pending'
 // };
 
 const payload = {
   company_id: Number(rawCompanyId),
-  rangerId: +rawRangerId, 
+  rangerId: Number(rawRangerId), 
   photos: finalPhotos,
   responsePriority: this.incidentData.priority,
   incidentCriteria: this.incidentData.criteria,
+  subCategory: this.incidentData.subCategory,
+  // Ensure these match your Entity @Column names exactly
   rootCause: this.incidentData.cause,
   fieldObservation: this.incidentData.observation,
-  subCategory: this.incidentData.subCategory,
-  
-  // MATCH THESE TO YOUR ENTITY NAMES:
   incidentReason: this.incidentData.reason, 
   species: this.incidentData.species,
   vehicleType: this.incidentData.vehicleType,
@@ -304,12 +269,11 @@ const payload = {
   vehicleInfo: this.incidentData.vehicleInfo,    
   checkpost: this.incidentData.checkpost,
   rangerName: this.incidentData.rangerName,
-  geofence: this.incidentData.geofence,
+  geofence: this.incidentData.geofence, // This is the address string
 
+  // GPS Coordinates
   latitude: Number(this.lat), 
   longitude: Number(this.lng),
-  
-  location_name: this.currentAddress,
   status: 'Pending'
 };
 

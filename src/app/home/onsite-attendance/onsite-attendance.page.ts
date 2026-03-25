@@ -207,21 +207,34 @@ async submit() {
   const companyId = localStorage.getItem('company_id') || '1';
   const rangerId = localStorage.getItem('ranger_id');
 
+  // const onsiteData = {
+  //   ranger_id: rangerId ? Number(rangerId) : 0,
+  //   // company_id: companyId ? Number(companyId) : null, // 👈 Admin filtering ke liye compulsory hai
+  //   // company_id: Number(companyId),
+  //   company_id: companyId ? Number(companyId) : null,
+  //   ranger: this.rangerName,
+  //   geofence: this.currentAddress, 
+  //   attendance_type: 'ON-SITE',
+  //   photo: this.capturedPhoto,
+  //   latitude: this.currentLat,
+  //   longitude: this.currentLng,
+  //   status: 'pending',
+  //   location_name: this.currentAddress,
+  //   created_at: new Date().toISOString() 
+  // };
+
   const onsiteData = {
-    ranger_id: rangerId ? Number(rangerId) : 0,
-    // company_id: companyId ? Number(companyId) : null, // 👈 Admin filtering ke liye compulsory hai
-    // company_id: Number(companyId),
-    company_id: companyId ? Number(companyId) : null,
-    ranger: this.rangerName,
-    geofence: this.currentAddress, 
-    attendance_type: 'ON-SITE',
-    photo: this.capturedPhoto,
-    latitude: this.currentLat,
-    longitude: this.currentLng,
-    status: 'pending',
-    location_name: this.currentAddress,
-    created_at: new Date().toISOString() 
-  };
+  ranger_id: rangerId ? Number(rangerId) : 0,
+  company_id: companyId ? Number(companyId) : null,
+  ranger: this.rangerName,
+  geofence: this.currentAddress, 
+  attendance_type: 'ON-SITE',
+  photo: this.capturedPhoto,
+  latitude: Number(this.currentLat),  // 👈 Ensure it's a Number
+  longitude: Number(this.currentLng), // 👈 Ensure it's a Number
+  status: 'pending',
+  location_name: this.currentAddress  // 👈 Explicitly add this
+};
 
   console.log('Submitting Onsite Attendance for Company:', onsiteData.company_id)
   this.http.post(this.apiUrl, onsiteData).subscribe({

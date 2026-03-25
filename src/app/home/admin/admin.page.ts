@@ -359,6 +359,8 @@ ionViewWillEnter() {
   }
 }
 
+
+
 // loadData() {
 //   if (this.isFetching) return;
 
@@ -371,7 +373,7 @@ ionViewWillEnter() {
 
 //   this.isFetching = true;
 
-//   // KPI Fetches (Keep these as they are)
+//   // KPI Fetches (Preserved from existing logic)
 //   this.adminService.getFireAlertsCount(myCompanyId, localISOTime).subscribe({ 
 //     next: (res: any) => this.fireAlertsCount = res.count || 0 
 //   });
@@ -385,15 +387,12 @@ ionViewWillEnter() {
 //     next: (res: any) => this.inactiveCount = res.count || 0 
 //   });
 
-//   // Rangers List (Keep this as it is)
+//   // Rangers List Fetching
 //   this.dataService.getUsersByCompany(myCompanyId).subscribe({
 //     next: (res: any) => {
 //       const allUsers = res.data || res;
 //       if (Array.isArray(allUsers)) {
-//         this.rangers = allUsers.filter((u: any) => {
-//           const rId = u.role_id || u.roleId || u.roleid;
-//           return Number(rId) === 4;
-//         });
+//         this.rangers = allUsers.filter((u: any) => Number(u.role_id) === 4);
 //         this.filteredRangers = [...this.rangers];
 //         this.allRangers = this.rangers.length;
 //       }
@@ -405,29 +404,39 @@ ionViewWillEnter() {
 //     }, 500)
 //   });
 
-//   // --- ALERTS FIX (Corrected Syntax & Mapping) ---
+//   // --- ALERTS FIX WITH SPECIFIC CATEGORY MAPPING ---
 //   this.dataService.getLatestAlerts(myCompanyId).subscribe({
 //     next: (alerts: any[]) => {
 //       console.log('Alerts from DB:', alerts);
 //       if (alerts && Array.isArray(alerts)) {
-//         // Map everything here so UI looks correct without needing a click
 //         this.alertsData = alerts.map(alert => {
-//           const rawType = (alert.type || alert.label || alert.severity || 'info').toLowerCase();
+//           // Identify the specific incident/action name
+//           const specificCategory = alert.category || alert.label || alert.title || 'Alert';
+//           const rawType = (alert.type || alert.severity || 'info').toLowerCase();
           
-//           // Map to your CSS classes for the side-strip: crit, warn, info
+//           // Logic for CSS classes (Preserving your aesthetic requirements)
 //           let cssClass = 'info';
 //           if (rawType.includes('crit')) cssClass = 'crit';
 //           else if (rawType.includes('warn')) cssClass = 'warn';
-//           else if (rawType.includes('safe')) cssClass = 'safe';
+//           else if (rawType.includes('safe') || rawType.includes('on-duty')) cssClass = 'safe';
 
 //           const theme = this.getAlertTheme(rawType.toUpperCase());
-          
+
+//           // Format Date and Time
+//           const dateObj = alert.created_at ? new Date(alert.created_at) : new Date();
+//           const formattedDate = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+//           const formattedTime = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
 //           return {
 //             ...alert,
-//             type: cssClass, // Matches .alert-row.crit in SCSS
-//             displayTitle: alert.title || `${alert.category || 'Forest'} · ${alert.beat_name || 'Division'}`,
-//             displayDesc: alert.description || 'No additional details available.',
-//             displayTime: alert.created_at ? this.formatTime(alert.created_at) : 'Just now',
+//             type: cssClass,
+//             // Updated Header: Shows "Attendance - Vidisha" or "Illegal Felling - Vidisha"
+//             displayTitle: `${specificCategory} - ${alert.ranger_name || 'System'}`,
+//             // Body: Division · Location
+//           // Change alert.location to alert.location_name
+//             displayDesc: `${alert.beat_name || 'Forest Division'} · ${alert.location_name || 'Unknown Location'}`,
+//             // Footer: Time · Date
+//             displayTime: `${formattedTime} · ${formattedDate}`,
 //             bg: theme.bg,
 //             color: theme.color,
 //             icon: theme.icon,
@@ -462,56 +471,69 @@ loadData() {
 
   this.isFetching = true;
 
-  // KPI Fetches (Preserved from existing logic)
-  this.adminService.getFireAlertsCount(myCompanyId, localISOTime).subscribe({ 
-    next: (res: any) => this.fireAlertsCount = res.count || 0 
-  });
-  this.adminService.getOnDutyCount(myCompanyId, localISOTime).subscribe({ 
-    next: (res: any) => this.onDutyCount = res.count || 0 
-  });
-  this.adminService.getOnLeaveCount(myCompanyId).subscribe({ 
-    next: (res: any) => this.onLeaveCount = res.count || 0 
-  });
-  this.adminService.getInactiveCount(myCompanyId, localISOTime).subscribe({ 
-    next: (res: any) => this.inactiveCount = res.count || 0 
+  // --- 1. Dashboard & KPI Stats ---
+  // This combines the general stats (Criminal/Resolved) with the specific counts
+  this.dataService.getDashboardStats(myCompanyId).subscribe({
+    next: (stats: any) => {
+      this.incidentsCount = stats.totalEvents || 0;
+      this.criminalActivityCount = stats.criminalEvents || 0; 
+      this.attendancePercent = stats.resolvedPercentage || 0;
+      this.cdr.detectChanges();
+    },
+    error: (err) => console.error("Stats Fetch Error:", err)
   });
 
-  // Rangers List Fetching
+  this.adminService.getFireAlertsCount(myCompanyId, localISOTime).subscribe({
+    next: (res: any) => this.fireAlertsCount = res.count || 0
+  });
+
+  this.adminService.getOnDutyCount(myCompanyId, localISOTime).subscribe({
+    next: (res: any) => this.onDutyCount = res.count || 0
+  });
+
+  this.adminService.getOnLeaveCount(myCompanyId).subscribe({
+    next: (res: any) => this.onLeaveCount = res.count || 0
+  });
+
+  this.adminService.getInactiveCount(myCompanyId, localISOTime).subscribe({
+    next: (res: any) => this.inactiveCount = res.count || 0
+  });
+
+  // --- 2. Rangers List ---
   this.dataService.getUsersByCompany(myCompanyId).subscribe({
     next: (res: any) => {
       const allUsers = res.data || res;
       if (Array.isArray(allUsers)) {
-        this.rangers = allUsers.filter((u: any) => Number(u.role_id) === 4);
+        this.rangers = allUsers.filter((u: any) => {
+          const rId = u.role_id || u.roleId || u.roleid;
+          return Number(rId) === 4;
+        });
         this.filteredRangers = [...this.rangers];
         this.allRangers = this.rangers.length;
       }
     },
-    error: () => this.isFetching = false,
-    complete: () => setTimeout(() => { 
-      this.isFetching = false; 
-      this.cdr.detectChanges(); 
-    }, 500)
+    error: () => this.isFetching = false
   });
 
-  // --- ALERTS FIX WITH SPECIFIC CATEGORY MAPPING ---
+  // --- 3. Alerts Section (Merged Logic) ---
   this.dataService.getLatestAlerts(myCompanyId).subscribe({
     next: (alerts: any[]) => {
       console.log('Alerts from DB:', alerts);
       if (alerts && Array.isArray(alerts)) {
         this.alertsData = alerts.map(alert => {
-          // Identify the specific incident/action name
+          // Identify specific category
           const specificCategory = alert.category || alert.label || alert.title || 'Alert';
           const rawType = (alert.type || alert.severity || 'info').toLowerCase();
           
-          // Logic for CSS classes (Preserving your aesthetic requirements)
+          // Theme & CSS Class Logic
           let cssClass = 'info';
           if (rawType.includes('crit')) cssClass = 'crit';
           else if (rawType.includes('warn')) cssClass = 'warn';
-          else if (rawType.includes('safe') || rawType.includes('on-duty')) cssClass = 'safe';
+          else if (rawType.includes('safe') || rawType.includes('on-duty') || rawType.includes('attendance')) cssClass = 'safe';
 
           const theme = this.getAlertTheme(rawType.toUpperCase());
 
-          // Format Date and Time
+          // Date & Time Formatting
           const dateObj = alert.created_at ? new Date(alert.created_at) : new Date();
           const formattedDate = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
           const formattedTime = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -519,12 +541,11 @@ loadData() {
           return {
             ...alert,
             type: cssClass,
-            // Updated Header: Shows "Attendance - Vidisha" or "Illegal Felling - Vidisha"
+            // Header: "Attendance - Ishika"
             displayTitle: `${specificCategory} - ${alert.ranger_name || 'System'}`,
-            // Body: Division · Location
-          // Change alert.location to alert.location_name
+            // Body: Uses the location_name from our database fix
             displayDesc: `${alert.beat_name || 'Forest Division'} · ${alert.location_name || 'Unknown Location'}`,
-            // Footer: Time · Date
+            // Footer: 10:30 AM · 25 Mar 2026
             displayTime: `${formattedTime} · ${formattedDate}`,
             bg: theme.bg,
             color: theme.color,
@@ -535,15 +556,17 @@ loadData() {
       } else {
         this.alertsData = [];
       }
-      this.cdr.detectChanges();
     },
     error: (err) => {
       console.error('Alerts Fetch Error:', err);
       this.isFetching = false;
     },
     complete: () => {
-      this.isFetching = false;
-      this.cdr.detectChanges();
+      // Small timeout to ensure UI feels smooth
+      setTimeout(() => {
+        this.isFetching = false;
+        this.cdr.detectChanges();
+      }, 500);
     }
   });
 }

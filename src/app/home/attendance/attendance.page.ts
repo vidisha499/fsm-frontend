@@ -174,6 +174,77 @@ async initLeafletMap() {
     }
     this.cdr.detectChanges();
   }
+
+// async submitAttendance() {
+//   if (this.isSubmitting) return; 
+
+//   // 1. Photo validation
+//   if (!this.capturedPhoto) {
+//     const msg = await this.translate.get('ATTENDANCE.PHOTO_REQUIRED').toPromise();
+//     this.presentToast(msg, 'warning');
+//     this.resetSlider();
+//     return;
+//   }
+
+//   this.isSubmitting = true;
+//   this.cdr.detectChanges(); 
+
+//   // 2. LocalStorage se IDs nikaalna (Sahi tarika)
+//   const companyId = localStorage.getItem('company_id'); // Make sure ye login ke waqt set ho raha hai
+//   const rangerId = localStorage.getItem('ranger_id');
+
+//   // 3. Payload taiyar karna
+//   // const payload = {
+//   //   ranger_id: rangerId ? Number(rangerId) : 0,
+//   //   company_id: companyId ? Number(companyId) : null, // 👈 Admin filtering ke liye ye sabse zaroori hai
+//   //   type: this.isEntry ? 'ENTRY' : 'EXIT',
+//   //   photo: this.capturedPhoto,
+//   //   latitude: this.currentLat,
+//   //   longitude: this.currentLng,
+//   //   geofence: this.currentAddress,
+//   //   rangerName: this.rangerName, 
+//   //   region: this.rangerRegion,  // This is already there
+//   // location_name: this.currentAddress,
+//   // };
+
+//   const payload = {
+//   ranger_id: Number(rangerId),
+//   company_id: Number(companyId),
+//   type: this.isEntry ? 'ENTRY' : 'EXIT',
+//   photo: this.capturedPhoto,
+//   latitude: Number(this.currentLat),  // 👈 Explicitly convert to Number
+//   longitude: Number(this.currentLng), // 👈 Explicitly convert to Number
+//   geofence: this.currentAddress,      // 👈 This fills 'location_name' in your Service
+//   rangerName: this.rangerName,        // 👈 Use camelCase to match DTO
+//   region: this.rangerRegion
+// };
+
+//   // 4. Log check karne ke liye (Sahi variable use kiya hai ab)
+//   console.log('Submitting Onsite Attendance for Company:', payload.company_id);
+//   this.logger.debug(`Submitting Payload: Lat ${payload.latitude}, Lng ${payload.longitude}`); 
+// // Note: If you don't have a logger in frontend, use console.log:
+// console.log('Final Payload before API call:', payload);
+
+//   // 5. API Call
+//   this.http.post(this.apiUrl, payload).subscribe({
+//     next: async () => {
+//       const msg = await this.translate.get('ATTENDANCE.SUCCESS').toPromise();
+//       this.presentToast(msg, 'success');
+//       setTimeout(() => {
+//         this.isSubmitting = false;
+//         this.goBack();
+//       }, 1500);
+//     },
+//     error: async (err) => {
+//       console.error("Submission Error:", err);
+//       this.isSubmitting = false;
+//       this.resetSlider();
+//       const msg = await this.translate.get('ATTENDANCE.SYNC_ERROR').toPromise();
+//       this.presentToast(msg, 'danger');
+//     }
+//   });
+// }
+
 async submitAttendance() {
   if (this.isSubmitting) return; 
 
@@ -185,46 +256,69 @@ async submitAttendance() {
     return;
   }
 
+  // 2. Fetch IDs from LocalStorage (Using both direct keys and user_data object for safety)
+  const rawUserData = localStorage.getItem('user_data');
+  const userData = rawUserData ? JSON.parse(rawUserData) : null;
+
+  // Prioritize direct keys, then fallback to user_data object
+  const rangerId = localStorage.getItem('ranger_id') || (userData ? userData.id : null);
+  const companyId = localStorage.getItem('company_id') || (userData ? userData.company_id : null);
+
+  // 3. Session Validation
+  if (!rangerId || !companyId || companyId === '0') {
+    console.error("CRITICAL ERROR: Missing session IDs!", { rangerId, companyId });
+    const msg = "Session expired. Please re-login.";
+    this.presentToast(msg, 'danger');
+    this.isSubmitting = false;
+    this.resetSlider();
+    return;
+  }
+
   this.isSubmitting = true;
   this.cdr.detectChanges(); 
 
-  // 2. LocalStorage se IDs nikaalna (Sahi tarika)
-  const companyId = localStorage.getItem('company_id'); // Make sure ye login ke waqt set ho raha hai
-  const rangerId = localStorage.getItem('ranger_id');
-
-  // 3. Payload taiyar karna
+  // 4. Payload Preparation (Ensuring Data Types match Backend DTO)
   const payload = {
-    ranger_id: rangerId ? Number(rangerId) : 0,
-    company_id: companyId ? Number(companyId) : null, // 👈 Admin filtering ke liye ye sabse zaroori hai
+    ranger_id: Number(rangerId),
+    company_id: Number(companyId),
     type: this.isEntry ? 'ENTRY' : 'EXIT',
     photo: this.capturedPhoto,
-    latitude: this.currentLat,
-    longitude: this.currentLng,
-    geofence: this.currentAddress,
-    rangerName: this.rangerName, 
-    region: this.rangerRegion,  // This is already there
-  location_name: this.currentAddress,
+    latitude: Number(this.currentLat),  // Explicitly convert to Number for DTO validation
+    longitude: Number(this.currentLng), // Explicitly convert to Number for DTO validation
+    geofence: this.currentAddress,      // Maps to location_name in Backend Service
+    rangerName: this.rangerName,        // Matches camelCase in Backend DTO
+    region: this.rangerRegion
   };
 
-  // 4. Log check karne ke liye (Sahi variable use kiya hai ab)
-  console.log('Submitting Onsite Attendance for Company:', payload.company_id);
+  // 5. Debug Logs (Check these in your Browser Inspect -> Console)
+  console.log('--- ATTENDANCE SUBMISSION START ---');
+  console.log('Target API:', this.apiUrl);
+  console.log('Payload Data:', payload);
+  console.log('-----------------------------------');
 
-  // 5. API Call
+  // 6. API Call
   this.http.post(this.apiUrl, payload).subscribe({
     next: async () => {
       const msg = await this.translate.get('ATTENDANCE.SUCCESS').toPromise();
       this.presentToast(msg, 'success');
+      
+      // Clear flag after success
       setTimeout(() => {
         this.isSubmitting = false;
         this.goBack();
       }, 1500);
     },
     error: async (err) => {
-      console.error("Submission Error:", err);
+      console.error("Submission Error Details:", err);
       this.isSubmitting = false;
       this.resetSlider();
-      const msg = await this.translate.get('ATTENDANCE.SYNC_ERROR').toPromise();
-      this.presentToast(msg, 'danger');
+      
+      let errorMsg = await this.translate.get('ATTENDANCE.SYNC_ERROR').toPromise();
+      if (err.status === 400) {
+        errorMsg = "Validation Error: Check coordinates/IDs";
+      }
+      
+      this.presentToast(errorMsg, 'danger');
     }
   });
 }
