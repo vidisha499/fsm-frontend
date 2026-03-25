@@ -269,56 +269,35 @@ async loadPatrolLogs(from?: string, to?: string) {
 
 async savePatrol() {
   if (!this.selectedMethod || !this.selectedType) {
-    const warnMsg = await firstValueFrom(this.translate.get('LIST.SELECT_PLACEHOLDER'));
-    this.presentToast(warnMsg, 'warning');
+    this.presentToast('Please select method and type', 'warning');
     this.resetKnob();
     return;
   }
 
-  const storedRangerId = localStorage.getItem('ranger_id'); 
-  const storedCompanyId = localStorage.getItem('company_id');
-
-  if (!storedRangerId) {
-    this.presentToast('User session not found. Please login again.', 'danger');
-    this.navCtrl.navigateRoot('/login');
-    return;
-  }
-
-  this.isSubmitting = true; 
-  const startMsg = await firstValueFrom(this.translate.get('LIST.STARTING'));
-  const loader = await this.loadingCtrl.create({ message: startMsg, mode: 'ios' });
+  this.isSubmitting = true;
+  const loader = await this.loadingCtrl.create({ message: 'Starting...', mode: 'ios' });
   await loader.present();
 
-  // FIX: Change 'company_id' to 'companyId' to match your NestJS Entity/DTO
   const payload = { 
-    rangerId: parseInt(storedRangerId),
-    
-    // companyId: storedCompanyId ? parseInt(storedCompanyId) : null, 
-    companyId: storedCompanyId ? parseInt(storedCompanyId) : null,
+    rangerId: parseInt(localStorage.getItem('ranger_id') || '0'),
+    companyId: parseInt(localStorage.getItem('company_id') || '0'),
     method: this.selectedMethod,
     type: this.selectedType,
-    latitude: 0, // Should be fetched from Geolocation before this call
-  longitude: 0,
-  location_name: 'Patrol Start'
+    ranger_name: localStorage.getItem('ranger_name') || 'Ranger'
   };
 
   this.http.post(`${this.apiUrl}/active`, payload).subscribe({
   
     next: (res: any) => {
       loader.dismiss();
-      // Store the active ID so we can update the route later
       localStorage.setItem('active_patrol_id', res.id.toString());
-      localStorage.setItem('temp_patrol_name', `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`);
-      
       this.isModalOpen = false;
       this.navCtrl.navigateForward('/patrol-active');
     },
-    error: async (err) => {
+    error: (err) => {
       loader.dismiss();
-      this.isSubmitting = false;
       this.resetKnob();
-      const failMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_ERROR'));
-      this.presentToast(failMsg, 'danger');
+      this.presentToast('Sync Error: 500', 'danger');
     }
   });
 }
