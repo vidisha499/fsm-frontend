@@ -348,125 +348,6 @@ ionViewWillEnter() {
   }
 }
 
-// loadData() {
-//   if (this.isFetching) return;
-
-//   const storageData = localStorage.getItem('user_data');
-//   if (!storageData) return;
-
-//   const user = JSON.parse(storageData);
-//   const myCompanyId = Number(user.company_id);
-//   const localISOTime = new Date().toISOString().split('T')[0];
-
-//   this.isFetching = true;
-
-//   this.dataService.getDashboardStats(myCompanyId).subscribe({
-//     next: (stats: any) => {
-//       this.incidentsCount = stats.totalEvents || 0;
-//       this.criminalActivityCount = stats.criminalEvents || 0; 
-//       this.attendancePercent = stats.resolvedPercentage || 0;
-//       this.cdr.detectChanges();
-//     },
-//     error: (err) => console.error("Stats Fetch Error:", err)
-//   });
-
-//   this.adminService.getFireAlertsCount(myCompanyId, localISOTime).subscribe({
-//     next: (res: any) => this.fireAlertsCount = res.count || 0
-//   });
-
-//   this.adminService.getOnDutyCount(myCompanyId, localISOTime).subscribe({
-//     next: (res: any) => this.onDutyCount = res.count || 0
-//   });
-
-//   this.adminService.getOnLeaveCount(myCompanyId).subscribe({
-//     next: (res: any) => this.onLeaveCount = res.count || 0
-//   });
-
-//   this.adminService.getInactiveCount(myCompanyId, localISOTime).subscribe({
-//     next: (res: any) => this.inactiveCount = res.count || 0
-//   });
-
-//   // --- 2. Rangers List ---
-//   this.dataService.getUsersByCompany(myCompanyId).subscribe({
-//     next: (res: any) => {
-//       const allUsers = res.data || res;
-//       if (Array.isArray(allUsers)) {
-//         this.rangers = allUsers.filter((u: any) => {
-//           const rId = u.role_id || u.roleId || u.roleid;
-//           return Number(rId) === 4;
-//         });
-//         this.filteredRangers = [...this.rangers];
-//         this.allRangers = this.rangers.length;
-//       }
-//     },
-//     error: () => this.isFetching = false
-//   });
-
-//   // --- 3. Alerts Section (Merged Logic) ---
-//   this.dataService.getLatestAlerts(myCompanyId).subscribe({
-//     next: (alerts: any[]) => {
-//       console.log('Alerts from DB:', alerts);
-//       if (alerts && Array.isArray(alerts)) {
-//         this.alertsData = alerts.map(alert => {
-//           // Identify specific category
-//           const specificCategory = alert.category || alert.label || alert.title || 'Alert';
-//           const rawType = (alert.type || alert.severity || 'info').toLowerCase();
-          
-//           // Theme & CSS Class Logic
-//           let cssClass = 'info';
-//           if (rawType.includes('crit')) cssClass = 'crit';
-//           else if (rawType.includes('warn')) cssClass = 'warn';
-//           else if (rawType.includes('safe') || rawType.includes('on-duty') || rawType.includes('attendance')) cssClass = 'safe';
-
-//           const theme = this.getAlertTheme(rawType.toUpperCase());
-
-//           // Date & Time Formatting
-//           const dateObj = alert.created_at ? new Date(alert.created_at) : new Date();
-//           const formattedDate = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-//           const formattedTime = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-//           return {
-//             ...alert,
-//             type: cssClass,
-//             // Header: "Attendance - Ishika"
-//             displayTitle: `${specificCategory} - ${alert.ranger_name || 'System'}`,
-//             // Body: Uses the location_name from our database fix
-//             displayDesc: `${alert.beat_name || 'Forest Division'} · ${alert.location_name || 'Unknown Location'}`,
-//             // Footer: 10:30 AM · 25 Mar 2026
-//             displayTime: `${formattedTime} · ${formattedDate}`,
-//             bg: theme.bg,
-//             color: theme.color,
-//             icon: theme.icon,
-//             label: theme.label
-//           };
-//         });
-//       } else {
-//         this.alertsData = [];
-//       }
-//     },
-//     error: (err) => {
-//       console.error('Alerts Fetch Error:', err);
-//       this.isFetching = false;
-//     },
-//     complete: () => {
-//       // Small timeout to ensure UI feels smooth
-//       setTimeout(() => {
-//         this.isFetching = false;
-//         this.cdr.detectChanges();
-//       }, 500);
-//     }
-//   });
-
-//   const dates = this.getFilterDates();
-
-//   this.adminService.getSightingCount(myCompanyId, dates.from, dates.to).subscribe({
-//     next: (res: any) => {
-//       this.sightingsCount = res || 0;
-//       this.cdr.detectChanges();
-//     },
-//     error: (err) => console.error("Sighting Count Error:", err)
-//   });
-// }
 
 loadData() {
   if (this.isFetching) return;
@@ -475,7 +356,7 @@ loadData() {
   if (!storageData) return;
 
   const user = JSON.parse(storageData);
-  const myCompanyId = Number(user.company_id);
+  const myCompanyId = Number(user.company_id || user.companyId); // Supporting both naming conventions
   const localISOTime = new Date().toISOString().split('T')[0];
   const dates = this.getFilterDates(); // Get dates for the sightings count
 
@@ -488,31 +369,39 @@ loadData() {
       this.criminalActivityCount = stats.criminalEvents || 0; 
       this.attendancePercent = stats.resolvedPercentage || 0;
       this.cdr.detectChanges();
+    },
+    error: (err: any) => console.error("Dashboard Stats Error:", err)
+  });
+
+  // 2. Sightings Count - FIX: Added nullish coalescing to prevent undefined error
+  this.dataService.getSightingCount(
+    myCompanyId, 
+    dates.from || '', 
+    dates.to || ''
+  ).subscribe({
+    next: (res: any) => {
+      // Handling both raw number or object response { count: X }
+      this.sightingsCount = typeof res === 'object' ? (res.count ?? 0) : (res ?? 0);
+      this.cdr.detectChanges();
+    },
+    error: (err: any) => {
+      console.error("Sighting Count Error:", err);
+      this.sightingsCount = 0;
     }
   });
 
-  
-this.dataService.getSightingCount(myCompanyId, dates.from, dates.to).subscribe({
-  next: (res: any) => {
-    this.sightingsCount = res || 0;
-    this.cdr.detectChanges();
-  },
-  // Add :any here to satisfy the compiler
-  error: (err: any) => console.error("Sighting Count Error:", err) 
-});
-
   // 3. Personnel Status Counts
   this.adminService.getFireAlertsCount(myCompanyId, localISOTime).subscribe({
-    next: (res: any) => this.fireAlertsCount = res.count || 0
+    next: (res: any) => this.fireAlertsCount = res.count ?? res ?? 0
   });
   this.adminService.getOnDutyCount(myCompanyId, localISOTime).subscribe({
-    next: (res: any) => this.onDutyCount = res.count || 0
+    next: (res: any) => this.onDutyCount = res.count ?? res ?? 0
   });
   this.adminService.getOnLeaveCount(myCompanyId).subscribe({
-    next: (res: any) => this.onLeaveCount = res.count || 0
+    next: (res: any) => this.onLeaveCount = res.count ?? res ?? 0
   });
   this.adminService.getInactiveCount(myCompanyId, localISOTime).subscribe({
-    next: (res: any) => this.inactiveCount = res.count || 0
+    next: (res: any) => this.inactiveCount = res.count ?? res ?? 0
   });
 
   // 4. Rangers List
@@ -524,7 +413,9 @@ this.dataService.getSightingCount(myCompanyId, dates.from, dates.to).subscribe({
         this.filteredRangers = [...this.rangers];
         this.allRangers = this.rangers.length;
       }
-    }
+      this.cdr.detectChanges();
+    },
+    error: (err: any) => console.error("Users Fetch Error:", err)
   });
 
   // 5. Alerts Section

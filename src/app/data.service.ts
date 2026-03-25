@@ -225,13 +225,13 @@ getIncidentTrend(companyId: number): Observable<any> {
 }
 
 // Inside AdminDataService
-getSightingCount(companyId: number, from?: string, to?: string) {
-  return this.http.get(`${this.baseApiUrl}/patrols/stats/sightings-count`, {
-    params: { 
-      companyId: companyId.toString(),
-      ...(from && { from }),
-      ...(to && { to })
-    }
-  });
+// Inside DataService class
+getSightingCount(companyId: number, from?: string, to?: string): Observable<number> {
+  let params: any = { companyId: companyId.toString() };
+
+  if (from) params.from = from;
+  if (to) params.to = to;
+
+  return this.http.get<number>(`${this.baseApiUrl}/patrols/stats/sightings-count`, { params });
 }
 }
