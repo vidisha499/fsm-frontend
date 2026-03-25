@@ -219,6 +219,7 @@ async submit() {
     latitude: this.currentLat,
     longitude: this.currentLng,
     status: 'pending',
+    location_name: this.currentAddress,
     created_at: new Date().toISOString() 
   };
 

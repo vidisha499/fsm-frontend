@@ -25,6 +25,7 @@ private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw';
   map: any;
   lat: any = 'Detecting...';
   lng: any = 'Detecting...';
+  public currentAddress: string = '';
   
 public incidentData = {
   priority: 'High Priority',
@@ -307,6 +308,8 @@ const payload = {
 
   latitude: Number(this.lat), 
   longitude: Number(this.lng),
+  
+  location_name: this.currentAddress,
   status: 'Pending'
 };
 

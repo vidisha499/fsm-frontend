@@ -272,16 +272,6 @@ alerts: ForestAlert[] = [];
     ],
   };
 
-//   public alertsData = [
-//   { id: 1, type: 'crit', icon: '🪓', title: 'Illegal Felling · Beat Alpha', desc: '3 trees, ~2.4 cmt teak · North Division', time: '14 min ago · R. Patil responding', label: 'CRITICAL', bg: '#fff1f2', color: '#ef4444' },
-//   { id: 2, type: 'warn', icon: '🔥', title: 'Fire Alert · Zone C-4', desc: 'East Plateau · Smoke detected, low intensity', time: '38 min ago · Fire watch deployed', label: 'WARNING', bg: '#fffbeb', color: '#d97706' },
-//   { id: 3, type: 'info', icon: '🦌', title: 'Wild Animal Sighting', desc: 'River Buffer · Tiger near village boundary', time: '1h 12m ago · Forest dept alerted', label: 'INFO', bg: '#eff6ff', color: '#3b82f6' },
-//   { id: 4, type: 'warn', icon: '🚛', title: 'Timber Transport Spotted', desc: 'South Valley · Unregistered truck Route-44', time: '2h 5m ago · Checkpoint alerted', label: 'WARNING', bg: '#fffbeb', color: '#d97706' },
-//   { id: 5, type: 'crit', icon: '🐾', title: 'Poaching Suspect Held', desc: 'East Plateau · 2 armed poachers arrested', time: '5h ago · Case filed', label: 'CRITICAL', bg: '#fff1f2', color: '#ef4444' },
-//   { id: 6, type: 'safe', icon: '✅', title: 'Patrol Completed · Beat Beta', desc: 'South Valley · 22km covered, all clear', time: '2h ago · S. Mehta', label: 'CLEAR', bg: '#f0fdfa', color: '#0d9488' }
-// ];
-  
-
   get activePins() {
     // This is now handled by updateVisiblePins(),
     // but to satisfy the compiler, we return the processed display array
@@ -369,6 +359,97 @@ ionViewWillEnter() {
   }
 }
 
+// loadData() {
+//   if (this.isFetching) return;
+
+//   const storageData = localStorage.getItem('user_data');
+//   if (!storageData) return;
+
+//   const user = JSON.parse(storageData);
+//   const myCompanyId = Number(user.company_id);
+//   const localISOTime = new Date().toISOString().split('T')[0];
+
+//   this.isFetching = true;
+
+//   // KPI Fetches (Keep these as they are)
+//   this.adminService.getFireAlertsCount(myCompanyId, localISOTime).subscribe({ 
+//     next: (res: any) => this.fireAlertsCount = res.count || 0 
+//   });
+//   this.adminService.getOnDutyCount(myCompanyId, localISOTime).subscribe({ 
+//     next: (res: any) => this.onDutyCount = res.count || 0 
+//   });
+//   this.adminService.getOnLeaveCount(myCompanyId).subscribe({ 
+//     next: (res: any) => this.onLeaveCount = res.count || 0 
+//   });
+//   this.adminService.getInactiveCount(myCompanyId, localISOTime).subscribe({ 
+//     next: (res: any) => this.inactiveCount = res.count || 0 
+//   });
+
+//   // Rangers List (Keep this as it is)
+//   this.dataService.getUsersByCompany(myCompanyId).subscribe({
+//     next: (res: any) => {
+//       const allUsers = res.data || res;
+//       if (Array.isArray(allUsers)) {
+//         this.rangers = allUsers.filter((u: any) => {
+//           const rId = u.role_id || u.roleId || u.roleid;
+//           return Number(rId) === 4;
+//         });
+//         this.filteredRangers = [...this.rangers];
+//         this.allRangers = this.rangers.length;
+//       }
+//     },
+//     error: () => this.isFetching = false,
+//     complete: () => setTimeout(() => { 
+//       this.isFetching = false; 
+//       this.cdr.detectChanges(); 
+//     }, 500)
+//   });
+
+//   // --- ALERTS FIX (Corrected Syntax & Mapping) ---
+//   this.dataService.getLatestAlerts(myCompanyId).subscribe({
+//     next: (alerts: any[]) => {
+//       console.log('Alerts from DB:', alerts);
+//       if (alerts && Array.isArray(alerts)) {
+//         // Map everything here so UI looks correct without needing a click
+//         this.alertsData = alerts.map(alert => {
+//           const rawType = (alert.type || alert.label || alert.severity || 'info').toLowerCase();
+          
+//           // Map to your CSS classes for the side-strip: crit, warn, info
+//           let cssClass = 'info';
+//           if (rawType.includes('crit')) cssClass = 'crit';
+//           else if (rawType.includes('warn')) cssClass = 'warn';
+//           else if (rawType.includes('safe')) cssClass = 'safe';
+
+//           const theme = this.getAlertTheme(rawType.toUpperCase());
+          
+//           return {
+//             ...alert,
+//             type: cssClass, // Matches .alert-row.crit in SCSS
+//             displayTitle: alert.title || `${alert.category || 'Forest'} · ${alert.beat_name || 'Division'}`,
+//             displayDesc: alert.description || 'No additional details available.',
+//             displayTime: alert.created_at ? this.formatTime(alert.created_at) : 'Just now',
+//             bg: theme.bg,
+//             color: theme.color,
+//             icon: theme.icon,
+//             label: theme.label
+//           };
+//         });
+//       } else {
+//         this.alertsData = [];
+//       }
+//       this.cdr.detectChanges();
+//     },
+//     error: (err) => {
+//       console.error('Alerts Fetch Error:', err);
+//       this.isFetching = false;
+//     },
+//     complete: () => {
+//       this.isFetching = false;
+//       this.cdr.detectChanges();
+//     }
+//   });
+// }
+
 loadData() {
   if (this.isFetching) return;
 
@@ -381,7 +462,7 @@ loadData() {
 
   this.isFetching = true;
 
-  // KPI Fetches (Keep these as they are)
+  // KPI Fetches (Preserved from existing logic)
   this.adminService.getFireAlertsCount(myCompanyId, localISOTime).subscribe({ 
     next: (res: any) => this.fireAlertsCount = res.count || 0 
   });
@@ -395,15 +476,12 @@ loadData() {
     next: (res: any) => this.inactiveCount = res.count || 0 
   });
 
-  // Rangers List (Keep this as it is)
+  // Rangers List Fetching
   this.dataService.getUsersByCompany(myCompanyId).subscribe({
     next: (res: any) => {
       const allUsers = res.data || res;
       if (Array.isArray(allUsers)) {
-        this.rangers = allUsers.filter((u: any) => {
-          const rId = u.role_id || u.roleId || u.roleid;
-          return Number(rId) === 4;
-        });
+        this.rangers = allUsers.filter((u: any) => Number(u.role_id) === 4);
         this.filteredRangers = [...this.rangers];
         this.allRangers = this.rangers.length;
       }
@@ -415,29 +493,39 @@ loadData() {
     }, 500)
   });
 
-  // --- ALERTS FIX (Corrected Syntax & Mapping) ---
+  // --- ALERTS FIX WITH SPECIFIC CATEGORY MAPPING ---
   this.dataService.getLatestAlerts(myCompanyId).subscribe({
     next: (alerts: any[]) => {
       console.log('Alerts from DB:', alerts);
       if (alerts && Array.isArray(alerts)) {
-        // Map everything here so UI looks correct without needing a click
         this.alertsData = alerts.map(alert => {
-          const rawType = (alert.type || alert.label || alert.severity || 'info').toLowerCase();
+          // Identify the specific incident/action name
+          const specificCategory = alert.category || alert.label || alert.title || 'Alert';
+          const rawType = (alert.type || alert.severity || 'info').toLowerCase();
           
-          // Map to your CSS classes for the side-strip: crit, warn, info
+          // Logic for CSS classes (Preserving your aesthetic requirements)
           let cssClass = 'info';
           if (rawType.includes('crit')) cssClass = 'crit';
           else if (rawType.includes('warn')) cssClass = 'warn';
-          else if (rawType.includes('safe')) cssClass = 'safe';
+          else if (rawType.includes('safe') || rawType.includes('on-duty')) cssClass = 'safe';
 
           const theme = this.getAlertTheme(rawType.toUpperCase());
-          
+
+          // Format Date and Time
+          const dateObj = alert.created_at ? new Date(alert.created_at) : new Date();
+          const formattedDate = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+          const formattedTime = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
           return {
             ...alert,
-            type: cssClass, // Matches .alert-row.crit in SCSS
-            displayTitle: alert.title || `${alert.category || 'Forest'} · ${alert.beat_name || 'Division'}`,
-            displayDesc: alert.description || 'No additional details available.',
-            displayTime: alert.created_at ? this.formatTime(alert.created_at) : 'Just now',
+            type: cssClass,
+            // Updated Header: Shows "Attendance - Vidisha" or "Illegal Felling - Vidisha"
+            displayTitle: `${specificCategory} - ${alert.ranger_name || 'System'}`,
+            // Body: Division · Location
+          // Change alert.location to alert.location_name
+            displayDesc: `${alert.beat_name || 'Forest Division'} · ${alert.location_name || 'Unknown Location'}`,
+            // Footer: Time · Date
+            displayTime: `${formattedTime} · ${formattedDate}`,
             bg: theme.bg,
             color: theme.color,
             icon: theme.icon,

@@ -213,6 +213,7 @@ getWeeklyAttendanceStats(companyId: any, rangerId?: any) {
 getLatestAlerts(companyId: number): Observable<any[]> {
   return this.http.get<any[]>(`${this.baseApiUrl}/alerts/${companyId}`);
 }
+
 getDashboardStats(companyId: number) {
   // Ensure karo apiUrl sahi hai (e.g., https://forest-backend-pi.vercel.app/api)
   return this.http.get(`${this.baseApiUrl}/incidents/stats/${companyId}`);

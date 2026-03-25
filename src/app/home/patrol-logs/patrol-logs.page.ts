@@ -292,10 +292,14 @@ async savePatrol() {
   // FIX: Change 'company_id' to 'companyId' to match your NestJS Entity/DTO
   const payload = { 
     rangerId: parseInt(storedRangerId),
+    
     // companyId: storedCompanyId ? parseInt(storedCompanyId) : null, 
     companyId: storedCompanyId ? parseInt(storedCompanyId) : null,
     method: this.selectedMethod,
-    type: this.selectedType 
+    type: this.selectedType,
+    latitude: 0, // Should be fetched from Geolocation before this call
+  longitude: 0,
+  location_name: 'Patrol Start'
   };
 
   this.http.post(`${this.apiUrl}/active`, payload).subscribe({

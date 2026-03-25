@@ -71,69 +71,7 @@ export class AttendancePage implements OnInit, OnDestroy {
     await this.initLeafletMap();
   }
 
-//   async initLeafletMap() {
-//     try {
-//       if (this.map) { this.map.remove(); }
 
-//       const iconRetinaUrl = 'assets/marker-icon-2x.png';
-//     const iconUrl = 'assets/marker-icon.png';
-//     const shadowUrl = 'assets/marker-shadow.png';
-//     const iconDefault = L.icon({
-//       iconRetinaUrl,
-//       iconUrl,
-//       shadowUrl,
-//       iconSize: [25, 41],
-//       iconAnchor: [12, 41],
-//       popupAnchor: [1, -34],
-//       tooltipAnchor: [16, -28],
-//       shadowSize: [41, 41]
-//     });
-//     L.Marker.prototype.options.icon = iconDefault;
-
-//     // initLeafletMap() ke shuruat mein ye dalo
-// delete (L.Icon.Default.prototype as any)._getIconUrl;
-
-// L.Icon.Default.mergeOptions({
-//   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-//   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-//   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-// });
-      
-//       this.map = L.map('attendanceMap', { 
-//         center: [this.currentLat, this.currentLng], 
-//         zoom: 16, 
-//         zoomControl: false 
-//       });
-
-//       L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-//         subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-//       }).addTo(this.map);
-
-//       this.marker = L.marker([this.currentLat, this.currentLng], { icon: this.locationIcon }).addTo(this.map);
-
-//       const pos = await Geolocation.getCurrentPosition({ 
-//         enableHighAccuracy: false, 
-//         timeout: 15000, 
-//         maximumAge: 60000 
-//       });
-      
-//       this.currentLat = pos.coords.latitude;
-//       this.currentLng = pos.coords.longitude;
-
-//       const newPoint = L.latLng(this.currentLat, this.currentLng);
-//       this.marker.setLatLng(newPoint);
-//       this.map.setView(newPoint, 18);
-      
-//       this.updateAddress(this.currentLat, this.currentLng);
-//       this.startLiveTracking();
-
-//     } catch (e) {
-//       console.error("GPS Timeout", e);
-//       const msg = await this.translate.get('ATTENDANCE.GPS_SEARCH').toPromise(); // 👈 Translated
-//       this.presentToast(msg, 'warning');
-//       this.startLiveTracking(); 
-//     }
-//   }
 
 async initLeafletMap() {
   try {
@@ -264,7 +202,8 @@ async submitAttendance() {
     longitude: this.currentLng,
     geofence: this.currentAddress,
     rangerName: this.rangerName, 
-    region: this.rangerRegion 
+    region: this.rangerRegion,  // This is already there
+  location_name: this.currentAddress,
   };
 
   // 4. Log check karne ke liye (Sahi variable use kiya hai ab)
