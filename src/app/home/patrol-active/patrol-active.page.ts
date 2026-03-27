@@ -65,18 +65,6 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     private route: ActivatedRoute
   ) { }
 
-  // ngOnInit() {
-  //   this.activePatrolId = localStorage.getItem('active_patrol_id');
-  //   this.patrolName = localStorage.getItem('temp_patrol_name') || 'Active Patrol';
-
-  //   if (!this.activePatrolId) {
-  //     this.navCtrl.navigateRoot('/patrol-logs'); 
-  //     return;
-  //   }
-    
-  //   this.startTimer();
-  // }
-
   ngOnInit() {
   // 1. Pehle Check karein ki kya URL mein koi ID aayi hai (Resume Case)
   this.route.queryParams.subscribe(params => {
@@ -154,27 +142,6 @@ viewDetails(log: any) {
     this.navCtrl.navigateForward(['/patrol-details', log.id]);
   }
 }
-
-
-
-//   refreshRecentSightings() {
-//   if (!this.activePatrolId) return;
-//   this.http.get(`${this.apiUrl}/active`).subscribe({
-//     next: (data: any) => {
-//       const active = Array.isArray(data)
-//         ? data.find((p: any) => p.id.toString() === this.activePatrolId)
-//         : data;
-      
-//       if (active) {
-//         this.recentSightings = active.obs_details || active.obsDetails || [];
-//         this.updateSightingMarkers(); // New function call
-//         this.cdr.detectChanges();
-//       }
-//     },
-//     error: (err) => console.error("Refresh failed", err)
-//   });
-// }
-
 
 
 refreshRecentSightings() {
@@ -350,48 +317,105 @@ async startTracking() {
   }
 
   // --- Trip End Logic ---
+  // async handleEndTrip(isManual: boolean = false) {
+  //   if (!isManual || this.isSubmitting) return;
+
+  // this.isSubmitting = true;
+    
+  //   const loaderMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_FINAL'));
+  //   const loader = await this.loadingCtrl.create({ message: loaderMsg, mode: 'ios' });
+  //   await loader.present();
+
+  //   const rId = localStorage.getItem('ranger_id') || '1';
+  //   const logPayload = {
+  //     rangerId: parseInt(rId),
+  //     patrolName: this.patrolName,
+  //     startTime: this.startTime,
+  //     endTime: new Date().toISOString(),
+  //     distanceKm: parseFloat(this.totalDistanceKm.toFixed(2)),
+  //     duration: this.timerDisplay,
+  //     status: 'COMPLETED',
+      
+  //     photos: this.capturedPhotos, 
+  //     route: this.routePoints,
+  //     observationData: { Details: this.recentSightings }
+  //   };
+
+  //   this.http.post(`${this.apiUrl}/logs`, logPayload).subscribe({
+  //     next: async () => {
+  //       await loader.dismiss();
+  //       localStorage.removeItem('active_patrol_id');
+  //       localStorage.removeItem('temp_patrol_name');
+        
+  //       const successMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_SUCCESS'));
+  //       this.showToast(successMsg);
+  //       this.navCtrl.navigateRoot('/patrol-logs');
+  //     },
+  //     error: async (err) => {
+  //       await loader.dismiss();
+  //       this.isSubmitting = false;
+  //       const errorMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_ERROR'));
+  //       this.showToast(errorMsg);
+  //     }
+  //   });
+  // }
+
   async handleEndTrip(isManual: boolean = false) {
-    if (!isManual || this.isSubmitting) return;
+  if (!isManual || this.isSubmitting) return;
 
   this.isSubmitting = true;
-    
-    const loaderMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_FINAL'));
-    const loader = await this.loadingCtrl.create({ message: loaderMsg, mode: 'ios' });
-    await loader.present();
+  
+  const loaderMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_FINAL'));
+  const loader = await this.loadingCtrl.create({ message: loaderMsg, mode: 'ios' });
+  await loader.present();
 
-    const rId = localStorage.getItem('ranger_id') || '1';
-    const logPayload = {
-      rangerId: parseInt(rId),
-      patrolName: this.patrolName,
-      startTime: this.startTime,
-      endTime: new Date().toISOString(),
-      distanceKm: parseFloat(this.totalDistanceKm.toFixed(2)),
-      duration: this.timerDisplay,
-      status: 'COMPLETED',
+  // Retrieve session data
+  const rId = localStorage.getItem('ranger_id');
+  const cId = localStorage.getItem('company_id');
+  // const rName = localStorage.getItem('ranger_name') || 'Ranger';
+  const rName = localStorage.getItem('ranger_username') || 
+                localStorage.getItem('ranger_name') || 
+                'Ranger';
+
+  const logPayload = {
+    rangerId: rId ? parseInt(rId) : null,
+    companyId: cId ? parseInt(cId) : null, // Added to ensure Admin visibility
+    // ranger_name: rName,    
+    ranger_name: rName,                // Crucial for the Backend Alert trigger
+    patrolName: this.patrolName,
+    startTime: this.startTime,
+    endTime: new Date().toISOString(),
+    distanceKm: parseFloat(this.totalDistanceKm.toFixed(2)),
+    duration: this.timerDisplay,
+    status: 'COMPLETED',
+    photos: this.capturedPhotos, 
+    route: this.routePoints,
+    observationData: { Details: this.recentSightings }
+  };
+
+  this.http.post(`${this.apiUrl}/logs`, logPayload).subscribe({
+    next: async () => {
+      await loader.dismiss();
+      // Clean up session
+      localStorage.removeItem('active_patrol_id');
+      localStorage.removeItem('temp_patrol_name');
       
-      photos: this.capturedPhotos, 
-      route: this.routePoints,
-      observationData: { Details: this.recentSightings }
-    };
-
-    this.http.post(`${this.apiUrl}/logs`, logPayload).subscribe({
-      next: async () => {
-        await loader.dismiss();
-        localStorage.removeItem('active_patrol_id');
-        localStorage.removeItem('temp_patrol_name');
-        
-        const successMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_SUCCESS'));
-        this.showToast(successMsg);
-        this.navCtrl.navigateRoot('/patrol-logs');
-      },
-      error: async (err) => {
-        await loader.dismiss();
-        this.isSubmitting = false;
-        const errorMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_ERROR'));
-        this.showToast(errorMsg);
-      }
-    });
-  }
+      const successMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_SUCCESS'));
+      this.showToast(successMsg, 'success');
+      this.navCtrl.navigateRoot('/home/patrol-logs');
+    },
+    error: async (err) => {
+      await loader.dismiss();
+      this.isSubmitting = false;
+      // Reset the slider knob so user can try again
+      this.domCtrl.write(() => {
+        if (this.endTripKnob) this.endTripKnob.nativeElement.style.transform = `translateX(0px)`;
+      });
+      const errorMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_ERROR'));
+      this.showToast(errorMsg, 'danger');
+    }
+  });
+}
 
   
   

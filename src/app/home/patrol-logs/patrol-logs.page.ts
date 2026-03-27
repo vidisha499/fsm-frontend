@@ -30,6 +30,7 @@ export class PatrolLogsPage implements OnInit {
   public isFilterModalOpen = false;
   public filterFrom: string = '';
   public filterTo: string = '';
+  public rangerName: string = '';
   public maxDate: string = new Date().toISOString().split('T')[0];
 
   private apiUrl: string = 'https://forest-backend-pi.vercel.app/api/patrols';
@@ -256,10 +257,10 @@ if (userRole === 'RANGER' && userData.id) {
       // 1. Map Active/Pending Logs
       const pendingLogs = (res.active || []).map((p: any) => ({
         ...p,
-        status: 'PENDING',
-        patrolName: (p.method && p.type) 
-          ? `${p.method.toUpperCase()} - ${p.type.toUpperCase()}` 
-          : (p.method ? `${p.method.toUpperCase()} PATROL` : 'ACTIVE PATROL'),
+        status: 'PENDING', // Force status so UI shows yellow/pending
+        patrolName: p.method ? `${p.method.toUpperCase()} Patrol` : 'Active Patrol',
+        ranger_name: this.rangerName,
+        // StartTime check karein kyunki list mein date dikhani hoti hai
         startTime: p.startTime || new Date().toISOString() 
       }));
 
@@ -290,40 +291,61 @@ if (userRole === 'RANGER' && userData.id) {
 // async savePatrol() {
 //   async savePatrol() {
 //   if (!this.selectedMethod || !this.selectedType) {
-//     this.presentToast('Please select method and type', 'warning');
+//     const warnMsg = await firstValueFrom(this.translate.get('LIST.SELECT_PLACEHOLDER'));
+//     this.presentToast(warnMsg, 'warning');
 //     this.resetKnob();
 //     return;
 //   }
 
-//   this.isSubmitting = true;
-//   const loader = await this.loadingCtrl.create({ message: 'Starting...', mode: 'ios' });
+//   const storedRangerId = localStorage.getItem('ranger_id'); 
+//   const storedCompanyId = localStorage.getItem('company_id');
+
+//   if (!storedRangerId) {
+//     this.presentToast('User session not found. Please login again.', 'danger');
+//     this.navCtrl.navigateRoot('/login');
+//     return;
+//   }
+
+//   this.isSubmitting = true; 
+//   const startMsg = await firstValueFrom(this.translate.get('LIST.STARTING'));
+//   const loader = await this.loadingCtrl.create({ message: startMsg, mode: 'ios' });
 //   await loader.present();
 
+//   // FIX: Change 'company_id' to 'companyId' to match your NestJS Entity/DTO
 //   const payload = { 
-//     rangerId: parseInt(localStorage.getItem('ranger_id') || '0'),
-//     companyId: parseInt(localStorage.getItem('company_id') || '0'),
+//     rangerId: parseInt(storedRangerId),
+    
+//     // companyId: storedCompanyId ? parseInt(storedCompanyId) : null, 
+//     companyId: storedCompanyId ? parseInt(storedCompanyId) : null,
 //     method: this.selectedMethod,
 //     type: this.selectedType,
-//     ranger_name: localStorage.getItem('ranger_name') || 'Ranger'
+//     latitude: 0, // Should be fetched from Geolocation before this call
+//   longitude: 0,
+//   location_name: 'Patrol Start'
 //   };
 
 //   this.http.post(`${this.apiUrl}/active`, payload).subscribe({
-  
 //     next: (res: any) => {
 //       loader.dismiss();
+//       // Store the active ID so we can update the route later
 //       localStorage.setItem('active_patrol_id', res.id.toString());
+//       localStorage.setItem('temp_patrol_name', `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`);
+      
 //       this.isModalOpen = false;
 //       this.navCtrl.navigateForward('/patrol-active');
 //     },
-//     error: (err) => {
+//     error: async (err) => {
 //       loader.dismiss();
+//       this.isSubmitting = false;
 //       this.resetKnob();
-//       this.presentToast('Sync Error: 500', 'danger');
+//       const failMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_ERROR'));
+//       this.presentToast(failMsg, 'danger');
 //     }
 //   });
 // }
 
 async savePatrol() {
+  // 1. Validation for UI selection
   if (!this.selectedMethod || !this.selectedType) {
     const warnMsg = await firstValueFrom(this.translate.get('LIST.SELECT_PLACEHOLDER'));
     this.presentToast(warnMsg, 'warning');
@@ -331,8 +353,12 @@ async savePatrol() {
     return;
   }
 
+  // 2. Retrieve all necessary session data
   const storedRangerId = localStorage.getItem('ranger_id'); 
   const storedCompanyId = localStorage.getItem('company_id');
+  // GET RANGER NAME: This ensures the Admin sees "Vidisha" instead of "Ranger"
+  const storedRangerName = localStorage.getItem('ranger_name') || 'Ranger'; 
+  
 
   if (!storedRangerId) {
     this.presentToast('User session not found. Please login again.', 'danger');
@@ -346,31 +372,50 @@ async savePatrol() {
   const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
   await loader.present();
 
-  // FIX: Change 'company_id' to 'companyId' to match your NestJS Entity/DTO
-  const payload = { 
-    // rangerId: parseInt(storedRangerId),
-     userId: userData.id, 
-     rangerId: userData.id,
-    // companyId: storedCompanyId ? parseInt(storedCompanyId) : null, 
-    companyId: storedCompanyId ? parseInt(storedCompanyId) : null,
-    method: this.selectedMethod,
-    type: this.selectedType,
-    latitude: 0, // Should be fetched from Geolocation before this call
-  longitude: 0,
-  location_name: 'Patrol Start'
-  };
+  let lat = 0;
+  let lng = 0;
 
+  try {
+    // 3. Attempt to get real GPS coordinates for the Admin map
+    const { Geolocation } = await import('@capacitor/geolocation');
+    const position = await Geolocation.getCurrentPosition({
+      enableHighAccuracy: true,
+      timeout: 5000 // 5 second timeout to prevent getting stuck
+    });
+    lat = position.coords.latitude;
+    lng = position.coords.longitude;
+  } catch (e) {
+    console.warn("GPS failed or timed out, proceeding with 0,0", e);
+  }
+
+  // 4. Build the Final Payload
+ // 4. Build the Final Payload
+const payload = { 
+  rangerId: parseInt(storedRangerId),
+  companyId: storedCompanyId ? parseInt(storedCompanyId) : null, // Changed from company_id to companyId
+  ranger_name: this.rangerName,
+  method: this.selectedMethod,
+  type: this.selectedType,
+  latitude: lat,
+  longitude: lng,
+  location_name: 'Patrol Start'
+};
+
+  // 5. Send to Backend
   this.http.post(`${this.apiUrl}/active`, payload).subscribe({
     next: (res: any) => {
       loader.dismiss();
-      // Store the active ID so we can update the route later
+      
+      // Persist session info for the tracking page
       localStorage.setItem('active_patrol_id', res.id.toString());
       localStorage.setItem('temp_patrol_name', `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`);
       
       this.isModalOpen = false;
-      this.navCtrl.navigateForward('/patrol-active');
+      // Navigate to tracking
+      this.navCtrl.navigateForward('/home/patrol-active');
     },
     error: async (err) => {
+      console.error("API Error:", err);
       loader.dismiss();
       this.isSubmitting = false;
       this.resetKnob();
@@ -379,6 +424,8 @@ async savePatrol() {
     }
   });
 }
+
+
 
 
 
@@ -423,23 +470,20 @@ applyFilter() {
     return 'fas fa-eye';
   }
 
-  setOpen(isOpen: boolean) { 
-    this.isModalOpen = isOpen; 
-    if (isOpen) {
-      setTimeout(() => this.setupSwipeGesture(), 150);
-    } else {
-      this.isSubmitting = false;
-    }
+setOpen(isOpen: boolean) {
+  this.isModalOpen = isOpen;
+  if (isOpen) {
+    // 1. Try to get 'ranger_username' first, then 'ranger_name' as a backup
+    this.rangerName = localStorage.getItem('ranger_username') || localStorage.getItem('ranger_name') || 'Unknown Ranger';
+    
+    // 2. Debugging: Check your console to see what is happening
+    console.log("Fetched Ranger Name from Storage:", this.rangerName);
+    
+    setTimeout(() => this.setupSwipeGesture(), 150);
   }
+}
 
-  // viewDetails(patrol: any) {
-  //   const pId = patrol.id; 
-  //   if (pId) {
-  //     this.navCtrl.navigateForward(['/patrol-details', pId]); 
-  //   } else {
-  //     this.presentToast("Error: ID not found", "danger");
-  //   }
-  // }
+
   viewDetails(log: any) {
   if (log.status === 'PENDING') {
     // Agar status PENDING hai (Active Patrol table se aaya hai)

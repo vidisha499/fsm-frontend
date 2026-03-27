@@ -1,5 +1,10 @@
-import {Component,OnInit,AfterViewInit,ChangeDetectorRef, } from '@angular/core';
-import { Router , } from '@angular/router'; // 1. Added Router
+import {
+  Component,
+  OnInit,
+  AfterViewInit,
+  ChangeDetectorRef,
+} from '@angular/core';
+import { Router } from '@angular/router'; // 1. Added Router
 import { NavController } from '@ionic/angular';
 import { Chart, registerables, ChartConfiguration } from 'chart.js';
 import { DataService } from 'src/app/data.service';
@@ -96,7 +101,7 @@ export class AdminPage implements OnInit, AfterViewInit {
 
   // --- UI State ---
   momStatus: string = '0% MoM';
-isGoodTrend: boolean = true;
+  isGoodTrend: boolean = true;
   trendChart: any;
   rangers: any[] = [];
   private dataSubscription: any;
@@ -104,10 +109,10 @@ isGoodTrend: boolean = true;
   private isFetching: boolean = false;
   public onDutyCount: number = 0;
   public onLeaveCount: number = 0;
-public inactiveCount: number = 0;
-public incidentsCount: number = 0;
-public fireAlertsCount: number = 0;
-criminalActivityCount: number = 0;
+  public inactiveCount: number = 0;
+  public incidentsCount: number = 0;
+  public fireAlertsCount: number = 0;
+  criminalActivityCount: number = 0;
   currentTime: string = '';
   activeTab: string = 'home';
   activeSegment: string = 'overview';
@@ -127,15 +132,16 @@ criminalActivityCount: number = 0;
   activeLayerCount: number = 4;
   public activeAlertFilter: string = 'all';
   private dataInterval: any;
- filteredRangers: any[] = [];
+  filteredRangers: any[] = [];
   showCompartments: boolean = false;
   attendancePercent: number = 0;
   public selectedRanger: any = null;
   // Replace your hardcoded alertsData with an empty array
-public alertsData: any[] = [];
-alerts: ForestAlert[] = []; 
-// Inside your class variables
-public sightingsCount: number = 0;
+  public alertsData: any[] = [];
+public filteredAlerts: any[] = [];
+  alerts: ForestAlert[] = [];
+  // Inside your class variables
+  public sightingsCount: number = 0;
 
   layerStates: { [key: string]: boolean } = {
     patrols: true,
@@ -281,26 +287,26 @@ public sightingsCount: number = 0;
     return active;
   }
 
- // Add this method to handle the "All On" button logic
-layerAllOn() {
-  Object.keys(this.layerStates).forEach(key => {
-    this.layerStates[key] = true;
-  });
-  this.updateVisiblePins();
-}
+  // Add this method to handle the "All On" button logic
+  layerAllOn() {
+    Object.keys(this.layerStates).forEach((key) => {
+      this.layerStates[key] = true;
+    });
+    this.updateVisiblePins();
+  }
 
-// Add this to handle the "All Off" button logic
-layerAllOff() {
-  Object.keys(this.layerStates).forEach(key => {
-    this.layerStates[key] = false;
-  });
-  this.updateVisiblePins();
-}
+  // Add this to handle the "All Off" button logic
+  layerAllOff() {
+    Object.keys(this.layerStates).forEach((key) => {
+      this.layerStates[key] = false;
+    });
+    this.updateVisiblePins();
+  }
 
-// Ensure the allLayersOn property is available for the template
-get allLayersOn(): boolean {
-  return Object.values(this.layerStates).every(val => val === true);
-}
+  // Ensure the allLayersOn property is available for the template
+  get allLayersOn(): boolean {
+    return Object.values(this.layerStates).every((val) => val === true);
+  }
 
   // --- Data ---
   beatCoverage = [
@@ -313,54 +319,248 @@ get allLayersOn(): boolean {
   private _charts: { [key: string]: Chart } = {};
 
   // 2. Injected Router into Constructor
-  constructor(private router: Router,
-     private cdr: ChangeDetectorRef,
-     private dataService: DataService,
-    private navCtrl : NavController,
+  constructor(
+    private router: Router,
+    private cdr: ChangeDetectorRef,
+    private dataService: DataService,
+    private navCtrl: NavController,
     private adminService: AdminDataService,
   ) {}
 
-ngOnInit() {
- 
-  this.loadData();
+  ngOnInit() {
+    this.loadData();
+
+    // Pehle check karo agar koi purana interval hai toh usey maro
+    if (this.dataInterval) {
+      clearInterval(this.dataInterval);
+    }
+
+    this.dataInterval = setInterval(() => {
+      this.loadData();
+    }, 30000); // 30 seconds
+    this.loadTrendData();
+    this.updateTime();
+    this.updateVisiblePins();
+  }
+
+  ionViewWillEnter() {
+    this.loadData();
+    const navigation = this.router.getCurrentNavigation();
+    if (navigation?.extras.state && navigation.extras.state['openSegment']) {
+      // 1. Switch the main bottom tab to Home
+      this.activeTab = 'home';
+      // 2. Switch the segment to Officers
+      this.activeSegment = navigation.extras.state['openSegment'];
+    }
+  }
+
+  // loadData() {
+  //   if (this.isFetching) return;
+
+  //   const storageData = localStorage.getItem('user_data');
+
+  //   if (!storageData) return;
+
+  //   const user = JSON.parse(storageData);
+
+  //   const myCompanyId = Number(user.company_id || user.companyId); // Supporting both naming conventions
+
+  //   const localISOTime = new Date().toISOString().split('T')[0];
+
+  //   const dates = this.getFilterDates(); // Get dates for the sightings count
+
+  //   this.isFetching = true;
+
+  //   // 1. Dashboard General Stats
+
+  //   this.dataService.getDashboardStats(myCompanyId).subscribe({
+  //     next: (stats: any) => {
+  //       this.incidentsCount = stats.totalEvents || 0;
+
+  //       this.criminalActivityCount = stats.criminalEvents || 0;
+
+  //       this.attendancePercent = stats.resolvedPercentage || 0;
+
+  //       this.cdr.detectChanges();
+  //     },
+
+  //     error: (err: any) => console.error('Dashboard Stats Error:', err),
+  //   });
+
+  //   // 2. Sightings Count - FIX: Added nullish coalescing to prevent undefined error
+
+  //   this.dataService
+  //     .getSightingCount(
+  //       myCompanyId,
+
+  //       dates.from || '',
+
+  //       dates.to || '',
+  //     )
+  //     .subscribe({
+  //       next: (res: any) => {
+  //         // Handling both raw number or object response { count: X }
+
+  //         this.sightingsCount =
+  //           typeof res === 'object' ? (res.count ?? 0) : (res ?? 0);
+
+  //         this.cdr.detectChanges();
+  //       },
+
+  //       error: (err: any) => {
+  //         console.error('Sighting Count Error:', err);
+
+  //         this.sightingsCount = 0;
+  //       },
+  //     });
+
+  //   // 3. Personnel Status Counts
+
+  //   this.adminService.getFireAlertsCount(myCompanyId, localISOTime).subscribe({
+  //     next: (res: any) => (this.fireAlertsCount = res.count ?? res ?? 0),
+  //   });
+
+  //   this.adminService.getOnDutyCount(myCompanyId, localISOTime).subscribe({
+  //     next: (res: any) => (this.onDutyCount = res.count ?? res ?? 0),
+  //   });
+
+  //   this.adminService.getOnLeaveCount(myCompanyId).subscribe({
+  //     next: (res: any) => (this.onLeaveCount = res.count ?? res ?? 0),
+  //   });
+
+  //   this.adminService.getInactiveCount(myCompanyId, localISOTime).subscribe({
+  //     next: (res: any) => (this.inactiveCount = res.count ?? res ?? 0),
+  //   });
+
+  //   // 4. Rangers List
+
+  //   this.dataService.getUsersByCompany(myCompanyId).subscribe({
+  //     next: (res: any) => {
+  //       const allUsers = res.data || res;
+
+  //       if (Array.isArray(allUsers)) {
+  //         this.rangers = allUsers.filter(
+  //           (u: any) => Number(u.role_id || u.roleId) === 4,
+  //         );
+
+  //         this.filteredRangers = [...this.rangers];
+
+  //         this.allRangers = this.rangers.length;
+  //       }
+
+  //       this.cdr.detectChanges();
+  //     },
+
+  //     error: (err: any) => console.error('Users Fetch Error:', err),
+  //   });
+
+  //   // 5. Alerts Section
+
+  //   this.dataService.getLatestAlerts(myCompanyId).subscribe({
+  //     next: (alerts: any[]) => {
+  //       if (alerts && Array.isArray(alerts)) {
+  //         this.alertsData = alerts.map((alert) => {
+  //           const name = alert.ranger_name || alert.rangerName || 'Ranger';
+  //           const savedPrefs = localStorage.getItem('admin_notification_settings');
+  //   const prefs = savedPrefs ? JSON.parse(savedPrefs) : null;
+  //   this.alertsData = alerts
+  //     .filter(alert => {
+  //       if (!prefs) return true; // Show all if no settings saved yet
+
+  //       const type = (alert.type || '').toLowerCase();
+        
+  //       // Match the alert type to the user's preference
+  //       if (type.includes('fire')) {
+  //         const pref = prefs.find((p: any) => p.label === 'Fire Alerts');
+  //         return pref ? pref.enabled : true;
+  //       }
+  //       if (type.includes('criminal') || type.includes('poach')) {
+  //         const pref = prefs.find((p: any) => p.label === 'Criminal Activity');
+  //         return pref ? pref.enabled : true;
+  //       }
+  //       // ... add other types here
+  //       return true;
+  //     })
+  //     .map(alert => {
+  //       // ... keep your existing .map formatting logic here
+  //       return { ...alert, /* your formatting */ };
+  //     });
   
-  // Pehle check karo agar koi purana interval hai toh usey maro
-  if (this.dataInterval) {
-    clearInterval(this.dataInterval);
-  }
 
-  this.dataInterval = setInterval(() => {
-    this.loadData(); 
-  }, 30000); // 30 seconds
-  this.loadTrendData();
-  this.updateTime();
-  this.updateVisiblePins();
-}
+  //           const rawType = (
+  //             alert.type ||
+  //             alert.severity ||
+  //             'info'
+  //           ).toLowerCase();
 
-ionViewWillEnter() {
-   this.loadData();
-  const navigation = this.router.getCurrentNavigation();
-  if (navigation?.extras.state && navigation.extras.state['openSegment']) {
-    // 1. Switch the main bottom tab to Home
-    this.activeTab = 'home'; 
-    // 2. Switch the segment to Officers
-    this.activeSegment = navigation.extras.state['openSegment']; 
-  }
-}
+  //           const category =
+  //             alert.category ||
+  //             alert.label ||
+  //             alert.title ||
+  //             rawType.charAt(0).toUpperCase() + rawType.slice(1);
 
+  //           const displayTitle = `${category} - ${name}`;
 
+  //           let cssClass = 'info';
 
+  //           if (rawType.includes('crit')) cssClass = 'crit';
+  //           else if (rawType.includes('warn')) cssClass = 'warn';
+  //           else if (rawType.includes('safe') || rawType.includes('on-duty'))
+  //             cssClass = 'safe';
 
-loadData() {
+  //           const theme = this.getAlertTheme(rawType.toUpperCase());
+
+  //           const dateObj = alert.created_at
+  //             ? new Date(alert.created_at)
+  //             : new Date();
+
+  //           return {
+  //             ...alert,
+
+  //             type: cssClass,
+
+  //             displayTitle: displayTitle,
+
+  //             displayDesc: `${alert.beat_name || 'Forest Division'} · ${alert.location_name || alert.location || 'Unknown'}`,
+
+  //             displayTime: `${dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · ${dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}`,
+
+  //             bg: theme.bg,
+
+  //             color: theme.color,
+
+  //             icon: theme.icon,
+
+  //             label: theme.label,
+  //           };
+  //         });
+  //       }
+  //     },
+
+  //     error: (err) => console.error('Alerts Fetch Error:', err),
+
+  //     complete: () => {
+  //       // Release the fetching lock after a small delay for smooth UI
+
+  //       setTimeout(() => {
+  //         this.isFetching = false;
+
+  //         this.cdr.detectChanges();
+  //       }, 500);
+  //     },
+  //   });
+  // }
+
+  loadData() {
   if (this.isFetching) return;
 
   const storageData = localStorage.getItem('user_data');
   if (!storageData) return;
 
   const user = JSON.parse(storageData);
-  const myCompanyId = Number(user.company_id || user.companyId); // Supporting both naming conventions
+  const myCompanyId = Number(user.company_id || user.companyId); 
   const localISOTime = new Date().toISOString().split('T')[0];
-  const dates = this.getFilterDates(); // Get dates for the sightings count
+  const dates = this.getFilterDates(); 
 
   this.isFetching = true;
 
@@ -368,42 +568,37 @@ loadData() {
   this.dataService.getDashboardStats(myCompanyId).subscribe({
     next: (stats: any) => {
       this.incidentsCount = stats.totalEvents || 0;
-      this.criminalActivityCount = stats.criminalEvents || 0; 
+      this.criminalActivityCount = stats.criminalEvents || 0;
       this.attendancePercent = stats.resolvedPercentage || 0;
       this.cdr.detectChanges();
     },
-    error: (err: any) => console.error("Dashboard Stats Error:", err)
+    error: (err: any) => console.error('Dashboard Stats Error:', err),
   });
 
-  // 2. Sightings Count - FIX: Added nullish coalescing to prevent undefined error
-  this.dataService.getSightingCount(
-    myCompanyId, 
-    dates.from || '', 
-    dates.to || ''
-  ).subscribe({
+  // 2. Sightings Count
+  this.dataService.getSightingCount(myCompanyId, dates.from || '', dates.to || '').subscribe({
     next: (res: any) => {
-      // Handling both raw number or object response { count: X }
       this.sightingsCount = typeof res === 'object' ? (res.count ?? 0) : (res ?? 0);
       this.cdr.detectChanges();
     },
     error: (err: any) => {
-      console.error("Sighting Count Error:", err);
+      console.error('Sighting Count Error:', err);
       this.sightingsCount = 0;
-    }
+    },
   });
 
   // 3. Personnel Status Counts
   this.adminService.getFireAlertsCount(myCompanyId, localISOTime).subscribe({
-    next: (res: any) => this.fireAlertsCount = res.count ?? res ?? 0
+    next: (res: any) => (this.fireAlertsCount = res.count ?? res ?? 0),
   });
   this.adminService.getOnDutyCount(myCompanyId, localISOTime).subscribe({
-    next: (res: any) => this.onDutyCount = res.count ?? res ?? 0
+    next: (res: any) => (this.onDutyCount = res.count ?? res ?? 0),
   });
   this.adminService.getOnLeaveCount(myCompanyId).subscribe({
-    next: (res: any) => this.onLeaveCount = res.count ?? res ?? 0
+    next: (res: any) => (this.onLeaveCount = res.count ?? res ?? 0),
   });
   this.adminService.getInactiveCount(myCompanyId, localISOTime).subscribe({
-    next: (res: any) => this.inactiveCount = res.count ?? res ?? 0
+    next: (res: any) => (this.inactiveCount = res.count ?? res ?? 0),
   });
 
   // 4. Rangers List
@@ -417,111 +612,243 @@ loadData() {
       }
       this.cdr.detectChanges();
     },
-    error: (err: any) => console.error("Users Fetch Error:", err)
+    error: (err: any) => console.error('Users Fetch Error:', err),
   });
 
-  // 5. Alerts Section
-  this.dataService.getLatestAlerts(myCompanyId).subscribe({
-    next: (alerts: any[]) => {
-      if (alerts && Array.isArray(alerts)) {
-        this.alertsData = alerts.map(alert => {
-          const specificCategory = alert.category || alert.label || alert.title || 'Alert';
-          const rawType = (alert.type || alert.severity || 'info').toLowerCase();
-          
-          let cssClass = 'info';
-          if (rawType.includes('crit')) cssClass = 'crit';
-          else if (rawType.includes('warn')) cssClass = 'warn';
-          else if (rawType.includes('safe') || rawType.includes('on-duty')) cssClass = 'safe';
+  // 5. Alerts Section with Formatting & Filtering
+ 
+//   this.dataService.getLatestAlerts(myCompanyId).subscribe({
+//   next: (alerts: any[]) => {
+//     if (alerts && Array.isArray(alerts)) {
+//       // 1. Get Toggles from LocalStorage
+//       const savedPrefs = localStorage.getItem('admin_notification_settings');
+//       const prefs = savedPrefs ? JSON.parse(savedPrefs) : null;
 
-          const theme = this.getAlertTheme(rawType.toUpperCase());
-          const dateObj = alert.created_at ? new Date(alert.created_at) : new Date();
+//       this.alertsData = alerts
+//         .filter((alert) => {
+//           if (!prefs) return true; // Show all if no settings saved yet
+
+//           const dbCat = (alert.category || 'SYSTEM').toUpperCase();
+//           const type = (alert.type || '').toLowerCase();
+
+//           const isEnabled = (label: string) => {
+//             const p = prefs.find((x: any) => x.label === label);
+//             return p ? p.enabled : true;
+//           };
+
+//           // Mapping logic
+//           if (dbCat === 'FIRE') return isEnabled('Fire Alerts');
+          
+//           if (dbCat === 'CRIMINAL') {
+//             if (type.includes('fell')) return isEnabled('Illegal Felling');
+//             if (type.includes('poach')) return isEnabled('Animal Poaching');
+//             return isEnabled('Criminal Activity');
+//           }
+//           return true;
+//         })
+//         .map((alert) => {
+//           // Keep your existing mapping logic for icons/colors here
+//           const theme = this.getAlertTheme((alert.type || 'info').toUpperCase());
+//           return {
+//             ...alert,
+//             displayTitle: `${alert.category || 'Alert'} - ${alert.ranger_name || 'System'}`,
+//             displayDesc: `${alert.location_name || 'Forest Division'}`,
+//             displayTime: new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+//             icon: theme.icon,
+//             bg: theme.bg,
+//             color: theme.color,
+//             label: theme.label
+//           };
+//         });
+
+//       // 2. Refresh the visible list
+//       this.updateFilteredAlerts();
+//     }
+//     this.cdr.detectChanges();
+//   },
+//   error: (err) => console.error('Alerts Fetch Error:', err)
+// });
+
+this.dataService.getLatestAlerts(myCompanyId).subscribe({
+  next: (alerts: any[]) => {
+    if (alerts && Array.isArray(alerts)) {
+      // 1. Get Notification Toggles from LocalStorage
+      const savedPrefs = localStorage.getItem('admin_notification_settings');
+      const prefs = savedPrefs ? JSON.parse(savedPrefs) : null;
+
+      this.alertsData = alerts
+        .filter((alert) => {
+          if (!prefs) return true; // Show all if no settings saved yet
+
+          const dbCat = (alert.category || 'SYSTEM').toUpperCase();
+          
+          // Helper to check if a specific label is enabled in your Settings Page
+          const isEnabled = (label: string) => {
+            const p = prefs.find((x: any) => x.label.toLowerCase() === label.toLowerCase());
+            return p ? p.enabled : true;
+          };
+
+          // --- FILTERING LOGIC ---
+          // Checks if the database category matches the toggle in Settings
+          if (dbCat.includes('FIRE')) {
+            return isEnabled('Fire Alerts');
+          }
+          
+          if (dbCat.includes('FELL')) {
+            return isEnabled('Illegal Felling');
+          }
+
+          if (dbCat.includes('POACH')) {
+            return isEnabled('Animal Poaching');
+          }
+
+          if (dbCat.includes('CRIMINAL')) {
+            // This will match "Criminal Activity" in your settings array
+            return isEnabled('Criminal Activity');
+          }
+
+          return true; // Show Attendance/Patrols by default
+        })
+        .map((alert) => {
+          // 2. FORMATTING & THEMING
+          // We use 'type' (INCIDENT, ATTENDANCE) to set the Color Theme
+          const rawType = (alert.type || 'INFO').toUpperCase();
+          const theme = this.getAlertTheme(rawType);
+          
+          const name = alert.ranger_name || 'System';
+          const categoryDisplay = alert.category || 'Alert';
 
           return {
             ...alert,
-            type: cssClass,
-            displayTitle: `${specificCategory} - ${alert.ranger_name || 'System'}`,
-            displayDesc: `${alert.beat_name || 'Forest Division'} · ${alert.location_name || 'Unknown'}`,
-            displayTime: `${dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · ${dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}`,
+            // Map raw types to severity for CSS classes (critical, warning, info)
+            severity: rawType.includes('INCIDENT') ? 'critical' : 
+                      rawType.includes('WARN') ? 'warning' : 'info',
+            
+            displayTitle: `${categoryDisplay} - ${name}`,
+            displayDesc: `${alert.location_name || 'Forest Division'}`,
+            displayTime: alert.created_at ? 
+              `${new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · ${new Date(alert.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}` : 
+              'Just Now',
+            icon: theme.icon,
             bg: theme.bg,
             color: theme.color,
-            icon: theme.icon,
             label: theme.label
           };
         });
-      }
-    },
-    error: (err) => console.error('Alerts Fetch Error:', err),
-    complete: () => {
-      // Release the fetching lock after a small delay for smooth UI
-      setTimeout(() => {
-        this.isFetching = false;
-        this.cdr.detectChanges();
-      }, 500);
+
+      // 3. Refresh the visible lists (All/Critical/Warning tabs)
+      this.updateFilteredAlerts();
     }
-  });
+    this.cdr.detectChanges();
+  },
+  error: (err) => {
+    console.error('Alerts Fetch Error:', err);
+    this.isFetching = false;
+    this.cdr.detectChanges();
+  },
+  complete: () => {
+    this.isFetching = false;
+    this.cdr.detectChanges();
+  }
+});
 }
 
-getAlertTheme(type: string) {
-  const t = String(type).toUpperCase(); // Normalize to Uppercase
+updateFilteredAlerts() {
+  const filter = this.activeAlertFilter || 'all';
   
-  const themes: any = {
-    'INCIDENT': { bg: '#fff1f2', color: '#ef4444', icon: '🚨', label: 'CRITICAL' },
-    'CRIT': { bg: '#fff1f2', color: '#ef4444', icon: '🚨', label: 'CRITICAL' },
-    
-    'ONSITE_ATTENDANCE': { bg: '#fffbeb', color: '#d97706', icon: '📍', label: 'VERIFY' },
-    'WARN': { bg: '#fffbeb', color: '#d97706', icon: '🔥', label: 'WARNING' },
-    
-    'PATROL_START': { bg: '#eff6ff', color: '#3b82f6', icon: '🛡️', label: 'ACTIVE' },
-    'ATTENDANCE': { bg: '#f5f3ff', color: '#8b5cf6', icon: '👤', label: 'ON-DUTY' },
-    
-    'PATROL_END': { bg: '#f0fdfa', color: '#0d9488', icon: '✅', label: 'COMPLETED' },
-    'SAFE': { bg: '#f0fdfa', color: '#0d9488', icon: '✅', label: 'CLEAR' },
-    
-    'INFO': { bg: '#f8fafc', color: '#64748b', icon: '🔔', label: 'INFO' }
-  };
-
-  return themes[t] || themes['INFO'];
+  if (filter === 'all') {
+    this.filteredAlerts = [...this.alertsData];
+  } else {
+    // This filters the results that already passed the Settings Toggles
+    this.filteredAlerts = this.alertsData.filter(a => a.type === filter);
+  }
+  this.cdr.detectChanges();
 }
 
-getAlertIcon(category: string): string {
-  const map: any = {
-    'fire': '🔥',
-    'timber': '🪓',
-    'animal': '🐾',
-    'poaching': '👣',
-    'patrol': '✅'
-  };
-  return map[category?.toLowerCase()] || '🔔';
-}
+  getAlertTheme(type: string) {
+    const t = String(type).toUpperCase(); // Normalize to Uppercase
 
-getCount(sev: string): number {
-  // Add (a: ForestAlert) here
-  return this.alerts.filter((a: ForestAlert) => a.severity === sev).length;
-}
+    const themes: any = {
+      INCIDENT: {
+        bg: '#fff1f2',
+        color: '#ef4444',
+        icon: '🚨',
+        label: 'CRITICAL',
+      },
+      CRIT: { bg: '#fff1f2', color: '#ef4444', icon: '🚨', label: 'CRITICAL' },
 
-formatTime(dateStr: string) {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffInMin = Math.floor((now.getTime() - date.getTime()) / 60000);
+      ONSITE_ATTENDANCE: {
+        bg: '#fffbeb',
+        color: '#d97706',
+        icon: '📍',
+        label: 'VERIFY',
+      },
+      WARN: { bg: '#fffbeb', color: '#d97706', icon: '🔥', label: 'WARNING' },
 
-  if (diffInMin < 1) return 'Just now';
-  if (diffInMin < 60) return `${diffInMin} min ago`;
-  const hours = Math.floor(diffInMin / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return date.toLocaleDateString();
-}
+      PATROL_START: {
+        bg: '#eff6ff',
+        color: '#3b82f6',
+        icon: '🛡️',
+        label: 'ACTIVE',
+      },
+      ATTENDANCE: {
+        bg: '#f5f3ff',
+        color: '#8b5cf6',
+        icon: '👤',
+        label: 'ON-DUTY',
+      },
 
+      PATROL_END: {
+        bg: '#f0fdfa',
+        color: '#0d9488',
+        icon: '✅',
+        label: 'COMPLETED',
+      },
+      SAFE: { bg: '#f0fdfa', color: '#0d9488', icon: '✅', label: 'CLEAR' },
 
+      INFO: { bg: '#f8fafc', color: '#64748b', icon: '🔔', label: 'INFO' },
+    };
+
+    return themes[t] || themes['INFO'];
+  }
+
+  getAlertIcon(category: string): string {
+    const map: any = {
+      fire: '🔥',
+      timber: '🪓',
+      animal: '🐾',
+      poaching: '👣',
+      patrol: '✅',
+    };
+    return map[category?.toLowerCase()] || '🔔';
+  }
+
+  getCount(sev: string): number {
+    // Add (a: ForestAlert) here
+    return this.alerts.filter((a: ForestAlert) => a.severity === sev).length;
+  }
+
+  formatTime(dateStr: string) {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffInMin = Math.floor((now.getTime() - date.getTime()) / 60000);
+
+    if (diffInMin < 1) return 'Just now';
+    if (diffInMin < 60) return `${diffInMin} min ago`;
+    const hours = Math.floor(diffInMin / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return date.toLocaleDateString();
+  }
 
   ngAfterViewInit() {
     this.initHomeCharts();
   }
 
   ngOnDestroy() {
-  if (this.dataInterval) {
-    clearInterval(this.dataInterval);
+    if (this.dataInterval) {
+      clearInterval(this.dataInterval);
+    }
   }
-}
 
   updateVisiblePins() {
     const pins: any[] = [];
@@ -552,8 +879,6 @@ formatTime(dateStr: string) {
     this.updateLayerCount();
     this.cdr.detectChanges();
   }
-
- 
 
   // --- UI Methods ---
   updateTime() {
@@ -588,7 +913,6 @@ formatTime(dateStr: string) {
   goAnalytics(type: string) {
     console.log('Redirecting to analytics for:', type);
     this.activeTab = 'analytics';
-   
   }
 
   private mkG(ctx: CanvasRenderingContext2D, color: string, h: number = 130) {
@@ -710,51 +1034,58 @@ formatTime(dateStr: string) {
     });
   }
 
+  initAttChart() {
+    const user = JSON.parse(localStorage.getItem('user_data') || '{}');
+    const companyId = user.company_id ? Number(user.company_id) : 0;
 
+    const rangerId = this.selectedRanger?.id
+      ? Number(this.selectedRanger.id)
+      : undefined;
 
-initAttChart() {
-  const user = JSON.parse(localStorage.getItem('user_data') || '{}');
-  const companyId = user.company_id ? Number(user.company_id) : 0;
+    this.dataService.getWeeklyAttendanceStats(companyId, rangerId).subscribe({
+      next: (realData: number[]) => {
+        const el = document.getElementById('c-att') as HTMLCanvasElement;
+        if (!el) return;
 
-
-  const rangerId = this.selectedRanger?.id ? Number(this.selectedRanger.id) : undefined;
-
-  this.dataService.getWeeklyAttendanceStats(companyId, rangerId).subscribe({
-    next: (realData: number[]) => {
-      const el = document.getElementById('c-att') as HTMLCanvasElement;
-      if (!el) return;
-
-      // Important: We use the actual data from the database now
-      this.mkChart('c-att', {
-        type: 'line',
-        data: {
-          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-          datasets: [{
-            label: this.selectedRanger ? `${this.selectedRanger.name}'s Activity` : 'Total Personnel On-Duty',
-            data: realData, 
-            borderColor: this.COLORS.p,
-            backgroundColor: this.mkG(el.getContext('2d')!, this.COLORS.p, 100),
-            fill: true,
-            tension: 0.4,
-            pointRadius: 4
-          }]
-        },
-        options: {
-          ...this.CDAX,
-          scales: {
-            x: { display: true, ticks: { color: '#94a3b8' } },
-            y: { 
-              display: true, 
-              beginAtZero: true,
-              ticks: { stepSize: 1, color: '#94a3b8' } 
-            }
-          }
-        }
-      });
-    },
-    error: (err) => console.error('Database Fetch Error:', err)
-  });
-}
+        // Important: We use the actual data from the database now
+        this.mkChart('c-att', {
+          type: 'line',
+          data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [
+              {
+                label: this.selectedRanger
+                  ? `${this.selectedRanger.name}'s Activity`
+                  : 'Total Personnel On-Duty',
+                data: realData,
+                borderColor: this.COLORS.p,
+                backgroundColor: this.mkG(
+                  el.getContext('2d')!,
+                  this.COLORS.p,
+                  100,
+                ),
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+              },
+            ],
+          },
+          options: {
+            ...this.CDAX,
+            scales: {
+              x: { display: true, ticks: { color: '#94a3b8' } },
+              y: {
+                display: true,
+                beginAtZero: true,
+                ticks: { stepSize: 1, color: '#94a3b8' },
+              },
+            },
+          },
+        });
+      },
+      error: (err) => console.error('Database Fetch Error:', err),
+    });
+  }
 
   private randomizeStats() {
     const kpiIds = ['kv-crim', 'kv-events', 'kv-fire', 'kv-assets'];
@@ -816,10 +1147,10 @@ initAttChart() {
     ).length;
   }
 
-setSegment(segment: string) {
+  setSegment(segment: string) {
     this.activeSegment = segment;
     this.cdr.detectChanges(); // Force Angular to render the HTML first
-    
+
     setTimeout(() => {
       if (segment === 'overview') {
         this.initHomeCharts();
@@ -827,82 +1158,79 @@ setSegment(segment: string) {
         this.updateVisiblePins();
       } else if (segment === 'officers') {
         // This is the missing link!
-        this.initAttChart(); 
+        this.initAttChart();
       }
     }, 100);
   }
 
- switchTab(tab: string) {
-  if (this.activeTab === tab) return;
+  switchTab(tab: string) {
+    if (this.activeTab === tab) return;
 
-  this.activeTab = tab;
+    this.activeTab = tab;
 
-  if (tab === 'home') {
-    this.setSegment('overview');
-  } 
-  // Add this block below
-  else if (tab === 'settings') {
-   
-    this.navCtrl.navigateForward('/admin-settings');
+    if (tab === 'home') {
+      this.setSegment('overview');
+    }
+    // Add this block below
+    else if (tab === 'settings') {
+      this.navCtrl.navigateForward('/admin-settings');
 
-    setTimeout(() => {
-      this.activeTab = 'home';
-    }, 500);
-  }
-}
-
-// This handles the logic for the filter chips
-setAlertFilter(filter: string) {
-  this.activeAlertFilter = filter;
-}
-
-// This is the getter that the HTML uses to display the list
-get filteredAlerts() {
-  if (!this.alertsData) return [];
-  if (this.activeAlertFilter === 'all') return this.alertsData;
-  
-  return this.alertsData.filter(a => 
-    String(a.type).toLowerCase() === this.activeAlertFilter.toLowerCase()
-  );
-}
-
-openAnalytics() {
-  // 1. Sabse pehle interval band karein
-  if (this.dataInterval) {
-    clearInterval(this.dataInterval);
-    this.dataInterval = null;
+      setTimeout(() => {
+        this.activeTab = 'home';
+      }, 500);
+    }
   }
 
-  // 2. Saare charts destroy karein
-  if (this._charts) {
-    Object.values(this._charts).forEach(c => {
-      if (c) c.destroy();
-    });
-    this._charts = {};
+  // This handles the logic for the filter chips
+  setAlertFilter(filter: string) {
+    this.activeAlertFilter = filter;
   }
 
-  // 3. Navigate karein
-  this.navCtrl.navigateForward('/home/admin-analytics');
-}
+ 
+  openAnalytics() {
+    // 1. Sabse pehle interval band karein
+    if (this.dataInterval) {
+      clearInterval(this.dataInterval);
+      this.dataInterval = null;
+    }
 
-filterRangersByCompany(allOfficers: any[], targetCompanyId: number) {
-  this.filteredRangers = allOfficers.filter(officer => 
-    Number(officer.roleId) === 4 && 
-    Number(officer.company_id) === targetCompanyId
-  );
-  
-  // Call this to update the UI numbers
-  this.onDutyCount = this.filteredRangers.filter(r => r.status === 1).length;
-  this.calculateStats();
-  this.cdr.detectChanges();
-}
+    // 2. Saare charts destroy karein
+    if (this._charts) {
+      Object.values(this._charts).forEach((c) => {
+        if (c) c.destroy();
+      });
+      this._charts = {};
+    }
 
-// Helper for initials (e.g., "R. Patil" -> "RP")
-getInitials(name: string) {
-  return name.split(' ').map(n => n[0]).join('').toUpperCase();
-}
+    // 3. Navigate karein
+    this.navCtrl.navigateForward('/home/admin-analytics');
+  }
 
-getRangerColor(name: string): string {
+  filterRangersByCompany(allOfficers: any[], targetCompanyId: number) {
+    this.filteredRangers = allOfficers.filter(
+      (officer) =>
+        Number(officer.roleId) === 4 &&
+        Number(officer.company_id) === targetCompanyId,
+    );
+
+    // Call this to update the UI numbers
+    this.onDutyCount = this.filteredRangers.filter(
+      (r) => r.status === 1,
+    ).length;
+    this.calculateStats();
+    this.cdr.detectChanges();
+  }
+
+  // Helper for initials (e.g., "R. Patil" -> "RP")
+  getInitials(name: string) {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase();
+  }
+
+  getRangerColor(name: string): string {
     const colors = ['#eff6ff', '#f0fdfa', '#fffbeb', '#fff1f2', '#f5f3ff'];
     // Simple logic to pick a color based on the name string
     const index = name.length % colors.length;
@@ -912,189 +1240,193 @@ getRangerColor(name: string): string {
   // 3. Ensure your filteredRangers logic updates the attendance percent
   calculateStats() {
     if (this.filteredRangers.length > 0) {
-      const onDuty = this.filteredRangers.filter(r => r.status === 'active').length;
-      this.attendancePercent = Math.round((onDuty / this.filteredRangers.length) * 100);
+      const onDuty = this.filteredRangers.filter(
+        (r) => r.status === 'active',
+      ).length;
+      this.attendancePercent = Math.round(
+        (onDuty / this.filteredRangers.length) * 100,
+      );
     } else {
       this.attendancePercent = 0;
     }
   }
 
-selectRanger(ranger: any) {
+  selectRanger(ranger: any) {
     this.selectedRanger = ranger;
     this.cdr.detectChanges();
-    
+
     setTimeout(() => {
-      this.initAttChart(); 
+      this.initAttChart();
     }, 100);
-}
-// 3. Add logic to render specific data
-updateUserAttendanceChart(ranger: any) {
-  const canvas = document.getElementById('c-att') as HTMLCanvasElement;
-  if (!canvas) return;
+  }
+  // 3. Add logic to render specific data
+  updateUserAttendanceChart(ranger: any) {
+    const canvas = document.getElementById('c-att') as HTMLCanvasElement;
+    if (!canvas) return;
 
-  // Mock data for the specific user (Replace this with an API call later)
-  // Logic: Generating random attendance for the last 7 days
-  const onDutyData = this.rnd(7, 10, 4); // Random hours worked
-  const leaveData = [0, 0, 1, 0, 0, 0, 0]; // Example: took leave on Wednesday
+    // Mock data for the specific user (Replace this with an API call later)
+    // Logic: Generating random attendance for the last 7 days
+    const onDutyData = this.rnd(7, 10, 4); // Random hours worked
+    const leaveData = [0, 0, 1, 0, 0, 0, 0]; // Example: took leave on Wednesday
 
-  this.mkChart('c-att', {
-    type: 'bar',
-    data: {
-      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-      datasets: [
-        {
-          label: `${ranger.name}'s Hours`,
-          data: onDutyData,
-          backgroundColor: this.COLORS.p + 'CC',
-          borderRadius: 5,
+    this.mkChart('c-att', {
+      type: 'bar',
+      data: {
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        datasets: [
+          {
+            label: `${ranger.name}'s Hours`,
+            data: onDutyData,
+            backgroundColor: this.COLORS.p + 'CC',
+            borderRadius: 5,
+          },
+          {
+            label: 'Leave Hours',
+            data: leaveData,
+            backgroundColor: this.COLORS.rose + '88',
+            borderRadius: 5,
+          },
+        ],
+      },
+      options: {
+        ...this.CDAX,
+        plugins: {
+          ...this.CDAX.plugins,
+          legend: { display: true, position: 'top' },
         },
-        {
-          label: 'Leave Hours',
-          data: leaveData,
-          backgroundColor: this.COLORS.rose + '88',
-          borderRadius: 5,
-        }
-      ],
-    },
-    options: {
-      ...this.CDAX,
-      plugins: {
-        ...this.CDAX.plugins,
-        legend: { display: true, position: 'top' }
-      }
-    },
-  });
-}
-
-getStatusText(ranger: any): string {
-  if (ranger.status === 2) return 'On Leave';
-  if (ranger.status === 0) return 'Off Duty';
-
-  if (ranger.status === 1) {
-    // 1. Pehle check karo patrolling chalu hai kya
-    if (ranger.is_patrolling) return 'On Patrol';
-    
-    // 2. Agar patrolling nahi hai par attendance hai, toh On Duty
-    if (ranger.hasAttended) return 'On Duty';
-    
-    // 3. Agar kuch nahi hai toh Inactive
-    return 'Inactive';
+      },
+    });
   }
-  return 'Off Duty';
-}
-getStatusColor(ranger: any): string {
-  const status = this.getStatusText(ranger);
-  
-  // 💡 Yahan 'Record<string, string>' add kiya hai taaki TypeScript index error na de
-  const colors: Record<string, string> = {
-    'On Patrol': '#16a34a', // Green
-    'On Duty': '#0284c7',   // Blue
-    'On Leave': '#f59e0b',  // Orange
-    'Inactive': '#f43f5e',  // Red
-    'Off Duty': '#6b7280',  // Grey
-    'Unknown': '#6b7280'    // 💡 Ye missing tha, isliye error aa raha tha
-  };
 
-  return colors[status] || '#6b7280';
-}
+  getStatusText(ranger: any): string {
+    if (ranger.status === 2) return 'On Leave';
+    if (ranger.status === 0) return 'Off Duty';
 
-loadTrendData() {
-  const myCompanyId = 1; 
-  this.dataService.getIncidentTrend(myCompanyId).subscribe({
-    next: (data) => {
-      // Backend se jo naya data aayega usse yahan map karo
-      this.momStatus = data.momLabel || '0% MoM';
-      this.isGoodTrend = data.isImprovement; // true matlab incidents kam hue (Green)
-      
-      // Tera existing chart logic
-      this.initTrendChart(data.labels, data.values);
-    },
-    error: (err) => console.error("Trend Chart Error:", err)
-  });
-}
-initTrendChart(labels: string[], values: number[]) {
-  if (this.trendChart) this.trendChart.destroy();
+    if (ranger.status === 1) {
+      // 1. Pehle check karo patrolling chalu hai kya
+      if (ranger.is_patrolling) return 'On Patrol';
 
-  const ctx = document.getElementById('c-trend') as HTMLCanvasElement;
-  
-  // Gradient effect for the area under the line
-  const gradient = ctx.getContext('2d')?.createLinearGradient(0, 0, 0, 140);
-  gradient?.addColorStop(0, 'rgba(0, 137, 123, 0.3)');
-  gradient?.addColorStop(1, 'rgba(0, 137, 123, 0)');
+      // 2. Agar patrolling nahi hai par attendance hai, toh On Duty
+      if (ranger.hasAttended) return 'On Duty';
 
-  this.trendChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Incidents',
-        data: values,
-        borderColor: '#00897b', // Dark Forest Green
-        backgroundColor: gradient,
-        fill: true,
-        tension: 0.4, // Isse curve smooth aayega (Screenshot jaisa)
-        borderWidth: 2,
-        pointRadius: 0, // Points hide karke clean line dikhayenge
-        pointHoverRadius: 5
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { display: false }, // X-axis hide (labels niche manually span mein hain)
-        y: {
-          display: true,
-          beginAtZero: true,
-          grid: { color: 'rgba(0,0,0,0.03)', drawTicks: false },
-          ticks: { font: { size: 9 }, stepSize: 10 }
-        }
-      }
+      // 3. Agar kuch nahi hai toh Inactive
+      return 'Inactive';
     }
-  });
-}
+    return 'Off Duty';
+  }
+  getStatusColor(ranger: any): string {
+    const status = this.getStatusText(ranger);
 
-// getFilterDates() {
-//   const now = new Date();
-//   let from = new Date();
-  
-//   if (this.activeDateFilter === 'today') {
-//     from.setHours(0, 0, 0, 0);
-//   } else if (this.activeDateFilter === 'week') {
-//     from.setDate(now.getDate() - 7);
-//   } else if (this.activeDateFilter === 'month') {
-//     from.setMonth(now.getMonth() - 1);
-//   } else {
-//     return { from: '', to: '' };
-//   }
+    // 💡 Yahan 'Record<string, string>' add kiya hai taaki TypeScript index error na de
+    const colors: Record<string, string> = {
+      'On Patrol': '#16a34a', // Green
+      'On Duty': '#0284c7', // Blue
+      'On Leave': '#f59e0b', // Orange
+      Inactive: '#f43f5e', // Red
+      'Off Duty': '#6b7280', // Grey
+      Unknown: '#6b7280', // 💡 Ye missing tha, isliye error aa raha tha
+    };
 
-//   return {
-//     from: from.toISOString(),
-//     to: now.toISOString()
-//   };
-// }
-
-getFilterDates() {
-  const now = new Date();
-  const from = new Date();
-
-  if (this.activeDateFilter === 'today') {
-    // This is the magic line: 
-    // It sets the time to 00:00:00 (Midnight) of the current day
-    from.setHours(0, 0, 0, 0); 
-  } else if (this.activeDateFilter === 'week') {
-    from.setDate(now.getDate() - 7);
-  } else if (this.activeDateFilter === 'month') {
-    from.setDate(1); // First day of the month
-    from.setHours(0, 0, 0, 0);
+    return colors[status] || '#6b7280';
   }
 
-  return {
-    from: from.toISOString(), // Example: 2026-03-25T00:00:00
-    to: now.toISOString()    // Example: 2026-03-25T14:13:00 (Current time)
-  };
-}
-}
+  loadTrendData() {
+    const myCompanyId = 1;
+    this.dataService.getIncidentTrend(myCompanyId).subscribe({
+      next: (data) => {
+        // Backend se jo naya data aayega usse yahan map karo
+        this.momStatus = data.momLabel || '0% MoM';
+        this.isGoodTrend = data.isImprovement; // true matlab incidents kam hue (Green)
 
+        // Tera existing chart logic
+        this.initTrendChart(data.labels, data.values);
+      },
+      error: (err) => console.error('Trend Chart Error:', err),
+    });
+  }
+  initTrendChart(labels: string[], values: number[]) {
+    if (this.trendChart) this.trendChart.destroy();
 
+    const ctx = document.getElementById('c-trend') as HTMLCanvasElement;
+
+    // Gradient effect for the area under the line
+    const gradient = ctx.getContext('2d')?.createLinearGradient(0, 0, 0, 140);
+    gradient?.addColorStop(0, 'rgba(0, 137, 123, 0.3)');
+    gradient?.addColorStop(1, 'rgba(0, 137, 123, 0)');
+
+    this.trendChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Incidents',
+            data: values,
+            borderColor: '#00897b', // Dark Forest Green
+            backgroundColor: gradient,
+            fill: true,
+            tension: 0.4, // Isse curve smooth aayega (Screenshot jaisa)
+            borderWidth: 2,
+            pointRadius: 0, // Points hide karke clean line dikhayenge
+            pointHoverRadius: 5,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { display: false }, // X-axis hide (labels niche manually span mein hain)
+          y: {
+            display: true,
+            beginAtZero: true,
+            grid: { color: 'rgba(0,0,0,0.03)', drawTicks: false },
+            ticks: { font: { size: 9 }, stepSize: 10 },
+          },
+        },
+      },
+    });
+  }
+
+  // getFilterDates() {
+  //   const now = new Date();
+  //   let from = new Date();
+
+  //   if (this.activeDateFilter === 'today') {
+  //     from.setHours(0, 0, 0, 0);
+  //   } else if (this.activeDateFilter === 'week') {
+  //     from.setDate(now.getDate() - 7);
+  //   } else if (this.activeDateFilter === 'month') {
+  //     from.setMonth(now.getMonth() - 1);
+  //   } else {
+  //     return { from: '', to: '' };
+  //   }
+
+  //   return {
+  //     from: from.toISOString(),
+  //     to: now.toISOString()
+  //   };
+  // }
+
+  getFilterDates() {
+    const now = new Date();
+    const from = new Date();
+
+    if (this.activeDateFilter === 'today') {
+      // This is the magic line:
+      // It sets the time to 00:00:00 (Midnight) of the current day
+      from.setHours(0, 0, 0, 0);
+    } else if (this.activeDateFilter === 'week') {
+      from.setDate(now.getDate() - 7);
+    } else if (this.activeDateFilter === 'month') {
+      from.setDate(1); // First day of the month
+      from.setHours(0, 0, 0, 0);
+    }
+
+    return {
+      from: from.toISOString(), // Example: 2026-03-25T00:00:00
+      to: now.toISOString(), // Example: 2026-03-25T14:13:00 (Current time)
+    };
+  }
+}

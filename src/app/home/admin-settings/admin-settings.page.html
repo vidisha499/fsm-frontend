@@ -1,88 +1,92 @@
-<ion-content [fullscreen]="true" class="ion-no-padding">
-  <div class="toolbar">
-    <div class="tbar-left">
-      <div class="tbar-logo" (click)="goBack()">
-  <span class="back-icon">❮</span>
-</div>
-      <div>
-        <div class="tbar-title">Settings</div>
-        <div class="tbar-sub">Admin Panel</div>
-      </div>
-    </div>
+  <ion-content [fullscreen]="true" class="ion-no-padding">
+    <div class="toolbar">
+      <div class="tbar-left">
+        <div class="tbar-logo" (click)="goBack()">
+    <span class="back-icon">❮</span>
   </div>
-
-  <div class="content">
-<div class="profile-card">
-  <div class="pav">{{ adminUser.initials }}</div>
-
-  <div class="pinfo">
-    <div class="pname">{{ adminUser.name }}</div>
-    <div class="prole">{{ adminUser.role }} • {{ adminUser.ranges }}</div>
-  </div>
-</div>
-
-    <div class="sett-sec">
-      <div class="sett-gt">Notifications</div>
-      <div class="sett-card">
-        <div *ngFor="let item of notifications" class="sett-item">
-          <div class="sett-ico" [style.background]="item.bg">{{item.icon}}</div>
-          <div class="sett-txt">
-            <div class="sett-lbl">{{item.label}}</div>
-            <div class="sett-desc">{{item.desc}}</div>
-          </div>
-          <div class="tog" [class.on]="item.enabled" (click)="item.enabled = !item.enabled"></div>
-        </div>
-      </div>
-
-      <div class="sett-gt">Data & Access</div>
-      <div class="sett-card">
-        <div class="sett-item" (click)="openExport()">
-          <div class="sett-ico" style="background:#f5f3ff">📥</div>
-          <div class="sett-txt">
-            <div class="sett-lbl">Export Reports</div>
-            <div class="sett-desc">PDF / Excel download</div>
-          </div>
-          <div class="chevron">›</div>
-        </div>
-        
-        <div class="sett-item" (click)="changeSync()">
-          <div class="sett-ico" style="background:#f0fdfa">🔄</div>
-          <div class="sett-txt">
-            <div class="sett-lbl">Sync Interval</div>
-            <div class="sett-desc">Every 5 minutes</div>
-          </div>
-          <div class="chevron">›</div>
-        </div>
-
-           <div class="sett-item" (click)="changeSync()">
-          <div class="sett-ico" style="background:#f0fdfa">👥</div>
-          <div class="sett-txt">
-            <div class="sett-lbl">Manage users</div>
-            <div class="sett-desc">roles,permissions,beats</div>
-          </div>
-          <div class="chevron">›</div>
-        </div> 
-
-        <div class="sett-item" style="border-color:rgba(239,68,68,.15)" (click)="logout()">
-          <div class="sett-ico" style="background:#fff1f2">🚪</div>
-          <div class="sett-txt">
-            <div class="sett-lbl" style="color:#ef4444">Sign Out</div>
-            <div class="sett-desc">Admin · All Ranges</div>
-          </div>
-          <div class="chevron" style="color:#ef4444">›</div>
-        </div>
-      </div>
-
-      <div class="sett-gt">App</div>
-      <div class="sett-card">
-        <div class="sett-item no-click">
-          <div class="sett-ico" style="background:#eff6ff">ℹ️</div>
-          <div class="sett-txt">
-            <div class="sett-lbl">App Version</div>
-            <div class="sett-desc">ForestFix Admin v2.4.1 · Ionic/Angular</div>
-          </div>
+        <div>
+          <div class="tbar-title">Settings</div>
+          <div class="tbar-sub">Admin Panel</div>
         </div>
       </div>
     </div>
+
+    <div class="content">
+  <div class="profile-card">
+    <div class="pav">{{ adminUser.initials }}</div>
+
+    <div class="pinfo">
+      <div class="pname">{{ adminUser.name }}</div>
+      <div class="prole">{{ adminUser.role }} • {{ adminUser.ranges }}</div>
+    </div>
   </div>
-</ion-content>
+
+      <div class="sett-sec">
+        <div class="sett-gt">Notifications</div>
+        <div class="sett-card">
+          <div *ngFor="let item of notifications" class="sett-item">
+            <div class="sett-ico" [style.background]="item.bg">{{item.icon}}</div>
+            <div class="sett-txt">
+              <div class="sett-lbl">{{item.label}}</div>
+              <div class="sett-desc">{{item.desc}}</div>
+            </div>
+            <!-- <div class="tog" [class.on]="item.enabled" (click)="item.enabled = !item.enabled"></div> -->
+             <div class="tog" 
+     [class.on]="item.enabled" 
+     (click)="toggleNotification(item)">
+</div>
+          </div>
+        </div>
+
+        <div class="sett-gt">Data & Access</div>
+        <div class="sett-card">
+          <div class="sett-item" (click)="openExport()">
+            <div class="sett-ico" style="background:#f5f3ff">📥</div>
+            <div class="sett-txt">
+              <div class="sett-lbl">Export Reports</div>
+              <div class="sett-desc">PDF / Excel download</div>
+            </div>
+            <div class="chevron">›</div>
+          </div>
+          
+          <div class="sett-item" (click)="changeSync()">
+            <div class="sett-ico" style="background:#f0fdfa">🔄</div>
+            <div class="sett-txt">
+              <div class="sett-lbl">Sync Interval</div>
+              <div class="sett-desc">Every 5 minutes</div>
+            </div>
+            <div class="chevron">›</div>
+          </div>
+
+            <div class="sett-item" (click)="changeSync()">
+            <div class="sett-ico" style="background:#f0fdfa">👥</div>
+            <div class="sett-txt">
+              <div class="sett-lbl">Manage users</div>
+              <div class="sett-desc">roles,permissions,beats</div>
+            </div>
+            <div class="chevron">›</div>
+          </div> 
+
+          <div class="sett-item" style="border-color:rgba(239,68,68,.15)" (click)="logout()">
+            <div class="sett-ico" style="background:#fff1f2">🚪</div>
+            <div class="sett-txt">
+              <div class="sett-lbl" style="color:#ef4444">Sign Out</div>
+              <div class="sett-desc">Admin · All Ranges</div>
+            </div>
+            <div class="chevron" style="color:#ef4444">›</div>
+          </div>
+        </div>
+
+        <div class="sett-gt">App</div>
+        <div class="sett-card">
+          <div class="sett-item no-click">
+            <div class="sett-ico" style="background:#eff6ff">ℹ️</div>
+            <div class="sett-txt">
+              <div class="sett-lbl">App Version</div>
+              <div class="sett-desc">ForestFix Admin v2.4.1 · Ionic/Angular</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ion-content>

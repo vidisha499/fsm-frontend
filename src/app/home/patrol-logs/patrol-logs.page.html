@@ -82,7 +82,7 @@
         <ion-toolbar style="--background: #061A13; --color: white; padding-top: 10px;">
           <ion-title>{{ 'LIST.NEW_SESSION' | translate }}</ion-title>
           <ion-buttons slot="end">
-            <ion-button (click)="setOpen(false)">{{ 'COMMON.CANCEL' | translate }}</ion-button>
+            <ion-button (click)="setOpen(false)">{{ rangerName || 'Ranger' }}</ion-button>
           </ion-buttons>
         </ion-toolbar>
       </ion-header>

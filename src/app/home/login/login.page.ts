@@ -49,6 +49,91 @@ export class LoginPage implements OnInit, OnDestroy {
   }
 
 
+
+
+// async login() {
+//   if (!this.loginData.phone || !this.loginData.password) {
+//     this.presentToast('Please enter both contact and password', 'warning');
+//     return;
+//   }
+
+//   const loading = await this.loadingCtrl.create({ 
+//     message: 'Authenticating...', 
+//     mode: 'ios',
+//     spinner: 'crescent'
+//   });
+//   await loading.present();
+
+//   const payload = { 
+//     identifier: this.loginData.phone.trim(), 
+//     pass: this.loginData.password 
+//   };
+
+//   this.loginSub = this.dataService.login(payload).subscribe({
+//     next: async (res: any) => {
+//       await loading.dismiss();
+
+//       // Backend se aane wala data extract karein
+//       const userData = res.user || res;
+//       const userRole = parseInt(res.role_id || userData.role_id);
+//       const actualCompanyId = userData.company_id;
+
+//       if (userData && userData.id) {
+//         // --- 1. SESSION STORAGE (Key names matched with Dashboard/Menu) ---
+//         localStorage.setItem('ranger_id', userData.id.toString());
+//         localStorage.setItem('user_role', userRole.toString());
+        
+//         // Dashboard aur Side Menu yahi key dhoond rahe hain
+//         localStorage.setItem('ranger_username', userData.name || 'User'); 
+        
+//         // Division agar backend se aa raha ho, nahi toh default set karein
+//         localStorage.setItem('ranger_division', userData.division || 'Washim Division 4.2');
+        
+//         // Profile Photo
+//         if (userData.photo_url || userData.profile_image) {
+//           localStorage.setItem('user_photo', userData.photo_url || userData.profile_image);
+//         }
+
+//         // Company ID set karna (Attendance filtering ke liye important hai)
+//         if (actualCompanyId !== undefined && actualCompanyId !== null) {
+//           localStorage.setItem('company_id', actualCompanyId.toString());
+//         } else {
+//           localStorage.setItem('company_id', '0');
+//         }
+
+//         // --- 2. LANGUAGE & NAVIGATION ---
+//         const currentLang = localStorage.getItem('app_language_code') || 'en';
+        
+//         this.translate.use(currentLang).subscribe({
+//           next: () => {
+//             this.presentToast(`Welcome, ${userData.name}!`, 'success');
+
+//             // Role based navigation
+//             if (userRole === 1) {
+//               this.navCtrl.navigateRoot('/super-admin-dashboard'); 
+//             } else if (userRole === 2) {
+//               this.navCtrl.navigateRoot('/admin'); // Aapka Company Admin Dashboard
+//             } else {
+//               this.navCtrl.navigateRoot('/home'); // Ranger Dashboard
+//             }
+//           },
+//           error: () => {
+//             this.navCtrl.navigateRoot(userRole === 2 ? '/admin' : '/home');
+//           }
+//         });
+//       } else {
+//         this.presentToast('User data not found in response', 'danger');
+//       }
+//     },
+//     error: async (err) => {
+//       await loading.dismiss();
+//       console.error('Login Error:', err);
+//       const errorMsg = err.error?.message || 'Invalid Contact or Password';
+//       this.presentToast(errorMsg, 'danger');
+//     }
+//   });
+// }
+
 async login() {
   if (!this.loginData.phone || !this.loginData.password) {
     this.presentToast('Please enter both contact and password', 'warning');
@@ -83,7 +168,7 @@ async login() {
           name: userData.name,
           role_id: userRole,
           company_id: actualCompanyId, // Dashboard isi ID ko dhundega
-          division: userData.division || 'Washim Division'
+          // division: userData.division || 'Washim Division'
         };
 
         // --- 2. STORAGE MEIN SAVE KARNA ---

@@ -211,6 +211,8 @@ getWeeklyAttendanceStats(companyId: any, rangerId?: any) {
 
 // data.service.ts
 getLatestAlerts(companyId: number): Observable<any[]> {
+  // Query param (?) ki jagah path param (/) use karein
+  // Isse URL banega: .../api/alerts/123
   return this.http.get<any[]>(`${this.baseApiUrl}/alerts/${companyId}`);
 }
 
@@ -224,8 +226,6 @@ getIncidentTrend(companyId: number): Observable<any> {
   return this.http.get(`${this.baseApiUrl}/incidents/trend/${companyId}`);
 }
 
-// Inside AdminDataService
-// Inside DataService class
 getSightingCount(companyId: number, from?: string, to?: string): Observable<number> {
   let params: any = { companyId: companyId.toString() };
 
@@ -236,4 +236,9 @@ getSightingCount(companyId: number, from?: string, to?: string): Observable<numb
 }
 
 
+// In DataService
+updateNotificationPrefs(companyId: number, prefs: any[]) {
+  // If you create a 'notification_settings' table later, use this:
+  return this.http.post(`${this.baseApiUrl}/users/settings/${companyId}`, { prefs });
+} 
 }
