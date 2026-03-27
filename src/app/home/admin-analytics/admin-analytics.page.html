@@ -22,12 +22,40 @@
       </div>
 
       <div class="filter-bar" [class.collapsed]="isFilterCollapsed">
-        <select class="fselect"><option>All Ranges</option></select>
-        <select class="fselect"><option>All Beats</option></select>
+        <!-- <select class="fselect"><option>All Ranges</option></select>
+        <select class="fselect"><option>All Beats</option></select> -->
+        <select class="fselect" [(ngModel)]="selectedRange" (change)="onFilterChange()">
+  <option value="all">All Ranges</option>
+  <option *ngFor="let r of ranges" [value]="r">{{r}}</option>
+</select>
+
+<select class="fselect" [(ngModel)]="selectedBeat" (change)="onFilterChange()">
+  <option value="all">All Beats</option>
+  <option *ngFor="let b of beats" [value]="b">{{b}}</option>
+</select>
         <div class="date-chips">
-          <div class="dchip" [class.active]="activeDateFilter==='today'" (click)="activeDateFilter='today'">Today</div>
+          <!-- <div class="dchip" [class.active]="activeDateFilter==='today'" (click)="activeDateFilter='today'">Today</div>
           <div class="dchip" [class.active]="activeDateFilter==='week'" (click)="activeDateFilter='week'">Week</div>
-          <div class="dchip" [class.active]="activeDateFilter==='month'" (click)="activeDateFilter='month'">Month</div>
+          <div class="dchip" [class.active]="activeDateFilter==='month'" (click)="activeDateFilter='month'">Month</div> -->
+         
+  <div class="dchip" 
+       [class.active]="activeDateFilter==='today'" 
+       (click)="activeDateFilter='today'; onFilterChange()">
+       Today
+  </div>
+  
+  <div class="dchip" 
+       [class.active]="activeDateFilter==='week'" 
+       (click)="activeDateFilter='week'; onFilterChange()">
+       Week
+  </div>
+  
+  <div class="dchip" 
+       [class.active]="activeDateFilter==='month'" 
+       (click)="activeDateFilter='month'; onFilterChange()">
+       Month
+  </div>
+
         </div>
       </div>
 

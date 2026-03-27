@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { Chart, registerables } from 'chart.js';
 
+
 Chart.register(...registerables);
 
 // ═══════════════════════════════════════════
@@ -42,11 +43,17 @@ export class AdminAnalyticsPage implements OnInit, OnDestroy {
   isFilterCollapsed: boolean = true;
   isRefreshing: boolean = false;
 
+  selectedRange: string = 'all';
+selectedBeat: string = 'all';
+ranges = REGIONS; // Constant se le lo
+beats = ['Beat Alpha', 'Beat Beta', 'Beat Gamma'];
+
   // Display arrays for HTML
   public displayProgList: any[] = [];
   public currentSubCharts: any[] = [];
   public displayActivity: any[] = [];
   public currentCatSubsCount: number = 0;
+  // private api: ApiService
 
   private chartInstances: Map<string, Chart> = new Map();
 
@@ -65,34 +72,79 @@ export class AdminAnalyticsPage implements OnInit, OnDestroy {
       label: "🌲 Criminal Activity",
       subs: [
         { id: "felling", label: "Illegal Felling", emoji: "🪓", color: COLORS.rose, val: 20, charts: [
-          { title: "Volume by Species", sub: "Quantity of timber illegally felled per species", id: "ac-f1", render: (id: string) => this.mkChart(id, { type: "bar", data: { labels: SPECIES, datasets: [{ label: "Qty", data: this.rnd(8, 150, 10), backgroundColor: COLORS.rose + "CC", borderRadius: 4 }] }, options: CDAX }) },
+         // ANA_CONFIG ke andar felling chart example
+{ 
+  title: "Volume by Species", 
+  id: "ac-f1", 
+  render: (id: string) => {
+    // Timeframe ke hisab se labels badlo
+    const labels = this.activeDateFilter === 'today' ? ['6 AM', '12 PM', '6 PM'] : SPECIES;
+    const data = this.activeDateFilter === 'today' ? [2, 5, 3] : this.rnd(8, 150, 20);
+
+    return this.mkChart(id, { 
+      type: "bar", 
+      data: { 
+        labels: labels, 
+        datasets: [{ label: "Qty", data: data, backgroundColor: COLORS.rose }] 
+      }, 
+      options: CDAX 
+    });
+  }
+},
           { title: "Probable Reason", sub: "Trade / Fuel / Agri / Other", id: "ac-f2", render: (id: string) => this.mkChart(id, { type: "pie", data: { labels: ["Trade", "Fuel", "Agri", "Other"], datasets: [{ data: [45, 25, 20, 10], backgroundColor: PALETTE }] }, options: { ...CDAX, plugins: { legend: { display: true, position: 'bottom' } } } }) },
-          { 
+//           { 
+//   title: "Range-wise Felling", 
+//   sub: "Incidents per forest range", 
+//   id: "ac-f3", 
+//   render: (id: string) => this.mkChart(id, { 
+//     type: "bar", 
+//     data: { 
+//       labels: ["North Div", "South Valley", "East Plateau", "River Buffer", "West Ridge"], 
+//       datasets: [{ 
+//         label: "Incidents", 
+//         data: [45, 25, 32, 18, 40], // Example data from your SS
+//         backgroundColor: COLORS.teal + "CC", 
+//         borderRadius: 4 
+//       }] 
+//     }, 
+//     options: { 
+//       ...CDAX, 
+//       indexAxis: 'y', // This makes the bar chart horizontal
+//       scales: { 
+//         x: { display: true, grid: { display: false }, ticks: { font: { size: 9 } } }, 
+//         y: { display: true, grid: { display: false }, ticks: { font: { size: 9 } } } 
+//       } 
+//     } 
+//   }) 
+// }
+//        
+// ANA_CONFIG ke andar felling -> ac-f3 ko update karein
+{ 
   title: "Range-wise Felling", 
   sub: "Incidents per forest range", 
   id: "ac-f3", 
   render: (id: string) => this.mkChart(id, { 
     type: "bar", 
     data: { 
-      labels: ["North Div", "South Valley", "East Plateau", "River Buffer", "West Ridge"], 
+      labels: REGIONS, 
       datasets: [{ 
         label: "Incidents", 
-        data: [45, 25, 32, 18, 40], // Example data from your SS
-        backgroundColor: COLORS.teal + "CC", 
+        data: this.rnd(5, 50, 10), 
+        backgroundColor: COLORS.teal, 
         borderRadius: 4 
       }] 
     }, 
     options: { 
       ...CDAX, 
-      indexAxis: 'y', // This makes the bar chart horizontal
-      scales: { 
-        x: { display: true, grid: { display: false }, ticks: { font: { size: 9 } } }, 
-        y: { display: true, grid: { display: false }, ticks: { font: { size: 9 } } } 
-      } 
+      indexAxis: 'y', // Horizontal bars
+      scales: {
+        x: { beginAtZero: true, grid: { display: false } },
+        y: { grid: { display: false } }
+      }
     } 
   }) 
-}
-        ]},
+} 
+]},
         { id: "transport", label: "Timber Transport", emoji: "🚛", color: COLORS.amber, val: 15, charts: [
           { title: "Vehicle Type Analytics", id: "ac-t1", render: (id: string) => this.mkChart(id, { type: "bar", data: { labels: ["Truck", "Tractor", "Tempo", "Private"], datasets: [{ data: this.rnd(4, 300, 20), backgroundColor: COLORS.ind + "CC", borderRadius: 4 }] }, options: CDAX }) }
         ]},
@@ -155,6 +207,7 @@ export class AdminAnalyticsPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() { 
+    this.onFilterChange();
     this.destroyCharts(); 
   }
 
@@ -181,23 +234,6 @@ export class AdminAnalyticsPage implements OnInit, OnDestroy {
     }, 150);
   }
 
-  updateUIData() {
-    const cat = this.getCurrentCat();
-    const sub = this.getCurrentSub();
-
-    if (cat) {
-      this.currentCatSubsCount = cat.subs?.length || 0;
-      const max = Math.max(...cat.subs.map((s: any) => s.val || 1));
-      this.displayProgList = cat.subs.map((s: any) => ({
-        ...s,
-        pct: Math.round((s.val / max) * 100)
-      }));
-    }
-
-    this.currentSubCharts = sub?.charts || [];
-    this.displayActivity = this.getActivity(this.activeSubId);
-    this.cdr.markForCheck();
-  }
 
   // renderSubCharts() {
   //   const sub = this.getCurrentSub();
@@ -257,4 +293,64 @@ export class AdminAnalyticsPage implements OnInit, OnDestroy {
     }
   });
 }
+// admin-analytics.page.ts
+
+onFilterChange() {
+  console.log("Applying Filters:", {
+    range: this.selectedRange,
+    beat: this.selectedBeat,
+    timeframe: this.activeDateFilter
+  });
+
+  // 1. SABSE PEHLE: Purane charts memory se hatao (Canvas Error Fix)
+  this.destroyCharts(); 
+
+  this.isRefreshing = true;
+  
+  // Fake delay taaki user ko feel aaye data load ho raha hai
+  setTimeout(() => {
+    // 2. Data calculate karo
+    this.updateUIData(); 
+    
+    // 3. UI ko refresh karo (Must for Canvas)
+    this.cdr.detectChanges();
+
+    // 4. Naye data ke saath charts draw karo
+    this.renderSubCharts();
+
+    this.isRefreshing = false;
+    this.cdr.detectChanges();
+  }, 300);
+}
+updateUIData() {
+const cat = this.getCurrentCat();
+if (!cat) return;
+// Header count update karo (Jo screenshot mein 0 dikh raha tha)
+this.currentCatSubsCount = cat.subs?.length || 0;
+
+// Timeframe-based Multiplier logic
+let timeFactor = 1;
+if (this.activeDateFilter === 'today') timeFactor = 0.2;
+if (this.activeDateFilter === 'week') timeFactor = 0.6;
+ // Progress bars ka data update
+this.displayProgList = cat.subs.map((s: any) => {
+const rangeFactor = this.selectedRange === 'all' ? 1 : 0.4;
+
+ // Yahan hum base value 50 maan rahe hain taaki multiplier sahi dikhe
+const baseVal = s.val || 20; 
+ const dynamicVal = Math.round(baseVal * timeFactor * rangeFactor);
+
+ return {
+ ...s,
+ val: dynamicVal,
+// Percentage max value 150 ke hisab se set kar rahe hain bars ke liye
+pct: Math.min(Math.round((dynamicVal / 150) * 100), 100) 
+ };
+ });
+
+// Active Sub-category ke charts set karo
+const sub = cat.subs.find((s: any) => s.id === this.activeSubId);
+this.currentSubCharts = sub?.charts || [];
+this.displayActivity = this.getActivity(this.activeSubId);
+} 
 }

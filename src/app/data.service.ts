@@ -234,4 +234,6 @@ getSightingCount(companyId: number, from?: string, to?: string): Observable<numb
 
   return this.http.get<number>(`${this.baseApiUrl}/patrols/stats/sightings-count`, { params });
 }
+
+
 }

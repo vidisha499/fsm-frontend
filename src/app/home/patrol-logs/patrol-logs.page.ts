@@ -17,6 +17,7 @@ export class PatrolLogsPage implements OnInit {
   @ViewChild('sliderKnob', { read: ElementRef }) sliderKnob!: ElementRef;
   @ViewChild('sliderTrack', { read: ElementRef }) sliderTrack!: ElementRef;
 
+  // public patrolLogs: any[] = [];
   public patrolLogs: any[] = [];
   public isModalOpen = false;
   public selectedMethod = '';
@@ -160,13 +161,74 @@ export class PatrolLogsPage implements OnInit {
 //     }
 //   });
 // }
+// async loadPatrolLogs(from?: string, to?: string) {
+//   const loaderMsg = await firstValueFrom(this.translate.get('DETAILS.LOADING'));
+//   const loader = await this.loadingCtrl.create({ message: loaderMsg, mode: 'ios' });
+//   await loader.present();
+
+//   const storedRangerId = localStorage.getItem('ranger_id');
+//   const storedCompanyId = localStorage.getItem('company_id');
+//   const userRole = localStorage.getItem('user_role');
+
+//   let params: string[] = [];
+//   if (from) params.push(`from=${from}`);
+//   if (to) params.push(`to=${to}`);
+  
+//   if (userRole === 'RANGER' && storedRangerId) {
+//     params.push(`rangerId=${storedRangerId}`);
+//   }
+//   if (storedCompanyId) {
+//     params.push(`companyId=${storedCompanyId}`); 
+//   }
+
+//   const queryString = params.length > 0 ? `?${params.join('&')}` : '';
+//   const activeUrl = `${this.apiUrl}/active${queryString}`;
+//   const logsUrl = `${this.apiUrl}/logs${queryString}`;
+
+//   forkJoin({
+//     active: this.http.get(activeUrl),
+//     history: this.http.get(logsUrl)
+//   }).subscribe({
+//     next: (res: any) => {
+//       // 1. Pending logs ka naming logic
+//       const pendingLogs = (res.active || []).map((p: any) => ({
+//         ...p,
+//         status: 'PENDING',
+//         // Agar method hai toh "FOOT PATROL", nahi toh "ACTIVE PATROL"
+//         patrolName: p.method ? `${p.method.toUpperCase()} PATROL` : 'ACTIVE PATROL',
+//         startTime: p.startTime || new Date().toISOString() 
+//       }));
+
+//       // 2. History logs (Completed) ka naming logic
+//       const completedLogs = (res.history || []).map((h: any) => ({
+//         ...h,
+//         // Yahan "FOOT - ROUTINE" jaisa format banega
+//         patrolName: h.method && h.type 
+//           ? `${h.method.toUpperCase()} - ${h.type.toUpperCase()}` 
+//           : (h.method ? `${h.method.toUpperCase()} PATROL` : 'PATROL LOG')
+//       }));
+
+//       // 3. Merge: Pending upar, Completed niche
+//       this.patrolLogs = [...pendingLogs, ...completedLogs];
+      
+//       loader.dismiss();
+//       this.cdr.detectChanges();
+//     },
+//     error: async (err) => {
+//       console.error("Combined Fetch Error:", err);
+//       loader.dismiss();
+//       const errMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_ERROR'));
+//       this.presentToast(errMsg, 'danger');
+//     }
+//   });
+// }
 
 async loadPatrolLogs(from?: string, to?: string) {
+  const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
   const loaderMsg = await firstValueFrom(this.translate.get('DETAILS.LOADING'));
   const loader = await this.loadingCtrl.create({ message: loaderMsg, mode: 'ios' });
   await loader.present();
 
-  // 1. LocalStorage se IDs aur Role nikalna
   const storedRangerId = localStorage.getItem('ranger_id');
   const storedCompanyId = localStorage.getItem('company_id');
   const userRole = localStorage.getItem('user_role');
@@ -174,48 +236,51 @@ async loadPatrolLogs(from?: string, to?: string) {
   let params: string[] = [];
   if (from) params.push(`from=${from}`);
   if (to) params.push(`to=${to}`);
-  
-  // Role-based filtering logic
-  if (userRole === 'RANGER' && storedRangerId) {
-    params.push(`rangerId=${storedRangerId}`);
+if (userRole === 'RANGER' && userData.id) {
+    params.push(`userId=${userData.id}`); 
   }
-  if (storedCompanyId) {
-    params.push(`companyId=${storedCompanyId}`); 
-  }
+  if (userRole === 'RANGER' && storedRangerId) params.push(`rangerId=${storedRangerId}`);
+  if (storedCompanyId) params.push(`companyId=${storedCompanyId}`);
 
   const queryString = params.length > 0 ? `?${params.join('&')}` : '';
-
-  // 2. API URLs taiyar karein
-  // Active patrols ke liye hum query params bhej rahe hain taaki wahi dikhe jo on-duty hai
-  const activeUrl = `${this.apiUrl}/active${queryString}`;
-  const logsUrl = `${this.apiUrl}/logs${queryString}`;
-
-  // 3. forkJoin se dono requests ko ek saath chalayein
+  const url = `${this.apiUrl}/logs${queryString}`
+  console.log("Filtering for User ID:", userData.id);
+  
   forkJoin({
-    active: this.http.get(activeUrl),
-    history: this.http.get(logsUrl)
+    active: this.http.get(`${this.apiUrl}/active${queryString}`),
+    history: this.http.get(`${this.apiUrl}/logs${queryString}`)
   }).subscribe({
     next: (res: any) => {
-      // Active results ko "PENDING" status mein convert karein
-      const pendingLogs = res.active.map((p: any) => ({
+      console.log("FINAL DATA CHECK:", res);
+
+      // 1. Map Active/Pending Logs
+      const pendingLogs = (res.active || []).map((p: any) => ({
         ...p,
-        status: 'PENDING', // Force status so UI shows yellow/pending
-        patrolName: p.method ? `${p.method.toUpperCase()} Patrol` : 'Active Patrol',
-        // StartTime check karein kyunki list mein date dikhani hoti hai
+        status: 'PENDING',
+        patrolName: (p.method && p.type) 
+          ? `${p.method.toUpperCase()} - ${p.type.toUpperCase()}` 
+          : (p.method ? `${p.method.toUpperCase()} PATROL` : 'ACTIVE PATROL'),
         startTime: p.startTime || new Date().toISOString() 
       }));
 
-      // Dono arrays ko merge karein: Pending pehle, phir History
-      this.patrolLogs = [...pendingLogs, ...res.history];
+      // 2. Map History Logs
+      const completedLogs = (res.history || []).map((h: any) => ({
+        ...h,
+        // Yahan mapping check kar raha hai h.method aur h.type
+        // patrolName: h.patrol_name || 'Patrol Log'
+        patrolName: (h.method && h.type) 
+          ? `${h.method.toUpperCase()} - ${h.type.toUpperCase()}` 
+          : (h.method ? `${h.method.toUpperCase()} PATROL` : 'COMPLETED LOG')
+      }));
+
+      this.patrolLogs = [...pendingLogs, ...completedLogs];
       
       loader.dismiss();
       this.cdr.detectChanges();
     },
     error: async (err) => {
-      console.error("Combined Fetch Error:", err);
+      console.error("LOAD ERROR:", err);
       loader.dismiss();
-      const errMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_ERROR'));
-      this.presentToast(errMsg, 'danger');
     }
   });
 }
@@ -223,6 +288,7 @@ async loadPatrolLogs(from?: string, to?: string) {
 
 
 // async savePatrol() {
+//   async savePatrol() {
 //   if (!this.selectedMethod || !this.selectedType) {
 //     this.presentToast('Please select method and type', 'warning');
 //     this.resetKnob();
@@ -277,12 +343,14 @@ async savePatrol() {
   this.isSubmitting = true; 
   const startMsg = await firstValueFrom(this.translate.get('LIST.STARTING'));
   const loader = await this.loadingCtrl.create({ message: startMsg, mode: 'ios' });
+  const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
   await loader.present();
 
   // FIX: Change 'company_id' to 'companyId' to match your NestJS Entity/DTO
   const payload = { 
-    rangerId: parseInt(storedRangerId),
-    
+    // rangerId: parseInt(storedRangerId),
+     userId: userData.id, 
+     rangerId: userData.id,
     // companyId: storedCompanyId ? parseInt(storedCompanyId) : null, 
     companyId: storedCompanyId ? parseInt(storedCompanyId) : null,
     method: this.selectedMethod,

@@ -349,6 +349,8 @@ ionViewWillEnter() {
 }
 
 
+
+
 loadData() {
   if (this.isFetching) return;
 
@@ -577,7 +579,7 @@ formatTime(dateStr: string) {
     setTimeout(() => {
       this.isRefreshing = false;
       this.isSpinning = false;
-      this.randomizeStats();
+      // this.randomizeStats();
       if (this.activeSegment === 'overview') this.initHomeCharts();
       if (this.activeSegment === 'officers') this.initAttChart();
     }, 700);

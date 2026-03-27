@@ -218,6 +218,7 @@ async submitReport() {
 
   // 2. Photos se 'data:image/jpeg;base64,' wala part hatao (Backend requirement)
   const finalPhotos = this.capturedPhotos.map(p => p.includes(',') ? p.split(',')[1] : p);
+  const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
 
 // const payload = {
 //   company_id: Number(rawCompanyId),
@@ -250,6 +251,7 @@ async submitReport() {
 // };
 
 const payload = {
+  userId: userData.id,     // Ye hai teri main ID link karne ke liye
   company_id: Number(rawCompanyId),
   rangerId: Number(rawRangerId), 
   photos: finalPhotos,
