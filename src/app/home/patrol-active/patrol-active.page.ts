@@ -1,519 +1,908 @@
-import { Component, OnInit, OnDestroy, AfterViewInit, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
-import { NavController, AlertController, LoadingController, ToastController, GestureController, DomController } from '@ionic/angular';
-import { Geolocation } from '@capacitor/geolocation';
-import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
-import { HttpClient } from '@angular/common/http';
-import { TranslateService } from '@ngx-translate/core';
-import { firstValueFrom } from 'rxjs';
-import { environment } from 'src/environments/environment';
-import * as L from 'leaflet';
-import { ModalController } from '@ionic/angular';
-import { ActivatedRoute } from '@angular/router';
+    // import { Component, OnInit, OnDestroy, AfterViewInit, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
+    // import { NavController, AlertController, LoadingController, ToastController, GestureController, DomController } from '@ionic/angular';
+    // import { Geolocation } from '@capacitor/geolocation';
+    // import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+    // import { HttpClient } from '@angular/common/http';
+    // import { TranslateService } from '@ngx-translate/core';
+    // import { firstValueFrom } from 'rxjs';
+    // import { environment } from 'src/environments/environment';
+    // import * as L from 'leaflet';
+    // import { ModalController } from '@ionic/angular';
+    // import { ActivatedRoute } from '@angular/router';
 
-@Component({
-  selector: 'app-patrol-active',
-  templateUrl: './patrol-active.page.html',
-  styleUrls: ['./patrol-active.page.scss'],
-  standalone: false
-})
-export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
-  @ViewChild('endTripKnob', { read: ElementRef }) endTripKnob!: ElementRef;
-  @ViewChild('endTripTrack', { read: ElementRef }) endTripTrack!: ElementRef;
+    // @Component({
+    //   selector: 'app-patrol-active',
+    //   templateUrl: './patrol-active.page.html',
+    //   styleUrls: ['./patrol-active.page.scss'],
+    //   standalone: false
+    // })
+    // export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
+    //   @ViewChild('endTripKnob', { read: ElementRef }) endTripKnob!: ElementRef;
+    //   @ViewChild('endTripTrack', { read: ElementRef }) endTripTrack!: ElementRef;
 
-  // Session State
-  activePatrolId: string | null = null;
-  patrolName: string = 'Active Patrol';
-  recentSightings: any[] = [];
-  selectedZoomImage: string | null = null;
+    //   // Session State
+    //   activePatrolId: string | null = null;
+    //   patrolName: string = 'Active Patrol';
+    //   recentSightings: any[] = [];
+    //   selectedZoomImage: string | null = null;
 
-  // Map and Tracking
-  map!: L.Map;
-  marker!: L.Marker;
-  private sightingMarkersLayer = L.layerGroup();
-  timerDisplay: string = '00:00:00';
-  seconds = 0;
-  timerInterval: any;
-  gpsWatchId: any;
-  isSubmitting: boolean = false;
-  isFinished: boolean = false;
-  capturedPhotos: string[] = [];
-  totalDistanceKm: number = 0;
-  lastLatLng: L.LatLng | null = null;
-  routePoints: { lat: number; lng: number }[] = [];
-  startTime: string = new Date().toISOString();
+    //   // Map and Tracking
+    //   map!: L.Map;
+    //   marker!: L.Marker;
+    //   private sightingMarkersLayer = L.layerGroup();
+    //   timerDisplay: string = '00:00:00';
+    //   seconds = 0;
+    //   timerInterval: any;
+    //   gpsWatchId: any;
+    //   isSubmitting: boolean = false;
+    //   isFinished: boolean = false;
+    //   capturedPhotos: string[] = [];
+    //   totalDistanceKm: number = 0;
+    //   lastLatLng: L.LatLng | null = null;
+    //   routePoints: { lat: number; lng: number }[] = [];
+    //   startTime: string = new Date().toISOString();
+      
 
-  private apiUrl: string = `${environment.apiUrl}/patrols`;
+    //   private apiUrl: string = `${environment.apiUrl}/patrols`;
 
-  private locationIcon = L.divIcon({
-    className: 'user-location-marker',
-    html: '<div class="blue-dot"></div>',
-    iconSize: [20, 20],
-    iconAnchor: [10, 10]
-  });
+    //   private locationIcon = L.divIcon({
+    //     className: 'user-location-marker',
+    //     html: '<div class="blue-dot"></div>',
+    //     iconSize: [20, 20],
+    //     iconAnchor: [10, 10]
+    //   });
 
-  constructor(
-    private navCtrl: NavController,
-    private alertCtrl: AlertController,
-    private loadingCtrl: LoadingController,
-    private toastCtrl: ToastController,
-    private http: HttpClient,
-    private gestureCtrl: GestureController,
-    private domCtrl: DomController,
-    private translate: TranslateService,
-    private cdr: ChangeDetectorRef,
-    private modalCtrl: ModalController,
-    private route: ActivatedRoute
-  ) { }
+    //   constructor(
+    //     private navCtrl: NavController,
+    //     private alertCtrl: AlertController,
+    //     private loadingCtrl: LoadingController,
+    //     private toastCtrl: ToastController,
+    //     private http: HttpClient,
+    //     private gestureCtrl: GestureController,
+    //     private domCtrl: DomController,
+    //     private translate: TranslateService,
+    //     private cdr: ChangeDetectorRef,
+    //     private modalCtrl: ModalController,
+    //     private route: ActivatedRoute
+    //   ) { }
 
-  ngOnInit() {
-  // 1. Pehle Check karein ki kya URL mein koi ID aayi hai (Resume Case)
-  this.route.queryParams.subscribe(params => {
-    const resumeId = params['id'];
-    const isResuming = params['isResuming'];
+    //   ngOnInit() {
+    //     this.route.queryParams.subscribe(params => {
+    //       const resumeId = params['id'];
+    //       const isResuming = params['isResuming'];
 
-    if (resumeId) {
-      // Agar Logs page se click karke aaye hain
-      this.activePatrolId = resumeId;
-      localStorage.setItem('active_patrol_id', resumeId); // Sync storage
-      console.log("Resuming Patrol ID:", this.activePatrolId);
-    } else {
-      // 2. Agar normal start karke aaye hain
-      this.activePatrolId = localStorage.getItem('active_patrol_id');
-    }
+    //       // Logic to determine which ID to use (URL priority, then LocalStorage)
+    //       if (resumeId) {
+    //         this.activePatrolId = resumeId;
+    //         localStorage.setItem('active_patrol_id', resumeId);
+    //       } else {
+    //         this.activePatrolId = localStorage.getItem('active_patrol_id');
+    //       }
 
-    this.patrolName = localStorage.getItem('temp_patrol_name') || 'Active Patrol';
+    //       this.patrolName = localStorage.getItem('temp_patrol_name') || 'Active Patrol';
 
-    // 3. Protection: Agar dono jagah se ID nahi mili toh hi wapas bhejein
-    if (!this.activePatrolId) {
-      console.warn("No Active Patrol ID found, redirecting...");
-      this.navCtrl.navigateRoot('/patrol-logs'); 
-      return;
-    }
+    //       // Protection: If no ID is found anywhere, go back to logs
+    //       if (!this.activePatrolId) {
+    //         console.warn("No Active Patrol ID found, redirecting...");
+    //         this.navCtrl.navigateRoot('/patrol-logs'); 
+    //         return;
+    //       }
 
-    // 4. Timer start karein
-    this.startTimer();
-    
-    // 5. (Optional) Agar Resume ho raha hai toh purana data fetch karein
-    if (isResuming) {
-      // Yahan aap ek function call kar sakte hain purani route fetch karne ke liye
-      // this.loadExistingPatrolData(this.activePatrolId);
-    }
-  });
-}
+    //       this.startTimer();
 
-ionViewWillLeave() {
-  // Jab user page chhod raha ho, toh agar koi loading overlay khula hai toh use band kar dein
-  this.loadingCtrl.dismiss().catch(() => {});
-}
-  goBack() {
-  // Simple navigation wapas logs page par
-  this.navCtrl.navigateBack('/patrol-logs');
-}
+    //       if (isResuming) {
+    //         this.refreshRecentSightings();
+    //         // Option to load existing route from server could go here
+    //       }
+    //     });
+    //   }
 
-  ngAfterViewInit() {
-    this.initMap();
-    this.setupEndTripGesture();
-  }
+    //   ngAfterViewInit() {
+    //     this.initMap();
+    //     this.setupEndTripGesture();
+    //   }
 
-  async ionViewDidEnter() {
-    this.refreshRecentSightings();
-  }
+    //   async ionViewDidEnter() {
+    //     // Every time we come back from the "Add Sighting" page, refresh the list
+    //     this.refreshRecentSightings();
+    //   }
 
-  // --- Sightings & Navigation ---
-  goToSightings(type: string) {
-    if (this.activePatrolId) {
-      this.navCtrl.navigateForward(['/home/sightings'], {
-        queryParams: { patrolId: this.activePatrolId, type: type }
+    //   ionViewWillLeave() {
+    //     this.loadingCtrl.dismiss().catch(() => {});
+    //   }
+
+    //   // --- Navigation & Sightings ---
+
+    //   goBack() {
+    //     this.navCtrl.navigateBack('/patrol-logs');
+    //   }
+
+    //   goToSightings(type: string) {
+    //     if (!this.activePatrolId) {
+    //       this.showToast("Session Error: No Patrol ID", "danger");
+    //       return;
+    //     }
+
+    //     this.navCtrl.navigateForward('/sightings', {
+    //       queryParams: { 
+    //         type: type,
+    //         patrolId: this.activePatrolId 
+    //       }
+    //     });
+    //   }
+
+    //   refreshRecentSightings() {
+    //     if (!this.activePatrolId) return;
+        
+    //     this.http.get(`${this.apiUrl}/active`).subscribe({
+    //       next: (data: any) => {
+    //         // Find the specific active patrol record from the array
+    //         const active = Array.isArray(data)
+    //           ? data.find((p: any) => p.id.toString() === this.activePatrolId)
+    //           : data;
+            
+    //         if (active) {
+    //           // Sync sightings from server
+    //           this.recentSightings = active.obs_details || active.obsDetails || [];
+    //           this.updateSightingMarkers();
+    //           this.cdr.detectChanges();
+    //         }
+    //       },
+    //       error: (err) => console.error("Could not refresh sightings", err)
+    //     });
+    //   }
+
+    //   // --- Map Logic ---
+
+    //   async initMap() {
+    //     try {
+    //       const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+    //       const lat = pos.coords.latitude;
+    //       const lng = pos.coords.longitude;
+    //       this.lastLatLng = L.latLng(lat, lng);
+          
+    //       this.map = L.map('map', { center: [lat, lng], zoom: 17, zoomControl: false });
+          
+    //       L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { 
+    //         subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] 
+    //       }).addTo(this.map);
+          
+    //       this.sightingMarkersLayer.addTo(this.map);
+    //       this.marker = L.marker([lat, lng], { icon: this.locationIcon }).addTo(this.map);
+          
+    //       this.startTracking();
+    //     } catch (e) { 
+    //       console.error("GPS init failed", e); 
+    //     }
+    //   }
+
+    //   private updateSightingMarkers() {
+    //     if (!this.map) return;
+    //     this.sightingMarkersLayer.clearLayers();
+
+    //     this.recentSightings.forEach(s => {
+    //       if (s.latitude && s.longitude) {
+    //         const icon = this.createSightingIcon(s.category || 'other');
+    //         const marker = L.marker([s.latitude, s.longitude], { icon: icon });
+    //         marker.bindPopup(`<b>${s.category || 'Sighting'}</b><br>${s.species || ''}`);
+    //         this.sightingMarkersLayer.addLayer(marker);
+    //       }
+    //     });
+    //   }
+
+    //   private createSightingIcon(category: string) {
+    //     const cat = category?.toLowerCase().trim();
+    //     const colors: any = {
+    //       animal: '#ca8a04',
+    //       water: '#0284c7',
+    //       impact: '#ea580c',
+    //       death: '#dc2626',
+    //       dead: '#dc2626',
+    //       felling: '#16a34a',
+    //       other: '#64748b'
+    //     };
+
+    //     const color = colors[cat] || colors['other'];
+
+    //     return L.divIcon({
+    //       className: 'custom-sighting-marker',
+    //       html: `<div style="background-color: ${color}; width: 12px; height: 12px; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 5px rgba(0,0,0,0.3);"></div>`,
+    //       iconSize: [16, 16],
+    //       iconAnchor: [8, 8]
+    //     });
+    //   }
+
+    //   async startTracking() {
+    //     this.gpsWatchId = await Geolocation.watchPosition({ 
+    //       enableHighAccuracy: true,
+    //       maximumAge: 3000 
+    //     }, (position) => {
+    //       if (position && this.map) {
+    //         const current = L.latLng(position.coords.latitude, position.coords.longitude);
+    //         this.marker.setLatLng(current);
+            
+    //         this.routePoints.push({ lat: current.lat, lng: current.lng });
+
+    //         if (this.lastLatLng) {
+    //           const dist = this.lastLatLng.distanceTo(current);
+    //           if (dist > 10) { 
+    //             this.totalDistanceKm += (dist / 1000);
+    //             this.syncLocation(current.lat, current.lng);
+    //           }
+    //         }
+    //         this.lastLatLng = current;
+    //         this.cdr.detectChanges();
+    //       }
+    //     });
+    //   }
+
+    //   syncLocation(lat: number, lng: number) {
+    //     if (this.activePatrolId) {
+    //       this.http.patch(`${this.apiUrl}/active/${this.activePatrolId}/route`, { lat, lng }).subscribe();
+    //     }
+    //   }
+
+    //   recenterMap() { 
+    //     if (this.lastLatLng && this.map) this.map.panTo(this.lastLatLng); 
+    //   }
+
+    //   // --- Trip End Logic ---
+
+    //   async handleEndTrip(isManual: boolean = false) {
+    //     if (!isManual || this.isSubmitting) return;
+
+    //     this.isSubmitting = true;
+        
+    //     const loaderMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_FINAL'));
+    //     const loader = await this.loadingCtrl.create({ message: loaderMsg, mode: 'ios' });
+    //     await loader.present();
+
+    //     const rId = localStorage.getItem('ranger_id');
+    //     const cId = localStorage.getItem('company_id');
+    //     const rName = localStorage.getItem('ranger_username') || 
+    //                   localStorage.getItem('ranger_name') || 
+    //                   'Ranger';
+
+    //     const logPayload = {
+    //       rangerId: rId ? parseInt(rId) : null,
+    //       companyId: cId ? parseInt(cId) : null,
+    //       ranger_name: rName,
+    //       patrolName: this.patrolName,
+    //       startTime: this.startTime,
+    //       endTime: new Date().toISOString(),
+    //       distanceKm: parseFloat(this.totalDistanceKm.toFixed(2)),
+    //       duration: this.timerDisplay,
+    //       status: 'COMPLETED',
+    //       photos: this.capturedPhotos, 
+    //       route: this.routePoints,
+    //       observationData: { Details: this.recentSightings }
+    //     };
+
+    //     this.http.post(`${this.apiUrl}/logs`, logPayload).subscribe({
+    //       next: async () => {
+    //         await loader.dismiss();
+    //         localStorage.removeItem('active_patrol_id');
+    //         localStorage.removeItem('temp_patrol_name');
+            
+    //         const successMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_SUCCESS'));
+    //         this.showToast(successMsg, 'success');
+    //         this.navCtrl.navigateRoot('/home/patrol-logs');
+    //       },
+    //       error: async (err) => {
+    //         await loader.dismiss();
+    //         this.isSubmitting = false;
+    //         // Reset slider knob
+    //         this.domCtrl.write(() => {
+    //           if (this.endTripKnob) this.endTripKnob.nativeElement.style.transform = `translateX(0px)`;
+    //         });
+    //         const errorMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_ERROR'));
+    //         this.showToast(errorMsg, 'danger');
+    //       }
+    //     });
+    //   }
+
+    //   setupEndTripGesture() {
+    //     if (!this.endTripKnob) return;
+    //     const knob = this.endTripKnob.nativeElement;
+    //     const track = this.endTripTrack.nativeElement;
+        
+    //     const gesture = this.gestureCtrl.create({
+    //       el: knob,
+    //       gestureName: 'end-trip',
+    //       onMove: ev => {
+    //         const max = track.clientWidth - knob.clientWidth - 12;
+    //         let x = Math.max(0, Math.min(ev.deltaX, max));
+    //         this.domCtrl.write(() => knob.style.transform = `translateX(${x}px)`);
+    //       },
+    //       onEnd: ev => {
+    //         const max = track.clientWidth - knob.clientWidth - 12;
+    //         if (ev.deltaX > max * 0.8) {
+    //           this.handleEndTrip(true); 
+    //         } else {
+    //           this.domCtrl.write(() => knob.style.transform = `translateX(0px)`);
+    //         }
+    //       }
+    //     });
+    //     gesture.enable(true);
+    //   }
+
+    //   // --- Helpers ---
+
+    //   async takeQuickPhoto() {
+    //     try {
+    //       const image = await Camera.getPhoto({ 
+    //         quality: 40, 
+    //         resultType: CameraResultType.DataUrl, 
+    //         source: CameraSource.Prompt
+    //       });
+
+    //       if (image?.dataUrl) {
+    //         this.capturedPhotos = [...this.capturedPhotos, image.dataUrl];
+    //         this.showToast('Photo added');
+    //       }
+    //     } catch (e) { console.warn('Photo cancelled'); }
+    //   }
+
+    //   startTimer() {
+    //     if (this.timerInterval) clearInterval(this.timerInterval);
+    //     this.timerInterval = setInterval(() => {
+    //       this.seconds++;
+    //       const h = Math.floor(this.seconds / 3600).toString().padStart(2, '0');
+    //       const m = Math.floor((this.seconds % 3600) / 60).toString().padStart(2, '0');
+    //       const s = (this.seconds % 60).toString().padStart(2, '0');
+    //       this.timerDisplay = `${h}:${m}:${s}`;
+    //       this.cdr.detectChanges();
+    //     }, 1000);
+    //   }
+
+    //   async showToast(message: string, color: string = 'dark') {
+    //     const toast = await this.toastCtrl.create({
+    //       message: message,
+    //       duration: 2000,
+    //       position: 'bottom',
+    //       color: color
+    //     });
+    //     await toast.present();
+    //   }
+
+    //   openZoom(imgUrl: string) { this.selectedZoomImage = imgUrl; }
+    //   closeZoom() { this.selectedZoomImage = null; }
+
+    //   viewSightingDetails(sighting: any, index: number) {
+    //     const tempId = sighting.id || `temp-${index}`;
+    //     this.navCtrl.navigateForward(['/sightings-details', tempId], {
+    //       state: { data: sighting }
+    //     });
+    //   }
+
+    //   async confirmDeleteLog(index: number, event: Event) {
+    //     event.stopPropagation();
+    //     const alert = await this.alertCtrl.create({
+    //       header: 'Remove Sighting?',
+    //       message: 'Are you sure you want to delete this log from your current session?',
+    //       buttons: [
+    //         { text: 'Cancel', role: 'cancel' },
+    //         {
+    //           text: 'Delete',
+    //           role: 'destructive',
+    //           handler: () => {
+    //             this.recentSightings.splice(index, 1);
+    //             this.showToast('Log removed successfully');
+    //           }
+    //         }
+    //       ]
+    //     });
+    //     await alert.present();
+    //   }
+
+    //   ngOnDestroy() {
+    //     if (this.timerInterval) clearInterval(this.timerInterval);
+    //     if (this.gpsWatchId) Geolocation.clearWatch({ id: this.gpsWatchId });
+    //     if (this.sightingMarkersLayer) this.sightingMarkersLayer.clearLayers();
+    //     if (this.map) this.map.remove();
+    //   }
+    // }
+
+    import { Component, OnInit, OnDestroy, AfterViewInit, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
+    import { NavController, AlertController, LoadingController, ToastController, GestureController, DomController } from '@ionic/angular';
+    import { Geolocation } from '@capacitor/geolocation';
+    import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+    import { HttpClient } from '@angular/common/http';
+    import { TranslateService } from '@ngx-translate/core';
+    import { firstValueFrom } from 'rxjs';
+    import { environment } from 'src/environments/environment';
+    import * as L from 'leaflet';
+    import { ActivatedRoute } from '@angular/router';
+
+    @Component({
+      selector: 'app-patrol-active',
+      templateUrl: './patrol-active.page.html',
+      styleUrls: ['./patrol-active.page.scss'],
+      standalone: false
+    })
+    export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
+      @ViewChild('endTripKnob', { read: ElementRef }) endTripKnob!: ElementRef;
+      @ViewChild('endTripTrack', { read: ElementRef }) endTripTrack!: ElementRef;
+
+      // --- Session State ---
+      activePatrolId: string | null = null; 
+      patrolName: string = 'Active Patrol';
+      recentSightings: any[] = [];
+      selectedZoomImage: string | null = null;
+
+      // --- Map and Tracking ---
+      map!: L.Map;
+      marker!: L.Marker;
+      private sightingMarkersLayer = L.layerGroup();
+      timerDisplay: string = '00:00:00';
+      seconds = 0;
+      timerInterval: any;
+      gpsWatchId: any;
+      
+      // UI States (Needed for Template)
+      isSubmitting: boolean = false;
+      isFinished: boolean = false; 
+      capturedPhotos: string[] = [];
+      
+      totalDistanceKm: number = 0;
+      lastLatLng: L.LatLng | null = null;
+      routePoints: { lat: number; lng: number }[] = [];
+      startTime: string = new Date().toISOString();
+
+      private apiUrl: string = `${environment.apiUrl}/patrols`;
+
+      private locationIcon = L.divIcon({
+        className: 'user-location-marker',
+        html: '<div class="blue-dot"></div>',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      });
+
+      constructor(
+        private navCtrl: NavController,
+        private alertCtrl: AlertController,
+        private loadingCtrl: LoadingController,
+        private toastCtrl: ToastController,
+        private http: HttpClient,
+        private gestureCtrl: GestureController,
+        private domCtrl: DomController,
+        private translate: TranslateService,
+        private cdr: ChangeDetectorRef,
+        private route: ActivatedRoute
+      ) { }
+
+    ngOnInit() {
+      this.route.queryParams.subscribe(params => {
+        // 1. Get the ID from any available source
+        const rawId = params['id'] || params['patrolId'] || localStorage.getItem('active_patrol_id');
+        
+        // 2. Only proceed if rawId actually exists
+        if (rawId) {
+          // Convert to string and store in a CONSTANT
+          // TypeScript knows a 'const' won't change to null suddenly
+          const validatedId: string = rawId.toString(); 
+          
+          this.activePatrolId = validatedId;
+          localStorage.setItem('active_patrol_id', validatedId);
+          
+          console.log("SUCCESS: Found Patrol ID:", validatedId);
+        } else {
+          console.error("CRITICAL: No ID found!");
+          this.navCtrl.navigateRoot('/home/patrol-logs');
+        }
+
+        this.patrolName = localStorage.getItem('temp_patrol_name') || 'Active Patrol';
+        this.startTimer();
       });
     }
-  }
-// Is function ko replace karein
-viewDetails(log: any) {
-  if (log.status === 'PENDING') {
-    // Agar status PENDING hai (Active Patrol table se aaya hai)
-    this.navCtrl.navigateForward(['/home/patrol-active'], { // <--- Path check kar lein (/home/ ya direct)
-      queryParams: { 
-        id: log.id,
-        isResuming: true 
+
+      ngAfterViewInit() {
+        this.initMap();
+        this.setupEndTripGesture();
       }
-    });
-  } else {
-    // Agar COMPLETED hai (Logs table se aaya hai)
-    this.navCtrl.navigateForward(['/patrol-details', log.id]);
-  }
-}
 
-
-refreshRecentSightings() {
-  if (!this.activePatrolId) return;
-  this.http.get(`${this.apiUrl}/active`).subscribe({
-    next: (data: any) => {
-      const active = Array.isArray(data)
-        ? data.find((p: any) => p.id.toString() === this.activePatrolId)
-        : data;
-      
-      if (active) {
-        this.recentSightings = active.obs_details || active.obsDetails || [];
-        
-        // --- ADD THIS LOG ---
-        console.log('All sightings from server:', this.recentSightings);
-        // Look at the console: Does the "Death" entry have lat and lng values?
-        
-        this.updateSightingMarkers();
-        this.cdr.detectChanges();
+      async ionViewDidEnter() {
+        this.refreshRecentSightings();
       }
+
+      // --- Navigation & Sightings ---
+
+
+
+    goToSightings(type: string) {
+      // Use the activePatrolId we found in ngOnInit
+      if (!this.activePatrolId) {
+        console.error("No Active Patrol ID found!");
+        return;
+      }
+      
+      // Navigate to the correct path (usually /home/sightings)
+      this.navCtrl.navigateForward(['/home/sightings'], {
+        queryParams: {
+          type: type,
+          patrolId: this.activePatrolId
+        }
+      });
     }
-  });
-}
 
-ngOnDestroy() {
-  // Clear the timer so it doesn't run in the background
-  if (this.timerInterval) clearInterval(this.timerInterval);
+      viewSightingDetails(sighting: any, index: number) {
+        const tempId = sighting.id || `temp-${index}`;
+        this.navCtrl.navigateForward(['/sightings-details', tempId], {
+          state: { data: sighting }
+        });
+      }
 
-  // Stop watching the GPS to save battery
-  if (this.gpsWatchId) Geolocation.clearWatch({ id: this.gpsWatchId });
+      // refreshRecentSightings() {
+      //   if (!this.activePatrolId) return;
 
-  // NEW: Remove all the sighting dots from memory
-  if (this.sightingMarkersLayer) {
-    this.sightingMarkersLayer.clearLayers();
-  }
+      //   this.http.get(`${this.apiUrl}/active`).subscribe({
+      //     next: (data: any) => {
+      //       const active = Array.isArray(data)
+      //         ? data.find((p: any) => p.id.toString() === this.activePatrolId)
+      //         : data;
+            
+      //       if (active) {
+      //         this.recentSightings = active.obs_details || active.obsDetails || [];
+      //         this.updateSightingMarkers();
+      //         this.cdr.detectChanges();
+      //       }
+      //     },
+      //     error: (err) => console.error("Refresh failed", err)
+      //   });
+      // }
 
-  // Destroy the map instance
-  if (this.map) {
-    this.map.remove();
-  }
-}
+      refreshRecentSightings() {
+        if (!this.activePatrolId) return;
 
-private updateSightingMarkers() {
-  if (!this.map) return;
-  
-  // 1. Clear existing sighting markers
-  this.sightingMarkersLayer.clearLayers();
+        this.http.get(`${this.apiUrl}/active`).subscribe({
+          next: (data: any) => {
+            const active = Array.isArray(data)
+              ? data.find((p: any) => p.id.toString() === this.activePatrolId)
+              : data;
+            
+            if (active) {
+              // FIX: Map through the sightings and provide a fallback for category
+              const rawSightings = active.obs_details || active.obsDetails || [];
+              this.recentSightings = rawSightings.map((s: any) => ({
+                ...s,
+                category: s.category || 'Other' // This prevents the 'undefined' error
+              }));
+              
+              this.updateSightingMarkers();
+              this.cdr.detectChanges();
+            }
+          },
+          error: (err) => console.error("Refresh failed", err)
+        });
+      }
 
-  // 2. Loop through sightings and add markers if they have coordinates
-  this.recentSightings.forEach(s => {
-    if (s.lat && s.lng) {
-      const icon = this.createSightingIcon(s.category);
-      const marker = L.marker([s.lat, s.lng], { icon: icon });
+      // async confirmDeleteLog(index: number, event: Event) {
+      //   event.stopPropagation();
+      //   const alert = await this.alertCtrl.create({
+      //     header: 'Remove Sighting?',
+      //     message: 'Are you sure you want to delete this log?',
+      //     buttons: [
+      //       { text: 'Cancel', role: 'cancel' },
+      //       {
+      //         text: 'Delete',
+      //         role: 'destructive',
+      //         handler: () => {
+      //           this.recentSightings.splice(index, 1);
+      //           this.showToast('Log removed locally');
+      //         }
+      //       }
+      //     ]
+      //   });
+      //   await alert.present();
+      // }
+    async confirmDeleteLog(index: number, event: Event) {
+      event.stopPropagation();
+      const sighting = this.recentSightings[index];
       
-      // Optional: Add a popup
-      marker.bindPopup(`<b>${s.category}</b><br>${s.species || ''}`);
-      
-      this.sightingMarkersLayer.addLayer(marker);
+      // CRITICAL: Ensure we have an ID. If you just created it, 
+      // ensure the backend returned the ID and you saved it.
+      if (!sighting.id) {
+        this.showToast("Cannot delete unsynced log. Refreshing...", "warning");
+        this.refreshRecentSightings();
+        return;
+      }
+
+      const alert = await this.alertCtrl.create({
+        header: 'Remove Sighting?',
+        message: 'Permanently delete this from the server?',
+        buttons: [
+          { text: 'Cancel', role: 'cancel' },
+          {
+            text: 'Delete',
+            role: 'destructive',
+            handler: () => {
+              // Use /patrols/sightings/ not /patrols/logs/
+              this.http.delete(`${environment.apiUrl}/patrols/sightings/${sighting.id}`).subscribe({
+                next: () => {
+                  this.recentSightings.splice(index, 1);
+                  this.updateSightingMarkers();
+                  this.showToast('Deleted successfully');
+                  this.cdr.detectChanges();
+                },
+                error: (err) => {
+                  console.error("Delete failed", err);
+                  this.showToast('Server Error: Delete failed', 'danger');
+                }
+              });
+            }
+          }
+        ]
+      });
+      await alert.present();
     }
-  });
-}
 
+      // --- Photo Logic ---
 
+      async takeQuickPhoto() {
+        try {
+          const image = await Camera.getPhoto({ 
+            quality: 40, 
+            resultType: CameraResultType.DataUrl, 
+            source: CameraSource.Prompt
+          });
+          if (image?.dataUrl) {
+            this.capturedPhotos = [...this.capturedPhotos, image.dataUrl];
+            this.showToast('Photo added');
+            this.cdr.detectChanges();
+          }
+        } catch (e) { console.warn('Photo cancelled'); }
+      }
 
-  async initMap() {
-  try {
-    const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
-    const lat = pos.coords.latitude;
-    const lng = pos.coords.longitude;
-    this.lastLatLng = L.latLng(lat, lng);
-    
-    this.map = L.map('map', { center: [lat, lng], zoom: 17, zoomControl: false });
-    L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { 
-      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] 
-    }).addTo(this.map);
-    
-    // Add the sightings layer to the map here
-    this.sightingMarkersLayer.addTo(this.map);
-    
-    this.marker = L.marker([lat, lng], { icon: this.locationIcon }).addTo(this.map);
-    this.startTracking();
-  } catch (e) { 
-    console.error("GPS init failed", e); 
-  }
+      // --- Map Logic ---
 
-}
+      async initMap() {
+        try {
+          const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          this.lastLatLng = L.latLng(lat, lng);
+          
+          this.map = L.map('map', { center: [lat, lng], zoom: 17, zoomControl: false });
+          L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { 
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] 
+          }).addTo(this.map);
+          
+          this.sightingMarkersLayer.addTo(this.map);
+          this.marker = L.marker([lat, lng], { icon: this.locationIcon }).addTo(this.map);
+          this.startTracking();
+        } catch (e) { console.error("Map failed", e); }
+      }
 
+      private updateSightingMarkers() {
+        if (!this.map) return;
+        this.sightingMarkersLayer.clearLayers();
+        this.recentSightings.forEach(s => {
+          const lat = s.latitude || s.lat;
+          const lng = s.longitude || s.lng;
+          if (lat && lng) {
+            const icon = this.createSightingIcon(s.category);
+            L.marker([lat, lng], { icon }).addTo(this.sightingMarkersLayer);
+          }
+        });
+      }
 
+      private createSightingIcon(category: string) {
+        const cat = category?.toLowerCase().trim() || 'other';
+        const colors: any = { animal: '#ca8a04', water: '#0284c7', impact: '#ea580c', death: '#dc2626', felling: '#16a34a', other: '#64748b' };
+        return L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="background:${colors[cat] || colors.other}; width:12px; height:12px; border-radius:50%; border:2px solid white;"></div>`,
+          iconSize: [16, 16]
+        });
+      }
 
+      async startTracking() {
+        this.gpsWatchId = await Geolocation.watchPosition({ enableHighAccuracy: true, maximumAge: 3000 }, (position) => {
+          if (position && this.map) {
+            const current = L.latLng(position.coords.latitude, position.coords.longitude);
+            this.marker.setLatLng(current);
+            this.routePoints.push({ lat: current.lat, lng: current.lng });
+            if (this.lastLatLng) {
+              const dist = this.lastLatLng.distanceTo(current);
+              if (dist > 10) { 
+                this.totalDistanceKm += (dist / 1000);
+                this.syncLocation(current.lat, current.lng);
+              }
+            }
+            this.lastLatLng = current;
+            this.cdr.detectChanges();
+          }
+        });
+      }
 
-private createSightingIcon(category: string) {
-  const cat = category?.toLowerCase().trim() || 'other';
-  const colors: any = {
-    animal: '#ca8a04',
-    water: '#0284c7',
-    impact: '#ea580c',
-    death: '#dc2626',
-    dead: '#dc2626', // Add fallback
-    felling: '#16a34a',
-    other: '#64748b'
-  };
-
-  const color = colors[cat] || colors['other'];
-
-  return L.divIcon({
-    className: 'custom-sighting-marker',
-    html: `
-      <div style="
-        background-color: ${color};
-        width: 12px;
-        height: 12px;
-        border: 2px solid white;
-        border-radius: 50%;
-        box-shadow: 0 0 5px rgba(0,0,0,0.3);
-      "></div>
-    `,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8]
-  });
-}
-  
-
-
-async startTracking() {
-  this.gpsWatchId = await Geolocation.watchPosition({ 
-    enableHighAccuracy: true,
-    maximumAge: 3000 
-  }, (position) => {
-    if (position && this.map) {
-      const current = L.latLng(position.coords.latitude, position.coords.longitude);
-      this.marker.setLatLng(current);
-      
-      // ADD THIS LINE: Push the new point to your local array
-      this.routePoints.push({ lat: current.lat, lng: current.lng });
-
-      if (this.lastLatLng) {
-        const dist = this.lastLatLng.distanceTo(current);
-        if (dist > 10) { 
-          this.totalDistanceKm += (dist / 1000);
-          this.syncLocation(current.lat, current.lng);
+      syncLocation(lat: number, lng: number) {
+        if (this.activePatrolId) {
+          this.http.patch(`${this.apiUrl}/active/${this.activePatrolId}/route`, { lat, lng }).subscribe();
         }
       }
-      this.lastLatLng = current;
-      this.cdr.detectChanges();
-    }
-  });
-}
 
-  syncLocation(lat: number, lng: number) {
-    if (this.activePatrolId) {
-      this.http.patch(`${this.apiUrl}/active/${this.activePatrolId}/route`, { lat, lng }).subscribe();
-    }
-  }
+      // --- End Trip Logic ---
 
-  recenterMap() { 
-    if (this.lastLatLng && this.map) this.map.panTo(this.lastLatLng); 
-  }
+      // async handleEndTrip(isManual: boolean = false) {
+      //   if (!isManual || this.isSubmitting) return;
+      //   this.isSubmitting = true;
+      //   this.isFinished = true; // Updates the UI slider
 
-  // --- Media Logic ---
-  async takeQuickPhoto() {
-    try {
-      const image = await Camera.getPhoto({ 
-        quality: 40, 
-        resultType: CameraResultType.DataUrl, 
-        source: CameraSource.Prompt
-      });
+      //   const loader = await this.loadingCtrl.create({ 
+      //     message: 'Syncing Final Data...', 
+      //     mode: 'ios' 
+      //   });
+      //   await loader.present();
 
-      if (image?.dataUrl) {
-        this.capturedPhotos = [...this.capturedPhotos, image.dataUrl];
-        this.showToast('Photo added');
-      }
-    } catch (e) { console.warn('Cancelled'); }
-  }
+      //   const logPayload = {
+      //     rangerId: parseInt(localStorage.getItem('ranger_id') || '0'),
+      //     companyId: parseInt(localStorage.getItem('company_id') || '0'),
+      //     ranger_name: localStorage.getItem('ranger_username') || 'Ranger',
+      //     patrolName: this.patrolName,
+      //     startTime: this.startTime,
+      //     endTime: new Date().toISOString(),
+      //     distanceKm: parseFloat(this.totalDistanceKm.toFixed(2)),
+      //     duration: this.timerDisplay,
+      //     status: 'COMPLETED',
+      //     photos: this.capturedPhotos, 
+      //     route: this.routePoints,
+      //     observationData: { Details: this.recentSightings }
+      //   };
 
-  // --- Trip End Logic ---
-  // async handleEndTrip(isManual: boolean = false) {
-  //   if (!isManual || this.isSubmitting) return;
+      //   this.http.post(`${this.apiUrl}/logs`, logPayload).subscribe({
+      //     next: async () => {
+      //       await loader.dismiss();
+      //       localStorage.removeItem('active_patrol_id');
+      //       this.showToast("Patrol Saved", "success");
+      //       this.navCtrl.navigateRoot('/home/patrol-logs');
+      //     },
+      //     error: async () => {
+      //       await loader.dismiss();
+      //       this.isSubmitting = false;
+      //       this.isFinished = false;
+      //       this.domCtrl.write(() => { if (this.endTripKnob) this.endTripKnob.nativeElement.style.transform = `translateX(0px)`; });
+      //       this.showToast("Sync Error", "danger");
+      //     }
+      //   });
+      // }
 
-  // this.isSubmitting = true;
-    
-  //   const loaderMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_FINAL'));
-  //   const loader = await this.loadingCtrl.create({ message: loaderMsg, mode: 'ios' });
-  //   await loader.present();
-
-  //   const rId = localStorage.getItem('ranger_id') || '1';
-  //   const logPayload = {
-  //     rangerId: parseInt(rId),
-  //     patrolName: this.patrolName,
-  //     startTime: this.startTime,
-  //     endTime: new Date().toISOString(),
-  //     distanceKm: parseFloat(this.totalDistanceKm.toFixed(2)),
-  //     duration: this.timerDisplay,
-  //     status: 'COMPLETED',
-      
-  //     photos: this.capturedPhotos, 
-  //     route: this.routePoints,
-  //     observationData: { Details: this.recentSightings }
-  //   };
-
-  //   this.http.post(`${this.apiUrl}/logs`, logPayload).subscribe({
-  //     next: async () => {
-  //       await loader.dismiss();
-  //       localStorage.removeItem('active_patrol_id');
-  //       localStorage.removeItem('temp_patrol_name');
-        
-  //       const successMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_SUCCESS'));
-  //       this.showToast(successMsg);
-  //       this.navCtrl.navigateRoot('/patrol-logs');
-  //     },
-  //     error: async (err) => {
-  //       await loader.dismiss();
-  //       this.isSubmitting = false;
-  //       const errorMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_ERROR'));
-  //       this.showToast(errorMsg);
-  //     }
-  //   });
-  // }
-
-  async handleEndTrip(isManual: boolean = false) {
+async handleEndTrip(isManual: boolean = false) {
+  // 1. Safety Guard: Prevent double-clicks or accidental triggers
   if (!isManual || this.isSubmitting) return;
 
-  this.isSubmitting = true;
-  
-  const loaderMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_FINAL'));
-  const loader = await this.loadingCtrl.create({ message: loaderMsg, mode: 'ios' });
-  await loader.present();
-
-  // Retrieve session data
+  // 2. Data Validation: Ensure we have the necessary IDs from LocalStorage
   const rId = localStorage.getItem('ranger_id');
   const cId = localStorage.getItem('company_id');
-  // const rName = localStorage.getItem('ranger_name') || 'Ranger';
-  const rName = localStorage.getItem('ranger_username') || 
-                localStorage.getItem('ranger_name') || 
-                'Ranger';
+  const rName = localStorage.getItem('ranger_username') || localStorage.getItem('ranger_name') || 'Ranger';
 
+  if (!rId || !cId) {
+    this.showToast("Session Error: Missing Ranger or Company ID. Please log in again.", "danger");
+    return;
+  }
+
+  // 3. Update UI State
+  this.isSubmitting = true;
+  this.isFinished = true; // Visual feedback for the slider
+
+  // 4. Show Loading Overlay
+  const loader = await this.loadingCtrl.create({ 
+    message: 'Syncing Final Patrol Data...', 
+    mode: 'ios',
+    backdropDismiss: false
+  });
+  await loader.present();
+
+  // 5. Construct the Payload
+  // Note: We send 'ranger_name' as your controller/service expects
   const logPayload = {
-    rangerId: rId ? parseInt(rId) : null,
-    companyId: cId ? parseInt(cId) : null, // Added to ensure Admin visibility
-    // ranger_name: rName,    
-    ranger_name: rName,                // Crucial for the Backend Alert trigger
-    patrolName: this.patrolName,
+    rangerId: parseInt(rId),
+    companyId: parseInt(cId),
+    ranger_name: rName,
+    patrolName: this.patrolName || 'Standard Patrol',
     startTime: this.startTime,
     endTime: new Date().toISOString(),
     distanceKm: parseFloat(this.totalDistanceKm.toFixed(2)),
     duration: this.timerDisplay,
     status: 'COMPLETED',
-    photos: this.capturedPhotos, 
-    route: this.routePoints,
+    photos: this.capturedPhotos || [], 
+    route: this.routePoints || [],
+    // This provides a snapshot, but the backend 'createLog' 
+    // will re-parent the actual database records.
     observationData: { Details: this.recentSightings }
   };
 
+  // 6. Execute the Request
+  // Using 'this.apiUrl' which points to `${environment.apiUrl}/patrols`
   this.http.post(`${this.apiUrl}/logs`, logPayload).subscribe({
-    next: async () => {
+    next: async (response: any) => {
+      console.log("Patrol Sync Success:", response);
+      
       await loader.dismiss();
-      // Clean up session
+      
+      // Clear session data only on success
       localStorage.removeItem('active_patrol_id');
       localStorage.removeItem('temp_patrol_name');
       
-      const successMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_SUCCESS'));
-      this.showToast(successMsg, 'success');
+      // Stop the GPS and Timer
+      if (this.timerInterval) clearInterval(this.timerInterval);
+      if (this.gpsWatchId) {
+        await Geolocation.clearWatch({ id: this.gpsWatchId });
+      }
+
+      this.showToast("Patrol Saved Successfully", "success");
+
+      // Navigate to History (ensure this path matches your routing)
       this.navCtrl.navigateRoot('/home/patrol-logs');
     },
     error: async (err) => {
+      console.error("CRITICAL SYNC ERROR:", err);
+      
       await loader.dismiss();
+      
+      // Revert UI states so the user can try again
       this.isSubmitting = false;
-      // Reset the slider knob so user can try again
+      this.isFinished = false;
+      
+      // Reset the slider knob position
       this.domCtrl.write(() => {
-        if (this.endTripKnob) this.endTripKnob.nativeElement.style.transform = `translateX(0px)`;
-      });
-      const errorMsg = await firstValueFrom(this.translate.get('PATROL.SYNC_ERROR'));
-      this.showToast(errorMsg, 'danger');
-    }
-  });
-}
-
-  
-  
-
-  setupEndTripGesture() {
-    if (!this.endTripKnob) return;
-    const knob = this.endTripKnob.nativeElement;
-    const track = this.endTripTrack.nativeElement;
-    
-    const gesture = this.gestureCtrl.create({
-      el: knob,
-      gestureName: 'end-trip',
-      onMove: ev => {
-        const max = track.clientWidth - knob.clientWidth - 12;
-        let x = Math.max(0, Math.min(ev.deltaX, max));
-        this.domCtrl.write(() => knob.style.transform = `translateX(${x}px)`);
-      },
-      // onEnd: ev => {
-      //   const max = track.clientWidth - knob.clientWidth - 12;
-      //   if (ev.deltaX > max * 0.8) {
-      //     this.handleEndTrip();
-      //   } else {
-      //     this.domCtrl.write(() => knob.style.transform = `translateX(0px)`);
-      //   }
-      // }
-      // setupEndTripGesture function ke andar
-onEnd: ev => {
-    const max = track.clientWidth - knob.clientWidth - 12;
-    if (ev.deltaX > max * 0.8) {
-        // Yahan 'true' pass karein taaki function ko pata chale slide hua hai
-        this.handleEndTrip(true); 
-    } else {
-        this.domCtrl.write(() => knob.style.transform = `translateX(0px)`);
-    }
-}
-    });
-    gesture.enable(true);
-  }
-
-  // --- Helper Functions ---
-  startTimer() {
-    this.timerInterval = setInterval(() => {
-      this.seconds++;
-      const h = Math.floor(this.seconds / 3600).toString().padStart(2, '0');
-      const m = Math.floor((this.seconds % 3600) / 60).toString().padStart(2, '0');
-      const s = (this.seconds % 60).toString().padStart(2, '0');
-      this.timerDisplay = `${h}:${m}:${s}`;
-      this.cdr.detectChanges();
-    }, 1000);
-  }
-
-  
-
-  async showToast(message: string, color: string = 'dark') {
-  const toast = await this.toastCtrl.create({
-    message: message,
-    duration: 2000,
-    position: 'bottom',
-    color: color // This allows you to pass 'danger' for errors or 'success' for deletions
-  });
-  await toast.present();
-}
-
-
-  openZoom(imgUrl: string) { this.selectedZoomImage = imgUrl; }
-  closeZoom() { this.selectedZoomImage = null; }
-
-
-viewSightingDetails(sighting: any, index: number) {
-  // Ensure the 'sighting' object being passed is the specific one from the loop
-  const tempId = sighting.id || `temp-${index}`;
-  
-  this.navCtrl.navigateForward(['/sightings-details', tempId], {
-    state: { data: sighting }
-  });
-}
-
-async confirmDeleteLog(index: number, event: Event) {
-  event.stopPropagation(); // Prevents opening the details page
-
-  const alert = await this.alertCtrl.create({
-    header: 'Remove Sighting?',
-    message: 'Are you sure you want to delete this log from your current session?',
-    buttons: [
-      { text: 'Cancel', role: 'cancel' },
-      {
-        text: 'Delete',
-        role: 'destructive',
-        handler: () => {
-          this.recentSightings.splice(index, 1);
-          this.showToast('Log removed successfully');
+        if (this.endTripKnob) {
+          this.endTripKnob.nativeElement.style.transform = `translateX(0px)`;
         }
-      }
-    ]
+      });
+
+      // Provide specific feedback if possible
+      const errorMsg = err.error?.message || "Sync Error: Please check your connection.";
+      this.showToast(errorMsg, "danger");
+    }
   });
-
-  await alert.present();
 }
+      setupEndTripGesture() {
+        if (!this.endTripKnob) return;
+        const knob = this.endTripKnob.nativeElement;
+        const track = this.endTripTrack.nativeElement;
+        const gesture = this.gestureCtrl.create({
+          el: knob,
+          gestureName: 'end-trip',
+          onMove: ev => {
+            const max = track.clientWidth - knob.clientWidth - 12;
+            let x = Math.max(0, Math.min(ev.deltaX, max));
+            this.domCtrl.write(() => knob.style.transform = `translateX(${x}px)`);
+          },
+          onEnd: ev => {
+            const max = track.clientWidth - knob.clientWidth - 12;
+            if (ev.deltaX > max * 0.8) this.handleEndTrip(true);
+            else this.domCtrl.write(() => knob.style.transform = `translateX(0px)`);
+          }
+        });
+        gesture.enable(true);
+      }
 
+      // --- Helpers ---
 
-}
+      startTimer() {
+        this.timerInterval = setInterval(() => {
+          this.seconds++;
+          const h = Math.floor(this.seconds / 3600).toString().padStart(2, '0');
+          const m = Math.floor((this.seconds % 3600) / 60).toString().padStart(2, '0');
+          const s = (this.seconds % 60).toString().padStart(2, '0');
+          this.timerDisplay = `${h}:${m}:${s}`;
+          this.cdr.detectChanges();
+        }, 1000);
+      }
+
+      async showToast(message: string, color: string = 'dark') {
+        const toast = await this.toastCtrl.create({ message, duration: 2000, position: 'bottom', color });
+        await toast.present();
+      }
+
+      recenterMap() { if (this.lastLatLng && this.map) this.map.panTo(this.lastLatLng); }
+      goBack() { this.navCtrl.navigateBack('/patrol-logs'); }
+      openZoom(imgUrl: string) { this.selectedZoomImage = imgUrl; }
+      closeZoom() { this.selectedZoomImage = null; }
+
+      ngOnDestroy() {
+        if (this.timerInterval) clearInterval(this.timerInterval);
+        if (this.gpsWatchId) Geolocation.clearWatch({ id: this.gpsWatchId });
+        if (this.map) this.map.remove();
+      }
+    }   

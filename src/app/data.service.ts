@@ -11,7 +11,9 @@ export class DataService {
   private selectedIncident: any;
   private selectedAttendance: any;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient,
+    
+  ) {}
 
 
   // Attendance set karne ke liye
@@ -252,6 +254,7 @@ updateNotificationPrefs(companyId: number, prefs: any[]) {
   return this.http.post(`${this.baseApiUrl}/users/settings/${companyId}`, { prefs });
 } 
 
+<<<<<<< HEAD
 // --- ANALYTICS FUNCTIONS ---
 
   getCriminalAnalytics(companyId: any, timeframe: string, range: string, beat: string): Observable<any> {
@@ -276,5 +279,11 @@ updateNotificationPrefs(companyId: number, prefs: any[]) {
     beat
   };
   return this.http.get(`${this.baseApiUrl}/incidents/analytics/fire`, { params });
+=======
+getAdminAnalytics(range: string, beat: string, timeframe: string) {
+  return this.http.get(`${this.baseApiUrl}/analytics`, {
+    params: { range, beat, timeframe }
+  });
+>>>>>>> f88412e6a91e64ba6f9c8298dd5f556581de49fc
 }
 }

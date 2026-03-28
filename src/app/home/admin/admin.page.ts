@@ -422,7 +422,8 @@ this.dataService.getDashboardStats(myCompanyId, dates.from, dates.to).subscribe(
     error: (err: any) => console.error('Users Fetch Error:', err),
   });
 
- 
+//alerts section here
+
 
 this.dataService.getLatestAlerts(myCompanyId).subscribe({
   next: (alerts: any[]) => {
@@ -458,7 +459,6 @@ this.dataService.getLatestAlerts(myCompanyId).subscribe({
           }
 
           if (dbCat.includes('CRIMINAL')) {
-            // This will match "Criminal Activity" in your settings array
             return isEnabled('Criminal Activity');
           }
 
@@ -466,20 +466,38 @@ this.dataService.getLatestAlerts(myCompanyId).subscribe({
         })
         .map((alert) => {
           // 2. FORMATTING & THEMING
-          // We use 'type' (INCIDENT, ATTENDANCE) to set the Color Theme
           const rawType = (alert.type || 'INFO').toUpperCase();
           const theme = this.getAlertTheme(rawType);
-          
           const name = alert.ranger_name || 'System';
-          const categoryDisplay = alert.category || 'Alert';
+          
+          // --- DYNAMIC TITLE LOGIC ---
+          let titlePrefix = '';
+
+          if (rawType === 'ATTENDANCE') {
+            titlePrefix = 'ATTENDANCE';
+          } else if (rawType === 'ONSITE') {
+            titlePrefix = 'ONSITE-ATTENDANCE';
+          } else if (rawType === 'PATROL_START') {
+            titlePrefix = 'PATROL-START';
+          } else if (rawType === 'PATROL_END') {
+            titlePrefix = 'PATROL-END';
+          } else if (rawType === 'INCIDENT') {
+            // For incidents, use the specific category (e.g., ILLEGAL FELLING)
+            titlePrefix = (alert.category || 'INCIDENT').toUpperCase();
+          } else {
+            // Fallback for other types
+            titlePrefix = rawType;
+          }
 
           return {
             ...alert,
             // Map raw types to severity for CSS classes (critical, warning, info)
-            severity: rawType.includes('INCIDENT') ? 'critical' : 
+            severity: rawType.includes('INCIDENT') || rawType.includes('CRIT') ? 'critical' : 
                       rawType.includes('WARN') ? 'warning' : 'info',
             
-            displayTitle: `${categoryDisplay} - ${name}`,
+            // Result: "ATTENDANCE - Ishika" or "ILLEGAL FELLING - Ishika"
+            displayTitle: `${titlePrefix} - ${name}`,
+            
             displayDesc: `${alert.location_name || 'Forest Division'}`,
             displayTime: alert.created_at ? 
               `${new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · ${new Date(alert.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}` : 
@@ -494,6 +512,7 @@ this.dataService.getLatestAlerts(myCompanyId).subscribe({
       // 3. Refresh the visible lists (All/Critical/Warning tabs)
       this.updateFilteredAlerts();
     }
+    this.isFetching = false;
     this.cdr.detectChanges();
   },
   error: (err) => {
@@ -506,7 +525,10 @@ this.dataService.getLatestAlerts(myCompanyId).subscribe({
     this.cdr.detectChanges();
   }
 });
+
 }
+
+
 
 updateFilteredAlerts() {
   const filter = this.activeAlertFilter || 'all';
@@ -1152,25 +1174,7 @@ initAttChart() {
     });
   }
 
-  // getFilterDates() {
-  //   const now = new Date();
-  //   let from = new Date();
 
-  //   if (this.activeDateFilter === 'today') {
-  //     from.setHours(0, 0, 0, 0);
-  //   } else if (this.activeDateFilter === 'week') {
-  //     from.setDate(now.getDate() - 7);
-  //   } else if (this.activeDateFilter === 'month') {
-  //     from.setMonth(now.getMonth() - 1);
-  //   } else {
-  //     return { from: '', to: '' };
-  //   }
-
-  //   return {
-  //     from: from.toISOString(),
-  //     to: now.toISOString()
-  //   };
-  // }
 
   getFilterDates() {
     const now = new Date();

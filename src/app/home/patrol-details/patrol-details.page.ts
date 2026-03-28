@@ -50,56 +50,159 @@ export class PatrolDetailsPage implements OnInit {
   }
 
 
-  initMap() {
-  const mapElement = document.getElementById('detailsMap');
-  if (!mapElement || !this.patrol) return;
+//   initMap() {
+//   const mapElement = document.getElementById('detailsMap');
+//   if (!mapElement || !this.patrol) return;
 
-  // 1. Setup Map Instance
-  if (this.map) { this.map.remove(); }
-  this.map = L.map('detailsMap', { zoomControl: false });
+//   // 1. Setup Map Instance
+//   if (this.map) { this.map.remove(); }
+//   this.map = L.map('detailsMap', { zoomControl: false });
 
-  L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { 
-    subdomains: ['mt0','mt1','mt2','mt3'] 
-  }).addTo(this.map);
+//   L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { 
+//     subdomains: ['mt0','mt1','mt2','mt3'] 
+//   }).addTo(this.map);
 
-  // 2. Initialize Bounds
-  const bounds = L.latLngBounds([]);
+//   // 2. Initialize Bounds
+//   const bounds = L.latLngBounds([]);
 
-  // 3. Handle Route Polyline
-  const routeCoords: L.LatLngTuple[] = (this.patrol.route || []).map((p: any) => [p.lat, p.lng] as L.LatLngTuple);
-  if (routeCoords.length > 0) {
-    const polyline = L.polyline(routeCoords, { color: '#059669', weight: 5, opacity: 0.8 }).addTo(this.map);
-    routeCoords.forEach(coord => bounds.extend(coord));
-  }
+//   // 3. Handle Route Polyline
+//   const routeCoords: L.LatLngTuple[] = (this.patrol.route || []).map((p: any) => [p.lat, p.lng] as L.LatLngTuple);
+//   if (routeCoords.length > 0) {
+//     const polyline = L.polyline(routeCoords, { color: '#059669', weight: 5, opacity: 0.8 }).addTo(this.map);
+//     routeCoords.forEach(coord => bounds.extend(coord));
+//   }
 
-  // 4. Handle Sighting Markers
-  const sightings = this.patrol.observationData?.Details || [];
-  sightings.forEach((obs: any) => {
-    if (obs.lat && obs.lng) {
-      const sightingCoord: L.LatLngTuple = [obs.lat, obs.lng];
-      const icon = this.createSightingMarkerIcon(obs.category);
+//   // 4. Handle Sighting Markers
+//   // const sightings = this.patrol.observationData?.Details || [];
+//   // 4. Handle Sighting Markers
+// const sightings = this.patrol.observationData || [];  
+//   sightings.forEach((obs: any) => {
+//     // Note: Backend uses 'latitude'/'longitude', Frontend HTML used 'lat'/'lng'
+//     // Let's check both to be safe
+//     const lat = obs.latitude || obs.lat;
+//     const lng = obs.longitude || obs.lng;
+
+//     if (lat && lng) {
+//       const sightingCoord: L.LatLngTuple = [lat, lng];
+//       const icon = this.createSightingMarkerIcon(obs.category);
       
-      L.marker(sightingCoord, { icon })
-        .addTo(this.map)
-        .bindPopup(`<b>${obs.category}</b><br>${obs.species || ''}`);
+//       L.marker(sightingCoord, { icon })
+//         .addTo(this.map)
+//         .bindPopup(`<b>${obs.category}</b><br>${obs.species || ''}`);
       
-      // Extend bounds to include this sighting
-      bounds.extend(sightingCoord);
+//       bounds.extend(sightingCoord);
+//     }
+//   });
+  
+//   // sightings.forEach((obs: any) => {
+//   //   if (obs.lat && obs.lng) {
+//   //     const sightingCoord: L.LatLngTuple = [obs.lat, obs.lng];
+//   //     const icon = this.createSightingMarkerIcon(obs.category);
+      
+//   //     L.marker(sightingCoord, { icon })
+//   //       .addTo(this.map)
+//   //       .bindPopup(`<b>${obs.category}</b><br>${obs.species || ''}`);
+      
+//   //     // Extend bounds to include this sighting
+//   //     bounds.extend(sightingCoord);
+//   //   }
+//   // });
+
+//   // 5. Final Auto-Zoom Logic
+//   if (bounds.isValid()) {
+//     // fitBounds makes sure EVERYTHING is visible
+//     this.map.fitBounds(bounds, { padding: [40, 40] });
+//   } else {
+//     // Fallback if no data exists
+//     this.map.setView([19.95, 79.12], 13);
+//   }
+
+//   this.mapLoading = false;
+//   this.cdr.detectChanges();
+// }
+
+initMap() {
+    const mapElement = document.getElementById('detailsMap');
+    if (!mapElement || !this.patrol) return;
+
+    // 1. Setup Map Instance
+    // If a map already exists (e.g., from a previous view), remove it to avoid "Map already initialized" error
+    if (this.map) { 
+      this.map.remove(); 
     }
-  });
+    
+    this.map = L.map('detailsMap', { 
+      zoomControl: false,
+      dragging: true,
+      scrollWheelZoom: false
+    });
 
-  // 5. Final Auto-Zoom Logic
-  if (bounds.isValid()) {
-    // fitBounds makes sure EVERYTHING is visible
-    this.map.fitBounds(bounds, { padding: [40, 40] });
-  } else {
-    // Fallback if no data exists
-    this.map.setView([19.95, 79.12], 13);
+    // Add Google Maps Roadmap Layer
+    L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { 
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+      attribution: '&copy; Google Maps'
+    }).addTo(this.map);
+
+    // 2. Initialize Bounds to track the area we need to show
+    const bounds = L.latLngBounds([]);
+
+    // 3. Handle Route Polyline
+    // Map the route array to Leaflet LatLng tuples
+    const routeCoords: L.LatLngTuple[] = (this.patrol.route || []).map((p: any) => {
+      const lat = p.latitude || p.lat;
+      const lng = p.longitude || p.lng;
+      return [Number(lat), Number(lng)] as L.LatLngTuple;
+    });
+
+    if (routeCoords.length > 0) {
+      const polyline = L.polyline(routeCoords, { 
+        color: '#059669', 
+        weight: 5, 
+        opacity: 0.8 
+      }).addTo(this.map);
+
+      // Extend bounds to include the entire polyline
+      routeCoords.forEach(coord => bounds.extend(coord));
+    }
+
+    // 4. Handle Sighting Markers (Observation Data)
+    const sightings = this.patrol.observationData || [];  
+
+    sightings.forEach((obs: any) => {
+      // Check both 'latitude/longitude' (Backend) and 'lat/lng' (Old/Fallback)
+      const lat = obs.latitude || obs.lat;
+      const lng = obs.longitude || obs.lng;
+
+      if (lat !== undefined && lng !== undefined) {
+        const sightingCoord: L.LatLngTuple = [Number(lat), Number(lng)];
+        const icon = this.createSightingMarkerIcon(obs.category);
+        
+        L.marker(sightingCoord, { icon })
+          .addTo(this.map)
+          .bindPopup(`
+            <div style="font-family: sans-serif;">
+              <b style="text-transform: capitalize;">${obs.category || 'Sighting'}</b><br>
+              <span>${obs.species || ''}</span>
+            </div>
+          `);
+        
+        // Extend bounds so this marker is visible on the map
+        bounds.extend(sightingCoord);
+      }
+    });
+
+    // 5. Final Auto-Zoom Logic
+    if (bounds.isValid()) {
+      // fitBounds adjusts zoom and center so all polyline points and markers are visible
+      this.map.fitBounds(bounds, { padding: [40, 40] });
+    } else {
+      // Fallback view if no route or sightings exist (Center of project area)
+      this.map.setView([19.95, 79.12], 13);
+    }
+
+    this.mapLoading = false;
+    this.cdr.detectChanges();
   }
-
-  this.mapLoading = false;
-  this.cdr.detectChanges();
-}
 
 private createSightingMarkerIcon(category: string) {
   const cat = category?.toLowerCase() || 'other';
