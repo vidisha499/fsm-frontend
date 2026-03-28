@@ -385,7 +385,7 @@
       </div>
 
       <div class="map-wrap">
-        <div class="map-canvas">
+        <!-- <div class="map-canvas">
           <div
             *ngIf="isCompsActive"
             style="position: absolute; inset: 0; pointer-events: none; z-index: 1"
@@ -423,7 +423,18 @@
                 background: #f59e0b;
               "
             ></div>
-          </div>
+          </div> -->
+          <div class="map-canvas">
+  <div id="leafletMap" style="height: 100%; width: 100%; z-index: 1;"></div>
+
+  <div class="map-compass" style="z-index: 1000; pointer-events: none;">
+    <svg viewBox="0 0 24 24" fill="none" width="20" height="20">
+      <circle cx="12" cy="12" r="10" stroke="#e2e8f0" stroke-width="1.5" />
+      <polygon points="12,3 14,12 12,10 10,12" fill="#ef4444" />
+      <polygon points="12,21 10,12 12,14 14,12" fill="#94a3b8" />
+      <circle cx="12" cy="12" r="1.5" fill="#0f172a" />
+    </svg>
+  </div>
 
           <div class="map-pins">
             <div
@@ -459,7 +470,16 @@
             </svg>
           </div>
 
-          <button
+          <button class="comps-btn" [class.active]="isCompsActive" (click)="toggleComps()" style="z-index: 1000;">
+    <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+      <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
+      <rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
+    </svg>
+    Compartments
+  </button>
+
+
+          <!-- <button
             class="comps-btn"
             [class.active]="isCompsActive"
             (click)="toggleComps()"
@@ -478,7 +498,7 @@
               <rect x="14" y="14" width="7" height="7" />
             </svg>
             Compartments
-          </button>
+          </button> -->
 
           <button
             class="layers-btn"
@@ -503,47 +523,47 @@
             <div class="lbtn-badge">{{ activeLayerCount }}</div>
           </button>
 
-          <div class="layer-panel" [class.open]="isLayerPanelOpen">
-            <div class="lp-handle"></div>
-            <div class="lp-hdr">
-              <div>
-                <div class="lp-title">Map Layers</div>
-                <div class="lp-sub">Toggle map visibility</div>
-              </div>
-              <button class="lp-close" (click)="toggleLayerPanel()">✕</button>
-            </div>
-            <div class="lp-qrow">
-              <div class="qchip" [class.on]="allLayersOn" (click)="layerAllOn()">
-                All On
-              </div>
-              <div class="qchip" (click)="layerAllOff()">All Off</div>
-            </div>
-            <div class="lp-body">
-              <div
-                class="layer-cat-group"
-                *ngFor="let cat of LAYERS_DATA | keyvalue"
-              >
-                <div class="layer-cat-label">{{ $any(cat.value).title }}</div>
+        <div class="layer-panel" [class.open]="isLayerPanelOpen" (click)="$event.stopPropagation()">
+  <div class="lp-handle"></div>
+  
+  <div class="lp-hdr">
+    <div>
+      <div class="lp-title">Map Layers</div>
+      <div class="lp-sub">Toggle what's shown on the map</div>
+    </div>
+    <button
+  class="layers-btn"
+  [class.open]="isLayerPanelOpen"
+  (click)="toggleLayerPanel(); $event.stopPropagation()"
+>
+    <!-- <button class="lp-close" (click)="toggleLayerPanel(); $event.stopPropagation()" > -->
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  
+  <div class="lp-qrow">
+    <div class="qchip" [class.on]="allLayersOn" (click)="layerAllOn()">All On</div>
+    <div class="qchip" (click)="layerAllOff()">All Off</div>
+  </div>
 
-                <div
-                  class="layer-item-row"
-                  *ngFor="let layer of $any(cat.value).items"
-                  (click)="toggleLayer(layer.id)"
-                >
-                  <div class="litem-left">
-                    <span class="litem-emoji">{{ layer.emoji }}</span>
-                    <span class="litem-text">{{ layer.label }}</span>
-                  </div>
-                  <ion-checkbox
-                    [checked]="layerStates[layer.id]"
-                    mode="md"
-                    style="pointer-events: none"
-                  ></ion-checkbox>
-                </div>
-              </div>
-            </div>
-          </div>
+  <div class="lp-body custom-scroll">
+    <div class="lp-cat" *ngFor="let cat of LAYERS_DATA | keyvalue">
+      <div class="lp-cat-hdr">{{ $any(cat.value).title }}</div>
+      
+      <div class="lp-item" *ngFor="let layer of $any(cat.value).items" (click)="toggleLayer(layer.id)">
+        <div class="lp-item-ico" [style.background]="layer.color + '15'">
+          {{ layer.emoji }}
         </div>
+        <div class="lp-item-info">
+          <div class="lp-item-lbl">{{ layer.label }}</div>
+          <div class="lp-item-cnt">Active Data Layer</div>
+        </div>
+        <div class="ltog" [class.on]="layerStates[layer.id]"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
 
         <div class="map-foot">
           <div>

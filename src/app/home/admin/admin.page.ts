@@ -3,12 +3,14 @@ import {
   OnInit,
   AfterViewInit,
   ChangeDetectorRef,
+  HostListener, ElementRef
 } from '@angular/core';
 import { Router } from '@angular/router'; // 1. Added Router
 import { NavController } from '@ionic/angular';
 import { Chart, registerables, ChartConfiguration } from 'chart.js';
 import { DataService } from 'src/app/data.service';
 import { AdminDataService } from 'src/app/services/admin-data';
+import * as L from 'leaflet';
 Chart.register(...registerables);
 
 interface ForestAlert {
@@ -127,6 +129,9 @@ export class AdminPage implements OnInit, AfterViewInit {
   isLayerVisible: boolean = true;
   attendanceChart: any;
   // --- Map & Layer State ---
+  public map: L.Map | null | any = null;
+private markerGroup = L.layerGroup(); // To manage dynamic markers
+private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw';
   isCompsActive: boolean = false;
   isLayerPanelOpen: boolean = false;
   activeLayerCount: number = 4;
@@ -327,7 +332,20 @@ public filteredAlerts: any[] = [];
     private dataService: DataService,
     private navCtrl: NavController,
     private adminService: AdminDataService,
+    private eRef: ElementRef
   ) {}
+
+ @HostListener('document:click', ['$event'])
+  clickout(event: any) {
+    // Check if the layer panel is currently open
+    if (this.isLayerPanelOpen) {
+      // If the click is NOT inside this component's element, close the panel
+      if (!this.eRef.nativeElement.contains(event.target)) {
+        this.isLayerPanelOpen = false;
+        this.cdr.detectChanges(); // Ensure UI updates immediately
+      }
+    }
+  }
 
   ngOnInit() {
     this.loadData();
@@ -345,6 +363,24 @@ public filteredAlerts: any[] = [];
     this.updateVisiblePins();
   }
 
+ // Replace your current ngAfterViewInit with this:
+ngAfterViewInit() {
+  this.initHomeCharts();
+  // Map initialization moved to onSegmentChange to ensure container existence
+}
+
+// Add this method to your AdminPage class:
+onSegmentChange(event: any) {
+  this.activeSegment = event.detail.value;
+  
+  if (this.activeSegment === 'map') {
+    // Small delay to allow Angular to render the *ngIf container
+    setTimeout(() => {
+      this.initLeafletMap();
+    }, 100);
+  }
+}
+
   ionViewWillEnter() {
     this.loadData();
     const navigation = this.router.getCurrentNavigation();
@@ -356,6 +392,85 @@ public filteredAlerts: any[] = [];
     }
   }
 
+private initLeafletMap() {
+  // 1. Destroy existing instance correctly
+  if (this.map) {
+    this.map.remove();
+    this.map = null; // This will now work without error
+  }
+
+  // 2. Check for container existence
+  const mapEl = document.getElementById('leafletMap');
+  if (!mapEl) {
+    console.warn("Map container not found yet.");
+    return;
+  }
+
+  // 3. Initialize Map
+  // Use 'leafletMap' as the ID to match your HTML
+  this.map = L.map('leafletMap', {
+    center: [19.9298, 79.1325],
+    zoom: 12,
+    zoomControl: false,
+    attributionControl: false
+  });
+
+  // 4. Add Tile Layer
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+  }).addTo(this.map);
+
+  // 5. THE FIX FOR VISIBILITY: Force recalculation
+  // Leaflet needs a moment to realize the container has size
+  setTimeout(() => {
+    if (this.map) {
+      this.map.invalidateSize();
+    }
+  }, 250);
+
+  this.markerGroup = L.layerGroup().addTo(this.map);
+  this.updateMapMarkers();
+}
+
+// Replace your current logic to add markers to the Leaflet instance
+private updateMapMarkers() {
+  // 1. Clear all existing markers from the group
+  this.markerGroup.clearLayers();
+
+  // 2. Loop through your actual data
+  this.activePins.forEach(pin => {
+    
+    // --- THE FIX: Check if the category for this pin is toggled ON ---
+    // This assumes 'pin.category' matches keys in your layerStates (e.g., 'felling', 'wildlife', etc.)
+    if (this.layerStates && this.layerStates[pin.category] === false) {
+      return; // Skip drawing this pin if its layer is toggled OFF
+    }
+
+    // 3. Define the coordinates
+    const lat = pin.lat ? pin.lat : 19.9298 + (Math.random() - 0.5) * 0.01;
+    const lng = pin.lng ? pin.lng : 79.1325 + (Math.random() - 0.5) * 0.01;
+
+    // 4. Create the same-to-same custom icon with the label
+    const customIcon = L.divIcon({
+      className: 'custom-pin-container',
+      html: `
+        <div class="mpin-wrapper">
+          <div class="mpin-ring" style="background: ${pin.color}33; border: 1px solid ${pin.color}66;"></div>
+          <div class="mpin-bubble" style="background: ${pin.color}">
+            ${pin.emoji || '🌲'}
+          </div>
+          <div class="mpin-label">${pin.label.split(' ')[0]}</div> 
+        </div>`,
+      iconSize: [50, 60],
+      iconAnchor: [25, 25] 
+    });
+
+    // 5. Add only the "filtered-in" markers to the group
+    L.marker([lat, lng], { icon: customIcon })
+      .addTo(this.markerGroup)
+      .bindPopup(`<b>${pin.label}</b>`);
+  });
+}
 
   loadData() {
   if (this.isFetching) return;
@@ -617,15 +732,15 @@ updateFilteredAlerts() {
     return date.toLocaleDateString();
   }
 
-  ngAfterViewInit() {
-    this.initHomeCharts();
-  }
+  
 
   ngOnDestroy() {
     if (this.dataInterval) {
       clearInterval(this.dataInterval);
     }
   }
+
+  
 
   updateVisiblePins() {
     const pins: any[] = [];
@@ -934,21 +1049,43 @@ initAttChart() {
     ).length;
   }
 
-  setSegment(segment: string) {
-    this.activeSegment = segment;
-    this.cdr.detectChanges(); // Force Angular to render the HTML first
+  // setSegment(segment: string) {
+  //   this.activeSegment = segment;
+  //   this.cdr.detectChanges(); // Force Angular to render the HTML first
 
-    setTimeout(() => {
-      if (segment === 'overview') {
-        this.initHomeCharts();
-      } else if (segment === 'map') {
-        this.updateVisiblePins();
-      } else if (segment === 'officers') {
-        // This is the missing link!
-        this.initAttChart();
-      }
-    }, 100);
-  }
+  //   setTimeout(() => {
+  //     if (segment === 'overview') {
+  //       this.initHomeCharts();
+  //     } else if (segment === 'map') {
+  //       this.updateVisiblePins();
+  //     } else if (segment === 'officers') {
+  //       // This is the missing link!
+  //       this.initAttChart();
+  //     }
+  //   }, 100);
+  // }
+
+  setSegment(segment: string) {
+  this.activeSegment = segment;
+  
+  // 1. Force Angular to update the DOM so *ngIf templates (like the map div) are created
+  this.cdr.detectChanges(); 
+
+  // 2. Use a timeout to ensure the DOM elements are ready for third-party libraries
+  setTimeout(() => {
+    if (segment === 'overview') {
+      this.initHomeCharts();
+    } 
+    else if (segment === 'map') {
+      // CRITICAL FIX: You must initialize the map object before updating pins
+      this.initLeafletMap(); 
+      this.updateVisiblePins();
+    } 
+    else if (segment === 'officers') {
+      this.initAttChart();
+    }
+  }, 150); // 150ms is a safe buffer for mobile rendering
+}
 
   switchTab(tab: string) {
     if (this.activeTab === tab) return;

@@ -254,7 +254,6 @@ updateNotificationPrefs(companyId: number, prefs: any[]) {
   return this.http.post(`${this.baseApiUrl}/users/settings/${companyId}`, { prefs });
 } 
 
-<<<<<<< HEAD
 // --- ANALYTICS FUNCTIONS ---
 
   getCriminalAnalytics(companyId: any, timeframe: string, range: string, beat: string): Observable<any> {
@@ -279,11 +278,16 @@ updateNotificationPrefs(companyId: number, prefs: any[]) {
     beat
   };
   return this.http.get(`${this.baseApiUrl}/incidents/analytics/fire`, { params });
-=======
-getAdminAnalytics(range: string, beat: string, timeframe: string) {
-  return this.http.get(`${this.baseApiUrl}/analytics`, {
-    params: { range, beat, timeframe }
-  });
->>>>>>> f88412e6a91e64ba6f9c8298dd5f556581de49fc
+
+}
+
+// data.service.ts ke andar
+
+getEventsAnalytics(companyId: number, timeframe: string) {
+  return this.http.get(`${this.baseApiUrl}/analytics/events?companyId=${companyId}&timeframe=${timeframe}`);
+}
+
+getAssetsAnalytics(companyId: number) {
+  return this.http.get(`${this.baseApiUrl}/analytics/assets?companyId=${companyId}`);
 }
 }
