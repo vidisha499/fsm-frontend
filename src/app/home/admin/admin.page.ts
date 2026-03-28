@@ -921,6 +921,8 @@ initAttChart() {
     this.isLayerPanelOpen = !this.isLayerPanelOpen;
   }
 
+  
+
   toggleLayer(id: string) {
     this.layerStates[id] = !this.layerStates[id];
     this.updateVisiblePins(); // Redraw the map
