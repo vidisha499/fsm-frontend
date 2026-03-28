@@ -18,6 +18,7 @@ export class PatrolLogsPage implements OnInit {
   @ViewChild('sliderTrack', { read: ElementRef }) sliderTrack!: ElementRef;
 
   // public patrolLogs: any[] = [];
+  
   public patrolLogs: any[] = [];
   public isModalOpen = false;
   public selectedMethod = '';
@@ -226,66 +227,62 @@ export class PatrolLogsPage implements OnInit {
 
 async loadPatrolLogs(from?: string, to?: string) {
   const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+  const userRole = localStorage.getItem('user_role'); // Ye 'User' ya 'Admin' hoga
+  const storedCompanyId = localStorage.getItem('company_id');
+
   const loaderMsg = await firstValueFrom(this.translate.get('DETAILS.LOADING'));
   const loader = await this.loadingCtrl.create({ message: loaderMsg, mode: 'ios' });
   await loader.present();
 
-  const storedRangerId = localStorage.getItem('ranger_id');
-  const storedCompanyId = localStorage.getItem('company_id');
-  const userRole = localStorage.getItem('user_role');
-
   let params: string[] = [];
   if (from) params.push(`from=${from}`);
   if (to) params.push(`to=${to}`);
-if (userRole === 'RANGER' && userData.id) {
-    params.push(`userId=${userData.id}`); 
+
+  
+  if (userRole === 'Admin' || userRole === 'Super Admin') {
+    if (storedCompanyId) params.push(`companyId=${storedCompanyId}`);
+    console.log("LOGIC: User is Admin. Sending companyId:", storedCompanyId);
+  } else {
+    // Ranger/User ke liye hamesha userId bhejenge
+    if (userData.id) {
+      params.push(`userId=${userData.id}`);
+      console.log("LOGIC: User is Ranger/Regular. Sending userId:", userData.id);
+    }
   }
-  if (userRole === 'RANGER' && storedRangerId) params.push(`rangerId=${storedRangerId}`);
-  if (storedCompanyId) params.push(`companyId=${storedCompanyId}`);
 
   const queryString = params.length > 0 ? `?${params.join('&')}` : '';
-  const url = `${this.apiUrl}/logs${queryString}`
-  console.log("Filtering for User ID:", userData.id);
-  
+  console.log("FINAL API CALL:", `${this.apiUrl}/logs${queryString}`);
+
   forkJoin({
     active: this.http.get(`${this.apiUrl}/active${queryString}`),
     history: this.http.get(`${this.apiUrl}/logs${queryString}`)
   }).subscribe({
     next: (res: any) => {
-      console.log("FINAL DATA CHECK:", res);
-
-      // 1. Map Active/Pending Logs
+      console.log("DATA RECEIVED:", res);
+      
+      // ... (baki mapping logic same rahegi)
       const pendingLogs = (res.active || []).map((p: any) => ({
         ...p,
-        status: 'PENDING', // Force status so UI shows yellow/pending
-        patrolName: p.method ? `${p.method.toUpperCase()} Patrol` : 'Active Patrol',
-        ranger_name: this.rangerName,
-        // StartTime check karein kyunki list mein date dikhani hoti hai
-        startTime: p.startTime || new Date().toISOString() 
+        status: 'PENDING',
+        patrolName: p.method ? `${p.method.toUpperCase()} PATROL` : 'ACTIVE PATROL'
       }));
 
-      // 2. Map History Logs
       const completedLogs = (res.history || []).map((h: any) => ({
         ...h,
-        // Yahan mapping check kar raha hai h.method aur h.type
-        // patrolName: h.patrol_name || 'Patrol Log'
-        patrolName: (h.method && h.type) 
-          ? `${h.method.toUpperCase()} - ${h.type.toUpperCase()}` 
-          : (h.method ? `${h.method.toUpperCase()} PATROL` : 'COMPLETED LOG')
+        status: 'COMPLETED',
+        patrolName: (h.method && h.type) ? `${h.method.toUpperCase()} - ${h.type.toUpperCase()}` : 'COMPLETED LOG'
       }));
 
       this.patrolLogs = [...pendingLogs, ...completedLogs];
-      
       loader.dismiss();
       this.cdr.detectChanges();
     },
-    error: async (err) => {
-      console.error("LOAD ERROR:", err);
+    error: (err) => {
+      console.error("API ERROR:", err);
       loader.dismiss();
     }
   });
 }
-
 
 
 // async savePatrol() {

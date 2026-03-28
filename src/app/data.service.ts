@@ -216,9 +216,19 @@ getLatestAlerts(companyId: number): Observable<any[]> {
   return this.http.get<any[]>(`${this.baseApiUrl}/alerts/${companyId}`);
 }
 
-getDashboardStats(companyId: number) {
-  // Ensure karo apiUrl sahi hai (e.g., https://forest-backend-pi.vercel.app/api)
-  return this.http.get(`${this.baseApiUrl}/incidents/stats/${companyId}`);
+
+
+// data.service.ts
+getDashboardStats(companyId: number, from?: string, to?: string) {
+  // Base URL: /incidents/stats/1
+  let url = `${this.baseApiUrl}/incidents/stats/${companyId}`;
+  
+  // Query Params add karne ka sahi tarika
+  if (from && to) {
+    url += `?from=${from}&to=${to}`;
+  }
+  
+  return this.http.get(url);
 }
 
 getIncidentTrend(companyId: number): Observable<any> {
@@ -241,4 +251,30 @@ updateNotificationPrefs(companyId: number, prefs: any[]) {
   // If you create a 'notification_settings' table later, use this:
   return this.http.post(`${this.baseApiUrl}/users/settings/${companyId}`, { prefs });
 } 
+
+// --- ANALYTICS FUNCTIONS ---
+
+  getCriminalAnalytics(companyId: any, timeframe: string, range: string, beat: string): Observable<any> {
+    // URL prepare ho raha hai environment.apiUrl ka use karke
+    const url = `${this.baseApiUrl}/incidents/analytics/criminal`;
+
+    // Query parameters set kar rahe hain
+    const params = {
+      companyId: companyId.toString(),
+      timeframe: timeframe || 'month',
+      range: range || 'all',
+      beat: beat || 'all'
+    };
+
+    return this.http.get(url, { params });
+  }
+  getFireAnalytics(companyId: any, timeframe: string, range: string, beat: string) {
+  const params = {
+    companyId: companyId.toString(),
+    timeframe,
+    range,
+    beat
+  };
+  return this.http.get(`${this.baseApiUrl}/incidents/analytics/fire`, { params });
+}
 }

@@ -1,5 +1,7 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { Chart, registerables } from 'chart.js';
+import { HttpClient } from '@angular/common/http';
+import { DataService } from 'src/app/data.service';
 
 
 Chart.register(...registerables);
@@ -39,7 +41,7 @@ export class AdminAnalyticsPage implements OnInit, OnDestroy {
   // State variables
   activeTab: string = 'criminal';
   activeSubId: string = 'felling';
-  activeDateFilter: string = 'month';
+  activeDateFilter: string = 'today';
   isFilterCollapsed: boolean = true;
   isRefreshing: boolean = false;
 
@@ -49,6 +51,7 @@ ranges = REGIONS; // Constant se le lo
 beats = ['Beat Alpha', 'Beat Beta', 'Beat Gamma'];
 
   // Display arrays for HTML
+  activeCatId: string = 'criminal';
   public displayProgList: any[] = [];
   public currentSubCharts: any[] = [];
   public displayActivity: any[] = [];
@@ -199,11 +202,18 @@ beats = ['Beat Alpha', 'Beat Beta', 'Beat Gamma'];
       ]
     }
   };
+  
 
-  constructor(private cdr: ChangeDetectorRef) { }
+  constructor(private cdr: ChangeDetectorRef, 
+    private http: HttpClient,
+  private dataService: DataService,) { }
 
   ngOnInit() { 
     this.setAnaCat('criminal'); 
+    this.activeTab = 'criminal';
+    this.activeCatId = 'criminal';
+    this.activeDateFilter = 'today';
+    this.onFilterChange();
   }
 
   ngOnDestroy() { 
@@ -215,13 +225,17 @@ beats = ['Beat Alpha', 'Beat Beta', 'Beat Gamma'];
   //  LOGIC & RENDERING
   // ═══════════════════════════════════════════
 
-  setAnaCat(id: string) {
-    this.activeTab = id;
-    const cat = this.ANA_CONFIG[id];
-    if (cat?.subs?.length) {
-      this.setAnaSub(cat.subs[0].id);
-    }
+ setAnaCat(id: string) {
+  const cat = this.ANA_CONFIG[id];
+  if (cat) {
+    this.activeTab = id;      // <--- Ye sabse zaroori hai!
+    this.activeCatId = id;    // Dono ko same rakho
+    this.activeSubId = cat.subs[0]?.id; 
+    
+    this.destroyCharts();     // Purane charts hatao
+    this.updateUIData();      // Naya data lao
   }
+}
 
   setAnaSub(id: string) {
     this.activeSubId = id;
@@ -257,12 +271,33 @@ beats = ['Beat Alpha', 'Beat Beta', 'Beat Gamma'];
   getCurrentCat() { return this.ANA_CONFIG[this.activeTab]; }
   getCurrentSub() { return this.getCurrentCat()?.subs.find((s: any) => s.id === this.activeSubId); }
 
-  private mkChart(id: string, config: any) {
-    const canvas = document.getElementById(id) as HTMLCanvasElement;
-    if (!canvas) return;
+
+
+private mkChart(id: string, config: any) {
+  const canvas = document.getElementById(id) as HTMLCanvasElement;
+  if (!canvas) return;
+
+  // 1. Chart.js ka built-in method use karo instance check karne ke liye
+  const existingChart = Chart.getChart(canvas); 
+  if (existingChart) {
+    existingChart.destroy();
+  }
+
+  // 2. Extra safety: Clear the canvas context
+  const ctx = canvas.getContext('2d');
+  if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  try {
     const chart = new Chart(canvas, config);
     this.chartInstances.set(id, chart);
+    return chart;
+  } catch (e) {
+    console.error("Chart Creation Error:", e);
+    return null;
   }
+}
+
+
 
   private destroyCharts() {
     this.chartInstances.forEach(c => c.destroy());
@@ -322,35 +357,65 @@ onFilterChange() {
     this.cdr.detectChanges();
   }, 300);
 }
-updateUIData() {
-const cat = this.getCurrentCat();
-if (!cat) return;
-// Header count update karo (Jo screenshot mein 0 dikh raha tha)
-this.currentCatSubsCount = cat.subs?.length || 0;
 
-// Timeframe-based Multiplier logic
-let timeFactor = 1;
-if (this.activeDateFilter === 'today') timeFactor = 0.2;
-if (this.activeDateFilter === 'week') timeFactor = 0.6;
- // Progress bars ka data update
-this.displayProgList = cat.subs.map((s: any) => {
-const rangeFactor = this.selectedRange === 'all' ? 1 : 0.4;
 
- // Yahan hum base value 50 maan rahe hain taaki multiplier sahi dikhe
-const baseVal = s.val || 20; 
- const dynamicVal = Math.round(baseVal * timeFactor * rangeFactor);
+async updateUIData() {
+  const cat = this.getCurrentCat();
+  if (!cat) return;
 
- return {
- ...s,
- val: dynamicVal,
-// Percentage max value 150 ke hisab se set kar rahe hain bars ke liye
-pct: Math.min(Math.round((dynamicVal / 150) * 100), 100) 
- };
- });
+  // 1. DYNAMIC COMPANY ID: LocalStorage se uthao, agar nahi hai toh '1' default
+  const companyId = localStorage.getItem('companyId') || '1';
+  
+  // Debugging ke liye console mein check kar sakte ho
+  console.log(`Fetching data for Company: ${companyId}, Category: ${this.activeCatId}`);
 
-// Active Sub-category ke charts set karo
-const sub = cat.subs.find((s: any) => s.id === this.activeSubId);
-this.currentSubCharts = sub?.charts || [];
-this.displayActivity = this.getActivity(this.activeSubId);
-} 
+  this.currentCatSubsCount = cat.subs?.length || 0;
+
+  // 2. Filter Params prepare karo
+  const timeframe = this.activeDateFilter;
+  const range = this.selectedRange;
+  const beat = this.selectedBeat;
+
+  // 3. Category wise Data Call (Criminal vs Fire)
+  let dataCall;
+  if (this.activeCatId === 'fire') {
+    // Agar Fire tab active hai
+    dataCall = this.dataService.getFireAnalytics(companyId, timeframe, range, beat);
+  } else {
+    // Default: Criminal analytics
+    dataCall = this.dataService.getCriminalAnalytics(companyId, timeframe, range, beat);
+  }
+
+  dataCall.subscribe({
+    next: (res: any) => {
+      // 4. UI List ko backend data se map karo
+      this.displayProgList = cat.subs.map((s: any) => {
+        // Backend key check (e.g., res['felling'] ya res['fire-alerts'])
+        const dynamicVal = res[s.id] || 0; 
+
+        return {
+          ...s,
+          val: dynamicVal,
+          // Progress bar percentage (Max 50 cases maan kar)
+          pct: Math.min(Math.round((dynamicVal / 50) * 100), 100) 
+        };
+      });
+
+      // 5. Chart aur Activity refresh logic
+      const sub = cat.subs.find((s: any) => s.id === this.activeSubId);
+      this.currentSubCharts = sub?.charts || [];
+      this.displayActivity = this.getActivity(this.activeSubId);
+      
+      // 6. UI Update aur Chart Re-render
+      this.cdr.detectChanges();
+      this.renderSubCharts();
+    },
+    error: (err: any) => {
+      console.error(`data fetch error:`, err);
+      this.displayProgList = []; // List khali kar do
+  this.isRefreshing = false;
+  this.cdr.detectChanges();
+    }
+  });
+}
 }

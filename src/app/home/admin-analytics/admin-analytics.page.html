@@ -61,12 +61,12 @@
 
       <div class="content">
         <div class="cat-tabs">
-          <button *ngFor="let cat of catList" 
-                  class="ctab" 
-                  [class.active]="activeTab === cat.id" 
-                  (click)="setAnaCat(cat.id)">
-            {{ cat.label }}
-          </button>
+        <button *ngFor="let cat of catList" 
+        class="ctab" 
+        [class.active]="activeTab === cat.id" 
+        (click)="setAnaCat(cat.id)">
+  {{ cat.label }}
+</button>
         </div>
 
    
