@@ -11,7 +11,9 @@ export class DataService {
   private selectedIncident: any;
   private selectedAttendance: any;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient,
+    
+  ) {}
 
 
   // Attendance set karne ke liye
@@ -241,4 +243,10 @@ updateNotificationPrefs(companyId: number, prefs: any[]) {
   // If you create a 'notification_settings' table later, use this:
   return this.http.post(`${this.baseApiUrl}/users/settings/${companyId}`, { prefs });
 } 
+
+getAdminAnalytics(range: string, beat: string, timeframe: string) {
+  return this.http.get(`${this.baseApiUrl}/analytics`, {
+    params: { range, beat, timeframe }
+  });
+}
 }

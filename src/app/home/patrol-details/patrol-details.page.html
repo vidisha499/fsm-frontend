@@ -52,10 +52,12 @@
 
       <h3 class="inner-section-title">{{ 'DETAILS.OBS_TITLE' | translate }}</h3>
       
-      <div *ngIf="patrol.observationData?.Details?.length > 0; else noObsTemplate">
+      <!-- <div *ngIf="patrol.observationData?.Details?.length > 0; else noObsTemplate"> -->
+        <div *ngIf="patrol.observationData?.length > 0; else noObsTemplate">
        
           
-          <div *ngFor="let obs of patrol.observationData.Details" class="obs-card clickable-card" (click)="viewSightingDetails(obs)">
+          <!-- <div *ngFor="let obs of patrol.observationData.Details" class="obs-card clickable-card" (click)="viewSightingDetails(obs)"> -->
+            <div *ngFor="let obs of patrol.observationData" class="obs-card clickable-card" (click)="viewSightingDetails(obs)">     
           <div class="obs-card-header">
             <div class="obs-badge">
               <i [class]="getCategoryIcon(obs.category)"></i>

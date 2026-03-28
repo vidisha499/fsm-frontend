@@ -220,36 +220,6 @@ async submitReport() {
   const finalPhotos = this.capturedPhotos.map(p => p.includes(',') ? p.split(',')[1] : p);
   const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
 
-// const payload = {
-//   company_id: Number(rawCompanyId),
-//   rangerId: +rawRangerId, 
-//   photos: finalPhotos,
-//   responsePriority: this.incidentData.priority,
-//   incidentCriteria: this.incidentData.criteria,
-//   rootCause: this.incidentData.cause,
-//   fieldObservation: this.incidentData.observation,
-//   subCategory: this.incidentData.subCategory,
-  
-//   // MATCH THESE TO YOUR ENTITY NAMES:
-//   incidentReason: this.incidentData.reason, 
-//   species: this.incidentData.species,
-//   vehicleType: this.incidentData.vehicleType,
-//   transportRoute: this.incidentData.route,
-//   storageArea: this.incidentData.storageArea,
-//   fireStage: this.incidentData.fireStage,
-//   assetInventory: this.incidentData.assetInventory, 
-//   vehicleInfo: this.incidentData.vehicleInfo,    
-//   checkpost: this.incidentData.checkpost,
-//   rangerName: this.incidentData.rangerName,
-//   geofence: this.incidentData.geofence,
-
-//   latitude: Number(this.lat), 
-//   longitude: Number(this.lng),
-  
-//   location_name: this.currentAddress,
-//   status: 'Pending'
-// };
-
 const payload = {
   userId: userData.id,     // Ye hai teri main ID link karne ke liye
   company_id: Number(rawCompanyId),
@@ -257,8 +227,10 @@ const payload = {
   photos: finalPhotos,
   responsePriority: this.incidentData.priority,
   incidentCriteria: this.incidentData.criteria,
-  subCategory: this.incidentData.subCategory,
+  
   // Ensure these match your Entity @Column names exactly
+
+  subCategory: this.incidentData.subCategory,
   rootCause: this.incidentData.cause,
   fieldObservation: this.incidentData.observation,
   incidentReason: this.incidentData.reason, 

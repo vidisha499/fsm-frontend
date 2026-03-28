@@ -131,7 +131,8 @@
   
   <div class="log-info">
     <div class="log-main">
-      <span class="log-type">{{ 'PATROL.CAT_' + log.category.toUpperCase() | translate }}</span>
+      <!-- <span class="log-type">{{ 'PATROL.CAT_' + log.category.toUpperCase() | translate }}</span> -->
+       <span class="log-type">{{ 'PATROL.CAT_' + (log.category || 'OTHER').toUpperCase() | translate }}</span>
       <span class="log-species" *ngIf="log.species">• {{log.species}}</span>
     </div>
     <span class="log-meta">{{log.sighting_type || 'Direct'}} ({{log.count || 1}})</span>

@@ -354,202 +354,6 @@ public filteredAlerts: any[] = [];
     }
   }
 
-  // loadData() {
-  //   if (this.isFetching) return;
-
-  //   const storageData = localStorage.getItem('user_data');
-
-  //   if (!storageData) return;
-
-  //   const user = JSON.parse(storageData);
-
-  //   const myCompanyId = Number(user.company_id || user.companyId); // Supporting both naming conventions
-
-  //   const localISOTime = new Date().toISOString().split('T')[0];
-
-  //   const dates = this.getFilterDates(); // Get dates for the sightings count
-
-  //   this.isFetching = true;
-
-  //   // 1. Dashboard General Stats
-
-  //   this.dataService.getDashboardStats(myCompanyId).subscribe({
-  //     next: (stats: any) => {
-  //       this.incidentsCount = stats.totalEvents || 0;
-
-  //       this.criminalActivityCount = stats.criminalEvents || 0;
-
-  //       this.attendancePercent = stats.resolvedPercentage || 0;
-
-  //       this.cdr.detectChanges();
-  //     },
-
-  //     error: (err: any) => console.error('Dashboard Stats Error:', err),
-  //   });
-
-  //   // 2. Sightings Count - FIX: Added nullish coalescing to prevent undefined error
-
-  //   this.dataService
-  //     .getSightingCount(
-  //       myCompanyId,
-
-  //       dates.from || '',
-
-  //       dates.to || '',
-  //     )
-  //     .subscribe({
-  //       next: (res: any) => {
-  //         // Handling both raw number or object response { count: X }
-
-  //         this.sightingsCount =
-  //           typeof res === 'object' ? (res.count ?? 0) : (res ?? 0);
-
-  //         this.cdr.detectChanges();
-  //       },
-
-  //       error: (err: any) => {
-  //         console.error('Sighting Count Error:', err);
-
-  //         this.sightingsCount = 0;
-  //       },
-  //     });
-
-  //   // 3. Personnel Status Counts
-
-  //   this.adminService.getFireAlertsCount(myCompanyId, localISOTime).subscribe({
-  //     next: (res: any) => (this.fireAlertsCount = res.count ?? res ?? 0),
-  //   });
-
-  //   this.adminService.getOnDutyCount(myCompanyId, localISOTime).subscribe({
-  //     next: (res: any) => (this.onDutyCount = res.count ?? res ?? 0),
-  //   });
-
-  //   this.adminService.getOnLeaveCount(myCompanyId).subscribe({
-  //     next: (res: any) => (this.onLeaveCount = res.count ?? res ?? 0),
-  //   });
-
-  //   this.adminService.getInactiveCount(myCompanyId, localISOTime).subscribe({
-  //     next: (res: any) => (this.inactiveCount = res.count ?? res ?? 0),
-  //   });
-
-  //   // 4. Rangers List
-
-  //   this.dataService.getUsersByCompany(myCompanyId).subscribe({
-  //     next: (res: any) => {
-  //       const allUsers = res.data || res;
-
-  //       if (Array.isArray(allUsers)) {
-  //         this.rangers = allUsers.filter(
-  //           (u: any) => Number(u.role_id || u.roleId) === 4,
-  //         );
-
-  //         this.filteredRangers = [...this.rangers];
-
-  //         this.allRangers = this.rangers.length;
-  //       }
-
-  //       this.cdr.detectChanges();
-  //     },
-
-  //     error: (err: any) => console.error('Users Fetch Error:', err),
-  //   });
-
-  //   // 5. Alerts Section
-
-  //   this.dataService.getLatestAlerts(myCompanyId).subscribe({
-  //     next: (alerts: any[]) => {
-  //       if (alerts && Array.isArray(alerts)) {
-  //         this.alertsData = alerts.map((alert) => {
-  //           const name = alert.ranger_name || alert.rangerName || 'Ranger';
-  //           const savedPrefs = localStorage.getItem('admin_notification_settings');
-  //   const prefs = savedPrefs ? JSON.parse(savedPrefs) : null;
-  //   this.alertsData = alerts
-  //     .filter(alert => {
-  //       if (!prefs) return true; // Show all if no settings saved yet
-
-  //       const type = (alert.type || '').toLowerCase();
-        
-  //       // Match the alert type to the user's preference
-  //       if (type.includes('fire')) {
-  //         const pref = prefs.find((p: any) => p.label === 'Fire Alerts');
-  //         return pref ? pref.enabled : true;
-  //       }
-  //       if (type.includes('criminal') || type.includes('poach')) {
-  //         const pref = prefs.find((p: any) => p.label === 'Criminal Activity');
-  //         return pref ? pref.enabled : true;
-  //       }
-  //       // ... add other types here
-  //       return true;
-  //     })
-  //     .map(alert => {
-  //       // ... keep your existing .map formatting logic here
-  //       return { ...alert, /* your formatting */ };
-  //     });
-  
-
-  //           const rawType = (
-  //             alert.type ||
-  //             alert.severity ||
-  //             'info'
-  //           ).toLowerCase();
-
-  //           const category =
-  //             alert.category ||
-  //             alert.label ||
-  //             alert.title ||
-  //             rawType.charAt(0).toUpperCase() + rawType.slice(1);
-
-  //           const displayTitle = `${category} - ${name}`;
-
-  //           let cssClass = 'info';
-
-  //           if (rawType.includes('crit')) cssClass = 'crit';
-  //           else if (rawType.includes('warn')) cssClass = 'warn';
-  //           else if (rawType.includes('safe') || rawType.includes('on-duty'))
-  //             cssClass = 'safe';
-
-  //           const theme = this.getAlertTheme(rawType.toUpperCase());
-
-  //           const dateObj = alert.created_at
-  //             ? new Date(alert.created_at)
-  //             : new Date();
-
-  //           return {
-  //             ...alert,
-
-  //             type: cssClass,
-
-  //             displayTitle: displayTitle,
-
-  //             displayDesc: `${alert.beat_name || 'Forest Division'} · ${alert.location_name || alert.location || 'Unknown'}`,
-
-  //             displayTime: `${dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · ${dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}`,
-
-  //             bg: theme.bg,
-
-  //             color: theme.color,
-
-  //             icon: theme.icon,
-
-  //             label: theme.label,
-  //           };
-  //         });
-  //       }
-  //     },
-
-  //     error: (err) => console.error('Alerts Fetch Error:', err),
-
-  //     complete: () => {
-  //       // Release the fetching lock after a small delay for smooth UI
-
-  //       setTimeout(() => {
-  //         this.isFetching = false;
-
-  //         this.cdr.detectChanges();
-  //       }, 500);
-  //     },
-  //   });
-  // }
 
   loadData() {
   if (this.isFetching) return;
@@ -615,59 +419,8 @@ public filteredAlerts: any[] = [];
     error: (err: any) => console.error('Users Fetch Error:', err),
   });
 
-  // 5. Alerts Section with Formatting & Filtering
- 
-//   this.dataService.getLatestAlerts(myCompanyId).subscribe({
-//   next: (alerts: any[]) => {
-//     if (alerts && Array.isArray(alerts)) {
-//       // 1. Get Toggles from LocalStorage
-//       const savedPrefs = localStorage.getItem('admin_notification_settings');
-//       const prefs = savedPrefs ? JSON.parse(savedPrefs) : null;
+//alerts section here
 
-//       this.alertsData = alerts
-//         .filter((alert) => {
-//           if (!prefs) return true; // Show all if no settings saved yet
-
-//           const dbCat = (alert.category || 'SYSTEM').toUpperCase();
-//           const type = (alert.type || '').toLowerCase();
-
-//           const isEnabled = (label: string) => {
-//             const p = prefs.find((x: any) => x.label === label);
-//             return p ? p.enabled : true;
-//           };
-
-//           // Mapping logic
-//           if (dbCat === 'FIRE') return isEnabled('Fire Alerts');
-          
-//           if (dbCat === 'CRIMINAL') {
-//             if (type.includes('fell')) return isEnabled('Illegal Felling');
-//             if (type.includes('poach')) return isEnabled('Animal Poaching');
-//             return isEnabled('Criminal Activity');
-//           }
-//           return true;
-//         })
-//         .map((alert) => {
-//           // Keep your existing mapping logic for icons/colors here
-//           const theme = this.getAlertTheme((alert.type || 'info').toUpperCase());
-//           return {
-//             ...alert,
-//             displayTitle: `${alert.category || 'Alert'} - ${alert.ranger_name || 'System'}`,
-//             displayDesc: `${alert.location_name || 'Forest Division'}`,
-//             displayTime: new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-//             icon: theme.icon,
-//             bg: theme.bg,
-//             color: theme.color,
-//             label: theme.label
-//           };
-//         });
-
-//       // 2. Refresh the visible list
-//       this.updateFilteredAlerts();
-//     }
-//     this.cdr.detectChanges();
-//   },
-//   error: (err) => console.error('Alerts Fetch Error:', err)
-// });
 
 this.dataService.getLatestAlerts(myCompanyId).subscribe({
   next: (alerts: any[]) => {
@@ -703,7 +456,6 @@ this.dataService.getLatestAlerts(myCompanyId).subscribe({
           }
 
           if (dbCat.includes('CRIMINAL')) {
-            // This will match "Criminal Activity" in your settings array
             return isEnabled('Criminal Activity');
           }
 
@@ -711,20 +463,38 @@ this.dataService.getLatestAlerts(myCompanyId).subscribe({
         })
         .map((alert) => {
           // 2. FORMATTING & THEMING
-          // We use 'type' (INCIDENT, ATTENDANCE) to set the Color Theme
           const rawType = (alert.type || 'INFO').toUpperCase();
           const theme = this.getAlertTheme(rawType);
-          
           const name = alert.ranger_name || 'System';
-          const categoryDisplay = alert.category || 'Alert';
+          
+          // --- DYNAMIC TITLE LOGIC ---
+          let titlePrefix = '';
+
+          if (rawType === 'ATTENDANCE') {
+            titlePrefix = 'ATTENDANCE';
+          } else if (rawType === 'ONSITE') {
+            titlePrefix = 'ONSITE-ATTENDANCE';
+          } else if (rawType === 'PATROL_START') {
+            titlePrefix = 'PATROL-START';
+          } else if (rawType === 'PATROL_END') {
+            titlePrefix = 'PATROL-END';
+          } else if (rawType === 'INCIDENT') {
+            // For incidents, use the specific category (e.g., ILLEGAL FELLING)
+            titlePrefix = (alert.category || 'INCIDENT').toUpperCase();
+          } else {
+            // Fallback for other types
+            titlePrefix = rawType;
+          }
 
           return {
             ...alert,
             // Map raw types to severity for CSS classes (critical, warning, info)
-            severity: rawType.includes('INCIDENT') ? 'critical' : 
+            severity: rawType.includes('INCIDENT') || rawType.includes('CRIT') ? 'critical' : 
                       rawType.includes('WARN') ? 'warning' : 'info',
             
-            displayTitle: `${categoryDisplay} - ${name}`,
+            // Result: "ATTENDANCE - Ishika" or "ILLEGAL FELLING - Ishika"
+            displayTitle: `${titlePrefix} - ${name}`,
+            
             displayDesc: `${alert.location_name || 'Forest Division'}`,
             displayTime: alert.created_at ? 
               `${new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · ${new Date(alert.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}` : 
@@ -739,6 +509,7 @@ this.dataService.getLatestAlerts(myCompanyId).subscribe({
       // 3. Refresh the visible lists (All/Critical/Warning tabs)
       this.updateFilteredAlerts();
     }
+    this.isFetching = false;
     this.cdr.detectChanges();
   },
   error: (err) => {
@@ -751,7 +522,10 @@ this.dataService.getLatestAlerts(myCompanyId).subscribe({
     this.cdr.detectChanges();
   }
 });
+
 }
+
+
 
 updateFilteredAlerts() {
   const filter = this.activeAlertFilter || 'all';
@@ -1389,25 +1163,7 @@ updateFilteredAlerts() {
     });
   }
 
-  // getFilterDates() {
-  //   const now = new Date();
-  //   let from = new Date();
 
-  //   if (this.activeDateFilter === 'today') {
-  //     from.setHours(0, 0, 0, 0);
-  //   } else if (this.activeDateFilter === 'week') {
-  //     from.setDate(now.getDate() - 7);
-  //   } else if (this.activeDateFilter === 'month') {
-  //     from.setMonth(now.getMonth() - 1);
-  //   } else {
-  //     return { from: '', to: '' };
-  //   }
-
-  //   return {
-  //     from: from.toISOString(),
-  //     to: now.toISOString()
-  //   };
-  // }
 
   getFilterDates() {
     const now = new Date();
