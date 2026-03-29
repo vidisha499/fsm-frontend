@@ -3,13 +3,16 @@ import {
   OnInit,
   AfterViewInit,
   ChangeDetectorRef,
-  HostListener, ElementRef
+  HostListener, ElementRef,
+  NgZone,
+  ChangeDetectionStrategy
 } from '@angular/core';
 import { Router } from '@angular/router'; // 1. Added Router
 import { NavController } from '@ionic/angular';
 import { Chart, registerables, ChartConfiguration } from 'chart.js';
 import { DataService } from 'src/app/data.service';
 import { AdminDataService } from 'src/app/services/admin-data';
+import { forkJoin } from 'rxjs';
 import * as L from 'leaflet';
 Chart.register(...registerables);
 
@@ -28,6 +31,7 @@ interface ForestAlert {
   selector: 'app-admin',
   templateUrl: './admin.page.html',
   styleUrls: ['./admin.page.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class AdminPage implements OnInit, AfterViewInit {
@@ -102,6 +106,9 @@ export class AdminPage implements OnInit, AfterViewInit {
   };
 
   // --- UI State ---
+  critCount: number = 0;
+warnCount: number = 0;
+infoCount: number = 0;
   momStatus: string = '0% MoM';
   isGoodTrend: boolean = true;
   trendChart: any;
@@ -332,7 +339,8 @@ public filteredAlerts: any[] = [];
     private dataService: DataService,
     private navCtrl: NavController,
     private adminService: AdminDataService,
-    private eRef: ElementRef
+    private eRef: ElementRef,
+    private zone: NgZone,
   ) {}
 
  @HostListener('document:click', ['$event'])
@@ -347,21 +355,44 @@ public filteredAlerts: any[] = [];
     }
   }
 
-  ngOnInit() {
-    this.loadData();
+ngOnInit() {
 
-    // Pehle check karo agar koi purana interval hai toh usey maro
-    if (this.dataInterval) {
-      clearInterval(this.dataInterval);
-    }
-
-    this.dataInterval = setInterval(() => {
-      this.loadData();
-    }, 30000); // 30 seconds
-    this.loadTrendData();
-    this.updateTime();
-    this.updateVisiblePins();
+  this.startDataPoll();
+  // Pehle purana koi bhi interval ho toh usey finish karo
+  if (this.dataInterval) {
+    clearInterval(this.dataInterval);
+    this.dataInterval = null;
   }
+
+  this.loadData();
+
+  // Naya fresh interval lagao
+  this.dataInterval = setInterval(() => {
+    // Check if the component is still active before loading
+    if (this.activeTab === 'home') {
+      this.loadData();
+    }
+  }, 30000); 
+
+  this.loadTrendData();
+  this.updateTime();
+  setTimeout(() => {
+  this.initHomeCharts();
+}, 1000);
+}
+
+
+startDataPoll() {
+  this.loadData();
+  
+  // Agla call tabhi hoga jab 30 second poore honge
+  // Isse "Overlapping" band ho jayegi
+  this.dataInterval = setTimeout(() => {
+    if (this.activeTab === 'home') {
+      this.startDataPoll();
+    }
+  }, 30000);
+}
 
  // Replace your current ngAfterViewInit with this:
 ngAfterViewInit() {
@@ -393,44 +424,65 @@ onSegmentChange(event: any) {
   }
 
 private initLeafletMap() {
-  // 1. Destroy existing instance correctly
+  // 1. Sabse pehle purana instance poori tarah khatam karo
   if (this.map) {
-    this.map.remove();
-    this.map = null; // This will now work without error
+    try {
+      this.map.off();
+      this.map.remove();
+    } catch (e) {
+      console.warn("Map removal error:", e);
+    }
+    this.map = null;
   }
 
-  // 2. Check for container existence
-  const mapEl = document.getElementById('leafletMap');
-  if (!mapEl) {
-    console.warn("Map container not found yet.");
+  // 2. Container check (ID verify kar 'leafletMap' hi hai na HTML mein?)
+  const mapContainer = document.getElementById('leafletMap');
+  
+  if (!mapContainer) {
+    console.warn("Map element not found in DOM");
     return;
   }
 
-  // 3. Initialize Map
-  // Use 'leafletMap' as the ID to match your HTML
-  this.map = L.map('leafletMap', {
-    center: [19.9298, 79.1325],
-    zoom: 12,
-    zoomControl: false,
-    attributionControl: false
-  });
+  // 3. Sabse important: Agar Leaflet ne container pe apna ID chhoda hai, toh usey saaf karo
+  // Ye line hi "Already Initialized" error ko rokegi
+  if ((mapContainer as any)._leaflet_id) {
+    (mapContainer as any)._leaflet_id = null;
+  }
 
-  // 4. Add Tile Layer
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-  }).addTo(this.map);
+  try {
+    // 4. Fresh Initialize
+    this.map = L.map('leafletMap', {
+      center: [19.9298, 79.1325],
+      zoom: 12,
+      zoomControl: false,
+      attributionControl: false,
+      fadeAnimation: false, // Performance ke liye true/false check karle
+      markerZoomAnimation: false
+    });
 
-  // 5. THE FIX FOR VISIBILITY: Force recalculation
-  // Leaflet needs a moment to realize the container has size
-  setTimeout(() => {
-    if (this.map) {
-      this.map.invalidateSize();
-    }
-  }, 250);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+    }).addTo(this.map);
 
-  this.markerGroup = L.layerGroup().addTo(this.map);
-  this.updateMapMarkers();
+    this.markerGroup = L.layerGroup().addTo(this.map);
+
+    // 5. Thoda delay dekar markers update karo
+    setTimeout(() => {
+      if (this.map) {
+        this.map.invalidateSize();
+        this.updateMapMarkers();
+      }
+    }, 300);
+
+  } catch (err) {
+    console.error("Map Init Fatal Error:", err);
+  }
 }
+  
+
+
+
+
 
 // Replace your current logic to add markers to the Leaflet instance
 private updateMapMarkers() {
@@ -471,176 +523,133 @@ private updateMapMarkers() {
       .bindPopup(`<b>${pin.label}</b>`);
   });
 }
-
-  loadData() {
+loadData() {
   if (this.isFetching) return;
 
   const storageData = localStorage.getItem('user_data');
   if (!storageData) return;
 
   const user = JSON.parse(storageData);
-  const myCompanyId = Number(user.company_id || user.companyId); 
+  const myCompanyId = Number(user.company_id || user.companyId);
   const localISOTime = new Date().toISOString().split('T')[0];
-  const dates = this.getFilterDates(); 
-  
+  const dates = this.getFilterDates();
 
   this.isFetching = true;
 
-  // 1. Dashboard General Stats
-this.dataService.getDashboardStats(myCompanyId, dates.from, dates.to).subscribe({
-    next: (stats: any) => {
+  // Saari API calls ko ek bundle mein bandh diya hai
+  forkJoin({
+    stats: this.dataService.getDashboardStats(myCompanyId, dates.from, dates.to),
+    sightings: this.dataService.getSightingCount(myCompanyId, dates.from || '', dates.to || ''),
+    fireCount: this.adminService.getFireAlertsCount(myCompanyId, localISOTime),
+    onDuty: this.adminService.getOnDutyCount(myCompanyId, localISOTime),
+    onLeave: this.adminService.getOnLeaveCount(myCompanyId),
+    inactive: this.adminService.getInactiveCount(myCompanyId, localISOTime),
+    users: this.dataService.getUsersByCompany(myCompanyId),
+    alerts: this.dataService.getLatestAlerts(myCompanyId)
+  }).subscribe({
+    next: (res: any) => {
+      // 1. General Stats Assign
+      const stats = res.stats;
       this.incidentsCount = stats.totalEvents || 0;
-      this.criminalActivityCount = stats.criminalEvents || 0; // Ab ye 'Month' ke hisab se aayega
+      this.criminalActivityCount = stats.criminalEvents || 0;
       this.fireAlertsCount = stats.fireEvents || 0;
       this.attendancePercent = stats.resolvedPercentage || 0;
-      this.cdr.detectChanges();
-    },
-    error: (err: any) => console.error('Dashboard Stats Error:', err),
-  });
-  // 2. Sightings Count
-  this.dataService.getSightingCount(myCompanyId, dates.from || '', dates.to || '').subscribe({
-    next: (res: any) => {
-      this.sightingsCount = typeof res === 'object' ? (res.count ?? 0) : (res ?? 0);
-      this.cdr.detectChanges();
-    },
-    error: (err: any) => {
-      console.error('Sighting Count Error:', err);
-      this.sightingsCount = 0;
-    },
-  });
 
-  // 3. Personnel Status Counts
-  this.adminService.getFireAlertsCount(myCompanyId, localISOTime).subscribe({
-    next: (res: any) => (this.fireAlertsCount = res.count ?? res ?? 0),
-  });
-  this.adminService.getOnDutyCount(myCompanyId, localISOTime).subscribe({
-    next: (res: any) => (this.onDutyCount = res.count ?? res ?? 0),
-  });
-  this.adminService.getOnLeaveCount(myCompanyId).subscribe({
-    next: (res: any) => (this.onLeaveCount = res.count ?? res ?? 0),
-  });
-  this.adminService.getInactiveCount(myCompanyId, localISOTime).subscribe({
-    next: (res: any) => (this.inactiveCount = res.count ?? res ?? 0),
-  });
+      // 2. Sightings
+      this.sightingsCount = typeof res.sightings === 'object' ? (res.sightings.count ?? 0) : (res.sightings ?? 0);
 
-  // 4. Rangers List
-  this.dataService.getUsersByCompany(myCompanyId).subscribe({
-    next: (res: any) => {
-      const allUsers = res.data || res;
+      // 3. Personnel Status
+      this.fireAlertsCount = res.fireCount.count ?? res.fireCount ?? 0;
+      this.onDutyCount = res.onDuty.count ?? res.onDuty ?? 0;
+      this.onLeaveCount = res.onLeave.count ?? res.onLeave ?? 0;
+      this.inactiveCount = res.inactive.count ?? res.inactive ?? 0;
+
+      // 4. Rangers List
+      const allUsers = res.users.data || res.users;
       if (Array.isArray(allUsers)) {
         this.rangers = allUsers.filter((u: any) => Number(u.role_id || u.roleId) === 4);
         this.filteredRangers = [...this.rangers];
         this.allRangers = this.rangers.length;
       }
+
+// 5. Alerts Logic (Filtering + Mapping + Counting)
+      if (res.alerts && Array.isArray(res.alerts)) {
+        const savedPrefs = localStorage.getItem('admin_notification_settings');
+        const prefs = savedPrefs ? JSON.parse(savedPrefs) : null;
+
+        this.alertsData = res.alerts
+          .filter((alert: any) => {
+            if (!prefs) return true;
+            const dbCat = (alert.category || 'SYSTEM').toUpperCase();
+            const isEnabled = (label: string) => {
+              const p = prefs.find((x: any) => x.label.toLowerCase() === label.toLowerCase());
+              return p ? p.enabled : true;
+            };
+
+            if (dbCat.includes('FIRE')) return isEnabled('Fire Alerts');
+            if (dbCat.includes('FELL')) return isEnabled('Illegal Felling');
+            if (dbCat.includes('POACH')) return isEnabled('Animal Poaching');
+            if (dbCat.includes('CRIMINAL')) return isEnabled('Criminal Activity');
+            return true;
+          })
+          .slice(0, 15) // Performance fix for Dashboard
+          .map((alert: any) => {
+            const rawType = (alert.type || 'INFO').toUpperCase();
+            const theme = this.getAlertTheme(rawType);
+            const name = alert.ranger_name || 'System';
+            
+            let titlePrefix = '';
+            if (rawType === 'ATTENDANCE') titlePrefix = 'ATTENDANCE';
+            else if (rawType === 'ONSITE') titlePrefix = 'ONSITE-ATTENDANCE';
+            else if (rawType === 'PATROL_START') titlePrefix = 'PATROL-START';
+            else if (rawType === 'PATROL_END') titlePrefix = 'PATROL-END';
+            else if (rawType === 'INCIDENT') titlePrefix = (alert.category || 'INCIDENT').toUpperCase();
+            else titlePrefix = rawType;
+
+            const sev = rawType.includes('INCIDENT') || rawType.includes('CRIT') ? 'critical' : 
+                        rawType.includes('WARN') ? 'warning' : 'info';
+
+            return {
+              ...alert,
+              severity: sev,
+              displayTitle: `${titlePrefix} - ${name}`,
+              displayDesc: `${alert.location_name || 'Forest Division'}`,
+              displayTime: alert.created_at ? 
+                `${new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · ${new Date(alert.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}` : 
+                'Just Now',
+              icon: theme.icon,
+              bg: theme.bg,
+              color: theme.color,
+              label: theme.label
+            };
+          });
+
+        // Naya Counting Logic (Variables mein save kar liya taaki HTML fast chale)
+        this.critCount = this.alertsData.filter(a => a.severity === 'critical').length;
+        this.warnCount = this.alertsData.filter(a => a.severity === 'warning').length;
+        this.infoCount = this.alertsData.filter(a => a.severity === 'info').length;
+
+        this.updateFilteredAlerts();
+      }
+    },
+    error: (err) => {
+      console.error('Master Data Fetch Error:', err);
+      this.isFetching = false;
+      this.cdr.markForCheck();
       this.cdr.detectChanges();
     },
-    error: (err: any) => console.error('Users Fetch Error:', err),
-  });
-
-//alerts section here
-
-
-this.dataService.getLatestAlerts(myCompanyId).subscribe({
-  next: (alerts: any[]) => {
-    if (alerts && Array.isArray(alerts)) {
-      // 1. Get Notification Toggles from LocalStorage
-      const savedPrefs = localStorage.getItem('admin_notification_settings');
-      const prefs = savedPrefs ? JSON.parse(savedPrefs) : null;
-
-      this.alertsData = alerts
-        .filter((alert) => {
-          if (!prefs) return true; // Show all if no settings saved yet
-
-          const dbCat = (alert.category || 'SYSTEM').toUpperCase();
-          
-          // Helper to check if a specific label is enabled in your Settings Page
-          const isEnabled = (label: string) => {
-            const p = prefs.find((x: any) => x.label.toLowerCase() === label.toLowerCase());
-            return p ? p.enabled : true;
-          };
-
-          // --- FILTERING LOGIC ---
-          // Checks if the database category matches the toggle in Settings
-          if (dbCat.includes('FIRE')) {
-            return isEnabled('Fire Alerts');
-          }
-          
-          if (dbCat.includes('FELL')) {
-            return isEnabled('Illegal Felling');
-          }
-
-          if (dbCat.includes('POACH')) {
-            return isEnabled('Animal Poaching');
-          }
-
-          if (dbCat.includes('CRIMINAL')) {
-            return isEnabled('Criminal Activity');
-          }
-
-          return true; // Show Attendance/Patrols by default
-        })
-        .map((alert) => {
-          // 2. FORMATTING & THEMING
-          const rawType = (alert.type || 'INFO').toUpperCase();
-          const theme = this.getAlertTheme(rawType);
-          const name = alert.ranger_name || 'System';
-          
-          // --- DYNAMIC TITLE LOGIC ---
-          let titlePrefix = '';
-
-          if (rawType === 'ATTENDANCE') {
-            titlePrefix = 'ATTENDANCE';
-          } else if (rawType === 'ONSITE') {
-            titlePrefix = 'ONSITE-ATTENDANCE';
-          } else if (rawType === 'PATROL_START') {
-            titlePrefix = 'PATROL-START';
-          } else if (rawType === 'PATROL_END') {
-            titlePrefix = 'PATROL-END';
-          } else if (rawType === 'INCIDENT') {
-            // For incidents, use the specific category (e.g., ILLEGAL FELLING)
-            titlePrefix = (alert.category || 'INCIDENT').toUpperCase();
-          } else {
-            // Fallback for other types
-            titlePrefix = rawType;
-          }
-
-          return {
-            ...alert,
-            // Map raw types to severity for CSS classes (critical, warning, info)
-            severity: rawType.includes('INCIDENT') || rawType.includes('CRIT') ? 'critical' : 
-                      rawType.includes('WARN') ? 'warning' : 'info',
-            
-            // Result: "ATTENDANCE - Ishika" or "ILLEGAL FELLING - Ishika"
-            displayTitle: `${titlePrefix} - ${name}`,
-            
-            displayDesc: `${alert.location_name || 'Forest Division'}`,
-            displayTime: alert.created_at ? 
-              `${new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · ${new Date(alert.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}` : 
-              'Just Now',
-            icon: theme.icon,
-            bg: theme.bg,
-            color: theme.color,
-            label: theme.label
-          };
-        });
-
-      // 3. Refresh the visible lists (All/Critical/Warning tabs)
-      this.updateFilteredAlerts();
+    complete: () => {
+      this.isFetching = false;
+      // Final screen update
+      this.cdr.markForCheck();
+      this.cdr.detectChanges();
     }
-    this.isFetching = false;
-    this.cdr.detectChanges();
-  },
-  error: (err) => {
-    console.error('Alerts Fetch Error:', err);
-    this.isFetching = false;
-    this.cdr.detectChanges();
-  },
-  complete: () => {
-    this.isFetching = false;
-    this.cdr.detectChanges();
-  }
-});
+  });
+}
 
+trackByAlert(index: number, alert: any) {
+  // Agar alert ki unique ID hai toh wo return karo, warna index
+  return alert.id || index; 
 }
 
 // Add this inside your AdminPage class
@@ -759,12 +768,33 @@ updateFilteredAlerts() {
 
   
 
-  ngOnDestroy() {
-    if (this.dataInterval) {
-      clearInterval(this.dataInterval);
-    }
+ngOnDestroy() {
+  // 1. Interval band karo (Ye tere paas hai)
+  if (this.dataInterval) {
+    clearInterval(this.dataInterval);
+    this.dataInterval = null;
   }
 
+  // 2. Saare Charts ko poori tarah khatam karo
+  // Agar tune charts ko this._charts mein save kiya hai toh:
+  if (this._charts) {
+    Object.keys(this._charts).forEach(id => {
+      if (this._charts[id]) {
+        this._charts[id].destroy(); 
+      }
+    });
+    this._charts = {}; 
+  }
+
+  // 3. Map ko destroy karo (Sabse zyada RAM yehi khata hai)
+  if (this.map) {
+    this.map.off(); // Saare click events hatao
+    this.map.remove(); // Map ko DOM se delete karo
+    this.map = null;
+  }
+  
+  console.log("Admin Page Destroyed: Memory Cleared!");
+}
   
 
   updateVisiblePins() {
@@ -839,22 +869,22 @@ updateFilteredAlerts() {
     g.addColorStop(1, color + '00');
     return g;
   }
-
-  private mkChart(id: string, config: ChartConfiguration | any) {
-    const prev = this._charts[id];
-    if (prev) {
-      try {
-        prev.destroy();
-      } catch (e) {}
-    }
-    const canvas = document.getElementById(id) as HTMLCanvasElement;
-    const ctx = canvas?.getContext('2d');
-    if (!ctx) return null;
-
-    const c = new Chart(ctx, config);
-    this._charts[id] = c;
-    return c;
+private mkChart(id: string, config: ChartConfiguration | any) {
+  if (this._charts[id]) {
+    this._charts[id].destroy();
+    delete this._charts[id]; // Memory se poora hatao
   }
+  
+  const canvas = document.getElementById(id) as HTMLCanvasElement;
+  if (!canvas) return null;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+
+  const c = new Chart(ctx, config);
+  this._charts[id] = c;
+  return c;
+}
 
   private rnd(n: number, max: number, min: number = 5) {
     return Array.from(
@@ -1282,53 +1312,61 @@ initAttChart() {
       error: (err) => console.error('Trend Chart Error:', err),
     });
   }
+
   initTrendChart(labels: string[], values: number[]) {
-    if (this.trendChart) this.trendChart.destroy();
+  const canvas = document.getElementById('c-trend') as HTMLCanvasElement;
+  if (!canvas) return;
 
-    const ctx = document.getElementById('c-trend') as HTMLCanvasElement;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
 
-    // Gradient effect for the area under the line
-    const gradient = ctx.getContext('2d')?.createLinearGradient(0, 0, 0, 140);
-    gradient?.addColorStop(0, 'rgba(0, 137, 123, 0.3)');
-    gradient?.addColorStop(1, 'rgba(0, 137, 123, 0)');
-
-    this.trendChart = new Chart(ctx, {
-
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [
-          {
-            label: 'Incidents',
-            data: values,
-            borderColor: '#00897b', // Dark Forest Green
-            backgroundColor: gradient,
-            fill: true,
-            tension: 0.4, // Isse curve smooth aayega (Screenshot jaisa)
-            borderWidth: 2,
-            pointRadius: 0, // Points hide karke clean line dikhayenge
-            pointHoverRadius: 5,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { display: false }, // X-axis hide (labels niche manually span mein hain)
-          y: {
-            display: true,
-            beginAtZero: true,
-            grid: { color: 'rgba(0,0,0,0.03)', drawTicks: false },
-            ticks: { font: { size: 9 }, stepSize: 10 },
-          },
-        },
-      },
-    });
+  // 1. AGAR CHART PEHLE SE HAI: Toh sirf data update karo
+  if (this.trendChart) {
+    this.trendChart.data.labels = labels;
+    this.trendChart.data.datasets[0].data = values;
+    
+    // Animation 'none' rakho taaki turant update ho, ya default rehne do smooth transition ke liye
+    this.trendChart.update(); 
+    return; 
   }
 
+  // 2. AGAR CHART NAHI HAI (Pehli baar load ho raha hai): Tabhi naya banao
+  const gradient = ctx.createLinearGradient(0, 0, 0, 140);
+  gradient.addColorStop(0, 'rgba(0, 137, 123, 0.3)');
+  gradient.addColorStop(1, 'rgba(0, 137, 123, 0)');
 
+  this.trendChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Incidents',
+        data: values,
+        borderColor: '#00897b',
+        backgroundColor: gradient,
+        fill: true,
+        tension: 0.4,
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 5,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { display: false },
+        y: {
+          display: true,
+          beginAtZero: true,
+          grid: { color: 'rgba(0,0,0,0.03)', drawTicks: false },
+          ticks: { font: { size: 9 }, stepSize: 10 },
+        },
+      },
+    },
+  });
+}
 
   getFilterDates() {
     const now = new Date();

@@ -208,7 +208,7 @@
 
     <div class="shdr">
       <div class="shdr-title">Key Indicators</div>
-      <div class="shdr-link" (click)="setSegment('alerts')">Analytics →</div>
+      <div class="shdr-link" (click)="gotoAnalytics()">Analytics →</div>
     </div>
 
     <div class="kpi-scroll">
@@ -242,7 +242,7 @@
         </div>
         <div class="kpi-val" id="kv-crim">{{ criminalActivityCount }}</div>
         <div class="kpi-lbl">Criminal Activity</div>
-        <div class="kpi-trend dn">▼ Tap to analyse</div>
+        <div class="kpi-trend dn" (click)="goToAnalytics('criminal')">▼ Tap to analyse</div>
       </div>
 
       <!-- <div class="kpi-card" data-c="amber" (click)="goAnalytics('events')">
@@ -264,7 +264,7 @@
     </div>
     <div class="kpi-val">{{ sightingsCount }}</div>
     <div class="kpi-lbl">Events & Monitoring</div>
-    <div class="kpi-trend up">▲ Tap to analyse</div>
+    <div class="kpi-trend up" (click)="goToAnalytics('events')">▲ Tap to analyse</div>
   </div>
     
 
@@ -276,7 +276,7 @@
         </div>
         <div class="kpi-val" id="kv-fire">{{fireAlertsCount}}</div>
         <div class="kpi-lbl">Fire Alerts</div>
-        <div class="kpi-trend dn">▼ High risk zones</div>
+        <div class="kpi-trend dn" (click)="goToAnalytics('fire')">▼ Tap to analyse</div>
       </div>
 
       <div class="kpi-card" data-c="ind" (click)="goAnalytics('assets')">
@@ -571,25 +571,25 @@
     <div class="qchip crit" 
         [class.on]="activeAlertFilter === 'crit'" 
         (click)="setAlertFilter('crit')">
-      <span class="dot crit"></span> Critical ({{ getCount('crit') }})
+      <span class="dot crit"></span> Critical ({{ critCount }})
     </div>
 
     <div class="qchip warn" 
         [class.on]="activeAlertFilter === 'warn'" 
         (click)="setAlertFilter('warn')">
-      <span class="dot warn"></span> Warning ({{ getCount('warn') }})
+      <span class="dot warn"></span> Warning ({{ warnCount }})
     </div>
 
     <div class="qchip info" 
         [class.on]="activeAlertFilter === 'info'" 
         (click)="setAlertFilter('info')">
-      <span class="dot info"></span> Info ({{ getCount('info') }})
+      <span class="dot info"></span> Info ({{ infoCount }})
     </div>
   </div>
 
     <div class="card" style="margin-top:10px; padding:0; overflow:hidden; background: white; border-radius: 12px; border: 1px solid var(--bord);">
     <div class="alert-list">
-    <div *ngFor="let alert of filteredAlerts" 
+    <div *ngFor="let alert of filteredAlerts ; trackBy: trackByAlert" 
         class="alert-row" 
         [ngClass]="alert.type">
       
