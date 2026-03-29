@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrateg
 import { Chart, registerables } from 'chart.js';
 import { HttpClient } from '@angular/common/http';
 import { DataService } from 'src/app/data.service';
+import { ActivatedRoute } from '@angular/router';
 
 
 Chart.register(...registerables);
@@ -39,6 +40,7 @@ const CDAX: any = {
 })
 export class AdminAnalyticsPage implements OnInit, OnDestroy {
   // State variables
+  companyId: any;
   activeTab: string = 'criminal';
   activeSubId: string = 'felling';
   activeDateFilter: string = 'today';
@@ -56,6 +58,16 @@ beats = ['Beat Alpha', 'Beat Beta', 'Beat Gamma'];
   public currentSubCharts: any[] = [];
   public displayActivity: any[] = [];
   public currentCatSubsCount: number = 0;
+  chartData: any[] = [];
+  trendChart: any;
+  fireCount: number = 0;
+  criminalCount: number = 0;
+  eventsCount: number = 0;
+  assetsCount: number = 0;
+
+  // Ye dono variables missing the:
+  selectedTimeframe: string = 'today'; 
+
   // private api: ApiService
 
   private chartInstances: Map<string, Chart> = new Map();
@@ -206,14 +218,25 @@ beats = ['Beat Alpha', 'Beat Beta', 'Beat Gamma'];
 
   constructor(private cdr: ChangeDetectorRef, 
     private http: HttpClient,
-  private dataService: DataService,) { }
+  private dataService: DataService,
+private route: ActivatedRoute,) { }
 
   ngOnInit() { 
+    this.companyId = localStorage.getItem('company_id') || 1;
     this.setAnaCat('criminal'); 
     this.activeTab = 'criminal';
     this.activeCatId = 'criminal';
     this.activeDateFilter = 'today';
     this.onFilterChange();
+
+this.route.queryParams.subscribe((params: any) => {
+    if (params && params.type) {
+      // Direct call setAnaCat taaki configuration load ho
+      this.setAnaCat(params.type); 
+    } else {
+      this.setAnaCat('criminal');
+    }
+  });
   }
 
   ngOnDestroy() { 
@@ -225,18 +248,129 @@ beats = ['Beat Alpha', 'Beat Beta', 'Beat Gamma'];
   //  LOGIC & RENDERING
   // ═══════════════════════════════════════════
 
- setAnaCat(id: string) {
-  const cat = this.ANA_CONFIG[id];
-  if (cat) {
-    this.activeTab = id;      // <--- Ye sabse zaroori hai!
-    this.activeCatId = id;    // Dono ko same rakho
-    this.activeSubId = cat.subs[0]?.id; 
-    
-    this.destroyCharts();     // Purane charts hatao
-    this.updateUIData();      // Naya data lao
-  }
+loadData() {
+  const sub = this.getCurrentSub();
+  if (!sub) return;
+
+  // Yahan console check karo ki category kya hai
+  console.log(`Fetching data for: ${this.activeTab}`);
+
+  sub.charts.forEach((ch: any) => {
+    // Ye function aapka graph render karega
+    this.mkChart(ch.id, ch.config); 
+  });
 }
 
+
+
+
+// 1. Criminal Data Fetching
+fetchCriminalData() {
+  // Aapke filters (Range, Beat, Timeframe)
+  const timeframe = this.selectedTimeframe || 'today';
+  const range = this.selectedRange || 'all';
+  const beat = this.selectedBeat || 'all';
+
+  this.dataService.getCriminalAnalytics(this.companyId, timeframe, range, beat).subscribe({
+    next: (res: any) => {
+      this.criminalCount = res.total_incidents || 0;
+      this.chartData = res.graph_data || []; // Backend se graph array
+      this.updateChart(); // Graph refresh karne ke liye
+      this.cdr.detectChanges();
+    },
+    error: (err) => console.error('Criminal Fetch Error:', err)
+  });
+}
+
+// 2. Fire Data Fetching (Jo humne backend fix kiya tha)
+fetchFireData() {
+  const timeframe = this.selectedTimeframe || 'today';
+  const range = this.selectedRange || 'all';
+  const beat = this.selectedBeat || 'all';
+
+  this.dataService.getFireAnalytics(this.companyId, timeframe, range, beat).subscribe({
+    next: (res: any) => {
+      // Backend humein 'fire_incidents' key bhej raha hai
+      this.fireCount = res.fire_incidents || 0; 
+      this.chartData = res.graph_data || []; 
+      this.updateChart(); 
+      this.cdr.detectChanges();
+    },
+    error: (err) => console.error('Fire Fetch Error:', err)
+  });
+}
+
+// 1. Events & Monitoring Data
+fetchEventsData() {
+  const timeframe = this.selectedTimeframe || 'today';
+  this.dataService.getEventsAnalytics(this.companyId, timeframe).subscribe({
+    next: (res: any) => {
+      this.eventsCount = res.total_events || 0;
+      this.chartData = res.graph_data || [];
+      this.updateChart(); // Graph refresh
+      this.cdr.detectChanges();
+    },
+    error: (err) => console.error('Events Fetch Error:', err)
+  });
+}
+
+// 2. Assets Management Data
+fetchAssetsData() {
+  this.dataService.getAssetsAnalytics(this.companyId).subscribe({
+    next: (res: any) => {
+      this.assetsCount = res.total_assets || 0;
+      this.chartData = res.graph_data || []; // Agar assets ka graph hai toh
+      this.updateChart();
+      this.cdr.detectChanges();
+    },
+    error: (err) => console.error('Assets Fetch Error:', err)
+  });
+}
+
+updateChart() {
+  if (this.trendChart) {
+    this.trendChart.destroy();
+  }
+
+  const ctx = document.getElementById('c-trend') as HTMLCanvasElement;
+  if (!ctx) return;
+
+  this.trendChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: this.chartData.map((d: any) => d.label),
+      datasets: [{
+        label: 'Incidents',
+        data: this.chartData.map((d: any) => d.value),
+        borderColor: '#2eb38d',
+        backgroundColor: 'rgba(46, 179, 141, 0.1)',
+        fill: true,
+        tension: 0.4
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+}
+
+
+setAnaCat(id: string) {
+  const cat = this.ANA_CONFIG[id];
+  if (cat) {
+    this.activeTab = id; 
+    this.activeCatId = id; 
+    this.activeSubId = cat.subs[0]?.id; 
+
+    console.log("Switching Category to:", id); // Check karo yahan kya aa raha hai
+
+    this.destroyCharts(); 
+    
+    // Yahan ensure karo ki loadData() ko pata chale ki category change hui hai
+    this.loadData(); 
+    this.updateUIData(); 
+    
+    this.cdr.detectChanges();
+  }
+}
   setAnaSub(id: string) {
     this.activeSubId = id;
     this.destroyCharts();
@@ -268,7 +402,12 @@ beats = ['Beat Alpha', 'Beat Beta', 'Beat Gamma'];
     return map[subId] || [{ d: COLORS.sl, t: "No recent activity", m: "" }];
   }
 
-  getCurrentCat() { return this.ANA_CONFIG[this.activeTab]; }
+  // getCurrentCat() { return this.ANA_CONFIG[this.activeTab]; }
+  getCurrentCat() { 
+  // Agar activeTab update nahi hua toh ye hamesha default 'criminal' hi return karega
+  console.log('Current Active Tab:', this.activeTab); 
+  return this.ANA_CONFIG[this.activeTab]; 
+}
   getCurrentSub() { return this.getCurrentCat()?.subs.find((s: any) => s.id === this.activeSubId); }
 
 
@@ -358,63 +497,59 @@ onFilterChange() {
   }, 300);
 }
 
-
 async updateUIData() {
   const cat = this.getCurrentCat();
   if (!cat) return;
 
-  // 1. DYNAMIC COMPANY ID: LocalStorage se uthao, agar nahi hai toh '1' default
   const companyId = localStorage.getItem('companyId') || '1';
-  
-  // Debugging ke liye console mein check kar sakte ho
-  console.log(`Fetching data for Company: ${companyId}, Category: ${this.activeCatId}`);
-
-  this.currentCatSubsCount = cat.subs?.length || 0;
-
-  // 2. Filter Params prepare karo
   const timeframe = this.activeDateFilter;
   const range = this.selectedRange;
   const beat = this.selectedBeat;
 
-  // 3. Category wise Data Call (Criminal vs Fire)
+  console.log(`Fetching data for Category: ${this.activeCatId}`);
+
+  // 1. Data Call ko saare tabs ke liye dynamic banao
   let dataCall;
   if (this.activeCatId === 'fire') {
-    // Agar Fire tab active hai
     dataCall = this.dataService.getFireAnalytics(companyId, timeframe, range, beat);
+  } else if (this.activeCatId === 'events') {
+    dataCall = this.dataService.getEventsAnalytics(companyId as any, timeframe);
+  } else if (this.activeCatId === 'assets') {
+    dataCall = this.dataService.getAssetsAnalytics(companyId as any);
   } else {
-    // Default: Criminal analytics
+    // Default: Criminal
     dataCall = this.dataService.getCriminalAnalytics(companyId, timeframe, range, beat);
   }
 
   dataCall.subscribe({
     next: (res: any) => {
-      // 4. UI List ko backend data se map karo
+      // 2. UI List mapping (Yahan koi change nahi, perfect hai)
       this.displayProgList = cat.subs.map((s: any) => {
-        // Backend key check (e.g., res['felling'] ya res['fire-alerts'])
         const dynamicVal = res[s.id] || 0; 
-
         return {
           ...s,
           val: dynamicVal,
-          // Progress bar percentage (Max 50 cases maan kar)
           pct: Math.min(Math.round((dynamicVal / 50) * 100), 100) 
         };
       });
 
-      // 5. Chart aur Activity refresh logic
+      // 3. Sub-Category logic
       const sub = cat.subs.find((s: any) => s.id === this.activeSubId);
       this.currentSubCharts = sub?.charts || [];
       this.displayActivity = this.getActivity(this.activeSubId);
       
-      // 6. UI Update aur Chart Re-render
       this.cdr.detectChanges();
-      this.renderSubCharts();
+      
+      // 4. Charts Render (Ensure karo ye function error na de agar canvas na mile)
+      setTimeout(() => {
+        this.renderSubCharts();
+      }, 200);
     },
     error: (err: any) => {
-      console.error(`data fetch error:`, err);
-      this.displayProgList = []; // List khali kar do
-  this.isRefreshing = false;
-  this.cdr.detectChanges();
+      console.error(`Data fetch error for ${this.activeCatId}:`, err);
+      this.displayProgList = [];
+      this.isRefreshing = false;
+      this.cdr.detectChanges();
     }
   });
 }

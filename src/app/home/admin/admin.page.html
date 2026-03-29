@@ -291,63 +291,70 @@
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-hdr">
-        <div>
-          <div class="card-title">Incident Trend</div>
-          <div class="card-sub">All categories · Selected period</div>
-        </div>
-        <div class="card-pill" id="trend-pill">{{ momStatus }}</div>
+
+
+ 
+
+  <div class="card">
+    <div class="card-hdr">
+      <div>
+        <div class="card-title">Incident Trend</div>
+        <div class="card-sub">All categories · Selected period</div>
       </div>
-      <div class="card-body">
-        <div style="height:140px;position:relative">
-          <canvas id="c-trend"></canvas>
-        </div>
-        <div class="chart-axis-labels">
-          <span class="chart-axis-label">← Earlier</span>
-          <span class="chart-axis-label">Days →</span>
-        </div>
-        <div style="display:flex;justify-content:center;margin-top:4px;">
-          <span style="font-size:8px;color:var(--tx3);font-weight:600;">Y-AXIS: No. of Incidents</span>
-        </div>
+      <div class="card-pill" id="trend-pill">{{ momStatus }}</div>
+    </div>
+    <div class="card-body">
+      <div style="height:140px;position:relative">
+        <canvas id="c-trend"></canvas>
+      </div>
+      <div class="chart-axis-labels">
+        <span class="chart-axis-label">← Earlier</span>
+        <span class="chart-axis-label">Days →</span>
+      </div>
+      <div style="display:flex;justify-content:center;margin-top:4px;">
+        <span style="font-size:8px;color:var(--tx3);font-weight:600;">Y-AXIS: No. of Incidents</span>
       </div>
     </div>
+  </div>
+  
 
-    <div class="shdr" style="padding-bottom:6px">
-      <div class="shdr-title">Category Snapshot</div>
-      <div class="shdr-link" style="font-size:9px;color:var(--tx3)">scroll →</div>
+  <div class="shdr" style="padding-bottom:6px">
+    <div class="shdr-title">Category Snapshot</div>
+    <div class="shdr-link" style="font-size:9px;color:var(--tx3)">scroll →</div>
+  </div>
+  
+  <div class="mini-scroll">
+    <div class="mini-card" data-cat="criminal" (click)="goAnalytics('criminal')">
+      <div class="mini-lbl">🌲 Criminal Activity</div>
+      <div class="mini-val" style="color:var(--rose)" id="ms-crim">{{criminalActivityCount}}</div>
+      <div class="mini-ch"><canvas id="mc-crim"></canvas></div>
+      <div class="mini-meta">Y: Cases · X: {{ getFilterLabel() }}</div>
+    </div>
+
+    <div class="mini-card" data-cat="events" (click)="goAnalytics('events')">
+      <div class="mini-lbl">🐾 Events & Monitor.</div>
+      <div class="mini-val" style="color:var(--amber)" id="ms-events">342</div>
+      <div class="mini-ch"><canvas id="mc-events"></canvas></div>
+      <div class="mini-meta">Y: Events · X:{{ getFilterLabel() }}</div>
     </div>
     
-    <div class="mini-scroll">
-      <div class="mini-card" data-cat="criminal" (click)="goAnalytics('criminal')">
-        <div class="mini-lbl">🌲 Criminal Activity</div>
-        <div class="mini-val" style="color:var(--rose)" id="ms-crim">87</div>
-        <div class="mini-ch"><canvas id="mc-crim"></canvas></div>
-        <div class="mini-meta">Y: Cases · X: 15 days</div>
-      </div>
 
-      <div class="mini-card" data-cat="events" (click)="goAnalytics('events')">
-        <div class="mini-lbl">🐾 Events & Monitor.</div>
-        <div class="mini-val" style="color:var(--amber)" id="ms-events">342</div>
-        <div class="mini-ch"><canvas id="mc-events"></canvas></div>
-        <div class="mini-meta">Y: Events · X: 15 days</div>
-      </div>
-      
-
-      <div class="mini-card" data-cat="fire" (click)="goAnalytics('fire')">
-        <div class="mini-lbl">🔥 Fire Incidents</div>
-        <div class="mini-val" style="color:var(--orange)" id="ms-fire">12</div>
-        <div class="mini-ch"><canvas id="mc-fire"></canvas></div>
-        <div class="mini-meta">Y: Alerts · X: 15 days</div>
-      </div>
-
-      <div class="mini-card" data-cat="assets">
-        <div class="mini-lbl">🛡️ Assets & Tools</div>
-        <div class="mini-val" style="color:var(--p)" id="ms-assets">94%</div>
-        <div class="mini-ch"><canvas id="mc-assets"></canvas></div>
-        <div class="mini-meta">Y: Util. % · X: 15 days</div>
-      </div>
+    <div class="mini-card" data-cat="fire" (click)="goAnalytics('fire')">
+      <div class="mini-lbl">🔥 Fire Incidents</div>
+      <div class="mini-val" style="color:var(--orange)" id="ms-fire">{{fireAlertsCount}}</div>
+      <div class="mini-ch"><canvas id="mc-fire"></canvas></div>
+      <div class="mini-meta">Y: Alerts · X:{{ getFilterLabel() }}</div>
     </div>
+
+    <div class="mini-card" data-cat="assets">
+      <div class="mini-lbl">🛡️ Assets & Tools</div>
+      <div class="mini-val" style="color:var(--p)" id="ms-assets">94%</div>
+      <div class="mini-ch"><canvas id="mc-assets"></canvas></div>
+      <div class="mini-meta">Y: Util. % · X:{{ getFilterLabel() }}</div>
+    </div>
+  </div>
+  
+
 
     <div class="card">
       <div class="card-hdr">
@@ -368,6 +375,7 @@
       </div>
     </div>
   </div>
+    
 
     <div class="map-container" *ngIf="activeSegment === 'map'">
       <div
@@ -385,45 +393,6 @@
       </div>
 
       <div class="map-wrap">
-        <!-- <div class="map-canvas">
-          <div
-            *ngIf="isCompsActive"
-            style="position: absolute; inset: 0; pointer-events: none; z-index: 1"
-          >
-            <div
-              class="comp-poly"
-              style="
-                left: 18%;
-                top: 22%;
-                width: 28%;
-                height: 24%;
-                border-color: #0d9488;
-                background: #0d9488;
-              "
-            ></div>
-            <div
-              class="comp-poly"
-              style="
-                left: 48%;
-                top: 14%;
-                width: 22%;
-                height: 28%;
-                border-color: #3b82f6;
-                background: #3b82f6;
-              "
-            ></div>
-            <div
-              class="comp-poly"
-              style="
-                left: 22%;
-                top: 50%;
-                width: 25%;
-                height: 22%;
-                border-color: #f59e0b;
-                background: #f59e0b;
-              "
-            ></div>
-          </div> -->
           <div class="map-canvas">
   <div id="leafletMap" style="height: 100%; width: 100%; z-index: 1;"></div>
 
@@ -477,28 +446,6 @@
     </svg>
     Compartments
   </button>
-
-
-          <!-- <button
-            class="comps-btn"
-            [class.active]="isCompsActive"
-            (click)="toggleComps()"
-          >
-            <svg
-              width="12"
-              height="12"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="2.5"
-            >
-              <rect x="3" y="3" width="7" height="7" />
-              <rect x="14" y="3" width="7" height="7" />
-              <rect x="3" y="14" width="7" height="7" />
-              <rect x="14" y="14" width="7" height="7" />
-            </svg>
-            Compartments
-          </button> -->
 
           <button
             class="layers-btn"

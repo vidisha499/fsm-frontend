@@ -281,6 +281,7 @@ updateNotificationPrefs(companyId: number, prefs: any[]) {
 
 }
 
+
 // data.service.ts ke andar
 
 getEventsAnalytics(companyId: number, timeframe: string) {
