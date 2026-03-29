@@ -643,7 +643,32 @@ this.dataService.getLatestAlerts(myCompanyId).subscribe({
 
 }
 
+// Add this inside your AdminPage class
+get dynamicFootStats() {
+  const activeStats: any[] = [];
+  
+  // 1. Loop through your categories (Patrols, Alerts, etc.)
+  Object.keys(this.LAYERS_DATA).forEach(catKey => {
+    const category = this.LAYERS_DATA[catKey];
+    
+    // 2. Check each item inside that category
+    category.items.forEach((item: any) => {
+      // 3. Only if the user has this layer toggled ON
+      if (this.layerStates[item.id]) {
+        // 4. Count how many real pins belong to this specific item
+        const count = this.activePins.filter(p => p.category === item.id).length;
+        
+        activeStats.push({
+          label: item.label,
+          count: count,
+          color: item.color
+        });
+      }
+    });
+  });
 
+  return activeStats;
+}
 
 updateFilteredAlerts() {
   const filter = this.activeAlertFilter || 'all';
@@ -1036,34 +1061,26 @@ initAttChart() {
     this.isLayerPanelOpen = !this.isLayerPanelOpen;
   }
 
-  
-
   toggleLayer(id: string) {
-    this.layerStates[id] = !this.layerStates[id];
-    this.updateVisiblePins(); // Redraw the map
-  }
+  this.layerStates[id] = !this.layerStates[id];
+  
+  // This updates the array that the 'get' function uses for counting
+  this.updateVisiblePins(); 
+  
+  // This updates the Leaflet markers
+  this.updateMapMarkers();
+}
+
+  // toggleLayer(id: string) {
+  //   this.layerStates[id] = !this.layerStates[id];
+  //   this.updateVisiblePins(); // Redraw the map
+  // }
 
   private updateLayerCount() {
     this.activeLayerCount = Object.values(this.layerStates).filter(
       (v) => v,
     ).length;
   }
-
-  // setSegment(segment: string) {
-  //   this.activeSegment = segment;
-  //   this.cdr.detectChanges(); // Force Angular to render the HTML first
-
-  //   setTimeout(() => {
-  //     if (segment === 'overview') {
-  //       this.initHomeCharts();
-  //     } else if (segment === 'map') {
-  //       this.updateVisiblePins();
-  //     } else if (segment === 'officers') {
-  //       // This is the missing link!
-  //       this.initAttChart();
-  //     }
-  //   }, 100);
-  // }
 
   setSegment(segment: string) {
   this.activeSegment = segment;
@@ -1188,8 +1205,6 @@ initAttChart() {
     const canvas = document.getElementById('c-att') as HTMLCanvasElement;
     if (!canvas) return;
 
-    // Mock data for the specific user (Replace this with an API call later)
-    // Logic: Generating random attendance for the last 7 days
     const onDutyData = this.rnd(7, 10, 4); // Random hours worked
     const leaveData = [0, 0, 1, 0, 0, 0, 0]; // Example: took leave on Wednesday
 
@@ -1241,7 +1256,6 @@ initAttChart() {
   getStatusColor(ranger: any): string {
     const status = this.getStatusText(ranger);
 
-    // 💡 Yahan 'Record<string, string>' add kiya hai taaki TypeScript index error na de
     const colors: Record<string, string> = {
       'On Patrol': '#16a34a', // Green
       'On Duty': '#0284c7', // Blue
@@ -1279,6 +1293,7 @@ initAttChart() {
     gradient?.addColorStop(1, 'rgba(0, 137, 123, 0)');
 
     this.trendChart = new Chart(ctx, {
+      
       type: 'line',
       data: {
         labels: labels,

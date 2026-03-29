@@ -565,7 +565,7 @@
 </div>
 </div>
 
-        <div class="map-foot">
+        <!-- <div class="map-foot">
           <div>
             <div class="map-sn" style="color: var(--p)">18</div>
             <div class="map-sl">Patrols</div>
@@ -578,8 +578,19 @@
             <div class="map-sn" style="color: var(--amber)">7</div>
             <div class="map-sl">Posts</div>
           </div>
-        </div>
-      </div>
+        </div>-->
+        <div class="map-foot">
+  <div *ngFor="let stat of dynamicFootStats">
+    <div class="map-sn" [style.color]="stat.color">{{ stat.count }}</div>
+    <div class="map-sl">{{ stat.label }}</div>
+  </div>
+
+  <div *ngIf="dynamicFootStats.length === 0" style="width: 100%; text-align: center; font-size: 10px; color: var(--tx3);">
+    No active layers selected
+  </div>
+</div>
+      </div> 
+      
 
       <div class="legend-section">
         <div class="legend-header">
