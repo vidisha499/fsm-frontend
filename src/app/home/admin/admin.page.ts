@@ -1335,4 +1335,31 @@ initAttChart() {
       to: now.toISOString(), // Example: 2026-03-25T14:13:00 (Current time)
     };
   }
+
+  getFilterLabel() {
+  // Check karo tumhara filter variable ka naam kya hai (usually activeDateFilter hota hai)
+  switch (this.activeDateFilter) {
+    case 'today': 
+      return 'Today';
+    case 'week': 
+      return 'Last 7 Days';
+    case 'month': 
+      return 'Last 30 Days';
+    default: 
+      return 'Selected Period';
+  }
+}
+
+gotoAnalytics(category?: string) {
+  // Navigation ke liye router ka use karein
+  this.router.navigate(['/home/admin-analytics'], { 
+    queryParams: { cat: category || 'all' } 
+  });
+}
+
+goToAnalytics(category: string) {
+  this.router.navigate(['/home/admin-analytics'], { 
+    queryParams: { type: category } 
+  });
+}
 }
