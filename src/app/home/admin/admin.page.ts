@@ -106,6 +106,13 @@ export class AdminPage implements OnInit, AfterViewInit {
   };
 
   // --- UI State ---
+  // YE NEECHE WAALI LINES ADD KARO
+  realNurseryCount: number = 0;
+  realPlantationCount: number = 0;
+  realOfficeCount: number = 0;
+  realEcoCount: number = 0;
+  totalAssetsCount: number = 0;
+  operationalRate: string = '0%';
   critCount: number = 0;
 warnCount: number = 0;
 infoCount: number = 0;
@@ -529,6 +536,7 @@ loadData() {
 
   this.isFetching = true;
 
+  // SABHI DATA SOURCES EK SAATH
   forkJoin({
     stats: this.dataService.getDashboardStats(myCompanyId, dates.from, dates.to),
     sightings: this.dataService.getSightingCount(myCompanyId, dates.from || '', dates.to || ''),
@@ -538,28 +546,53 @@ loadData() {
     inactive: this.adminService.getInactiveCount(myCompanyId, localISOTime),
     users: this.dataService.getUsersByCompany(myCompanyId),
     alerts: this.dataService.getLatestAlerts(myCompanyId),
+    assetsStats: this.dataService.getAdminStats(myCompanyId), 
+    assetsTrend: this.dataService.getAssetsTrend(myCompanyId),
     mapIncidents: this.dataService.getIncidentsForMap(myCompanyId) 
   }).subscribe({
     next: (res: any) => {
-      // 1. General Stats Assign (Matching NestJS Service Keys)
+      // --- 1. ASSETS DATA (Nursery, Plantation etc.) ---
+      if (res.assetsStats) {
+        this.totalAssetsCount = res.assetsStats.totalAssets || 0;
+        this.operationalRate = res.assetsStats.operationalRate || '0%';
+        
+        // Error fix: In variables ko 'this' ke saath assign karne se pehle class mein declare zaroor karna
+        // Agar compile error aaye toh class ke top pe: realNurseryCount: any = 0; likh dena
+        (this as any).realNurseryCount = res.assetsStats.nursery || 0;
+        (this as any).realPlantationCount = res.assetsStats.plantations || 0;
+        (this as any).realOfficeCount = res.assetsStats.offices || 0;
+        (this as any).realEcoCount = res.assetsStats.ecoSites || 0;
+
+        // Analytics specific refresh logic
+        if ((this as any).activeTab === 'assets' && typeof (this as any).setAnaCat === 'function') {
+          (this as any).setAnaCat('assets'); 
+        }
+      }
+
+      // --- 2. TREND CHART LOGIC ---
+      if (res.assetsTrend) {
+        this.momStatus = res.assetsTrend.momLabel || '0% MoM';
+        this.isGoodTrend = res.assetsTrend.isImprovement;
+        setTimeout(() => {
+          if (typeof (this as any).initTrendChart === 'function') {
+            (this as any).initTrendChart(res.assetsTrend.labels, res.assetsTrend.values);
+          }
+        }, 300);
+      }
+
+      // --- 3. DASHBOARD COUNTS (Fire, Criminal, Attendance) ---
       const stats = res.stats || {};
       this.incidentsCount = stats.totalEvents || 0;
       this.criminalActivityCount = stats.criminalEvents || 0;
-      
-      // Safety: Use fireEvents from stats, or fallback to the specific fireCount call
       this.fireAlertsCount = stats.fireEvents || (res.fireCount?.count ?? res.fireCount ?? 0);
       this.attendancePercent = stats.resolvedPercentage || 0;
 
-      // 2. Sightings count handling
+      // --- 4. PERSONNEL & RANGERS ---
       this.sightingsCount = typeof res.sightings === 'object' ? (res.sightings.count ?? 0) : (res.sightings ?? 0);
-
-      // 3. Personnel Status (Handling both {count: X} and raw number responses)
-      // Added optional chaining and proper fallback to prevent undefined errors
       this.onDutyCount = res.onDuty?.count ?? res.onDuty ?? 0;
       this.onLeaveCount = res.onLeave?.count ?? res.onLeave ?? 0;
       this.inactiveCount = res.inactive?.count ?? res.inactive ?? 0;
 
-      // 4. Rangers List (Role ID 4 = Ranger)
       const allUsers = res.users?.data || res.users || [];
       if (Array.isArray(allUsers)) {
         this.rangers = allUsers.filter((u: any) => Number(u.role_id || u.roleId) === 4);
@@ -567,44 +600,31 @@ loadData() {
         this.allRangers = this.rangers.length;
       }
       
-      // 5. MAP LOGIC (Normalized Category Matching for Layers)
+      // --- 5. MAP INCIDENTS & LAYERS ---
       if (res.mapIncidents && Array.isArray(res.mapIncidents)) {
-         console.log('1. Raw Data from DB:', res.mapIncidents);
         this.allIncidents = res.mapIncidents.map((inc: any) => {
-          // Normalize strings for comparison
-         // const dbCriteria = (inc.incidentCriteria || '').toUpperCase();
-          //const dbSubCat = (inc.subCategory || '').toLowerCase().trim().replace(/\s+/g, '_');
-         const dbCriteria = (inc.incidentCriteria || '').toUpperCase();
-const dbSubCat = (inc.subCategory || '').toLowerCase().trim().replace(/\s+/g, '_')
+          const dbCriteria = (inc.incidentCriteria || '').toUpperCase();
+          const rawSubCat = inc.subCategory || '';
+          const normalizedSub = rawSubCat.toLowerCase().trim().replace(/\s+/g, '_');
 
-          let finalLayerId = dbSubCat;
-
-          // Standardize IDs so they match your LAYERS_DATA keys
-          if (dbCriteria.includes('POACH') || dbSubCat.includes('poach')) {
-  finalLayerId = 'animal_poaching'; 
-} 
-else if (dbCriteria.includes('FIRE')) {
-  finalLayerId = 'fire_warning';
-} 
-else if (dbCriteria.includes('FELL') || dbSubCat.includes('felling')) {
-  finalLayerId = 'illegal_felling';
-}
-
-
+          let finalLayerId = normalizedSub;
+          if (dbCriteria.includes('POACH') || normalizedSub.includes('poach')) finalLayerId = 'animal_poaching'; 
+          else if (dbCriteria.includes('FIRE') || normalizedSub.includes('fire')) finalLayerId = 'fire_warning';
+          else if (dbCriteria.includes('FELL') || normalizedSub.includes('felling')) finalLayerId = 'illegal_felling';
 
           return {
             ...inc,
-            layerId: finalLayerId ,
-            displayLabel: dbCriteria.includes('FIRE') ? 'Fire Alert' : inc.subCategory
+            layerId: finalLayerId,
+            subCategory: rawSubCat || inc.incidentCriteria || 'General Incident',
+            displayLabel: dbCriteria.includes('FIRE') ? 'Fire Warning' : (rawSubCat || inc.incidentCriteria)
           };
         });
-        
-        // Refresh pins on the map
-        this.updateVisiblePins(); 
-        console.log('2. Processed Pins for Map:', this.activePinsDisplay);
+        if (typeof (this as any).updateVisiblePins === 'function') {
+          (this as any).updateVisiblePins(); 
+        }
       }
 
-      // 6. Alerts Logic (Filtering + Mapping + Counting)
+      // --- 6. ALERTS LOGIC (Title & Style Fixes) ---
       if (res.alerts && Array.isArray(res.alerts)) {
         const savedPrefs = localStorage.getItem('admin_notification_settings');
         const prefs = savedPrefs ? JSON.parse(savedPrefs) : null;
@@ -612,33 +632,24 @@ else if (dbCriteria.includes('FELL') || dbSubCat.includes('felling')) {
         this.alertsData = res.alerts
           .filter((alert: any) => {
             if (!prefs) return true;
-            const dbCat = (alert.category || 'SYSTEM').toUpperCase();
-            
+            const dbCat = (alert.category || alert.subCategory || 'SYSTEM').toUpperCase();
             const isEnabled = (label: string) => {
               const p = prefs.find((x: any) => x.label.toLowerCase() === label.toLowerCase());
               return p ? p.enabled : true;
             };
-
-            // Toggle logic based on admin notification preferences
             if (dbCat.includes('FIRE')) return isEnabled('Fire Alerts');
             if (dbCat.includes('FELL')) return isEnabled('Illegal Felling');
             if (dbCat.includes('POACH')) return isEnabled('Animal Poaching');
             if (dbCat.includes('CRIMINAL')) return isEnabled('Criminal Activity');
             return true;
           })
-          .slice(0, 15) // Limit dashboard display for performance
+          .slice(0, 15)
           .map((alert: any) => {
             const rawType = (alert.type || 'INFO').toUpperCase();
-            const theme = this.getAlertTheme(rawType);
-            const name = alert.ranger_name || 'System';
+            const theme = (this as any).getAlertTheme(rawType);
             
-            let titlePrefix = '';
-            if (rawType === 'ATTENDANCE') titlePrefix = 'ATTENDANCE';
-            else if (rawType === 'ONSITE') titlePrefix = 'ONSITE-ATTENDANCE';
-            else if (rawType === 'PATROL_START') titlePrefix = 'PATROL-START';
-            else if (rawType === 'PATROL_END') titlePrefix = 'PATROL-END';
-            else if (rawType === 'INCIDENT') titlePrefix = (alert.category || 'INCIDENT').toUpperCase();
-            else titlePrefix = rawType;
+            let titlePrefix = (alert.subCategory || alert.category || rawType).toUpperCase();
+            if (titlePrefix.includes('FIRE')) titlePrefix = 'FIRE WARNING';
 
             const sev = rawType.includes('INCIDENT') || rawType.includes('CRIT') ? 'critical' : 
                         rawType.includes('WARN') ? 'warning' : 'info';
@@ -646,27 +657,27 @@ else if (dbCriteria.includes('FELL') || dbSubCat.includes('felling')) {
             return {
               ...alert,
               severity: sev,
-              displayTitle: `${titlePrefix} - ${name}`,
+              displayTitle: `${titlePrefix} - ${alert.ranger_name || 'Ranger'}`,
               displayDesc: `${alert.location_name || 'Forest Division'}`,
               displayTime: alert.created_at ? 
-                `${new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · ${new Date(alert.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}` : 
-                'Just Now',
-              icon: theme.icon,
-              bg: theme.bg,
-              color: theme.color,
-              label: theme.label
+                `${new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Just Now',
+              icon: theme?.icon || 'information-circle', 
+              bg: theme?.bg || 'bg-blue-50', 
+              color: theme?.color || 'text-blue-500', 
+              label: theme?.label || 'INFO'
             };
           });
 
-        // Recalculate badge counts based on filtered alerts
         this.critCount = this.alertsData.filter(a => a.severity === 'critical').length;
         this.warnCount = this.alertsData.filter(a => a.severity === 'warning').length;
         this.infoCount = this.alertsData.filter(a => a.severity === 'info').length;
-
-        this.updateFilteredAlerts();
+        
+        if (typeof (this as any).updateFilteredAlerts === 'function') {
+          (this as any).updateFilteredAlerts();
+        }
       }
     },
-    error: (err) => {
+    error: (err: any) => {
       console.error('Master Data Fetch Error:', err);
       this.isFetching = false;
       this.cdr.detectChanges();
@@ -1478,27 +1489,24 @@ initAttChart() {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
-  // 1. AGAR CHART PEHLE SE HAI: Toh sirf data update karo
+  // FIX: Agar purana chart hai, toh usse seedha DESTROY karo.
+  // Ye sabse safe tareeka hai 'Canvas in use' error se bachne ka.
   if (this.trendChart) {
-    this.trendChart.data.labels = labels;
-    this.trendChart.data.datasets[0].data = values;
-    
-    // Animation 'none' rakho taaki turant update ho, ya default rehne do smooth transition ke liye
-    this.trendChart.update(); 
-    return; 
+    this.trendChart.destroy();
   }
 
-  // 2. AGAR CHART NAHI HAI (Pehli baar load ho raha hai): Tabhi naya banao
+  // Gradient setup
   const gradient = ctx.createLinearGradient(0, 0, 0, 140);
   gradient.addColorStop(0, 'rgba(0, 137, 123, 0.3)');
   gradient.addColorStop(1, 'rgba(0, 137, 123, 0)');
 
+  // Naya Chart banao (Fresh start har baar data load hone par)
   this.trendChart = new Chart(ctx, {
     type: 'line',
     data: {
       labels: labels,
       datasets: [{
-        label: 'Incidents',
+        label: 'Assets Trend', // "Incidents" ki jagah "Assets" kar diya
         data: values,
         borderColor: '#00897b',
         backgroundColor: gradient,

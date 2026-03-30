@@ -64,6 +64,12 @@ beats = ['Beat Alpha', 'Beat Beta', 'Beat Gamma'];
   criminalCount: number = 0;
   eventsCount: number = 0;
   assetsCount: number = 0;
+  // --- YE 4 LINES ADD KARO ---
+  realNurseryCount: number = 0;
+  realPlantationCount: number = 0;
+  realOfficeCount: number = 0;
+  realEcoCount: number = 0;
+  // ------------------------
 
   // Ye dono variables missing the:
   selectedTimeframe: string = 'today'; 
@@ -199,20 +205,96 @@ beats = ['Beat Alpha', 'Beat Beta', 'Beat Gamma'];
         ]}
       ]
     },
+
     assets: {
-      label: "🛡️ Assets & Tools",
-      subs: [
-        { id: "inventory", label: "Asset Inventory", emoji: "🛡️", color: COLORS.p, val: 1450, charts: [
-          { title: "Asset Distribution", id: "ac-a1", render: (id: string) => this.mkChart(id, { type: "pie", data: { labels: ["Vehicles", "Gear", "Checks"], datasets: [{ data: [245, 320, 42], backgroundColor: PALETTE }] }, options: CDAX }) }
-        ]},
-        { id: "vehicles", label: "Vehicles", emoji: "🚙", color: COLORS.teal, val: 245, charts: [
-          { title: "Vehicle Status", id: "ac-v1", render: (id: string) => this.mkChart(id, { type: "doughnut", data: { labels: ["Deployed", "Maintenance"], datasets: [{ data: [180, 65], backgroundColor: [COLORS.p, COLORS.amber] }] }, options: CDAX }) }
-        ]},
-        { id: "checkposts", label: "Checkposts", emoji: "🏠", color: COLORS.ind, val: 42, charts: [
-          { title: "Activity", id: "ac-cp1", render: (id: string) => this.mkChart(id, { type: "bar", data: { labels: ["CP-1", "CP-2", "CP-3"], datasets: [{ data: [120, 95, 200], backgroundColor: COLORS.ind }] }, options: CDAX }) }
-        ]}
+  label: "🛡️ Forest Assets",
+  subs: [
+    { 
+      id: "nursery", 
+      label: "Nursery", 
+      emoji: "🌱", 
+      color: COLORS.green, 
+      val: this.realNurseryCount, 
+      charts: [
+        { 
+          title: "Nursery Health Status", 
+          id: "ac-n1", 
+          render: (id: string) => this.mkChart(id, { 
+            type: "pie", 
+            data: { 
+              labels: ["Healthy", "Maintenance", "New"], 
+              datasets: [{ data: [this.realNurseryCount, 5, 2], backgroundColor: PALETTE }] 
+            }, 
+            options: CDAX 
+          }) 
+        }
+      ]
+    },
+    { 
+      id: "plantations", 
+      label: "Plantations", 
+      emoji: "🌳", 
+      color: COLORS.p, 
+      val: this.realPlantationCount, 
+      charts: [
+        { 
+          title: "Plantation Growth", 
+          id: "ac-pl1", 
+          render: (id: string) => this.mkChart(id, { 
+            type: "bar", 
+            data: { 
+              labels: ["Teak", "Bamboo", "Sandalwood"], 
+              datasets: [{ label: "Count", data: [this.realPlantationCount, 15, 10], backgroundColor: COLORS.p }] 
+            }, 
+            options: CDAX 
+          }) 
+        }
+      ]
+    },
+    { 
+      id: "offices", 
+      label: "Offices/Govt", 
+      emoji: "🏢", 
+      color: COLORS.blue, 
+      val: this.realOfficeCount, 
+      charts: [
+        { 
+          title: "Office Distribution", 
+          id: "ac-off1", 
+          render: (id: string) => this.mkChart(id, { 
+            type: "doughnut", 
+            data: { 
+              labels: ["Main Office", "Range Office", "Chowki"], 
+              datasets: [{ data: [this.realOfficeCount, 3, 8], backgroundColor: [COLORS.blue, COLORS.teal, COLORS.ind] }] 
+            }, 
+            options: CDAX 
+          }) 
+        }
+      ]
+    },
+    { 
+      id: "ecoTourism", 
+      label: "Eco Tourism", 
+      emoji: "🏞️", 
+      color: COLORS.teal, 
+      val: this.realEcoCount, 
+      charts: [
+        { 
+          title: "Visitor Activity", 
+          id: "ac-eco1", 
+          render: (id: string) => this.mkChart(id, { 
+            type: "line", 
+            data: { 
+              labels: ["Mon", "Tue", "Wed", "Thu", "Fri"], 
+              datasets: [{ label: "Visitors", data: [this.realEcoCount, 20, 15, 30, 50], borderColor: COLORS.teal, fill: false }] 
+            }, 
+            options: CDAX 
+          }) 
+        }
       ]
     }
+  ]
+}
   };
   
 
@@ -250,17 +332,28 @@ this.route.queryParams.subscribe((params: any) => {
 
 loadData() {
   const sub = this.getCurrentSub();
-  if (!sub) return;
+  
+  // Pehle check karo ki 'sub' mila ya nahi
+  if (!sub) {
+    console.error("Sub-category not found for tab:", this.activeTab);
+    return;
+  }
 
-  // Yahan console check karo ki category kya hai
   console.log(`Fetching data for: ${this.activeTab}`);
 
-  sub.charts.forEach((ch: any) => {
-    // Ye function aapka graph render karega
-    this.mkChart(ch.id, ch.config); 
-  });
+  // Safe check: pehle dekho charts array exist karta hai ya nahi
+  if (sub.charts && Array.isArray(sub.charts)) {
+    sub.charts.forEach((ch: any) => {
+      if (ch && ch.id) {
+        this.mkChart(ch.id, ch.config);
+      }
+    });
+  } else {
+    // Agar charts nahi hain, toh purane charts clear kar do aur return ho jao
+    console.warn("No charts defined for this sub-category");
+    this.destroyCharts(); 
+  }
 }
-
 
 
 
@@ -551,6 +644,23 @@ async updateUIData() {
       this.isRefreshing = false;
       this.cdr.detectChanges();
     }
+  });
+}
+
+// ngOnInit ya kisi refresh function mein ye call karo
+fetchRealAssetData() {
+  const companyIdRaw = localStorage.getItem('company_id') || '1';
+const companyId = Number(companyIdRaw); // Ya fir use karo: parseInt(companyIdRaw, 10)
+
+  this.dataService.getAssetStats(companyId).subscribe((res: any) => {
+    // Backend se aane wale counts ko variables mein assign karo
+    this.realNurseryCount = res.nursery || 0;
+    this.realPlantationCount = res.plantations || 0;
+    this.realOfficeCount = res.offices || 0;
+    this.realEcoCount = res.ecoSites || 0;
+
+    // Data aane ke baad UI refresh karne ke liye config update karo
+    this.setAnaCat('assets'); 
   });
 }
 }

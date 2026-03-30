@@ -288,9 +288,39 @@ getEventsAnalytics(companyId: number, timeframe: string) {
   return this.http.get(`${this.baseApiUrl}/analytics/events?companyId=${companyId}&timeframe=${timeframe}`);
 }
 
-getAssetsAnalytics(companyId: number) {
-  return this.http.get(`${this.baseApiUrl}/analytics/assets?companyId=${companyId}`);
+
+// Naya asset save karne ke liye function
+  addAsset(assetData: any): Observable<any> {
+    return this.http.post(`${this.baseApiUrl}/assets/add`, assetData);
+  }
+
+  // Assets ki list mangwane ke liye
+  getAssets(companyId: number): Observable<any> {
+    return this.http.get(`${this.baseApiUrl}/list?company_id=${companyId}`);
+  }
+  getMyAssets(companyId: number, userId: number): Observable<any> {
+  // Isse URL banega: .../api/assets/my-list?company_id=1&created_by=3
+  return this.http.get(`${this.baseApiUrl}/assets/my-list?company_id=${companyId}&created_by=${userId}`);
 }
+// DataService.ts ke andar
+getAdminStats(companyId: number): Observable<any> {
+  return this.http.get(`${this.baseApiUrl}/assets/admin-stats?company_id=${companyId}`);
+}
+
+getAssetsTrend(companyId: number): Observable<any> {
+  return this.http.get(`${this.baseApiUrl}/assets/assets-trend?company_id=${companyId}`);
+}
+
+// data.service.ts mein isse update karo
+getAssetsAnalytics(companyId: number) {
+  // Yahan '/admin' add kar diya hai
+  return this.http.get(`${this.baseApiUrl}/admin/analytics/assets?companyId=${companyId}`);
+}
+// src/app/data.service.ts mein ye add karo (agar nahi hai toh)
+getAssetStats(companyId: number): Observable<any> {
+  return this.http.get(`${this.baseApiUrl}/admin/assets/stats/${companyId}`);
+}
+
 
 // data.service.ts
 getIncidentsForMap(companyId: number) {

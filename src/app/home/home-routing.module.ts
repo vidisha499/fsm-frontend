@@ -103,6 +103,18 @@ loadChildren:() => import('./admin/admin.module').then( m => m.AdminPageModule)
     path: 'admin-settings',
     loadChildren: () => import('./admin-settings/admin-settings.module').then( m => m.AdminSettingsPageModule)
   },
+  {
+    path: 'assets',
+    loadChildren: () => import('./assets/assets.module').then( m => m.AssetsPageModule)
+  },
+  {
+    path: 'assets-list',
+    loadChildren: () => import('./assets-list/assets-list.module').then( m => m.AssetsListPageModule)
+  },
+  {
+    path: 'assets-details',
+    loadChildren: () => import('./assets-details/assets-details.module').then( m => m.AssetsDetailsPageModule)
+  },
 
  
 

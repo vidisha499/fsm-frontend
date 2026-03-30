@@ -1,0 +1,132 @@
+<ion-content [fullscreen]="true">
+  <div class="premium-wrapper">
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <div class="hero-header">
+      <div class="header-overlay"></div>
+      <div class="header-content">
+        <div class="nav-bar">
+          <div class="left-section">
+             <button (click)="goBack()" class="glass-btn">
+              <ion-icon name="arrow-back-outline"></ion-icon>
+            </button>
+            <h1>Assets</h1>
+          </div>
+         <div class="right-actions">
+  <button class="glass-btn circular" (click)="isModalOpen = true">
+    <i class="fas fa-sliders-h"></i>
+  </button>
+  <button class="glass-btn circular" (click)="loadAssets()">
+    <ion-icon name="refresh-outline"></ion-icon>
+  </button>
+</div>
+        </div>
+      </div>
+    </div>
+<ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false" class="custom-bottom-card">
+  <ng-template>
+    <div class="modal-card-content">
+      <div class="modal-header">
+        <div class="drag-handle"></div>
+        <h3>Filter Assets</h3>
+        <p class="subtitle">Search by category or date range</p>
+      </div>
+
+      <div class="filter-body">
+        <div class="filter-row">
+          <span class="label">CATEGORY</span>
+          <select [(ngModel)]="filters.category" class="custom-select">
+            <option value="all">All Categories</option>
+            <option value="Offices / Govt Residence">Offices / Govt Residence</option>
+            <option value="Nursery">Nursery</option>
+            <option value="Plantations">Plantations</option>
+          </select>
+        </div>
+
+        <div class="filter-row">
+          <span class="label">FROM</span>
+          <ion-datetime-button datetime="fromDate"></ion-datetime-button>
+        </div>
+
+        <div class="filter-row">
+          <span class="label">TO</span>
+          <ion-datetime-button datetime="toDate"></ion-datetime-button>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="apply-btn" (click)="applyFilters()">Apply Filter</button>
+        <button class="clear-btn" (click)="resetFilters()">Reset All Filters</button>
+      </div>
+    </div>
+
+    <ion-popover [keepContentsMounted]="true">
+      <ng-template>
+        <ion-datetime id="fromDate" presentation="date" [(ngModel)]="filters.fromDate" [showDefaultButtons]="true"></ion-datetime>
+      </ng-template>
+    </ion-popover>
+    <ion-popover [keepContentsMounted]="true">
+      <ng-template>
+        <ion-datetime id="toDate" presentation="date" [(ngModel)]="filters.toDate" [showDefaultButtons]="true"></ion-datetime>
+      </ng-template>
+    </ion-popover>
+  </ng-template>
+</ion-modal>
+    <div class="main-container">
+      
+      <div class="export-container animate__animated animate__fadeIn">
+        <button class="export-chip pdf" (click)="exportToPDF()">
+          <i class="far fa-file-pdf"></i> GET PDF
+        </button>
+        <button class="export-chip excel" (click)="exportToExcel()">
+          <i class="far fa-file-excel"></i> GET EXCEL
+        </button>
+      </div>
+
+      <p class="list-label">Online Assets</p>
+
+      <div class="glass-card animate__animated animate__fadeInUp" *ngFor="let asset of assets; let i = index" [style.animation-delay]="i * 0.1 + 's'">
+        <div class="card-accent"></div>
+        
+        <div class="card-header">
+          <div class="icon-box">
+            <i class="fas fa-tag"></i>
+          </div>
+          <h3>{{ asset.name }}</h3>
+        </div>
+
+        <div class="card-details">
+          <div class="detail-item">
+            <i class="fas fa-building category-icon"></i>
+            <span class="lbl">Category:</span>
+            <span class="val">{{ asset.category }}</span>
+          </div>
+          <div class="detail-item">
+            <i class="fas fa-chart-line condition-icon"></i>
+            <span class="lbl">Condition:</span>
+            <span class="val highlight">{{ asset.condition }}</span>
+          </div>
+          <div class="detail-item">
+            <i class="fas fa-calendar-alt year-icon"></i>
+            <span class="lbl">Year:</span>
+            <span class="val">{{ asset.year }}</span>
+          </div>
+          <div class="detail-item footer-detail">
+            <i class="far fa-clock"></i>
+            <span class="lbl">Added On:</span>
+            <!-- <span class="val date">{{ asset.date }}</span> -->
+             <span class="value-text">{{ asset.created_at | date:'dd MMM, yyyy' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="custom-fab">
+    
+    <ion-fab-button (click)="goToAddAsset()" class="add-fab">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>

@@ -55,6 +55,11 @@
     <div class="item-text"><span>{{ 'MENU.ATTENDANCE_REQ' | translate }}</span></div>
   </a>
 
+  <a class="menu-item" (click)="goToPage('assets-list')" [class.active]="router.url === '/home/assets-list'">
+  <div class="icon-box red"><i class="fas fa-boxes"></i></div>
+  <div class="item-text"><span>{{ 'MENU.ASSETS' | translate }}</span></div>
+</a>
+
       <a class="menu-item" (click)="goToPage('updates')" [class.active]="router.url.includes('updates')">
         <div class="icon-box purple"><i class="fas fa-newspaper"></i></div>
         <div class="item-text"><span>{{ 'MENU.DAILY_UPDATES' | translate }}</span></div>

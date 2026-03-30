@@ -93,6 +93,16 @@ loadChildren:() => import('./home/admin/admin.module').then( m => m.AdminPageMod
     loadChildren: () => import('./home/attendance-requests/attendance-requests.module').then(m => m.AttendanceRequestsPageModule)
 },
 
+{
+  path: 'assets',
+  loadChildren: () => import('./home/assets/assets.module').then( m => m.AssetsPageModule)
+},
+{
+  path: 'assets-list',
+  loadChildren: () => import('./home/assets-list/assets-list.module').then( m => m.AssetsListPageModule)
+},
+
+
   {
     path: 'admin-analytics',
     loadChildren: () => import('./home/admin-analytics/admin-analytics.module').then(m => m.AdminAnalyticsPageModule)

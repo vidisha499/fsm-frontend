@@ -1,0 +1,125 @@
+<ion-content [fullscreen]="true">
+  <div class="premium-wrapper">
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <div class="hero-header">
+      <div class="header-overlay"></div>
+      <div class="header-content">
+        <div class="nav-bar">
+          <div class="left-section">
+            <button (click)="goBack()" class="glass-btn">
+              <ion-icon name="arrow-back-outline"></ion-icon>
+            </button>
+            <h1>Add Asset</h1>
+          </div>
+          <div class="auth-badge">
+            <i class="fas fa-boxes"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-container">
+      <div class="form-card animate__animated animate__fadeInUp">
+        
+        <div class="photo-evidence-container">
+    <div class="photo-grid">
+  <div class="photo-item animate__animated animate__zoomIn" *ngFor="let photo of capturedPhotos; let i = index">
+    <img [src]="photo" class="preview-img" />
+    <button class="remove-btn" (click)="removePhoto(i)">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <div (click)="takePhoto()" class="upload-zone-mini" *ngIf="capturedPhotos.length < 5">
+    <div class="mini-icon-circle">
+      <i class="fas fa-camera"></i>
+    </div>
+    <span class="mini-text">ADD PHOTO</span>
+  </div>
+</div>
+          <p class="counter-text">{{ capturedPhotos.length }} / 5 Photos</p>
+        </div>
+
+
+        
+        <div class="map-preview-container animate__animated animate__fadeIn">
+          <div id="incidentMap" style="height: 180px; width: 100%; border-radius: 15px; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 8px;"></div>
+          <div class="location-status" style="padding-left: 5px; margin-bottom: 15px;">
+            <small style="color: #64748b;"><i class="fas fa-map-marker-alt"></i> {{ lat }}, {{ lng }}</small>
+          </div>
+        </div>
+
+
+        <div class="input-stack">
+          <div class="input-group">
+            <label class="input-label client-lbl">Client</label>
+            <div class="input-wrapper">
+              <i class="fas fa-building"></i>
+              <select class="styled-select" [(ngModel)]="assetData.client">
+                <option value="PugArch Technology Pvt Ltd">PugArch Technology Pvt Ltd</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label category-lbl">Category</label>
+            <div class="input-wrapper">
+              <i class="fas fa-th-large"></i>
+              <select class="styled-select" [(ngModel)]="assetData.category">
+                <option value="Offices / Govt Residence">Offices / Govt Residence</option>
+                <option value="Nursery">Nursery</option>
+                <option value="Plantations">Plantations</option>
+                <option value="Eco Tourism Sites">Eco Tourism Sites</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label name-lbl">Name</label>
+            <div class="input-wrapper">
+              <i class="fas fa-tag"></i>
+              <input type="text" class="styled-select" placeholder="e.g., Watchtower #3" [(ngModel)]="assetData.name" />
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label condition-lbl">Condition</label>
+            <div class="input-wrapper">
+              <i class="fas fa-chart-line"></i>
+              <select class="styled-select" [(ngModel)]="assetData.condition">
+                <option value="Good">Good</option>
+                <option value="Needs Repair">Needs Repair</option>
+                <option value="Poor">Poor</option>
+                <option value="Not in Use">Not in Use</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label year-lbl">Year</label>
+            <div class="input-wrapper">
+              <i class="fas fa-calendar-alt"></i>
+              <input type="number" class="styled-select" [(ngModel)]="assetData.year" />
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label desc-lbl">Description</label>
+            <div class="input-wrapper textarea-mode">
+              <i class="fas fa-align-left"></i>
+              <textarea class="styled-textarea" rows="2" placeholder="Describe the asset..." [(ngModel)]="assetData.description" (input)="adjustHeight($event)"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <button class="submit-btn" (click)="submitAsset()" [disabled]="isSubmitting">
+          <span *ngIf="!isSubmitting">Save Asset</span>
+          <ion-spinner name="crescent" *ngIf="isSubmitting"></ion-spinner>
+        </button>
+
+      </div>
+    </div>
+  </div>
+</ion-content>
