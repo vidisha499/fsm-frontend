@@ -136,6 +136,8 @@ infoCount: number = 0;
   isLayerVisible: boolean = true;
   attendanceChart: any;
   // --- Map & Layer State ---
+  // Near line 237 where activePinsDisplay is
+public allIncidents: any[] = [];
   public map: L.Map | null | any = null;
 private markerGroup = L.layerGroup(); // To manage dynamic markers
 private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw';
@@ -157,149 +159,143 @@ public filteredAlerts: any[] = [];
   attChart: any;     // Attendance chart ke liye
 // trendChart: any;
 
-  layerStates: { [key: string]: boolean } = {
-    patrols: true,
-    wildlife: true,
-    firealert: true,
-    felling: true,
-  };
+layerStates: { [key: string]: boolean } = {
+  illegal_felling: true,
+  poaching: true,
+  illegal_mining: true,
+  animal_sighting: true,
+  water_status: true,
+  fire_warning: true,
+  patrols: true,
+  sos: true,
+  checkposts: true
+};
 
-  // Define a specific interface or use 'any' to bypass strict template checking
-  // --- Updated Layers with Categories ---
+
   readonly LAYERS_DATA: any = {
-    criminal: {
-      label: 'Criminal Activity',
-      emoji: '🌲',
-      items: [
-        {
-          id: 'felling',
-          label: 'Illegal Felling',
-          emoji: '🪓',
-          color: '#ef4444',
-          bg: '#fff1f2',
-        },
-        {
-          id: 'poaching',
-          label: 'Wild Animal Poaching',
-          emoji: '🐾',
-          color: '#b91c1c',
-          bg: '#fef2f2',
-        },
-        {
-          id: 'mining',
-          label: 'Illegal Mining',
-          emoji: '⛏️',
-          color: '#475569',
-          bg: '#f8fafc',
-        },
-      ],
-    },
-    events: {
-      label: 'Monitoring',
-      emoji: '🐾',
-      items: [
-        {
-          id: 'wildlife',
-          label: 'Animal Sighting',
-          emoji: '🦌',
-          color: '#059669',
-          bg: '#ecfdf5',
-        },
-        {
-          id: 'water',
-          label: 'Water Status',
-          emoji: '💧',
-          color: '#2563eb',
-          bg: '#eff6ff',
-        },
-      ],
-    },
-    fire: {
-      label: 'Fire Incidents',
-      emoji: '🔥',
-      items: [
-        {
-          id: 'firealert',
-          label: 'Fire Alerts',
-          emoji: '🔥',
-          color: '#ea580c',
-          bg: '#fff7ed',
-        },
-      ],
-    },
-    assets: {
-      label: 'Personnel & Tools',
-      emoji: '🛡️',
-      items: [
-        {
-          id: 'patrols',
-          label: 'Active Patrols',
-          emoji: '👮',
-          color: '#0d9488',
-          bg: '#f0fdfa',
-        },
-        {
-          id: 'sos',
-          label: 'SOS Units',
-          emoji: '🚨',
-          color: '#f43f5e',
-          bg: '#fff1f2',
-        },
-        {
-          id: 'checkposts',
-          label: 'Checkposts',
-          emoji: '🏠',
-          color: '#4f46e5',
-          bg: '#eef2ff',
-        },
-      ],
-    },
-  };
+  criminal: {
+    label: 'Criminal Activity',
+    emoji: '🌲',
+    items: [
+      {
+        id: 'illegal_felling', // Matches "Illegal Felling" from DB
+        label: 'Illegal Felling',
+        emoji: '🪓',
+        color: '#ef4444',
+        bg: '#fff1f2',
+      },
+      {
+        id: 'animal_poaching', // Matches "Poaching" from DB
+        label: 'Animal Poaching',
+        emoji: '🐾',
+        color: '#b91c1c',
+        bg: '#fef2f2',
+      },
+      {
+        id: 'illegal_mining', // Matches "Illegal Mining" from DB
+        label: 'Illegal Mining',
+        emoji: '⛏️',
+        color: '#475569',
+        bg: '#f8fafc',
+      },
+    ],
+  },
+  events: {
+    label: 'Monitoring',
+    emoji: '🐾',
+    items: [
+      {
+        id: 'animal_sighting', // Updated for consistency
+        label: 'Animal Sighting',
+        emoji: '🦌',
+        color: '#059669',
+        bg: '#ecfdf5',
+      },
+      {
+        id: 'water_status',
+        label: 'Water Status',
+        emoji: '💧',
+        color: '#2563eb',
+        bg: '#eff6ff',
+      },
+    ],
+  },
+  fire: {
+    label: 'Fire Incidents',
+    emoji: '🔥',
+    items: [
+      {
+        id: 'fire_warning', // Matches incidentCriteria "Fire Warning" in your NestJS service
+        label: 'Fire Alerts',
+        emoji: '🔥',
+        color: '#ea580c',
+        bg: '#fff7ed',
+      },
+    ],
+  },
+  assets: {
+    label: 'Personnel & Tools',
+    emoji: '🛡️',
+    items: [
+      {
+        id: 'patrols',
+        label: 'Active Patrols',
+        emoji: '👮',
+        color: '#0d9488',
+        bg: '#f0fdfa',
+      },
+      {
+        id: 'sos',
+        label: 'SOS Units',
+        emoji: '🚨',
+        color: '#f43f5e',
+        bg: '#fff1f2',
+      },
+      {
+        id: 'checkposts',
+        label: 'Checkposts',
+        emoji: '🏠',
+        color: '#4f46e5',
+        bg: '#eef2ff',
+      },
+    ],
+  },
+};
 
   // --- Map Pin Coordinates (Relative %) ---
-  readonly PIN_POS: any = {
-    felling: [
-      { l: '22%', t: '32%' },
-      { l: '38%', t: '44%' },
-    ],
-    poaching: [
-      { l: '28%', t: '55%' },
-      { l: '65%', t: '42%' },
-    ],
-    wildlife: [
-      { l: '40%', t: '35%' },
-      { l: '62%', t: '48%' },
-      { l: '75%', t: '28%' },
-    ],
-    firealert: [
-      { l: '65%', t: '26%' },
-      { l: '35%', t: '50%' },
-    ],
-    patrols: [
-      { l: '20%', t: '34%' },
-      { l: '55%', t: '44%' },
-      { l: '72%', t: '62%' },
-    ],
-    sos: [{ l: '45%', t: '55%' }],
-    checkposts: [
-      { l: '33%', t: '36%' },
-      { l: '82%', t: '42%' },
-    ],
-  };
+
 
   get activePins() {
     return this.activePinsDisplay;
   }
 
-  get activeLegendItems() {
-    const active: any[] = [];
-    Object.values(this.LAYERS_DATA).forEach((cat: any) => {
-      cat.items.forEach((l: any) => {
-        if (this.layerStates[l.id]) active.push(l);
+    // get activeLegendItems() {
+    //   const active: any[] = [];
+    //   Object.values(this.LAYERS_DATA).forEach((cat: any) => {
+    //     cat.items.forEach((l: any) => {
+    //       if (this.layerStates[l.id]) active.push(l);
+    //     });
+    //   });
+    //   return active;
+    // }
+    get activeLegendItems() {
+  const active: any[] = [];
+  
+  if (!this.LAYERS_DATA || !this.layerStates) return active;
+
+  Object.values(this.LAYERS_DATA).forEach((cat: any) => {
+    if (cat.items && Array.isArray(cat.items)) {
+      cat.items.forEach((layer: any) => {
+        // If the toggle for this layer ID is true, add it to the legend
+        if (this.layerStates[layer.id]) {
+          active.push(layer);
+        }
       });
-    });
-    return active;
-  }
+    }
+  });
+  
+  return active;
+}
 
   // Add this method to handle the "All On" button logic
   layerAllOn() {
@@ -423,8 +419,8 @@ onSegmentChange(event: any) {
     }
   }
 
-private initLeafletMap() {
-  // 1. Sabse pehle purana instance poori tarah khatam karo
+  private initLeafletMap() {
+  // 1. Completely destroy old instance
   if (this.map) {
     try {
       this.map.off();
@@ -435,16 +431,14 @@ private initLeafletMap() {
     this.map = null;
   }
 
-  // 2. Container check (ID verify kar 'leafletMap' hi hai na HTML mein?)
+  // 2. Verify Container exists
   const mapContainer = document.getElementById('leafletMap');
-  
   if (!mapContainer) {
-    console.warn("Map element not found in DOM");
+    console.warn("Map element 'leafletMap' not found in DOM");
     return;
   }
 
-  // 3. Sabse important: Agar Leaflet ne container pe apna ID chhoda hai, toh usey saaf karo
-  // Ye line hi "Already Initialized" error ko rokegi
+  // 3. Clear Leaflet Internal ID to prevent "Already Initialized" error
   if ((mapContainer as any)._leaflet_id) {
     (mapContainer as any)._leaflet_id = null;
   }
@@ -456,17 +450,18 @@ private initLeafletMap() {
       zoom: 12,
       zoomControl: false,
       attributionControl: false,
-      fadeAnimation: false, // Performance ke liye true/false check karle
-      markerZoomAnimation: false
+      fadeAnimation: true,
+      markerZoomAnimation: true
     });
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
     }).addTo(this.map);
 
+    // Create the group that will hold our incident markers
     this.markerGroup = L.layerGroup().addTo(this.map);
 
-    // 5. Thoda delay dekar markers update karo
+    // 5. Delay slightly to ensure DOM is ready, then draw
     setTimeout(() => {
       if (this.map) {
         this.map.invalidateSize();
@@ -478,51 +473,49 @@ private initLeafletMap() {
     console.error("Map Init Fatal Error:", err);
   }
 }
-  
 
 
-
-
-
-// Replace your current logic to add markers to the Leaflet instance
 private updateMapMarkers() {
-  // 1. Clear all existing markers from the group
+  if (!this.map || !this.markerGroup) return;
+
   this.markerGroup.clearLayers();
 
-  // 2. Loop through your actual data
-  this.activePins.forEach(pin => {
+  // FIX: Loop through activePinsDisplay instead of activePins
+  this.activePinsDisplay.forEach(pin => {
     
-    // --- THE FIX: Check if the category for this pin is toggled ON ---
-    // This assumes 'pin.category' matches keys in your layerStates (e.g., 'felling', 'wildlife', etc.)
-    if (this.layerStates && this.layerStates[pin.category] === false) {
-      return; // Skip drawing this pin if its layer is toggled OFF
+    if (this.layerStates && this.layerStates[pin.layerId] === false) {
+      return; 
     }
 
-    // 3. Define the coordinates
-    const lat = pin.lat ? pin.lat : 19.9298 + (Math.random() - 0.5) * 0.01;
-    const lng = pin.lng ? pin.lng : 79.1325 + (Math.random() - 0.5) * 0.01;
+    if (!pin.lat || !pin.lng || isNaN(pin.lat) || isNaN(pin.lng)) {
+      return; 
+    }
 
-    // 4. Create the same-to-same custom icon with the label
     const customIcon = L.divIcon({
       className: 'custom-pin-container',
       html: `
         <div class="mpin-wrapper">
           <div class="mpin-ring" style="background: ${pin.color}33; border: 1px solid ${pin.color}66;"></div>
           <div class="mpin-bubble" style="background: ${pin.color}">
-            ${pin.emoji || '🌲'}
+            ${pin.emoji || '📍'}
           </div>
-          <div class="mpin-label">${pin.label.split(' ')[0]}</div> 
+          <div class="mpin-label">${pin.label ? pin.label.split(' ')[0] : 'Alert'}</div> 
         </div>`,
       iconSize: [50, 60],
       iconAnchor: [25, 25] 
     });
 
-    // 5. Add only the "filtered-in" markers to the group
-    L.marker([lat, lng], { icon: customIcon })
+    L.marker([pin.lat, pin.lng], { icon: customIcon })
       .addTo(this.markerGroup)
-      .bindPopup(`<b>${pin.label}</b>`);
+      .bindPopup(`
+        <div style="font-family: 'Poppins', sans-serif; padding: 5px;">
+          <strong style="color: ${pin.color}">${pin.label}</strong><br>
+          <small>${new Date(pin.createdAt || Date.now()).toLocaleString()}</small>
+        </div>
+      `);
   });
-}
+} 
+
 loadData() {
   if (this.isFetching) return;
 
@@ -536,7 +529,6 @@ loadData() {
 
   this.isFetching = true;
 
-  // Saari API calls ko ek bundle mein bandh diya hai
   forkJoin({
     stats: this.dataService.getDashboardStats(myCompanyId, dates.from, dates.to),
     sightings: this.dataService.getSightingCount(myCompanyId, dates.from || '', dates.to || ''),
@@ -545,34 +537,74 @@ loadData() {
     onLeave: this.adminService.getOnLeaveCount(myCompanyId),
     inactive: this.adminService.getInactiveCount(myCompanyId, localISOTime),
     users: this.dataService.getUsersByCompany(myCompanyId),
-    alerts: this.dataService.getLatestAlerts(myCompanyId)
+    alerts: this.dataService.getLatestAlerts(myCompanyId),
+    mapIncidents: this.dataService.getIncidentsForMap(myCompanyId) 
   }).subscribe({
     next: (res: any) => {
-      // 1. General Stats Assign
-      const stats = res.stats;
+      // 1. General Stats Assign (Matching NestJS Service Keys)
+      const stats = res.stats || {};
       this.incidentsCount = stats.totalEvents || 0;
       this.criminalActivityCount = stats.criminalEvents || 0;
-      this.fireAlertsCount = stats.fireEvents || 0;
+      
+      // Safety: Use fireEvents from stats, or fallback to the specific fireCount call
+      this.fireAlertsCount = stats.fireEvents || (res.fireCount?.count ?? res.fireCount ?? 0);
       this.attendancePercent = stats.resolvedPercentage || 0;
 
-      // 2. Sightings
+      // 2. Sightings count handling
       this.sightingsCount = typeof res.sightings === 'object' ? (res.sightings.count ?? 0) : (res.sightings ?? 0);
 
-      // 3. Personnel Status
-      this.fireAlertsCount = res.fireCount.count ?? res.fireCount ?? 0;
-      this.onDutyCount = res.onDuty.count ?? res.onDuty ?? 0;
-      this.onLeaveCount = res.onLeave.count ?? res.onLeave ?? 0;
-      this.inactiveCount = res.inactive.count ?? res.inactive ?? 0;
+      // 3. Personnel Status (Handling both {count: X} and raw number responses)
+      // Added optional chaining and proper fallback to prevent undefined errors
+      this.onDutyCount = res.onDuty?.count ?? res.onDuty ?? 0;
+      this.onLeaveCount = res.onLeave?.count ?? res.onLeave ?? 0;
+      this.inactiveCount = res.inactive?.count ?? res.inactive ?? 0;
 
-      // 4. Rangers List
-      const allUsers = res.users.data || res.users;
+      // 4. Rangers List (Role ID 4 = Ranger)
+      const allUsers = res.users?.data || res.users || [];
       if (Array.isArray(allUsers)) {
         this.rangers = allUsers.filter((u: any) => Number(u.role_id || u.roleId) === 4);
         this.filteredRangers = [...this.rangers];
         this.allRangers = this.rangers.length;
       }
+      
+      // 5. MAP LOGIC (Normalized Category Matching for Layers)
+      if (res.mapIncidents && Array.isArray(res.mapIncidents)) {
+         console.log('1. Raw Data from DB:', res.mapIncidents);
+        this.allIncidents = res.mapIncidents.map((inc: any) => {
+          // Normalize strings for comparison
+         // const dbCriteria = (inc.incidentCriteria || '').toUpperCase();
+          //const dbSubCat = (inc.subCategory || '').toLowerCase().trim().replace(/\s+/g, '_');
+         const dbCriteria = (inc.incidentCriteria || '').toUpperCase();
+const dbSubCat = (inc.subCategory || '').toLowerCase().trim().replace(/\s+/g, '_')
 
-// 5. Alerts Logic (Filtering + Mapping + Counting)
+          let finalLayerId = dbSubCat;
+
+          // Standardize IDs so they match your LAYERS_DATA keys
+          if (dbCriteria.includes('POACH') || dbSubCat.includes('poach')) {
+  finalLayerId = 'animal_poaching'; 
+} 
+else if (dbCriteria.includes('FIRE')) {
+  finalLayerId = 'fire_warning';
+} 
+else if (dbCriteria.includes('FELL') || dbSubCat.includes('felling')) {
+  finalLayerId = 'illegal_felling';
+}
+
+
+
+          return {
+            ...inc,
+            layerId: finalLayerId ,
+            displayLabel: dbCriteria.includes('FIRE') ? 'Fire Alert' : inc.subCategory
+          };
+        });
+        
+        // Refresh pins on the map
+        this.updateVisiblePins(); 
+        console.log('2. Processed Pins for Map:', this.activePinsDisplay);
+      }
+
+      // 6. Alerts Logic (Filtering + Mapping + Counting)
       if (res.alerts && Array.isArray(res.alerts)) {
         const savedPrefs = localStorage.getItem('admin_notification_settings');
         const prefs = savedPrefs ? JSON.parse(savedPrefs) : null;
@@ -581,18 +613,20 @@ loadData() {
           .filter((alert: any) => {
             if (!prefs) return true;
             const dbCat = (alert.category || 'SYSTEM').toUpperCase();
+            
             const isEnabled = (label: string) => {
               const p = prefs.find((x: any) => x.label.toLowerCase() === label.toLowerCase());
               return p ? p.enabled : true;
             };
 
+            // Toggle logic based on admin notification preferences
             if (dbCat.includes('FIRE')) return isEnabled('Fire Alerts');
             if (dbCat.includes('FELL')) return isEnabled('Illegal Felling');
             if (dbCat.includes('POACH')) return isEnabled('Animal Poaching');
             if (dbCat.includes('CRIMINAL')) return isEnabled('Criminal Activity');
             return true;
           })
-          .slice(0, 15) // Performance fix for Dashboard
+          .slice(0, 15) // Limit dashboard display for performance
           .map((alert: any) => {
             const rawType = (alert.type || 'INFO').toUpperCase();
             const theme = this.getAlertTheme(rawType);
@@ -624,7 +658,7 @@ loadData() {
             };
           });
 
-        // Naya Counting Logic (Variables mein save kar liya taaki HTML fast chale)
+        // Recalculate badge counts based on filtered alerts
         this.critCount = this.alertsData.filter(a => a.severity === 'critical').length;
         this.warnCount = this.alertsData.filter(a => a.severity === 'warning').length;
         this.infoCount = this.alertsData.filter(a => a.severity === 'info').length;
@@ -635,13 +669,10 @@ loadData() {
     error: (err) => {
       console.error('Master Data Fetch Error:', err);
       this.isFetching = false;
-      this.cdr.markForCheck();
       this.cdr.detectChanges();
     },
     complete: () => {
       this.isFetching = false;
-      // Final screen update
-      this.cdr.markForCheck();
       this.cdr.detectChanges();
     }
   });
@@ -652,30 +683,26 @@ trackByAlert(index: number, alert: any) {
   return alert.id || index; 
 }
 
-// Add this inside your AdminPage class
 get dynamicFootStats() {
   const activeStats: any[] = [];
-  
-  // 1. Loop through your categories (Patrols, Alerts, etc.)
-  Object.keys(this.LAYERS_DATA).forEach(catKey => {
-    const category = this.LAYERS_DATA[catKey];
-    
-    // 2. Check each item inside that category
+  if (!this.LAYERS_DATA || !this.layerStates || !this.activePinsDisplay) return activeStats;
+
+  Object.values(this.LAYERS_DATA).forEach((category: any) => {
     category.items.forEach((item: any) => {
-      // 3. Only if the user has this layer toggled ON
+      // Only show if the toggle is ON
       if (this.layerStates[item.id]) {
-        // 4. Count how many real pins belong to this specific item
-        const count = this.activePins.filter(p => p.category === item.id).length;
+        // We filter the processed pins by the layerId we assigned
+        const count = this.activePinsDisplay.filter(p => p.layerId === item.id).length;
         
         activeStats.push({
           label: item.label,
           count: count,
-          color: item.color
+          color: item.color,
+          emoji: item.emoji
         });
       }
     });
   });
-
   return activeStats;
 }
 
@@ -797,35 +824,175 @@ ngOnDestroy() {
 }
   
 
-  updateVisiblePins() {
-    const pins: any[] = [];
 
-    // Loop through categories
-    Object.values(this.LAYERS_DATA).forEach((cat: any) => {
-      // Loop through items in category
-      cat.items.forEach((layer: any) => {
-        // Only add pins if this specific layer ID is toggled ON
-        if (this.layerStates[layer.id]) {
-          const positions = this.PIN_POS[layer.id] || [];
-          positions.forEach((pos: any, index: number) => {
-            // Added : any here
-            pins.push({
-              label: layer.label.split(' ')[0],
-              l: pos.l,
-              t: pos.t,
-              color: layer.color,
-              emoji: layer.emoji,
-              delay: index * 0.35,
-            });
-          });
-        }
+// updateVisiblePins() {
+//   const newPins: any[] = [];
+  
+//   if (!this.allIncidents) return;
+
+//   this.allIncidents.forEach(incident => {
+//     // 1. Get the Raw ID
+//     let layerId = incident.layerId || '';
+
+//     // 2. EMERGENCY NORMALIZATION: 
+//     // If the layerId doesn't exist, we try to map common database strings to your style IDs.
+//     // This specifically fixes the Poaching and Fire mismatch issues.
+//     const criteria = (incident.incidentCriteria || '').toUpperCase();
+//     const subCat = (incident.subCategory || '').toLowerCase();
+
+//     if (criteria.includes('POACH') || subCat.includes('poach')) {
+//       layerId = 'animal_poaching';
+//     } else if (criteria.includes('FIRE') || subCat.includes('fire')) {
+//       layerId = 'fire_warning';
+//     } else if (criteria.includes('FELL') || subCat.includes('felling')) {
+//       layerId = 'illegal_felling';
+//     }
+
+//     // 3. Check if this layer is toggled ON in the UI
+//     if (this.layerStates && this.layerStates[layerId] === true) {
+//       let style: any = null;
+      
+//       // 4. Find the correct Icon/Color/Label from LAYERS_DATA
+//       Object.values(this.LAYERS_DATA).forEach((cat: any) => {
+//         const found = cat.items.find((i: any) => i.id === layerId);
+//         if (found) style = found;
+//       });
+
+//       // 5. SAFETY FALLBACK: Use a generic style if no match is found so the pin doesn't vanish
+//       if (!style) {
+//         style = { 
+//           emoji: '⚠️', 
+//           color: '#6366f1', 
+//           label: incident.subCategory || incident.incidentCriteria || 'Alert' 
+//         };
+//       }
+
+//       // 6. Push to the final display array with parsed coordinates
+//       const lat = parseFloat(incident.latitude);
+//       const lng = parseFloat(incident.longitude);
+
+//       // Only push if coordinates are valid numbers
+//       if (!isNaN(lat) && !isNaN(lng)) {
+//         newPins.push({
+//           ...incident,
+//           lat: lat,
+//           lng: lng,
+//           label: style.label,
+//           emoji: style.emoji,
+//           color: style.color,
+//           layerId: layerId // Pass the corrected ID for the footer count
+//         });
+//       } else {
+//         console.warn('Incident skipped due to invalid coordinates:', incident);
+//       }
+//     }
+//   });
+
+//   // 7. Update the UI and Map
+//   this.activePinsDisplay = newPins;
+//   console.log('Processed Pins for Map:', this.activePinsDisplay.length);
+  
+//   this.updateMapMarkers();
+//   this.cdr.detectChanges();
+// }
+updateVisiblePins() {
+  const newPins: any[] = [];
+  
+  if (!this.allIncidents) return;
+
+  // Get today's date string in YYYY-MM-DD format for comparison
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  this.allIncidents.forEach(incident => {
+    // --- NEW DATE FILTER LOGIC ---
+    // Extract the date part from the incident's timestamp (e.g., "2026-03-30")
+    const incidentDate = incident.createdAt || incident.created_at;
+    const incidentDateStr = incidentDate ? new Date(incidentDate).toISOString().split('T')[0] : '';
+
+    // If the incident date does not match today, skip it
+    if (incidentDateStr !== todayStr) {
+      return;
+    }
+
+    // 1. Get/Normalize the Layer ID
+    let layerId = incident.layerId || '';
+    const criteria = (incident.incidentCriteria || '').toUpperCase();
+    const subCat = (incident.subCategory || '').toLowerCase();
+
+    // Mapping logic to ensure Poaching/Fire/Felling match LAYERS_DATA
+    if (criteria.includes('POACH') || subCat.includes('poach')) {
+      layerId = 'animal_poaching';
+    } else if (criteria.includes('FIRE') || subCat.includes('fire')) {
+      layerId = 'fire_warning';
+    } else if (criteria.includes('FELL') || subCat.includes('felling')) {
+      layerId = 'illegal_felling';
+    }
+
+    // 2. Check if this layer is toggled ON in the UI
+    if (this.layerStates && this.layerStates[layerId] === true) {
+      let style: any = null;
+      
+      // Find Style from LAYERS_DATA
+      Object.values(this.LAYERS_DATA).forEach((cat: any) => {
+        const found = cat.items.find((i: any) => i.id === layerId);
+        if (found) style = found;
       });
-    });
 
-    this.activePinsDisplay = pins;
-    this.updateLayerCount();
-    this.cdr.detectChanges();
-  }
+      // Fallback style
+      if (!style) {
+        style = { 
+          emoji: '⚠️', 
+          color: '#6366f1', 
+          label: incident.subCategory || incident.incidentCriteria || 'Alert' 
+        };
+      }
+
+      // 3. Parse and Validate Coordinates
+      const lat = parseFloat(incident.latitude);
+      const lng = parseFloat(incident.longitude);
+
+      if (!isNaN(lat) && !isNaN(lng)) {
+        newPins.push({
+          ...incident,
+          lat: lat,
+          lng: lng,
+          label: style.label,
+          emoji: style.emoji,
+          color: style.color,
+          layerId: layerId 
+        });
+      }
+    }
+  });
+
+  // 4. Update the UI and Map
+  this.activePinsDisplay = newPins;
+  
+  // Debug to see how many of today's pins are being shown
+  console.log(`Showing ${this.activePinsDisplay.length} incidents marked today (${todayStr})`);
+  
+  this.updateMapMarkers();
+  this.cdr.detectChanges();
+}
+
+getMarkerEmoji(id: string) {
+  if (id.includes('fire')) return '🔥';
+  if (id.includes('felling')) return '🪓';
+  if (id.includes('poaching')) return '🐾';
+  if (id.includes('mining')) return '⛏️';
+  return '📍';
+}
+
+// Helper to keep colors consistent
+getLayerColor(layerId: string) {
+  const colors: any = {
+    'illegal_felling': '#0d9488',
+    'poaching': '#f59e0b',
+    'fire_alert': '#ef4444',
+    'illegal_mining': '#7c3aed'
+  };
+  return colors[layerId] || '#3b82f6';
+}
 
   // --- UI Methods ---
   updateTime() {
@@ -1073,13 +1240,7 @@ initAttChart() {
   }
 
   updatePinLocations() {
-    // We now iterate through the keys in PIN_POS instead of a flat array
-    Object.keys(this.PIN_POS).forEach((key) => {
-      this.PIN_POS[key].forEach((p: any) => {
-        p.l = parseFloat(p.l) + (Math.random() - 0.5) * 0.5 + '%';
-        p.t = parseFloat(p.t) + (Math.random() - 0.5) * 0.5 + '%';
-      });
-    });
+ 
     this.updateVisiblePins();
   }
 
@@ -1101,10 +1262,7 @@ initAttChart() {
   this.updateMapMarkers();
 }
 
-  // toggleLayer(id: string) {
-  //   this.layerStates[id] = !this.layerStates[id];
-  //   this.updateVisiblePins(); // Redraw the map
-  // }
+
 
   private updateLayerCount() {
     this.activeLayerCount = Object.values(this.layerStates).filter(

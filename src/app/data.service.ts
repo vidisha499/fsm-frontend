@@ -291,4 +291,10 @@ getEventsAnalytics(companyId: number, timeframe: string) {
 getAssetsAnalytics(companyId: number) {
   return this.http.get(`${this.baseApiUrl}/analytics/assets?companyId=${companyId}`);
 }
+
+// data.service.ts
+getIncidentsForMap(companyId: number) {
+  // Mapping to your NestJS: @Get('company/:cid')
+  return this.http.get<any[]>(`${this.baseApiUrl}/incidents/company/${companyId}`);
+}
 }

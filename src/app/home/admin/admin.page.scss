@@ -1,1254 +1,1325 @@
 
-    @import "~leaflet/dist/leaflet.css";
-    :host {
-      --p: #0d9488;
-      --ps: #0b7c71;
-      --bg: #f0f4f8;
-      --surf: #ffffff;
-      --surf2: #f1f5f9;
-      --bord: #e2e8f0;
-      --tx: #0f172a;
-      --tx3: #64748b;
-      --fn: 'Poppins', sans-serif;
-    }
-
-    /* Reset Ionic Defaults */
-    ion-content {
-      --background: var(--bg);
-      --padding-top: 0;
-    }
-
-    /* --- HEADER SECTION (Green Container) --- */
-    .header-section {
-      background: linear-gradient(135deg, var(--p) 0%, var(--ps) 100%);
-      padding-bottom: 16px;
-      box-shadow: 0 4px 10px rgba(13, 148, 136, 0.2);
-    }
-
-    .toolbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 15px 16px 8px;
-      background: transparent !important;
-    }
-
-    .tbar-left { display: flex; align-items: center; gap: 10px; }
-    .tbar-logo {
-      width: 36px; height: 36px; border-radius: 10px;
-      background: rgba(255, 255, 255, 0.18);
-      display: flex; align-items: center; justify-content: center;
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      img { width: 80%; height: 80%; object-fit: contain; }
-    }
-
-    .tbar-title { color: #fff; font-size: 16px; font-weight: 800; line-height: 1.2; }
-    .tbar-sub { color: rgba(255, 255, 255, 0.65); font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; }
-
-    .tbar-right { display: flex; gap: 8px; }
-    .tbar-btn, .filter-icon-btn {
-      width: 38px; height: 38px; border-radius: 10px;
-      background: rgba(255, 255, 255, 0.15);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      display: flex; align-items: center; justify-content: center;
-      color: #fff; position: relative;
-    }
-
-    .notif-dot, .filter-active-dot {
-      position: absolute; top: -2px; right: -2px;
-      width: 8px; height: 8px; background: #ef4444;
-      border-radius: 50%; border: 1.5px solid var(--p);
-    }
-
-    /* --- SEARCH ROW --- */
-    .search-row {
-      display: flex;
-      padding: 0 16px;
-      gap: 10px;
-      align-items: center;
-    }
-
-    .search-box {
-      flex: 1;
-      background: rgba(255, 255, 255, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      padding: 8px 12px;
-      color: white;
-      input {
-        background: transparent; border: none; margin-left: 8px;
-        color: white; outline: none; font-size: 13px; width: 100%;
-        &::placeholder { color: rgba(255, 255, 255, 0.7); }
+      @import "~leaflet/dist/leaflet.css";
+      :host {
+        --p: #0d9488;
+        --ps: #0b7c71;
+        --bg: #f0f4f8;
+        --surf: #ffffff;
+        --surf2: #f1f5f9;
+        --bord: #e2e8f0;
+        --tx: #0f172a;
+        --tx3: #64748b;
+        --fn: 'Poppins', sans-serif;
       }
-    }
 
-    .filter-icon-btn.active-filter {
-      background: white; color: var(--p);
-    }
-
-    /* admin.page.scss */
-    .dot-patrol { background-color: #16a34a; box-shadow: 0 0 5px #16a34a; }
-    .dot-duty { background-color: #0284c7; }
-    .dot-leave { background-color: #f59e0b; }
-    .dot-inactive { background-color: #f43f5e; }
-    .dot-off { background-color: #6b7280; }
-
-    /* --- FILTER BAR --- */
-    .filter-bar {
-      background: var(--surf);
-      border-bottom: 1px solid var(--bord);
-      padding: 10px 14px;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      overflow: hidden;
-      max-height: 250px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      opacity: 1;
-
-      &.collapsed {
-        max-height: 0;
-        padding-top: 0;
-        padding-bottom: 0;
-        opacity: 0;
-        pointer-events: none;
-        border-bottom: none;
+      /* Reset Ionic Defaults */
+      ion-content {
+        --background: var(--bg);
+        --padding-top: 0;
       }
-    }
 
-    .filter-group {
-      display: flex;
-      gap: 8px;
-      width: 100%;
-    }
+      /* --- HEADER SECTION (Green Container) --- */
+      .header-section {
+        background: linear-gradient(135deg, var(--p) 0%, var(--ps) 100%);
+        padding-bottom: 16px;
+        box-shadow: 0 4px 10px rgba(13, 148, 136, 0.2);
+      }
 
-    .fselect {
-      flex: 1;
-      background: var(--surf2);
-      border: 1px solid var(--bord);
-      border-radius: 8px;
-      padding: 8px 10px;
-      font-size: 11px;
-      color: var(--tx2);
-      outline: none;
-      /* Custom arrow for select */
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 10px center;
-    }
+      .toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 16px 8px;
+        background: transparent !important;
+      }
 
-    /* --- DATE CHIPS --- */
-    .date-chips {
-      display: flex;
-      gap: 6px;
-      width: 100%;
-      margin-top: 4px;
-    }
+      .tbar-left { display: flex; align-items: center; gap: 10px; }
+      .tbar-logo {
+        width: 36px; height: 36px; border-radius: 10px;
+        background: rgba(255, 255, 255, 0.18);
+        display: flex; align-items: center; justify-content: center;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        img { width: 80%; height: 80%; object-fit: contain; }
+      }
 
-    .dchip {
-      flex: 1;
-      padding: 8px 4px;
-      border-radius: 8px;
-      border: 1.5px solid var(--bord);
-      background: var(--surf2);
-      font-size: 10px;
-      font-weight: 700;
+      .tbar-title { color: #fff; font-size: 16px; font-weight: 800; line-height: 1.2; }
+      .tbar-sub { color: rgba(255, 255, 255, 0.65); font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; }
+
+      .tbar-right { display: flex; gap: 8px; }
+      .tbar-btn, .filter-icon-btn {
+        width: 38px; height: 38px; border-radius: 10px;
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; position: relative;
+      }
+
+      .notif-dot, .filter-active-dot {
+        position: absolute; top: -2px; right: -2px;
+        width: 8px; height: 8px; background: #ef4444;
+        border-radius: 50%; border: 1.5px solid var(--p);
+      }
+
+      /* --- SEARCH ROW --- */
+      .search-row {
+        display: flex;
+        padding: 0 16px;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .search-box {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        padding: 8px 12px;
+        color: white;
+        input {
+          background: transparent; border: none; margin-left: 8px;
+          color: white; outline: none; font-size: 13px; width: 100%;
+          &::placeholder { color: rgba(255, 255, 255, 0.7); }
+        }
+      }
+
+      .filter-icon-btn.active-filter {
+        background: white; color: var(--p);
+      }
+
+      /* admin.page.scss */
+      .dot-patrol { background-color: #16a34a; box-shadow: 0 0 5px #16a34a; }
+      .dot-duty { background-color: #0284c7; }
+      .dot-leave { background-color: #f59e0b; }
+      .dot-inactive { background-color: #f43f5e; }
+      .dot-off { background-color: #6b7280; }
+
+      /* --- FILTER BAR --- */
+      .filter-bar {
+        background: var(--surf);
+        border-bottom: 1px solid var(--bord);
+        padding: 10px 14px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        overflow: hidden;
+        max-height: 250px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        opacity: 1;
+
+        &.collapsed {
+          max-height: 0;
+          padding-top: 0;
+          padding-bottom: 0;
+          opacity: 0;
+          pointer-events: none;
+          border-bottom: none;
+        }
+      }
+
+      .filter-group {
+        display: flex;
+        gap: 8px;
+        width: 100%;
+      }
+
+      .fselect {
+        flex: 1;
+        background: var(--surf2);
+        border: 1px solid var(--bord);
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 11px;
+        color: var(--tx2);
+        outline: none;
+        /* Custom arrow for select */
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+      }
+
+      /* --- DATE CHIPS --- */
+      .date-chips {
+        display: flex;
+        gap: 6px;
+        width: 100%;
+        margin-top: 4px;
+      }
+
+      .dchip {
+        flex: 1;
+        padding: 8px 4px;
+        border-radius: 8px;
+        border: 1.5px solid var(--bord);
+        background: var(--surf2);
+        font-size: 10px;
+        font-weight: 700;
+        text-align: center;
+        color: var(--tx3);
+        transition: 0.2s;
+      }
+
+      .dchip.active {
+        background: var(--p);
+        color: #fff;
+        border-color: var(--p);
+        box-shadow: 0 3px 10px rgba(13, 148, 136, 0.2);
+      }
+
+      /* --- SEGMENT BUTTONS --- */
+      .segment {
+        background: #064e3b; // Deep green like image
+        display: flex;
+        padding: 6px;
+        gap: 4px;
+      }
+
+      .seg-btn {
+        flex: 1;
+        padding: 10px 5px;
+        border-radius: 8px;
+        border: none;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 11px;
+        font-weight: 600;
+        transition: 0.2s;
+      }
+
+      .seg-btn.active {
+        background: #fff;
+        color: var(--p);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      }
+
+      /* --- ANIMATIONS --- */
+      .spinning svg {
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      /* --- STATUS HEADER --- */
+      .status-header {
+        padding: 12px 16px 4px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .live-indicator {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--tx2);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .ldot-anim {
+        width: 6px;
+        height: 6px;
+        background: #22c55e;
+        border-radius: 50%;
+        box-shadow: 0 0 0 rgba(34, 197, 94, 0.4);
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+        70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+      }
+
+      /* --- SECTION HEADER --- */
+      .shdr {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 16px;
+        align-items: center;
+      }
+      .shdr-title { font-size: 14px; font-weight: 700; color: var(--tx); }
+      .shdr-link { font-size: 11px; color: var(--p); font-weight: 600; cursor: pointer; }
+
+      /* --- KPI SCROLL BOX --- */
+      /* Container for swiping */
+      .kpi-scroll {
+        display: flex;
+        gap: 12px;
+        padding: 0 16px 16px;
+        overflow-x: auto;
+        scrollbar-width: none; /* Firefox */
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .kpi-scroll::-webkit-scrollbar {
+        display: none; /* Chrome/Safari */
+      }
+
+      /* Individual Card Styling */
+      .kpi-card {
+        flex: 0 0 136px; /* Prevents cards from shrinking, keeping them swipable */
+        background: #ffffff;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 18px;
+        padding: 14px 13px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        cursor: pointer;
+        transition: all 0.22s ease-in-out;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .kpi-card:active {
+        transform: scale(0.96);
+      }
+
+      /* Decorative background circle */
+      .kpi-card::after {
+        content: "";
+        position: absolute;
+        top: -18px;
+        right: -18px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        opacity: 0.07;
+      }
+
+      /* Dynamic colors for the circles */
+      .kpi-card[data-c=blue]::after { background: #3b82f6; }
+      .kpi-card[data-c=teal]::after { background: #0d9488; }
+      .kpi-card[data-c=rose]::after { background: #f43f5e; }
+      .kpi-card[data-c=amber]::after { background: #f59e0b; }
+      .kpi-card[data-c=orange]::after { background: #f97316; }
+      .kpi-card[data-c=ind]::after { background: #6366f1; }
+
+      .kpi-ico {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 12px;
+      }
+
+      .kpi-val {
+        font-size: 22px;
+        font-weight: 800;
+        color: #0f172a;
+        letter-spacing: -0.04em;
+        line-height: 1;
+        margin-bottom: 4px;
+      }
+
+      .kpi-lbl {
+        font-size: 10px;
+        color: #64748b;
+        font-weight: 600;
+        line-height: 1.3;
+        min-height: 26px; /* Ensures text alignment across cards */
+      }
+
+      .kpi-trend {
+        font-size: 9px;
+        margin-top: 8px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+      }
+
+      .kpi-trend.up { color: #10b981; }
+      .kpi-trend.dn { color: #f43f5e; }
+
+      /* CHARTS */
+      .card { background: var(--surf); border: 1.5px solid var(--bord); border-radius: var(--r); box-shadow: var(--sh); margin: 0 16px 14px; overflow: hidden; }
+      .card-hdr { display: flex; justify-content: space-between; padding: 14px 14px 0; }
+      .card-title { font-size: 12px; font-weight: 800; color: var(--tx); }
+      .card-sub { font-size: 9px; color: var(--tx3); margin-top: 2px; }
+      .card-pill { background: #ecfdf5; color: var(--p); border: 1px solid #a7f3d0; border-radius: 20px; padding: 3px 10px; font-size: 9px; font-weight: 800; }
+      .card-body { padding: 12px 14px 14px; }
+
+      .chart-axis-labels { display: flex; justify-content: space-between; padding: 0 4px 2px; margin-top: 4px; }
+      .chart-axis-label { font-size: 8px; color: var(--tx3); font-weight: 600; text-transform: uppercase; }
+
+      /* MINI SCROLL */
+      .mini-scroll { display: flex; gap: 10px; padding: 0 16px 16px; overflow-x: auto; scrollbar-width: none; }
+      .mini-scroll::-webkit-scrollbar { display: none; }
+      .mini-card { flex-shrink: 0; width: 140px; background: var(--surf); border: 1.5px solid var(--bord); border-radius: var(--rs); padding: 12px; box-shadow: var(--sh); }
+      .mini-lbl { font-size: 9px; font-weight: 600; color: var(--tx2); margin-bottom: 5px; }
+      .mini-val { font-size: 18px; font-weight: 800; margin-bottom: 6px; }
+      .mini-ch { height: 55px; position: relative; }
+      .mini-meta { font-size: 8px; color: var(--tx3); margin-top: 3px; font-weight: 500; }
+
+      /* ANIMATIONS */
+      .spinning svg { animation: spin 0.8s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .ldot-anim { width: 6px; height: 6px; background: #22c55e; border-radius: 50%; animation: pulse 2s infinite; }
+      @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); } 70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); } 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); } }
+
+      /* --- BEAT COVERAGE CARD --- */
+      .prog-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .prog-item {
+        width: 100%;
+      }
+
+      .prog-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 5px;
+      }
+
+      .prog-lbl {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--tx2);
+      }
+
+      .prog-val {
+        font-size: 11px;
+        font-weight: 800;
+        color: var(--tx);
+      }
+
+      .prog-bg {
+        height: 6px;
+        background: var(--bord); /* Using your existing border variable */
+        border-radius: 3px;
+        overflow: hidden;
+      }
+
+      .prog-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); /* Smooth sliding animation */
+      }
+
+      .ion-tab-bar {
+
+        /* ... existing styles ... */
+        backdrop-filter: blur(10px); /* Optional: makes it look premium */
+        padding-bottom: calc(8px + var(--ion-safe-area-bottom, 0px)); 
+
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 430px;
+        background: var(--surf);
+        border-top: 1px solid var(--bord);
+        display: flex;
+        padding: 8px 0 22px; /* Increased bottom padding for modern mobile home indicators */
+        z-index: 1000;
+        box-shadow: 0 -2px 14px rgba(0, 0, 0, .07);
+      }
+
+      .tab-btn {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        cursor: pointer;
+        padding: 4px 0;
+        border: none;
+        background: transparent;
+        outline: none;
+      }
+
+      .tab-ico {
+        color: var(--tx3);
+        transition: color .2s, transform .2s;
+      }
+
+      .tab-lbl {
+        font-size: 9px;
+        font-weight: 700;
+        color: var(--tx3);
+        transition: color .2s;
+        letter-spacing: .02em;
+        font-family: inherit;
+      }
+
+      .tab-btn.active {
+        .tab-ico {
+          color: var(--p);
+          transform: translateY(-1px);
+        }
+        .tab-lbl {
+          color: var(--p);
+        }
+      }
+
+      /* MAP VIEW SPECIFIC */
+      .map-status-bar {
+        padding: 10px 14px 8px;
+        font-size: 10px;
+        color: var(--tx2);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+    .map-wrap {
+    position: relative;
+    height: 400px; /* Ensure this has a specific height! */
+    width: 100%;
+    overflow: hidden;
+  }
+
+  #leafletMap {
+    height: 100%;
+    width: 100%;
+    display: block;
+    z-index: 1; /* Keep map at the bottom layer */
+  }
+
+  /* Ensure your custom pins don't block map interaction */
+  .map-pins {
+    pointer-events: none; 
+    z-index: 10;
+  }
+
+      .map-canvas {
+    position: relative;
+    height: 400px; // Ensure this matches your design height
+    background: #f0f4f8;
+    overflow: hidden;
+  }
+
+  /* Ensure the custom bubble style still works inside Leaflet */
+  .custom-leaflet-marker {
+    background: transparent;
+    border: none;
+  }
+
+
+  @keyframes pulse {
+    0% { transform: scale(0.8); opacity: 0.8; }
+    100% { transform: scale(1.5); opacity: 0; }
+  }
+      // .map-canvas {
+      //   width: 100%;
+      //   height: 380px; // Increased height for better visibility
+      //   background: linear-gradient(145deg, #e8f5f0, #d4ede5 50%, #c2e3d8);
+      //   position: relative;
+      //   overflow: hidden;
+
+      //   &::before {
+      //     content: ""; position: absolute; inset: 0;
+      //     background-image: linear-gradient(rgba(13,148,136,.07) 1px,transparent 1px),
+      //                       linear-gradient(90deg,rgba(13,148,136,.07) 1px,transparent 1px);
+      //     background-size: 28px 28px;
+      //   }
+      // }
+
+      .map-pins { position: absolute; inset: 0; z-index: 5; }
+
+      .mpin {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        transform: translate(-50%, -100%); // Anchor to bottom point of pin
+        z-index: 10;
+        transition: all 0.5s ease;
+      }
+
+      .mpin-bub {
+        width: 28px; height: 28px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        border: 2.5px solid #fff;
+        box-shadow: 0 2px 8px rgba(0,0,0,.22);
+      }
+
+      .mpin-ring {
+        position: absolute; width: 44px; height: 44px; border-radius: 50%;
+        border: 1.5px solid; opacity: .3;
+        animation: ripple 2.2s infinite;
+        top: -8px; 
+      }
+
+      @keyframes ripple { 0%{transform:scale(.6);opacity:.5} 100%{transform:scale(1.5);opacity:0} }
+
+      .mpin-lbl {
+        font-size: 8px; font-weight: 900; margin-top: 3px;
+        background: rgba(255,255,255,.93); padding: 2px 5px;
+        border-radius: 4px; color: var(--tx); border: 1px solid rgba(0,0,0,.06);
+      }
+
+      .comp-poly { position: absolute; border: 2px solid; border-radius: 4px; opacity: .16; }
+
+      .map-compass {
+        position: absolute; top: 12px; right: 12px; z-index: 15;
+        width: 36px; height: 36px; background: #fff; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 2px 6px rgba(0,0,0,.12);
+      }
+
+      .comps-btn {
+        position: absolute; top: 12px; left: 12px; z-index: 15;
+        background: #fff; border: none; padding: 6px 10px;
+        border-radius: 8px; font-size: 10px; font-weight: 700;
+        display: flex; align-items: center; gap: 5px; color: var(--tx);
+        box-shadow: 0 2px 6px rgba(0,0,0,.12);
+      }
+
+      // .map-foot {
+      //   position: absolute; bottom: 0; left: 0; right: 0; z-index: 15;
+      //   background: rgba(255,255,255,0.9); backdrop-filter: blur(4px);
+      //   padding: 10px 14px; display: flex; justify-content: space-between;
+      // }
+
+      .map-foot {
+    /* 1. This keeps it floating inside the map */
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100; /* Ensure it stays above the map markers */
+    
+    /* 2. The Glassmorphism effect from your original SS */
+    background: rgba(255, 255, 255, 0.85); 
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    
+    /* 3. Layout and Spacing */
+    display: flex;
+    justify-content: space-around; /* Distributes 18, 3, 7 evenly */
+    align-items: center;
+    padding: 10px 14px;
+    border-top: 1px solid rgba(0,0,0,0.05);
+    
+    /* 4. Individual Stat styling */
+    div {
       text-align: center;
-      color: var(--tx3);
-      transition: 0.2s;
+      flex: 1; /* Makes each section take equal width */
+      
+      .map-sn {
+        font-size: 15px;
+        font-weight: 800;
+        line-height: 1;
+      }
+      
+      .map-sl {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--tx3);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 2px;
+      }
     }
+  }
+      .map-container {
+        display: block !important; /* Ensure it's not hidden */
+        min-height: 500px;         /* Give it a base height */
+        width: 100%;
+        position: relative;
+        animation: fadeIn 0.3s ease-in;
+        padding-left: 1%;
+        padding-right: 9%; // Smooth transition
+      }
 
-    .dchip.active {
-      background: var(--p);
-      color: #fff;
-      border-color: var(--p);
-      box-shadow: 0 3px 10px rgba(13, 148, 136, 0.2);
-    }
+  /* admin.page.scss */
 
-    /* --- SEGMENT BUTTONS --- */
-    .segment {
-      background: #064e3b; // Deep green like image
-      display: flex;
-      padding: 6px;
-      gap: 4px;
-    }
+  ::ng-deep .custom-pin-container {
+    background: transparent !important;
+    border: none !important;
+  }
 
-    .seg-btn {
-      flex: 1;
-      padding: 10px 5px;
-      border-radius: 8px;
-      border: none;
-      background: transparent;
-      color: rgba(255, 255, 255, 0.5);
-      font-size: 11px;
-      font-weight: 600;
-      transition: 0.2s;
-    }
+  ::ng-deep .mpin-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 60px;
 
-    .seg-btn.active {
-      background: #fff;
-      color: var(--p);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    }
-
-    /* --- ANIMATIONS --- */
-    .spinning svg {
-      animation: spin 0.8s linear infinite;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* --- STATUS HEADER --- */
-    .status-header {
-      padding: 12px 16px 4px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .live-indicator {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--tx2);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .ldot-anim {
-      width: 6px;
-      height: 6px;
-      background: #22c55e;
-      border-radius: 50%;
-      box-shadow: 0 0 0 rgba(34, 197, 94, 0.4);
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
-      70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
-    }
-
-    /* --- SECTION HEADER --- */
-    .shdr {
-      display: flex;
-      justify-content: space-between;
-      padding: 10px 16px;
-      align-items: center;
-    }
-    .shdr-title { font-size: 14px; font-weight: 700; color: var(--tx); }
-    .shdr-link { font-size: 11px; color: var(--p); font-weight: 600; cursor: pointer; }
-
-    /* --- KPI SCROLL BOX --- */
-    /* Container for swiping */
-    .kpi-scroll {
-      display: flex;
-      gap: 12px;
-      padding: 0 16px 16px;
-      overflow-x: auto;
-      scrollbar-width: none; /* Firefox */
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .kpi-scroll::-webkit-scrollbar {
-      display: none; /* Chrome/Safari */
-    }
-
-    /* Individual Card Styling */
-    .kpi-card {
-      flex: 0 0 136px; /* Prevents cards from shrinking, keeping them swipable */
-      background: #ffffff;
-      border: 1.5px solid #e2e8f0;
-      border-radius: 18px;
-      padding: 14px 13px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-      cursor: pointer;
-      transition: all 0.22s ease-in-out;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .kpi-card:active {
-      transform: scale(0.96);
-    }
-
-    /* Decorative background circle */
-    .kpi-card::after {
-      content: "";
+    /* 1. Larger Pulsing Ring with wider radius */
+    .mpin-ring {
       position: absolute;
-      top: -18px;
-      right: -18px;
-      width: 56px;
-      height: 56px;
+      top: 10px; /* Aligns with the bubble */
+      width: 30px; 
+      height: 30px;
       border-radius: 50%;
-      opacity: 0.07;
+      z-index: 1;
+      /* Scale(2.5) creates that large pulse seen in your video */
+      animation: marker-pulse-large 2.5s infinite ease-out;
     }
 
-    /* Dynamic colors for the circles */
-    .kpi-card[data-c=blue]::after { background: #3b82f6; }
-    .kpi-card[data-c=teal]::after { background: #0d9488; }
-    .kpi-card[data-c=rose]::after { background: #f43f5e; }
-    .kpi-card[data-c=amber]::after { background: #f59e0b; }
-    .kpi-card[data-c=orange]::after { background: #f97316; }
-    .kpi-card[data-c=ind]::after { background: #6366f1; }
-
-    .kpi-ico {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
+    /* 2. Larger Main Bubble */
+    .mpin-bubble {
+      position: relative;
+      width: 30px;  /* Increased from 24px */
+      height: 30px; /* Increased from 24px */
+      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 12px;
+      font-size: 16px; /* Larger emoji */
+      color: white;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+      border: 2px solid white;
+      z-index: 2;
     }
 
-    .kpi-val {
-      font-size: 22px;
-      font-weight: 800;
-      color: #0f172a;
-      letter-spacing: -0.04em;
-      line-height: 1;
-      margin-bottom: 4px;
-    }
-
-    .kpi-lbl {
-      font-size: 10px;
-      color: #64748b;
-      font-weight: 600;
-      line-height: 1.3;
-      min-height: 26px; /* Ensures text alignment across cards */
-    }
-
-    .kpi-trend {
-      font-size: 9px;
-      margin-top: 8px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 3px;
-    }
-
-    .kpi-trend.up { color: #10b981; }
-    .kpi-trend.dn { color: #f43f5e; }
-
-    /* CHARTS */
-    .card { background: var(--surf); border: 1.5px solid var(--bord); border-radius: var(--r); box-shadow: var(--sh); margin: 0 16px 14px; overflow: hidden; }
-    .card-hdr { display: flex; justify-content: space-between; padding: 14px 14px 0; }
-    .card-title { font-size: 12px; font-weight: 800; color: var(--tx); }
-    .card-sub { font-size: 9px; color: var(--tx3); margin-top: 2px; }
-    .card-pill { background: #ecfdf5; color: var(--p); border: 1px solid #a7f3d0; border-radius: 20px; padding: 3px 10px; font-size: 9px; font-weight: 800; }
-    .card-body { padding: 12px 14px 14px; }
-
-    .chart-axis-labels { display: flex; justify-content: space-between; padding: 0 4px 2px; margin-top: 4px; }
-    .chart-axis-label { font-size: 8px; color: var(--tx3); font-weight: 600; text-transform: uppercase; }
-
-    /* MINI SCROLL */
-    .mini-scroll { display: flex; gap: 10px; padding: 0 16px 16px; overflow-x: auto; scrollbar-width: none; }
-    .mini-scroll::-webkit-scrollbar { display: none; }
-    .mini-card { flex-shrink: 0; width: 140px; background: var(--surf); border: 1.5px solid var(--bord); border-radius: var(--rs); padding: 12px; box-shadow: var(--sh); }
-    .mini-lbl { font-size: 9px; font-weight: 600; color: var(--tx2); margin-bottom: 5px; }
-    .mini-val { font-size: 18px; font-weight: 800; margin-bottom: 6px; }
-    .mini-ch { height: 55px; position: relative; }
-    .mini-meta { font-size: 8px; color: var(--tx3); margin-top: 3px; font-weight: 500; }
-
-    /* ANIMATIONS */
-    .spinning svg { animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .ldot-anim { width: 6px; height: 6px; background: #22c55e; border-radius: 50%; animation: pulse 2s infinite; }
-    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); } 70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); } 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); } }
-
-    /* --- BEAT COVERAGE CARD --- */
-    .prog-list {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .prog-item {
-      width: 100%;
-    }
-
-    .prog-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 5px;
-    }
-
-    .prog-lbl {
-      font-size: 10px;
-      font-weight: 600;
-      color: var(--tx2);
-    }
-
-    .prog-val {
-      font-size: 11px;
-      font-weight: 800;
-      color: var(--tx);
-    }
-
-    .prog-bg {
-      height: 6px;
-      background: var(--bord); /* Using your existing border variable */
-      border-radius: 3px;
-      overflow: hidden;
-    }
-
-    .prog-fill {
-      height: 100%;
-      border-radius: 3px;
-      transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); /* Smooth sliding animation */
-    }
-
-    .ion-tab-bar {
-
-      /* ... existing styles ... */
-      backdrop-filter: blur(10px); /* Optional: makes it look premium */
-      padding-bottom: calc(8px + var(--ion-safe-area-bottom, 0px)); 
-
-      position: fixed;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 100%;
-      max-width: 430px;
-      background: var(--surf);
-      border-top: 1px solid var(--bord);
-      display: flex;
-      padding: 8px 0 22px; /* Increased bottom padding for modern mobile home indicators */
-      z-index: 1000;
-      box-shadow: 0 -2px 14px rgba(0, 0, 0, .07);
-    }
-
-    .tab-btn {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 3px;
-      cursor: pointer;
-      padding: 4px 0;
-      border: none;
-      background: transparent;
-      outline: none;
-    }
-
-    .tab-ico {
-      color: var(--tx3);
-      transition: color .2s, transform .2s;
-    }
-
-    .tab-lbl {
+    /* 3. The Label (Matches dummy data style) */
+    .mpin-label {
+      margin-top: 4px;
+      background: white;
+      padding: 1px 6px;
+      border-radius: 10px;
       font-size: 9px;
       font-weight: 700;
-      color: var(--tx3);
-      transition: color .2s;
-      letter-spacing: .02em;
-      font-family: inherit;
+      color: #333;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+      z-index: 3;
+      text-transform: capitalize;
+      pointer-events: none; /* Allows clicking the marker through the label */
     }
-
-    .tab-btn.active {
-      .tab-ico {
-        color: var(--p);
-        transform: translateY(-1px);
-      }
-      .tab-lbl {
-        color: var(--p);
-      }
-    }
-
-    /* MAP VIEW SPECIFIC */
-    .map-status-bar {
-      padding: 10px 14px 8px;
-      font-size: 10px;
-      color: var(--tx2);
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-   .map-wrap {
-  position: relative;
-  height: 400px; /* Ensure this has a specific height! */
-  width: 100%;
-  overflow: hidden;
-}
-
-#leafletMap {
-  height: 100%;
-  width: 100%;
-  display: block;
-  z-index: 1; /* Keep map at the bottom layer */
-}
-
-/* Ensure your custom pins don't block map interaction */
-.map-pins {
-  pointer-events: none; 
-  z-index: 10;
-}
-
-    .map-canvas {
-  position: relative;
-  height: 400px; // Ensure this matches your design height
-  background: #f0f4f8;
-  overflow: hidden;
-}
-
-/* Ensure the custom bubble style still works inside Leaflet */
-.custom-leaflet-marker {
-  background: transparent;
-  border: none;
-}
-
-
-@keyframes pulse {
-  0% { transform: scale(0.8); opacity: 0.8; }
-  100% { transform: scale(1.5); opacity: 0; }
-}
-    // .map-canvas {
-    //   width: 100%;
-    //   height: 380px; // Increased height for better visibility
-    //   background: linear-gradient(145deg, #e8f5f0, #d4ede5 50%, #c2e3d8);
-    //   position: relative;
-    //   overflow: hidden;
-
-    //   &::before {
-    //     content: ""; position: absolute; inset: 0;
-    //     background-image: linear-gradient(rgba(13,148,136,.07) 1px,transparent 1px),
-    //                       linear-gradient(90deg,rgba(13,148,136,.07) 1px,transparent 1px);
-    //     background-size: 28px 28px;
-    //   }
-    // }
-
-    .map-pins { position: absolute; inset: 0; z-index: 5; }
-
-    .mpin {
-      position: absolute;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      transform: translate(-50%, -100%); // Anchor to bottom point of pin
-      z-index: 10;
-      transition: all 0.5s ease;
-    }
-
-    .mpin-bub {
-      width: 28px; height: 28px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      border: 2.5px solid #fff;
-      box-shadow: 0 2px 8px rgba(0,0,0,.22);
-    }
-
-    .mpin-ring {
-      position: absolute; width: 44px; height: 44px; border-radius: 50%;
-      border: 1.5px solid; opacity: .3;
-      animation: ripple 2.2s infinite;
-      top: -8px; 
-    }
-
-    @keyframes ripple { 0%{transform:scale(.6);opacity:.5} 100%{transform:scale(1.5);opacity:0} }
-
-    .mpin-lbl {
-      font-size: 8px; font-weight: 900; margin-top: 3px;
-      background: rgba(255,255,255,.93); padding: 2px 5px;
-      border-radius: 4px; color: var(--tx); border: 1px solid rgba(0,0,0,.06);
-    }
-
-    .comp-poly { position: absolute; border: 2px solid; border-radius: 4px; opacity: .16; }
-
-    .map-compass {
-      position: absolute; top: 12px; right: 12px; z-index: 15;
-      width: 36px; height: 36px; background: #fff; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 2px 6px rgba(0,0,0,.12);
-    }
-
-    .comps-btn {
-      position: absolute; top: 12px; left: 12px; z-index: 15;
-      background: #fff; border: none; padding: 6px 10px;
-      border-radius: 8px; font-size: 10px; font-weight: 700;
-      display: flex; align-items: center; gap: 5px; color: var(--tx);
-      box-shadow: 0 2px 6px rgba(0,0,0,.12);
-    }
-
-    .map-foot {
-      position: absolute; bottom: 0; left: 0; right: 0; z-index: 15;
-      background: rgba(255,255,255,0.9); backdrop-filter: blur(4px);
-      padding: 10px 14px; display: flex; justify-content: space-between;
-    }
-    .map-container {
-      display: block !important; /* Ensure it's not hidden */
-      min-height: 500px;         /* Give it a base height */
-      width: 100%;
-      position: relative;
-      animation: fadeIn 0.3s ease-in;
-      padding-left: 1%;
-      padding-right: 9%; // Smooth transition
-    }
-
- /* admin.page.scss */
-
-::ng-deep .custom-pin-container {
-  background: transparent !important;
-  border: none !important;
-}
-
-::ng-deep .mpin-wrapper {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 50px;
-  height: 60px;
-
-  /* 1. Larger Pulsing Ring with wider radius */
-  .mpin-ring {
-    position: absolute;
-    top: 10px; /* Aligns with the bubble */
-    width: 30px; 
-    height: 30px;
-    border-radius: 50%;
-    z-index: 1;
-    /* Scale(2.5) creates that large pulse seen in your video */
-    animation: marker-pulse-large 2.5s infinite ease-out;
   }
 
-  /* 2. Larger Main Bubble */
+  /* 4. Large Pulse Animation */
+  @keyframes marker-pulse-large {
+    0% { 
+      transform: scale(1); 
+      opacity: 0.6; 
+    }
+    70% { 
+      opacity: 0.3; 
+    }
+    100% { 
+      transform: scale(2.8); /* This creates the wide radius */
+      opacity: 0; 
+    }
+  }
+
+      .main-content-wrapper {
+        position: relative;
+        width: 100%;
+        min-height: 80vh; /* Ensures there is space for the map to show up */
+      }
+
+      /* Ensure the map container is forced to show when not hidden */
+      .map-container {
+        display: block; 
+        width: 100%;
+      }
+
+      /* Force the hidden attribute to work with Ionic/Angular */
+      [hidden] {
+        display: none !important;
+      }
+
+      .map-wrap {
+        height: 400px !important; /* Force a height so the map isn't 0px tall */
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      .layers-btn {
+        bottom: 80px !important;
+        position: absolute; bottom: 60px; right: 12px; z-index: 20;
+        background: var(--p); color: #fff; border: none;
+        padding: 8px 12px; border-radius: 10px;
+        display: flex; align-items: center; gap: 8px;
+        box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+      }
+      /* Add this to your SCSS file */
+  .custom-pin-container {
+    background: transparent;
+    border: none;
+  }
+
   .mpin-bubble {
-    position: relative;
-    width: 30px;  /* Increased from 24px */
-    height: 30px; /* Increased from 24px */
-    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    border-radius: 50% 50% 50% 0; /* Teardrop shape */
+    transform: rotate(-45deg);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px; /* Larger emoji */
     color: white;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+    font-size: 16px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
     border: 2px solid white;
-    z-index: 2;
   }
 
-  /* 3. The Label (Matches dummy data style) */
-  .mpin-label {
-    margin-top: 4px;
-    background: white;
-    padding: 1px 6px;
-    border-radius: 10px;
-    font-size: 9px;
-    font-weight: 700;
-    color: #333;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
-    z-index: 3;
-    text-transform: capitalize;
-    pointer-events: none; /* Allows clicking the marker through the label */
+  /* Ensure the emoji doesn't rotate with the bubble */
+  .mpin-bubble {
+    padding-right: 2px;
+    padding-bottom: 2px;
+    &::after {
+      content: ''; /* Placeholder for the emoji if needed */
+    }
   }
-}
 
-/* 4. Large Pulse Animation */
-@keyframes marker-pulse-large {
-  0% { 
-    transform: scale(1); 
-    opacity: 0.6; 
+    :host {
+    --p: #0d9488;
+    --ps: #0b7c71;
+    --bg: #f0f4f8;
+    --surf: #ffffff;
+    --surf2: #f1f5f9;
+    --bord: #e2e8f0;
+    --tx: #0f172a;
+    --tx2: #475569;
+    --tx3: #64748b;
+    --fn: 'Poppins', sans-serif;
+    --r: 20px;
+    --rs: 14px;
+    --sh: 0 4px 12px rgba(0, 0, 0, 0.05);
+
+    /* Alert Colors */
+    --crit-bg: #fff1f2; --crit-tx: #ef4444;
+    --warn-bg: #fffbeb; --warn-tx: #d97706;
+    --info-bg: #eff6ff; --info-tx: #3b82f6;
+    --safe-bg: #f0fdfa; --safe-tx: #0d9488;
   }
-  70% { 
-    opacity: 0.3; 
+
+  /* --- GLOBAL & IONIC RESET --- */
+  ion-content { --background: var(--bg); --padding-top: 0; }
+  * { font-family: var(--fn); }
+
+  /* --- HEADER & TOOLBAR --- */
+  .header-section {
+    background: linear-gradient(135deg, var(--p) 0%, var(--ps) 100%);
+    padding-bottom: 16px;
+    box-shadow: 0 4px 10px rgba(13, 148, 136, 0.2);
   }
-  100% { 
-    transform: scale(2.8); /* This creates the wide radius */
-    opacity: 0; 
+  .toolbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 16px 8px; }
+  .tbar-left { display: flex; align-items: center; gap: 10px; }
+  .tbar-title { color: #fff; font-size: 16px; font-weight: 800; }
+  .tbar-sub { color: rgba(255, 255, 255, 0.65); font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; }
+  .tbar-btn {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex; align-items: center; justify-content: center; color: #fff;
   }
-}
 
-    .main-content-wrapper {
-      position: relative;
-      width: 100%;
-      min-height: 80vh; /* Ensures there is space for the map to show up */
-    }
-
-    /* Ensure the map container is forced to show when not hidden */
-    .map-container {
-      display: block; 
-      width: 100%;
-    }
-
-    /* Force the hidden attribute to work with Ionic/Angular */
-    [hidden] {
-      display: none !important;
-    }
-
-    .map-wrap {
-      height: 400px !important; /* Force a height so the map isn't 0px tall */
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .layers-btn {
-      position: absolute; bottom: 60px; right: 12px; z-index: 20;
-      background: var(--p); color: #fff; border: none;
-      padding: 8px 12px; border-radius: 10px;
-      display: flex; align-items: center; gap: 8px;
-      box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
-    }
-
-  :host {
-  --p: #0d9488;
-  --ps: #0b7c71;
-  --bg: #f0f4f8;
-  --surf: #ffffff;
-  --surf2: #f1f5f9;
-  --bord: #e2e8f0;
-  --tx: #0f172a;
-  --tx2: #475569;
-  --tx3: #64748b;
-  --fn: 'Poppins', sans-serif;
-  --r: 20px;
-  --rs: 14px;
-  --sh: 0 4px 12px rgba(0, 0, 0, 0.05);
-
-  /* Alert Colors */
-  --crit-bg: #fff1f2; --crit-tx: #ef4444;
-  --warn-bg: #fffbeb; --warn-tx: #d97706;
-  --info-bg: #eff6ff; --info-tx: #3b82f6;
-  --safe-bg: #f0fdfa; --safe-tx: #0d9488;
-}
-
-/* --- GLOBAL & IONIC RESET --- */
-ion-content { --background: var(--bg); --padding-top: 0; }
-* { font-family: var(--fn); }
-
-/* --- HEADER & TOOLBAR --- */
-.header-section {
-  background: linear-gradient(135deg, var(--p) 0%, var(--ps) 100%);
-  padding-bottom: 16px;
-  box-shadow: 0 4px 10px rgba(13, 148, 136, 0.2);
-}
-.toolbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 16px 8px; }
-.tbar-left { display: flex; align-items: center; gap: 10px; }
-.tbar-title { color: #fff; font-size: 16px; font-weight: 800; }
-.tbar-sub { color: rgba(255, 255, 255, 0.65); font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; }
-.tbar-btn {
-  width: 38px; height: 38px; border-radius: 10px;
-  background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.2);
-  display: flex; align-items: center; justify-content: center; color: #fff;
-}
-
-/* --- SEGMENT BUTTONS --- */
-.segment { background: #064e3b; display: flex; padding: 6px; gap: 4px; }
-.seg-btn {
-  flex: 1; padding: 10px 5px; border-radius: 8px; border: none;
-  background: transparent; color: rgba(255, 255, 255, 0.5);
-  font-size: 11px; font-weight: 600;
-}
-.seg-btn.active { background: #fff; color: var(--p); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); }
-
-/* --- MAP CONTAINER & CANVAS --- */
-.map-wrap {
-  position: relative; margin: 0 14px 14px; border-radius: var(--r);
-  overflow: hidden; border: 1.5px solid var(--bord); height: 400px;
-}
-.map-canvas {
-  width: 100%; height: 100%; position: relative;
-  background: linear-gradient(145deg, #e8f5f0, #c2e3d8);
-  &::before {
-    content: ""; position: absolute; inset: 0;
-    background-image: linear-gradient(rgba(13,148,136,.07) 1px,transparent 1px), linear-gradient(90deg,rgba(13,148,136,.07) 1px,transparent 1px);
-    background-size: 28px 28px;
+  /* --- SEGMENT BUTTONS --- */
+  .segment { background: #064e3b; display: flex; padding: 6px; gap: 4px; }
+  .seg-btn {
+    flex: 1; padding: 10px 5px; border-radius: 8px; border: none;
+    background: transparent; color: rgba(255, 255, 255, 0.5);
+    font-size: 11px; font-weight: 600;
   }
-}
+  .seg-btn.active { background: #fff; color: var(--p); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); }
 
-/* Floating Map Buttons */
-.layers-btn, .comps-btn {
-  position: absolute; z-index: 20; background: #fff; color: var(--tx);
-  border: none; padding: 8px 12px; border-radius: 10px;
-  display: flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 700;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-.layers-btn { bottom: 60px; right: 12px; background: var(--p); color: #fff; }
-.comps-btn { top: 12px; left: 12px; }
-
-/* --- PREMIUM LAYER PANEL (THE MAIN PART) --- */
-.layer-panel {
-  position: absolute; bottom: 0; left: 0; right: 0;
-  background: #fff; z-index: 2000; border-radius: 24px 24px 0 0;
-  box-shadow: 0 -10px 40px rgba(0,0,0,0.15);
-  transition: transform 0.4s cubic-bezier(0.36, 0.66, 0.04, 1);
-  transform: translateY(100%);
-  &.open { transform: translateY(0); }
-}
-
-.lp-handle { width: 40px; height: 4px; background: #e2e8f0; border-radius: 2px; margin: 12px auto; }
-
-.lp-hdr {
-  display: flex; justify-content: space-between; padding: 0 20px 15px;
-  .lp-title { font-size: 16px; font-weight: 800; color: var(--tx); }
-  .lp-sub { font-size: 11px; color: var(--tx3); }
-}
-
-.lp-body { max-height: 50vh; overflow-y: auto; padding-bottom: 30px; }
-
-.lp-cat-hdr {
-  font-size: 9px; font-weight: 800; color: var(--tx3); text-transform: uppercase;
-  letter-spacing: 0.1em; padding: 15px 20px 8px; display: flex; align-items: center; gap: 10px;
-  &::after { content: ""; flex: 1; height: 1px; background: var(--bord); }
-}
-
-.lp-item {
-  display: flex; align-items: center; gap: 12px; padding: 12px 20px;
-  .lp-item-ico {
-    width: 38px; height: 38px; border-radius: 12px; font-size: 18px;
-    display: flex; align-items: center; justify-content: center;
+  /* --- MAP CONTAINER & CANVAS --- */
+  .map-wrap {
+    position: relative; margin: 0 14px 14px; border-radius: var(--r);
+    overflow: hidden; border: 1.5px solid var(--bord); height: 400px;
   }
-  .lp-item-info { flex: 1; }
-  .lp-item-lbl { font-size: 13px; font-weight: 700; color: var(--tx); }
-  .lp-item-cnt { font-size: 10px; color: var(--tx3); }
-}
-
-/* Premium Sliding Toggle */
-.ltog {
-  width: 40px; height: 22px; border-radius: 11px; background: #e2e8f0;
-  position: relative; transition: .3s;
-  &::after {
-    content: ""; position: absolute; width: 16px; height: 16px;
-    background: #fff; border-radius: 50%; top: 3px; left: 3px; transition: .3s;
+  .map-canvas {
+    width: 100%; height: 100%; position: relative;
+    background: linear-gradient(145deg, #e8f5f0, #c2e3d8);
+    &::before {
+      content: ""; position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(13,148,136,.07) 1px,transparent 1px), linear-gradient(90deg,rgba(13,148,136,.07) 1px,transparent 1px);
+      background-size: 28px 28px;
+    }
   }
-  &.on { background: var(--p); &::after { left: 21px; } }
-}
 
-/* --- COMMON CHIPS --- */
-.qchip {
-  padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 700;
-  background: var(--surf2); color: var(--tx3); border: 1.5px solid var(--bord);
-  &.on { border-color: var(--p); background: #ecfdf5; color: var(--p); }
-}
+  /* Floating Map Buttons */
+  .layers-btn, .comps-btn {
+    position: absolute; z-index: 20; background: #fff; color: var(--tx);
+    border: none; padding: 8px 12px; border-radius: 10px;
+    display: flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 700;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  .layers-btn { bottom: 60px; right: 12px; background: var(--p); color: #fff; }
+  .comps-btn { top: 12px; left: 12px; }
 
-/* --- KPI CARDS --- */
-.kpi-scroll { display: flex; gap: 12px; padding: 0 16px 16px; overflow-x: auto; }
-.kpi-card {
-  flex: 0 0 130px; background: #fff; border-radius: 18px; padding: 15px;
-  border: 1.5px solid var(--bord); box-shadow: var(--sh);
-}
-.kpi-val { font-size: 22px; font-weight: 800; color: var(--tx); }
-.kpi-lbl { font-size: 10px; color: var(--tx3); font-weight: 600; }
+  /* --- PREMIUM LAYER PANEL (THE MAIN PART) --- */
+  .layer-panel {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: #fff; z-index: 2000; border-radius: 24px 24px 0 0;
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.15);
+    transition: transform 0.4s cubic-bezier(0.36, 0.66, 0.04, 1);
+    transform: translateY(100%);
+    &.open { transform: translateY(0); }
+  }
 
-/* --- LEGEND SECTION --- */
-.legend-card {
-  margin: 16px; background: #fff; border: 1.5px solid var(--bord);
-  border-radius: var(--rs); padding: 16px;
-  .legend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--tx2); }
-  .legend-dot { width: 6px; height: 6px; border-radius: 50%; }
-}
+  .lp-handle { width: 40px; height: 4px; background: #e2e8f0; border-radius: 2px; margin: 12px auto; }
 
-/* --- ANIMATIONS --- */
-.ldot-anim {
-  width: 6px; height: 6px; background: #22c55e; border-radius: 50%;
-  animation: pulse 2s infinite;
-}
-@keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
-  70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
-}
+  .lp-hdr {
+    display: flex; justify-content: space-between; padding: 0 20px 15px;
+    .lp-title { font-size: 16px; font-weight: 800; color: var(--tx); }
+    .lp-sub { font-size: 11px; color: var(--tx3); }
+  }
 
-/* --- CHART CARDS --- */
-.card { background: var(--surf); border: 1.5px solid var(--bord); border-radius: var(--r); margin: 0 16px 14px; padding: 15px; }
+  .lp-body { max-height: 50vh; overflow-y: auto; padding-bottom: 30px; }
 
-    .map-canvas {
-      position: relative; /* Essential for the floating buttons to work */
-      overflow: hidden;
+  .lp-cat-hdr {
+    font-size: 9px; font-weight: 800; color: var(--tx3); text-transform: uppercase;
+    letter-spacing: 0.1em; padding: 15px 20px 8px; display: flex; align-items: center; gap: 10px;
+    &::after { content: ""; flex: 1; height: 1px; background: var(--bord); }
+  }
+
+  .lp-item {
+    display: flex; align-items: center; gap: 12px; padding: 12px 20px;
+    .lp-item-ico {
+      width: 38px; height: 38px; border-radius: 12px; font-size: 18px;
+      display: flex; align-items: center; justify-content: center;
     }
+    .lp-item-info { flex: 1; }
+    .lp-item-lbl { font-size: 13px; font-weight: 700; color: var(--tx); }
+    .lp-item-cnt { font-size: 10px; color: var(--tx3); }
+  }
 
-    .map-floating-actions {
-      position: absolute;
-      bottom: 20px; 
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      pointer-events: none; /* Allows clicks to pass through the gap between buttons */
+  /* Premium Sliding Toggle */
+  .ltog {
+    width: 40px; height: 22px; border-radius: 11px; background: #e2e8f0;
+    position: relative; transition: .3s;
+    &::after {
+      content: ""; position: absolute; width: 16px; height: 16px;
+      background: #fff; border-radius: 50%; top: 3px; left: 3px; transition: .3s;
     }
+    &.on { background: var(--p); &::after { left: 21px; } }
+  }
 
-    .map-floating-actions button {
-      pointer-events: auto; /* Re-enables clicking on the buttons themselves */
-    }
+  /* --- COMMON CHIPS --- */
+  .qchip {
+    padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 700;
+    background: var(--surf2); color: var(--tx3); border: 1.5px solid var(--bord);
+    &.on { border-color: var(--p); background: #ecfdf5; color: var(--p); }
+  }
 
-    .legend-section {
-      padding: 16px 20px;
-      background: #ffffff;
-    }
+  /* --- KPI CARDS --- */
+  .kpi-scroll { display: flex; gap: 12px; padding: 0 16px 16px; overflow-x: auto; }
+  .kpi-card {
+    flex: 0 0 130px; background: #fff; border-radius: 18px; padding: 15px;
+    border: 1.5px solid var(--bord); box-shadow: var(--sh);
+  }
+  .kpi-val { font-size: 22px; font-weight: 800; color: var(--tx); }
+  .kpi-lbl { font-size: 10px; color: var(--tx3); font-weight: 600; }
 
-    .legend-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
+  /* --- LEGEND SECTION --- */
+  .legend-card {
+    margin: 16px; background: #fff; border: 1.5px solid var(--bord);
+    border-radius: var(--rs); padding: 16px;
+    .legend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--tx2); }
+    .legend-dot { width: 6px; height: 6px; border-radius: 50%; }
+  }
 
-      .legend-title {
-        font-size: 13px;
+  /* --- ANIMATIONS --- */
+  .ldot-anim {
+    width: 6px; height: 6px; background: #22c55e; border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+    70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+  }
+
+  /* --- CHART CARDS --- */
+  .card { background: var(--surf); border: 1.5px solid var(--bord); border-radius: var(--r); margin: 0 16px 14px; padding: 15px; }
+
+      .map-canvas {
+        position: relative; /* Essential for the floating buttons to work */
+        overflow: hidden;
+      }
+
+      .map-floating-actions {
+        position: absolute;
+        bottom: 20px; 
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        pointer-events: none; /* Allows clicks to pass through the gap between buttons */
+      }
+
+      .map-floating-actions button {
+        pointer-events: auto; /* Re-enables clicking on the buttons themselves */
+      }
+
+      .legend-section {
+        padding: 16px 20px;
+        background: #ffffff;
+      }
+
+      .legend-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+
+        .legend-title {
+          font-size: 13px;
+          font-weight: 700;
+          color: #1e293b;
+          letter-spacing: -0.2px;
+        }
+
+        .refresh-link {
+          background: none;
+          color: #0d9488;
+          font-size: 11px;
+          font-weight: 600;
+          text-decoration: underline;
+        }
+      }
+
+      .legend-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr; // This creates the 2-column look
+        gap: 10px 16px;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .legend-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+        }
+
+        .legend-icon {
+          font-size: 12px;
+        }
+
+        .legend-label {
+          font-size: 11px;
+          color: #64748b;
+          font-weight: 500;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+
+      .legend-empty {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 10px;
+        font-size: 11px;
+        color: #94a3b8;
+        border: 1px dashed #e2e8f0;
+        border-radius: 8px;
+      }
+
+      // --- Alert List Variables ---
+      :host {
+        --crit-bg: #fff1f2;
+        --crit-tx: #ef4444;
+        --warn-bg: #fffbeb;
+        --warn-tx: #d97706;
+        --info-bg: #eff6ff;
+        --info-tx: #3b82f6;
+        --safe-bg: #f0fdfa;
+        --safe-tx: #0d9488;
+        --bord2: #f1f5f9;
+      }
+
+      .filter-tabs {
+        display: flex;
+        gap: 4px; // Very tight spacing as requested
+        padding: 10px 12px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        &::-webkit-scrollbar { display: none; }
+      }
+
+      .qchip {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 20px; // Oval shape
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+        background: #f1f5f9; // Default background
+        color: #64748b;
+        border: 1px solid #e2e8f0; // Boundary for all chips
+        transition: all 0.2s ease;
+
+        &.on {
+          &.all { border-color: #cbd5e1; color: #1e293b; }
+          &.crit { background: #fff1f2; color: #ef4444; border-color: #fecaca; }
+          &.warn { background: #fffbeb; color: #d97706; border-color: #fde68a; }
+          &.info { background: #eff6ff; color: #3b82f6; border-color: #bfdbfe; }
+        }
+      }
+
+      // 3D sphere effect for the dots
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        &.crit { background: radial-gradient(circle at 30% 30%, #ff5f6d, #ef4444); }
+        &.warn { background: radial-gradient(circle at 30% 30%, #ffdb6d, #f59e0b); }
+        &.info { background: radial-gradient(circle at 30% 30%, #6da5ff, #3b82f6); }
+      }
+
+      // --- Alert List Container ---
+      .alert-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        background: #fff;
+      }
+
+      // --- Individual Row ---
+      .alert-row {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--bord2);
+        position: relative;
+        transition: background 0.2s ease;
+        cursor: pointer;
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        &:hover {
+          background: #f8fafc;
+        }
+
+        // The Left Colored Strip
+        &::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 4px;
+          border-radius: 0 2px 2px 0;
+          transition: width 0.2s;
+        }
+
+        &:active::before {
+          width: 6px;
+        }
+
+        // Left Strip Colors based on Type Class
+        &.crit::before { background: var(--crit-tx); }
+        &.warn::before { background: var(--warn-tx); }
+        &.info::before { background: var(--info-tx); }
+        &.safe::before { background: var(--safe-tx); }
+      }
+
+      // --- Icon Box ---
+      .alert-ico {
+        font-size: 18px;
+        width: 38px;
+        height: 38px;
+        background: #f8fafc;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        border: 1px solid #e2e8f0;
+      }
+
+      // --- Text Content ---
+      .alert-body {
+        flex: 1;
+        min-width: 0; // Prevents text overflow
+      }
+
+      .alert-title {
+        font-size: 12px;
         font-weight: 700;
         color: #1e293b;
-        letter-spacing: -0.2px;
-      }
-
-      .refresh-link {
-        background: none;
-        color: #0d9488;
-        font-size: 11px;
-        font-weight: 600;
-        text-decoration: underline;
-      }
-    }
-
-    .legend-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr; // This creates the 2-column look
-      gap: 10px 16px;
-    }
-
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-
-      .legend-dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-      }
-
-      .legend-icon {
-        font-size: 12px;
-      }
-
-      .legend-label {
-        font-size: 11px;
-        color: #64748b;
-        font-weight: 500;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
       }
-    }
 
-    .legend-empty {
-      grid-column: 1 / -1;
-      text-align: center;
-      padding: 10px;
-      font-size: 11px;
-      color: #94a3b8;
-      border: 1px dashed #e2e8f0;
-      border-radius: 8px;
-    }
-
-    // --- Alert List Variables ---
-    :host {
-      --crit-bg: #fff1f2;
-      --crit-tx: #ef4444;
-      --warn-bg: #fffbeb;
-      --warn-tx: #d97706;
-      --info-bg: #eff6ff;
-      --info-tx: #3b82f6;
-      --safe-bg: #f0fdfa;
-      --safe-tx: #0d9488;
-      --bord2: #f1f5f9;
-    }
-
-    .filter-tabs {
-      display: flex;
-      gap: 4px; // Very tight spacing as requested
-      padding: 10px 12px;
-      overflow-x: auto;
-      scrollbar-width: none;
-      &::-webkit-scrollbar { display: none; }
-    }
-
-    .qchip {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 4px 10px;
-      border-radius: 20px; // Oval shape
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-      background: #f1f5f9; // Default background
-      color: #64748b;
-      border: 1px solid #e2e8f0; // Boundary for all chips
-      transition: all 0.2s ease;
-
-      &.on {
-        &.all { border-color: #cbd5e1; color: #1e293b; }
-        &.crit { background: #fff1f2; color: #ef4444; border-color: #fecaca; }
-        &.warn { background: #fffbeb; color: #d97706; border-color: #fde68a; }
-        &.info { background: #eff6ff; color: #3b82f6; border-color: #bfdbfe; }
-      }
-    }
-
-    // 3D sphere effect for the dots
-    .dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      &.crit { background: radial-gradient(circle at 30% 30%, #ff5f6d, #ef4444); }
-      &.warn { background: radial-gradient(circle at 30% 30%, #ffdb6d, #f59e0b); }
-      &.info { background: radial-gradient(circle at 30% 30%, #6da5ff, #3b82f6); }
-    }
-
-    // --- Alert List Container ---
-    .alert-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-      background: #fff;
-    }
-
-    // --- Individual Row ---
-    .alert-row {
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--bord2);
-      position: relative;
-      transition: background 0.2s ease;
-      cursor: pointer;
-
-      &:last-child {
-        border-bottom: none;
+      .alert-desc {
+        font-size: 11px;
+        color: #64748b;
+        margin-top: 2px;
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
       }
 
-      &:hover {
-        background: #f8fafc;
-      }
-
-      // The Left Colored Strip
-      &::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 4px;
-        border-radius: 0 2px 2px 0;
-        transition: width 0.2s;
-      }
-
-      &:active::before {
-        width: 6px;
-      }
-
-      // Left Strip Colors based on Type Class
-      &.crit::before { background: var(--crit-tx); }
-      &.warn::before { background: var(--warn-tx); }
-      &.info::before { background: var(--info-tx); }
-      &.safe::before { background: var(--safe-tx); }
-    }
-
-    // --- Icon Box ---
-    .alert-ico {
-      font-size: 18px;
-      width: 38px;
-      height: 38px;
-      background: #f8fafc;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      border: 1px solid #e2e8f0;
-    }
-
-    // --- Text Content ---
-    .alert-body {
-      flex: 1;
-      min-width: 0; // Prevents text overflow
-    }
-
-    .alert-title {
-      font-size: 12px;
-      font-weight: 700;
-      color: #1e293b;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .alert-desc {
-      font-size: 11px;
-      color: #64748b;
-      margin-top: 2px;
-      line-height: 1.4;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    .alert-time {
-      font-size: 10px;
-      color: #94a3b8;
-      margin-top: 6px;
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    // --- The Status Badge (abadge) ---
-    .abadge {
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 9px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      flex-shrink: 0;
-      align-self: flex-start;
-    }
-
-    // --- Filter Chips (Top Bar) ---
-    .qchip {
-      padding: 8px 14px;
-      border-radius: 100px;
-      font-size: 11px;
-      font-weight: 600;
-      white-space: nowrap;
-      border: 1px solid transparent;
-      transition: all 0.2s;
-      background: #f1f5f9;
-      color: #64748b;
-
-      &.on {
-        &.crit { background: var(--crit-bg); color: var(--crit-tx); border-color: #fecaca; }
-        &.warn { background: var(--warn-bg); color: var(--warn-tx); border-color: #fde68a; }
-        &.info { background: var(--info-bg); color: var(--info-tx); border-color: #bfdbfe; }
-      }
-    }
-
-
-    /* Stats Row Styling */
-    .stat-row {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 8px;
-    }
-
-    .stat-box {
-      flex: 1;
-      background: var(--surf);
-      border: 1px solid var(--bord);
-      border-radius: var(--rs);
-      padding: 12px;
-      text-align: center;
-      box-shadow: var(--sh);
-    }
-
-    .stat-n { font-size: 18px; font-weight: 800; }
-    .stat-l { font-size: 9px; color: var(--tx2); text-transform: uppercase; margin-top: 2px; }
-
-    /* Grid & Cards */
-    .off-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      padding: 0 14px 14px;
-    }
-
-    .off-card {
-      background: var(--surf);
-      border: 1.5px solid var(--bord);
-      border-radius: var(--rs);
-      padding: 12px;
-      box-shadow: var(--sh);
-      cursor: pointer;
-      transition: all .2s;
-      
-      &:hover {
-        border-color: rgba(13,148,136,.3);
-        transform: translateY(-2px);
-      }
-    }
-
-    .off-av {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      font-weight: 800;
-      margin-bottom: 8px;
-    }
-
-    .off-nm {
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--tx);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .off-rl { font-size: 9px; color: var(--tx2); margin-top: 1px; }
-
-    .srow { display: flex; align-items: center; gap: 4px; margin-top: 7px; }
-    .sdot { width: 6px; height: 6px; border-radius: 50%; }
-    .sdot.on { background: #16a34a; }
-    .sdot.idle { background: #f59e0b; }
-    .sdot.off { background: #ef4444; }
-    .slbl { font-size: 9px; font-weight: 700; }
-    .chart-container-with-axis {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    .vertical-axis-label {
-      writing-mode: vertical-rl;
-      transform: rotate(180deg);
-      font-size: 10px;
-      color: #94a3b8;
-      font-weight: 500;
-      height: 100px;
-    }
-
-    .chart-footer-labels {
-      display: flex;
-      justify-content: space-between;
-      padding: 0 10px;
-      margin-top: 5px;
-      
-      .f-label {
+      .alert-time {
         font-size: 10px;
-        font-weight: 800;
         color: #94a3b8;
-        letter-spacing: 0.5px;
+        margin-top: 6px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 4px;
       }
-    }
 
-    .axis-hint {
-      font-size: 9px;
-      color: #64748b;
-      font-weight: 700;
-      text-transform: uppercase;
-    }
+      // --- The Status Badge (abadge) ---
+      .abadge {
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 9px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        flex-shrink: 0;
+        align-self: flex-start;
+      }
 
-    .officer-chart-card {
-      margin: 16px;
-      border-radius: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    }
+      // --- Filter Chips (Top Bar) ---
+      .qchip {
+        padding: 8px 14px;
+        border-radius: 100px;
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+        border: 1px solid transparent;
+        transition: all 0.2s;
+        background: #f1f5f9;
+        color: #64748b;
+
+        &.on {
+          &.crit { background: var(--crit-bg); color: var(--crit-tx); border-color: #fecaca; }
+          &.warn { background: var(--warn-bg); color: var(--warn-tx); border-color: #fde68a; }
+          &.info { background: var(--info-bg); color: var(--info-tx); border-color: #bfdbfe; }
+        }
+      }
+
+
+      /* Stats Row Styling */
+      .stat-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+
+      .stat-box {
+        flex: 1;
+        background: var(--surf);
+        border: 1px solid var(--bord);
+        border-radius: var(--rs);
+        padding: 12px;
+        text-align: center;
+        box-shadow: var(--sh);
+      }
+
+      .stat-n { font-size: 18px; font-weight: 800; }
+      .stat-l { font-size: 9px; color: var(--tx2); text-transform: uppercase; margin-top: 2px; }
+
+      /* Grid & Cards */
+      .off-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        padding: 0 14px 14px;
+      }
+
+      .off-card {
+        background: var(--surf);
+        border: 1.5px solid var(--bord);
+        border-radius: var(--rs);
+        padding: 12px;
+        box-shadow: var(--sh);
+        cursor: pointer;
+        transition: all .2s;
+        
+        &:hover {
+          border-color: rgba(13,148,136,.3);
+          transform: translateY(-2px);
+        }
+      }
+
+      .off-av {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 800;
+        margin-bottom: 8px;
+      }
+
+      .off-nm {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--tx);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .off-rl { font-size: 9px; color: var(--tx2); margin-top: 1px; }
+
+      .srow { display: flex; align-items: center; gap: 4px; margin-top: 7px; }
+      .sdot { width: 6px; height: 6px; border-radius: 50%; }
+      .sdot.on { background: #16a34a; }
+      .sdot.idle { background: #f59e0b; }
+      .sdot.off { background: #ef4444; }
+      .slbl { font-size: 9px; font-weight: 700; }
+      .chart-container-with-axis {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .vertical-axis-label {
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+        font-size: 10px;
+        color: #94a3b8;
+        font-weight: 500;
+        height: 100px;
+      }
+
+      .chart-footer-labels {
+        display: flex;
+        justify-content: space-between;
+        padding: 0 10px;
+        margin-top: 5px;
+        
+        .f-label {
+          font-size: 10px;
+          font-weight: 800;
+          color: #94a3b8;
+          letter-spacing: 0.5px;
+        }
+      }
+
+      .axis-hint {
+        font-size: 9px;
+        color: #64748b;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .officer-chart-card {
+        margin: 16px;
+        border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      }

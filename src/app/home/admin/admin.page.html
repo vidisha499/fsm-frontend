@@ -229,7 +229,7 @@
             <polygon points="3 11 22 2 13 21 11 13 3 11"/>
           </svg>
         </div>
-        <div class="kpi-val">1,204</div>
+        <div class="kpi-val">0</div>
         <div class="kpi-lbl">Patrol Beats Covered</div>
         <div class="kpi-trend up">▲ All Covered</div>
       </div>
@@ -285,7 +285,7 @@
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
           </svg>
         </div>
-        <div class="kpi-val" id="kv-assets">1,450</div>
+        <div class="kpi-val" id="kv-assets">0</div>
         <div class="kpi-lbl">Assets & Tools</div>
         <div class="kpi-trend up">▲ 94% Operational</div>
       </div>
@@ -449,6 +449,7 @@
 
           <button
             class="layers-btn"
+            style="z-index: 1001;"
             [class.open]="isLayerPanelOpen"
             (click)="toggleLayerPanel()"
           >
@@ -467,7 +468,7 @@
               </svg>
             </div>
             <span>Layers</span>
-            <div class="lbtn-badge">{{ activeLayerCount }}</div>
+            <!-- <div class="lbtn-badge">{{ activeLayerCount }}</div> -->
           </button>
 
         <div class="layer-panel" [class.open]="isLayerPanelOpen" (click)="$event.stopPropagation()">
