@@ -30,7 +30,7 @@ private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw';
 public incidentData = {
   priority: 'High Priority',
   criteria: 'Criminal Activity',
-  subCategory: 'illegal felling', // New field
+  subCategory: '', // New field
   species: 'sagvan',     // New field
   cause: 'human error',
   reason: 'Trade',
@@ -339,7 +339,10 @@ resetSubFields() {
   this.incidentData.checkpost = '';
 
   // 3. Set specific defaults based on the subCategory
-  if (this.incidentData.subCategory === 'Poaching') {
+  if (this.incidentData.criteria === 'Fire Alert') {
+    this.incidentData.subCategory = 'Fire Warning';
+  }
+    else if (this.incidentData.subCategory === 'Poaching') {
     this.incidentData.cause = 'Natural';
   } else if (this.incidentData.subCategory === 'illegal felling') {
     this.incidentData.reason = 'Trade';
