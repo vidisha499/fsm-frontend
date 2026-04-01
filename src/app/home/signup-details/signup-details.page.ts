@@ -13,6 +13,7 @@ import { NavController, ToastController, LoadingController,  } from '@ionic/angu
 })
 export class SignupDetailsPage implements OnInit {
   // Data Properties
+  verifiedData: any = {};
   profileImage: any = null;
   firstName: string = '';
   lastName: string = '';
@@ -35,39 +36,61 @@ confirmPasswordIcon: string = 'eye-off';
     private loadingCtrl: LoadingController
   ) { }
 
-  ngOnInit() {
-    // Receiving pre-filled data from the verification page
-    // this.route.queryParams.subscribe(params => {
-    //   const fullName = params['name'] || '';
-    //   if (fullName) {
-    //     const nameParts = fullName.trim().split(' ');
-    //     this.firstName = nameParts[0] || '';
-    //     this.lastName = nameParts.slice(1).join(' ') || '';
-    //   }
-    //   this.mobile = params['mobile'] || '';
-    // });
+//   ngOnInit() {
+//   this.route.queryParams.subscribe(params => {
+//     // 1. Check karo agar 'special' parameter aaya hai (Naya Logic)
+//     if (params && params['special']) {
+//       const data = JSON.parse(params['special']);
+//       const fullName = data.name || '';
+//       this.mobile = data.mobile || '';
+//       this.verifiedData = data;
 
-    this.route.queryParams.subscribe(params => {
-    // 1. Get the full name from params (e.g., "Eshika Sharma")
-    const fullName = params['name'] || '';
-    this.mobile = params['mobile'] || '';
+//       if (fullName.trim()) {
+//         const nameParts = fullName.trim().split(/\s+/);
+//         if (nameParts.length > 1) {
+//           this.firstName = nameParts[0];
+//           this.lastName = nameParts.slice(1).join(' ');
+//         } else {
+//           this.firstName = nameParts[0];
+//           this.lastName = ''; 
+//         }
+//       }
+//     } 
+//     // 2. Backup: Agar purane tarike se data aaye (Optional)
+//     else if (params['name']) {
+//       const fullName = params['name'];
+//       this.mobile = params['mobile'] || '';
+//       const nameParts = fullName.trim().split(/\s+/);
+//       this.firstName = nameParts[0];
+//       this.lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+//     }
+//   });
+// }
 
-    if (fullName.trim()) {
-      const nameParts = fullName.trim().split(/\s+/); // Split by any space
+
+ngOnInit() {
+  this.route.queryParams.subscribe(params => {
+    if (params && params['special']) {
+      const data = JSON.parse(params['special']);
       
-      if (nameParts.length > 1) {
-        // First word is First Name
+      // Sabse zaruri: Pura data object save karo
+      this.verifiedData = data; 
+      
+      // Debugging ke liye console check karo (Browser mein F12 dabake dekhna)
+      console.log("Verified Data Received:", this.verifiedData);
+      console.log("Company ID detected:", data.company_id);
+
+      this.mobile = data.mobile || '';
+      const fullName = data.name || '';
+
+      if (fullName.trim()) {
+        const nameParts = fullName.trim().split(/\s+/);
         this.firstName = nameParts[0];
-        // Everything else is the Surname
-        this.lastName = nameParts.slice(1).join(' ');
-      } else {
-        // If there's only one name, put it in firstName
-        this.firstName = nameParts[0];
-        this.lastName = ''; 
+        this.lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
       }
     }
   });
-  }
+}
 
   togglePassword(field: string) {
   if (field === 'pw') {
@@ -128,21 +151,27 @@ confirmPasswordIcon: string = 'eye-off';
       spinner: 'crescent'
     });
     await loader.present();
+    console.log("Verified Data Check:", this.verifiedData);
 
     // 2. Payload Construction
-    // These keys match the NestJS Ranger Entity structure
-    const payload = {
-     username: `${this.firstName} ${this.lastName}`.trim(),
-    phoneNo: this.mobile,         // Matches your DB column 'phone_no'
-    email_id: this.email,          // Matches your DB column 'email_id'
-    password: this.password,       // Matches your DB column 'password'
-    profile_pic: this.profileImage, // Ensure this column is added to 'rangers'
-    dob: this.dob,                 // Ensure this column is added to 'rangers'
-    address: this.address
-    };
+// signup-details.page.ts mein
+const payload = {
+  name: `${this.firstName} ${this.lastName}`.trim(),
+  contact: this.mobile,
+  email: this.email,
+  password: this.password,
+  dob: this.dob,                // 👈 Ye ab DB mein jayega
+  profile_pic: this.profileImage, // 👈 Ye ab DB mein jayega
+  // 🔥 YAHAN FIX HAI: Dono cases check karo aur Number() force karo
+  role_id: Number(this.verifiedData?.role_id || this.verifiedData?.roleId || 4), 
+  company_id: Number(this.verifiedData?.company_id || this.verifiedData?.companyId),// Ensure this is coming from your verification data
+  status: 1
+};
+
+console.log("Final Payload to Database:", payload);
 
     // 3. API Call
-    this.http.post(`${environment.apiUrl}/rangers`, payload).subscribe({
+    this.http.post(`${environment.apiUrl}/users`, payload).subscribe({
       next: async (response: any) => {
         await loader.dismiss();
         this.presentToast('Registration successful! You can now log in.', 'success');

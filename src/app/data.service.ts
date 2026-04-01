@@ -327,4 +327,25 @@ getIncidentsForMap(companyId: number) {
   // Mapping to your NestJS: @Get('company/:cid')
   return this.http.get<any[]>(`${this.baseApiUrl}/incidents/company/${companyId}`);
 }
+
+
+
+// Isse badal kar...
+getAssetCategories(companyId: number) {
+  return this.http.get(`${this.baseApiUrl}/assets/categories/company/${companyId}`);
+}
+
+getAssetStatuses(companyId: number) {
+  return this.http.get(`${this.baseApiUrl}/assets/statuses/company/${companyId}`);
+}
+
+// categories fetch karne ke liye
+getCategories(companyId: any) {
+  return this.http.get(`${this.baseApiUrl}/assets/categories/${companyId}`);
+}
+
+// statuses fetch karne ke liye
+getStatuses(companyId: any) {
+  return this.http.get(`${this.baseApiUrl}/assets/statuses/${companyId}`);
+}
 }

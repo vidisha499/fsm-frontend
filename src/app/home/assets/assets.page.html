@@ -62,7 +62,7 @@
               </select>
             </div>
           </div>
-
+<!-- 
           <div class="input-group">
             <label class="input-label category-lbl">Category</label>
             <div class="input-wrapper">
@@ -74,7 +74,31 @@
                 <option value="Eco Tourism Sites">Eco Tourism Sites</option>
               </select>
             </div>
-          </div>
+          </div> -->
+
+          <div class="input-group">
+  <label class="input-label category-lbl">Category</label>
+  <div class="input-wrapper">
+    <i class="fas fa-th-large"></i>
+    <select class="styled-select" [(ngModel)]="assetData.category_id">
+      <option *ngFor="let cat of categories" [value]="cat.id">
+        {{ cat.name }}
+      </option>
+    </select>
+  </div>
+</div>
+
+<div class="input-group">
+  <label class="input-label condition-lbl">Condition</label>
+  <div class="input-wrapper">
+    <i class="fas fa-chart-line"></i>
+    <select class="styled-select" [(ngModel)]="assetData.status_id">
+      <option *ngFor="let st of conditions" [value]="st.id">
+        {{ st.status_name }}
+      </option>
+    </select>
+  </div>
+</div>
 
           <div class="input-group">
             <label class="input-label name-lbl">Name</label>
@@ -84,7 +108,7 @@
             </div>
           </div>
 
-          <div class="input-group">
+          <!-- <div class="input-group">
             <label class="input-label condition-lbl">Condition</label>
             <div class="input-wrapper">
               <i class="fas fa-chart-line"></i>
@@ -95,7 +119,7 @@
                 <option value="Not in Use">Not in Use</option>
               </select>
             </div>
-          </div>
+          </div> -->
 
           <div class="input-group">
             <label class="input-label year-lbl">Year</label>

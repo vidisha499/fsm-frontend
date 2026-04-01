@@ -23,20 +23,23 @@ export class AssetsPage implements OnInit {
   // GPS Coordinates (Detected dynamically)
   lat: any = 'Detecting...';
   lng: any = 'Detecting...';
+
+  // Dynamic Lists
+  categories: any[] = [];
+  conditions: any[] = [];
  
 
   // Form Model (Values match your UI inputs)
-  assetData = {
-    company_id: null, // Dynamic: Login se aayega
+assetData = {
+    company_id: null,
     created_by: null,
-    client: 'PugArch Technology Pvt Ltd', // Dynamic: Login se aayega
+    client: 'PugArch Technology Pvt Ltd',
     name: '',
-    category: 'Offices / Govt Residence',
-    condition: 'Good',
+    category_id: null, // ID store karne ke liye
+    status_id: null,   // ID store karne ke liye
     year: 2026,
     description: ''
   };
-
   constructor(
     private navCtrl: NavController,
     private actionSheetCtrl: ActionSheetController,
@@ -48,6 +51,11 @@ export class AssetsPage implements OnInit {
   async ngOnInit() {
     this.getLoggedUserInfo();
     await this.getCurrentLocation();
+
+    // Login hone ke baad hi data mangwao
+    if (this.assetData.company_id) {
+      this.loadDynamicData(this.assetData.company_id);
+    }
   }
 
   // --- 1. LOGIN SE DYNAMIC DATA NIKALNA ---
@@ -114,49 +122,56 @@ export class AssetsPage implements OnInit {
     this.capturedPhotos.splice(index, 1);
   }
 
+
+  loadDynamicData(companyId: number) {
+    // 1. Categories Fetch karo
+    this.dataService.getCategories(companyId).subscribe((res: any) => {
+      this.categories = res;
+      if (this.categories.length > 0) this.assetData.category_id = this.categories[0].id;
+    });
+
+    // 2. Status/Condition Fetch karo
+    this.dataService.getStatuses(companyId).subscribe((res: any) => {
+      this.conditions = res;
+      if (this.conditions.length > 0) this.assetData.status_id = this.conditions[0].id;
+    });
+  }
+
   // --- 4. SUBMIT USING DATASERVICE ---
-  async submitAsset() {
-    // Basic Validation
-    if (!this.assetData.name || !this.assetData.category) {
+async submitAsset() {
+    if (!this.assetData.name || !this.assetData.category_id) {
       this.presentToast('Please fill all required fields');
       return;
     }
 
-    const loading = await this.loadingCtrl.create({
-      message: 'Saving Asset...',
-      spinner: 'circles'
-    });
+    const loading = await this.loadingCtrl.create({ message: 'Saving Asset...' });
     await loading.present();
 
-    this.isSubmitting = true;
+    // Mapping: ID se Name nikalna Neon Dashboard ke liye
+    const selectedCat = this.categories.find(c => c.id == this.assetData.category_id);
+    const selectedStatus = this.conditions.find(s => s.id == this.assetData.status_id);
 
-    // Payload Taiyar (PostgreSQL columns match karne ke liye)
     const payload = {
       company_id: this.assetData.company_id,
       name: this.assetData.name,
-      category: this.assetData.category,
-      condition_status: this.assetData.condition, // Matches 'condition_status' in DB
+      category: selectedCat ? selectedCat.name : '', // Text
+      category_id: Number(this.assetData.category_id), // ID
+      condition_status: selectedStatus ? selectedStatus.status_name : 'Good', // Text
+      status_id: Number(this.assetData.status_id), // ID
       year: this.assetData.year,
       description: this.assetData.description,
       location: JSON.stringify({ lat: this.lat, lng: this.lng }),
-      photos: this.capturedPhotos, // Base64 images ka array
+      photos: this.capturedPhotos,
       created_by: this.assetData.created_by
     };
 
-    // Calling your DataService function
     this.dataService.addAsset(payload).subscribe({
-      next: (res) => {
+      next: () => {
         loading.dismiss();
-        this.isSubmitting = false;
         this.presentToast('Asset Saved Successfully!');
         this.navCtrl.back();
       },
-      error: (err) => {
-        loading.dismiss();
-        this.isSubmitting = false;
-        this.presentToast('Error: Backend connection failed');
-        console.error('API Error:', err);
-      }
+      error: () => { loading.dismiss(); this.presentToast('Error saving data'); }
     });
   }
 

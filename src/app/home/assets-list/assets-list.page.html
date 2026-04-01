@@ -105,7 +105,7 @@
           <div class="detail-item">
             <i class="fas fa-chart-line condition-icon"></i>
             <span class="lbl">Condition:</span>
-            <span class="val highlight">{{ asset.condition }}</span>
+            <span class="val highlight">{{ asset.condition_status || asset.condition || 'N/A' }}</span>
           </div>
           <div class="detail-item">
             <i class="fas fa-calendar-alt year-icon"></i>
