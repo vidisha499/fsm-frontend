@@ -339,17 +339,22 @@ resetSubFields() {
   this.incidentData.checkpost = '';
 
   // 3. Set specific defaults based on the subCategory
-  if (this.incidentData.criteria === 'Fire Alert') {
-    this.incidentData.subCategory = 'Fire Warning';
-  }
+ if (this.incidentData.criteria === 'Fire Warning') {
+    this.incidentData.subCategory = 'Fire Warning'; 
+    this.incidentData.cause = 'Natural Cause';
+  } 
     else if (this.incidentData.subCategory === 'Poaching') {
     this.incidentData.cause = 'Natural';
-  } else if (this.incidentData.subCategory === 'illegal felling') {
+  } else if (this.incidentData.subCategory === 'illegal felling'|| this.incidentData.subCategory === 'illegal felling') {
     this.incidentData.reason = 'Trade';
     this.incidentData.cause = 'Human Error';
   } else {
     this.incidentData.cause = 'Human Error';
   }
+  this.cdr.detectChanges();
 }
+
+
+
 
 }

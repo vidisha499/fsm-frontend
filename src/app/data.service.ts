@@ -5,8 +5,6 @@ import { Observable } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class DataService {
-  // Use the central URL from your environment file
-  // e.g., 'https://fsm-backend-....vercel.app/api'
   private baseApiUrl = environment.apiUrl;
   private selectedIncident: any;
   private selectedAttendance: any;
@@ -125,12 +123,7 @@ checkUserExists(mobile: string) {
     return this.http.post(`${this.baseApiUrl}/attendance/beat-attendance`, payload);
   }
 
-// // Inside DataService class
-// getPatrolsByCompany(companyId: number, date?: string) {
-//   // If date is provided, we use it for both 'from' and 'to' to get a single day
-//   const params = date ? `?companyId=${companyId}&from=${date}&to=${date}` : `?companyId=${companyId}`;
-//   return this.http.get(`${this.baseApiUrl}/patrols/logs${params}`);
-// }
+
 
 getPatrolsByCompany(companyId: number, date?: string) {
   // Logic: if date is provided, it filters for that specific day

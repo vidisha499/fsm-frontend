@@ -46,14 +46,33 @@ export class SightingsPage implements OnInit {
     private translate: TranslateService // Added
   ) {}
 
+  // ngOnInit() {
+  //   this.route.queryParams.subscribe(params => {
+  //     this.category = params['type'] || 'Sighting';
+  //     const idFromUrl = params['patrolId'];
+  //     const idFromStorage = localStorage.getItem('active_patrol_id');
+  //     this.patrolId = idFromUrl ? Number(idFromUrl) : Number(idFromStorage);
+  //   });
+  // }
   ngOnInit() {
-    this.route.queryParams.subscribe(params => {
-      this.category = params['type'] || 'Sighting';
-      const idFromUrl = params['patrolId'];
-      const idFromStorage = localStorage.getItem('active_patrol_id');
-      this.patrolId = idFromUrl ? Number(idFromUrl) : Number(idFromStorage);
-    });
-  }
+  this.route.queryParams.subscribe(params => {
+    this.category = params['type'] || 'Sighting';
+    
+    // Check URL first
+    const idFromUrl = params['patrolId'];
+    // Check localStorage as fallback
+    const idFromStorage = localStorage.getItem('active_patrol_id');
+    
+    // Force conversion to number
+    if (idFromUrl) {
+      this.patrolId = Number(idFromUrl);
+    } else if (idFromStorage) {
+      this.patrolId = Number(idFromStorage);
+    }
+
+    console.log("Verified Patrol ID for Sighting:", this.patrolId);
+  });
+}
 
   toggleGender(type: string) {
     this.obsData.genderMale = (type === 'male');
@@ -61,7 +80,7 @@ export class SightingsPage implements OnInit {
     this.obsData.genderUnknown = (type === 'unknown');
   }
 
- // sightings.page.ts
+ 
 
 // async saveSighting() {
 //   if (!this.patrolId) {
@@ -80,213 +99,165 @@ export class SightingsPage implements OnInit {
 //   await loader.present();
 
 //   try {
-//     // This line captures the location for the map
-//     const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+//     // 1. Get Location with a fallback/timeout to prevent infinite loading
+//     const pos = await Geolocation.getCurrentPosition({ 
+//       enableHighAccuracy: true, 
+//       timeout: 8000, // 8 seconds is safer for outdoor use
+//       maximumAge: 3000 
+//     });
 
-//     const payload = {
-//   patrol_id: Number(this.patrolId),
-//   sighting_type: this.obsData.sightingType, // Ensure this field exists in obsData
+//     // 2. Build the Payload
+//     // 2. Build the Payload
+// // const payload = {
+// //   patrolId: Number(this.patrolId), // Match entity property name
+// //   category: this.category, 
+// //   sightingType: this.obsData.sightingType, 
+// //   species: this.obsData.species || this.category,
+// //   latitude: pos.coords.latitude,   // Match SQL column
+// //   longitude: pos.coords.longitude, // Match SQL column
+// //   count: Number(this.obsData.count || 1),
+// //   notes: this.obsData.notes || '',
+// //   photos: this.obsData.photos || [],
+// //   gender: {
+// //     male: this.obsData.genderMale,
+// //     female: this.obsData.genderFemale,
+// //     unknown: this.obsData.genderUnknown
+// //   }
+// // };
+// const payload = {
+//   patrolId: Number(this.patrolId),
+//   category: this.category, 
+//   sightingType: this.obsData.sightingType, 
 //   species: this.obsData.species || this.category,
-  
-//   // FIX: Match the Entity/SQL column names exactly
-//   latitude: pos.coords.latitude, 
+//   latitude: pos.coords.latitude,
 //   longitude: pos.coords.longitude,
-  
-//   count: this.obsData.count,
-//   notes: this.obsData.notes,
-//   photos: this.obsData.photos,
+//   count: Number(this.obsData.count || 1),
+//   notes: this.obsData.notes || '',
+//   photos: this.obsData.photos || [],
+//   // Add this line to link the sighting to the company
+//   companyId: Number(localStorage.getItem('company_id')), 
 //   gender: {
 //     male: this.obsData.genderMale,
 //     female: this.obsData.genderFemale,
 //     unknown: this.obsData.genderUnknown
 //   }
 // };
-
-// this.dataService.saveSighting(payload).subscribe({
+ 
+//     this.dataService.saveSighting(payload).subscribe({
 //       next: async (res) => {
-//         console.log("Sighting saved to DB:", res);
+//         console.log("Sighting saved successfully:", res);
 //         await loader.dismiss();
 //         this.showToast("Sighting saved successfully!");
         
-//         // Short delay so user sees the success toast before navigating back
+//         // Return to the active patrol page
 //         setTimeout(() => {
 //           this.navCtrl.back();
 //         }, 500);
 //       },
 //       error: async (err) => {
-//         console.error("DATABASE SAVE ERROR:", err); // CHECK YOUR TERMINAL FOR THIS
+//         console.error("DATABASE SAVE ERROR:", err);
 //         await loader.dismiss();
 //         this.resetSlider();
         
-//         // More descriptive error message
-//         const errorMsg = err.error?.message || "Check network or database.";
-//         this.showToast(`Save failed: ${errorMsg}`);
+//         // Better error feedback
+//         const msg = err.error?.message || "Check network connection.";
+//         this.showToast(`Save failed: ${msg}`);
 //       }
 //     });
 
 //   } catch (e) {
+//     // This handles GPS Timeouts or Permission Denied
 //     console.error("LOCATION ERROR:", e);
 //     await loader.dismiss();
 //     this.resetSlider();
-//     this.showToast("Location error. Please enable GPS and Permissions.");
+//     this.showToast("GPS Error: Please ensure Location is ON and you are outdoors.");
 //   }
 // }
-
-
-// async saveSighting() {
-//   if (!this.patrolId) {
-//     this.showToast("No Active Patrol Session Found!");
-//     this.resetSlider();
-//     return;
-//   }
-
-//   this.isSaving = true;
-//   this.isSubmitting = true; 
-  
-//   const loader = await this.loadingCtrl.create({ 
-//     message: 'Saving sighting...', 
-//     mode: 'ios'
-//   });
-//   await loader.present();
-
-//   try {
-//     // FIX: Added timeout: 5000 (5 seconds) and maximumAge
-//     // This prevents the infinite spinning loader
-//     const pos = await Geolocation.getCurrentPosition({ 
-//       enableHighAccuracy: true, 
-//       timeout: 5000, 
-//       maximumAge: 3000 
-//     });
-
-//  // Inside saveSighting() in sightings.page.ts
-// const payload = {
-//   patrol_id: Number(this.patrolId),
-//   sightingType: this.obsData.sightingType, // MATCH ENTITY: sightingType (not sighting_type)
-//   species: this.obsData.species || this.category,
-//   latitude: pos.coords.latitude, 
-//   longitude: pos.coords.longitude,
-//   count: this.obsData.count,
-//   notes: this.obsData.notes,
-//   photos: this.obsData.photos,
-//   gender: {
-//     male: this.obsData.genderMale,
-//     female: this.obsData.genderFemale,
-//     unknown: this.obsData.genderUnknown
-//   }
-// };
-
-//     this.dataService.saveSighting(payload).subscribe({
-//       next: async (res) => {
-//         await loader.dismiss();
-//         this.showToast("Sighting saved!");
-//         setTimeout(() => this.navCtrl.back(), 500);
-//       },
-//       error: async (err) => {
-//         await loader.dismiss();
-//         this.resetSlider();
-//         this.showToast("Server Error: Could not save.");
-//       }
-//     });
-
-//   } catch (e) {
-//     // This block runs if GPS times out or is turned off
-//     console.error("GPS ERROR:", e);
-//     await loader.dismiss();
-//     this.resetSlider();
-//     this.showToast("GPS Timeout. Stand near a window or check permissions.");
-//   }
-// }
-
 async saveSighting() {
-  if (!this.patrolId) {
-    this.showToast("No Active Patrol Session Found!");
+    // Re-verify patrolId from storage if for some reason the variable is null
+    // const activeId = this.patrolId || Number(localStorage.getItem('active_patrol_id'));
+
+    // if (!activeId || isNaN(activeId)) {
+    //   this.showToast("Error: No Active Patrol Session Found! Please restart your patrol.");
+    //   this.resetSlider();
+    //   return;
+    // }
+    const finalPatrolId = this.patrolId || Number(localStorage.getItem('active_patrol_id'));
+
+  if (!finalPatrolId || isNaN(finalPatrolId)) {
+    this.showToast("Error: No Active Patrol ID. Please restart patrol.");
     this.resetSlider();
     return;
   }
 
-  this.isSaving = true;
-  this.isSubmitting = true; 
-  
-  const loader = await this.loadingCtrl.create({ 
-    message: 'Saving sighting...', 
-    mode: 'ios'
-  });
-  await loader.present();
-
-  try {
-    // 1. Get Location with a fallback/timeout to prevent infinite loading
-    const pos = await Geolocation.getCurrentPosition({ 
-      enableHighAccuracy: true, 
-      timeout: 8000, // 8 seconds is safer for outdoor use
-      maximumAge: 3000 
+    this.isSaving = true;
+    this.isSubmitting = true; 
+    
+    const loader = await this.loadingCtrl.create({ 
+      message: 'Saving sighting...', 
+      mode: 'ios'
     });
+    await loader.present();
 
-    // 2. Build the Payload
-    // 2. Build the Payload
-const payload = {
-  patrolId: Number(this.patrolId), // Match entity property name
-  category: this.category, 
-  sightingType: this.obsData.sightingType, 
-  species: this.obsData.species || this.category,
-  latitude: pos.coords.latitude,   // Match SQL column
-  longitude: pos.coords.longitude, // Match SQL column
-  count: Number(this.obsData.count || 1),
-  notes: this.obsData.notes || '',
-  photos: this.obsData.photos || [],
-  gender: {
-    male: this.obsData.genderMale,
-    female: this.obsData.genderFemale,
-    unknown: this.obsData.genderUnknown
+    try {
+      // 1. Get Location
+      const pos = await Geolocation.getCurrentPosition({ 
+        enableHighAccuracy: true, 
+        timeout: 10000, 
+        maximumAge: 3000 
+      });
+
+      // 2. Build the Payload (Matching your backend Entity/DTO)
+     const payload = {
+    patrolId: finalPatrolId, // Use the verified number here
+    category: this.category,
+    sightingType: this.obsData.sightingType,
+    species: this.obsData.species || this.category,
+    latitude: pos.coords.latitude,
+    longitude: pos.coords.longitude,
+    count: Number(this.obsData.count || 1),
+    notes: this.obsData.notes || '',
+    photos: this.obsData.photos || [],
+    companyId: Number(localStorage.getItem('company_id')),
+    gender: {
+      male: this.obsData.genderMale,
+      female: this.obsData.genderFemale,
+      unknown: this.obsData.genderUnknown
+    }
+  };
+
+      console.log("Sending Sighting Payload:", payload);
+
+      // 3. API Call
+      this.dataService.saveSighting(payload).subscribe({
+        next: async (res) => {
+          console.log("Sighting saved successfully:", res);
+          await loader.dismiss();
+          this.showToast("Sighting recorded successfully!");
+          
+          // Small delay before going back
+          setTimeout(() => {
+            this.navCtrl.back();
+          }, 600);
+        },
+        error: async (err) => {
+          console.error("DATABASE SAVE ERROR:", err);
+          await loader.dismiss();
+          this.resetSlider();
+          
+          // Specific error feedback from backend
+          const msg = err.error?.message || "Check network connection.";
+          this.showToast(`Save failed: ${msg}`);
+        }
+      });
+
+    } catch (e) {
+      console.error("LOCATION ERROR:", e);
+      await loader.dismiss();
+      this.resetSlider();
+      this.showToast("GPS Error: Please ensure Location/GPS is turned ON.");
+    }
   }
-};
-    // const payload = {
-    //   patrol_id: Number(this.patrolId),
-    //   category: this.category, // e.g., 'Animal', 'Water', 'Felling'
-    //   sightingType: this.obsData.sightingType, 
-    //   species: this.obsData.species || this.category,
-    //   latitude: pos.coords.latitude, 
-    //   longitude: pos.coords.longitude,
-    //   count: Number(this.obsData.count || 1),
-    //   notes: this.obsData.notes || '',
-    //   photos: this.obsData.photos || [],
-    //   gender: {
-    //     male: this.obsData.genderMale,
-    //     female: this.obsData.genderFemale,
-    //     unknown: this.obsData.genderUnknown
-    //   }
-    // };
-
-    // 3. Send to Backend
-    this.dataService.saveSighting(payload).subscribe({
-      next: async (res) => {
-        console.log("Sighting saved successfully:", res);
-        await loader.dismiss();
-        this.showToast("Sighting saved successfully!");
-        
-        // Return to the active patrol page
-        setTimeout(() => {
-          this.navCtrl.back();
-        }, 500);
-      },
-      error: async (err) => {
-        console.error("DATABASE SAVE ERROR:", err);
-        await loader.dismiss();
-        this.resetSlider();
-        
-        // Better error feedback
-        const msg = err.error?.message || "Check network connection.";
-        this.showToast(`Save failed: ${msg}`);
-      }
-    });
-
-  } catch (e) {
-    // This handles GPS Timeouts or Permission Denied
-    console.error("LOCATION ERROR:", e);
-    await loader.dismiss();
-    this.resetSlider();
-    this.showToast("GPS Error: Please ensure Location is ON and you are outdoors.");
-  }
-}
 
   resetSlider() {
     this.isSaving = false;

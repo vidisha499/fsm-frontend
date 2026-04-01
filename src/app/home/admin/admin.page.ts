@@ -174,7 +174,7 @@ layerStates: { [key: string]: boolean } = {
   fire_warning: true,
   patrols: true,
   sos: true,
-  checkposts: true
+ 
 };
 
 
@@ -257,13 +257,13 @@ layerStates: { [key: string]: boolean } = {
         color: '#f43f5e',
         bg: '#fff1f2',
       },
-      {
-        id: 'checkposts',
-        label: 'Checkposts',
-        emoji: '🏠',
-        color: '#4f46e5',
-        bg: '#eef2ff',
-      },
+      // {
+      //   id: 'checkposts',
+      //   label: 'Checkposts',
+      //   emoji: '🏠',
+      //   color: '#4f46e5',
+      //   bg: '#eef2ff',
+      // },
     ],
   },
 };
@@ -514,227 +514,6 @@ private updateMapMarkers() {
 } 
 
 
-
-// loadData() {
-//   if (this.isFetching) return;
-
-//   const storageData = localStorage.getItem('user_data');
-//   if (!storageData) return;
-
-//   const user = JSON.parse(storageData);
-//   const myCompanyId = Number(user.company_id || user.companyId);
-//   const localISOTime = new Date().toISOString().split('T')[0];
-//   const dates = this.getFilterDates();
-
-//   this.isFetching = true;
-
-//   // SABHI DATA SOURCES EK SAATH
-//   forkJoin({
-//     stats: this.dataService.getDashboardStats(myCompanyId, dates.from, dates.to),
-//     sightings: this.dataService.getSightingCount(myCompanyId, dates.from || '', dates.to || ''),
-//     fireCount: this.adminService.getFireAlertsCount(myCompanyId, localISOTime),
-//     onDuty: this.adminService.getOnDutyCount(myCompanyId, localISOTime),
-//     onLeave: this.adminService.getOnLeaveCount(myCompanyId),
-//     inactive: this.adminService.getInactiveCount(myCompanyId, localISOTime),
-//     users: this.dataService.getUsersByCompany(myCompanyId),
-//     alerts: this.dataService.getLatestAlerts(myCompanyId),
-//     assetsStats: this.dataService.getAdminStats(myCompanyId), 
-//     assetsTrend: this.dataService.getAssetsTrend(myCompanyId),
-//     mapIncidents: this.dataService.getIncidentsForMap(myCompanyId) 
-//   }).subscribe({
-//     next: (res: any) => {
-//       // --- 1. ASSETS DATA (Nursery, Plantation etc.) ---
-//       if (res.assetsStats) {
-//         this.totalAssetsCount = res.assetsStats.totalAssets || 0;
-//         this.operationalRate = res.assetsStats.operationalRate || '0%';
-        
-//         // Error fix: In variables ko 'this' ke saath assign karne se pehle class mein declare zaroor karna
-//         // Agar compile error aaye toh class ke top pe: realNurseryCount: any = 0; likh dena
-//         (this as any).realNurseryCount = res.assetsStats.nursery || 0;
-//         (this as any).realPlantationCount = res.assetsStats.plantations || 0;
-//         (this as any).realOfficeCount = res.assetsStats.offices || 0;
-//         (this as any).realEcoCount = res.assetsStats.ecoSites || 0;
-
-//         // Analytics specific refresh logic
-//         if ((this as any).activeTab === 'assets' && typeof (this as any).setAnaCat === 'function') {
-//           (this as any).setAnaCat('assets'); 
-//         }
-//       }
-
-//       // --- 2. TREND CHART LOGIC ---
-//       if (res.assetsTrend) {
-//         this.momStatus = res.assetsTrend.momLabel || '0% MoM';
-//         this.isGoodTrend = res.assetsTrend.isImprovement;
-//         setTimeout(() => {
-//           if (typeof (this as any).initTrendChart === 'function') {
-//             (this as any).initTrendChart(res.assetsTrend.labels, res.assetsTrend.values);
-//           }
-//         }, 300);
-//       }
-
-//       // --- 3. DASHBOARD COUNTS (Fire, Criminal, Attendance) ---
-//       const stats = res.stats || {};
-//       this.incidentsCount = stats.totalEvents || 0;
-//       this.criminalActivityCount = stats.criminalEvents || 0;
-//       // 1. General Stats Assign
-//       const stats = res.stats || {};
-//       this.incidentsCount = stats.totalEvents || 0;
-//       this.criminalActivityCount = stats.criminalEvents || 0;
-      
-//       this.fireAlertsCount = stats.fireEvents || (res.fireCount?.count ?? res.fireCount ?? 0);
-//       this.attendancePercent = stats.resolvedPercentage || 0;
-
-//       // --- 4. PERSONNEL & RANGERS ---
-//       this.sightingsCount = typeof res.sightings === 'object' ? (res.sightings.count ?? 0) : (res.sightings ?? 0);
-
-//       // 3. Personnel Status
-//       this.onDutyCount = res.onDuty?.count ?? res.onDuty ?? 0;
-//       this.onLeaveCount = res.onLeave?.count ?? res.onLeave ?? 0;
-//       this.inactiveCount = res.inactive?.count ?? res.inactive ?? 0;
-
-//       // 4. Rangers List
-//       const allUsers = res.users?.data || res.users || [];
-//       if (Array.isArray(allUsers)) {
-//         this.rangers = allUsers.filter((u: any) => Number(u.role_id || u.roleId) === 4);
-//         this.filteredRangers = [...this.rangers];
-//         this.allRangers = this.rangers.length;
-//       }
-      
-//       // --- 5. MAP INCIDENTS & LAYERS ---
-//       if (res.mapIncidents && Array.isArray(res.mapIncidents)) {
-//         this.allIncidents = res.mapIncidents.map((inc: any) => {
-//           const dbCriteria = (inc.incidentCriteria || '').toUpperCase();
-//           const rawSubCat = inc.subCategory || '';
-//           const normalizedSub = rawSubCat.toLowerCase().trim().replace(/\s+/g, '_');
-
-//           let finalLayerId = normalizedSub;
-//           if (dbCriteria.includes('POACH') || normalizedSub.includes('poach')) finalLayerId = 'animal_poaching'; 
-//           else if (dbCriteria.includes('FIRE') || normalizedSub.includes('fire')) finalLayerId = 'fire_warning';
-//           else if (dbCriteria.includes('FELL') || normalizedSub.includes('felling')) finalLayerId = 'illegal_felling';
-//       // 5. MAP & TABLE LOGIC (Updated to ensure Sub-Category visibility)
-//       if (res.mapIncidents && Array.isArray(res.mapIncidents)) {
-//         console.log('1. Raw Data from DB:', res.mapIncidents);
-//         this.allIncidents = res.mapIncidents.map((inc: any) => {
-//           const dbCriteria = (inc.incidentCriteria || '').toUpperCase();
-//           // Keep raw sub-category for display, but normalize for layer ID
-//           const rawSubCat = inc.subCategory || '';
-//           const normalizedSub = rawSubCat.toLowerCase().trim().replace(/\s+/g, '_');
-
-//           let finalLayerId = normalizedSub;
-
-//           // Standardize IDs for LAYERS_DATA keys
-//           if (dbCriteria.includes('POACH') || normalizedSub.includes('poach')) {
-//             finalLayerId = 'animal_poaching'; 
-//           } 
-//           else if (dbCriteria.includes('FIRE') || normalizedSub.includes('fire')) {
-//             finalLayerId = 'fire_warning';
-//           } 
-//           else if (dbCriteria.includes('FELL') || normalizedSub.includes('felling')) {
-//             finalLayerId = 'illegal_felling';
-//           }
-
-//           return {
-//             ...inc,
-//             layerId: finalLayerId,
-//             // This ensures the table and map popups show the specific sub-category
-//             subCategory: rawSubCat || inc.incidentCriteria || 'General Incident',
-//             displayLabel: dbCriteria.includes('FIRE') ? 'Fire Warning' : (rawSubCat || inc.incidentCriteria)
-//           };
-//         });
-//         if (typeof (this as any).updateVisiblePins === 'function') {
-//           (this as any).updateVisiblePins(); 
-//       }
-
-//       // --- 6. ALERTS LOGIC (Title & Style Fixes) ---
-        
-//         this.updateVisiblePins(); 
-//       }
-
-//       // 6. Alerts Logic (Updated: Title now shows Sub-Category instead of SYSTEM)
-//       if (res.alerts && Array.isArray(res.alerts)) {
-//         const savedPrefs = localStorage.getItem('admin_notification_settings');
-
-//         this.alertsData = res.alerts
-//           .filter((alert: any) => {
-//             if (!prefs) return true;
-//             const dbCat = (alert.category || alert.subCategory || 'SYSTEM').toUpperCase();
-            
-//             const isEnabled = (label: string) => {
-//               const p = prefs.find((x: any) => x.label.toLowerCase() === label.toLowerCase());
-//               return p ? p.enabled : true;
-//             };
-
-//             if (dbCat.includes('FIRE')) return isEnabled('Fire Alerts');
-//             if (dbCat.includes('FELL')) return isEnabled('Illegal Felling');
-//             if (dbCat.includes('POACH')) return isEnabled('Animal Poaching');
-//             if (dbCat.includes('CRIMINAL')) return isEnabled('Criminal Activity');
-//             return true;
-//           })
-//           .slice(0, 15)
-//           .map((alert: any) => {
-//             const rawType = (alert.type || 'INFO').toUpperCase();
-//             const theme = (this as any).getAlertTheme(rawType);
-            
-//             let titlePrefix = (alert.subCategory || alert.category || rawType).toUpperCase();
-//             if (titlePrefix.includes('FIRE')) titlePrefix = 'FIRE WARNING';
-//             const theme = this.getAlertTheme(rawType);
-//             const name = alert.ranger_name || 'Ranger';
-            
-//             let titlePrefix = '';
-            
-//             // LOGIC CHANGE: Check for subCategory or category to replace "SYSTEM"
-//             if (rawType === 'INCIDENT' || alert.category || alert.subCategory) {
-//               // Priority: Sub-Category -> Category -> Type
-//               titlePrefix = (alert.subCategory || alert.category || 'INCIDENT').toUpperCase();
-              
-//               // Specific fix for Fire Alert requirements
-//               if (titlePrefix.includes('FIRE')) titlePrefix = 'FIRE WARNING';
-//             } 
-//             else if (rawType === 'ATTENDANCE') titlePrefix = 'ATTENDANCE';
-//             else if (rawType === 'ONSITE') titlePrefix = 'ONSITE-ATTENDANCE';
-//             else if (rawType === 'PATROL_START') titlePrefix = 'PATROL-START';
-//             else if (rawType === 'PATROL_END') titlePrefix = 'PATROL-END';
-//             else {
-//               titlePrefix = rawType;
-//             }
-
-//             const sev = rawType.includes('INCIDENT') || rawType.includes('CRIT') ? 'critical' : 
-//                         rawType.includes('WARN') ? 'warning' : 'info';
-
-//             return {
-//               ...alert,
-//               severity: sev,
-//               displayTitle: `${titlePrefix} - ${alert.ranger_name || 'Ranger'}`,
-//               displayDesc: `${alert.location_name || 'Forest Division'}`,
-//               displayTime: alert.created_at ? 
-//                 `${new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Just Now',
-//               icon: theme?.icon || 'information-circle', 
-//               bg: theme?.bg || 'bg-blue-50', 
-//               color: theme?.color || 'text-blue-500', 
-//               label: theme?.label || 'INFO'
-//             };
-//           });
-
-//         this.critCount = this.alertsData.filter(a => a.severity === 'critical').length;
-//         this.warnCount = this.alertsData.filter(a => a.severity === 'warning').length;
-//         this.infoCount = this.alertsData.filter(a => a.severity === 'info').length;
-        
-//         if (typeof (this as any).updateFilteredAlerts === 'function') {
-//           (this as any).updateFilteredAlerts();
-//         }
-//       }
-//     },
-//     error: (err: any) => {
-//       console.error('Master Data Fetch Error:', err);
-//       this.isFetching = false;
-//       this.cdr.detectChanges();
-//     },
-//     complete: () => {
-//       this.isFetching = false;
-//       this.cdr.detectChanges();
-//     }
-//   });
-// }
 loadData() {
   if (this.isFetching) return;
 
@@ -839,6 +618,7 @@ loadData() {
       }
 
       // --- 6. ALERTS LOGIC ---
+  
       if (res.alerts && Array.isArray(res.alerts)) {
         const savedPrefs = localStorage.getItem('admin_notification_settings');
         const prefs = savedPrefs ? JSON.parse(savedPrefs) : null;
@@ -846,7 +626,9 @@ loadData() {
         this.alertsData = res.alerts
           .filter((alert: any) => {
             if (!prefs) return true;
-            const dbCat = (alert.category || alert.subCategory || 'SYSTEM').toUpperCase();
+            
+            // Normalize the category from the database for filtering
+            const dbCat = (alert.subCategory || alert.category || alert.incident_criteria || 'SYSTEM').toUpperCase();
             
             const isEnabled = (label: string) => {
               const p = prefs.find((x: any) => x.label.toLowerCase() === label.toLowerCase());
@@ -865,9 +647,20 @@ loadData() {
             const theme = (this as any).getAlertTheme ? (this as any).getAlertTheme(rawType) : null;
             
             let titlePrefix = '';
-            if (rawType === 'INCIDENT' || alert.category || alert.subCategory) {
-              titlePrefix = (alert.subCategory || alert.category || 'INCIDENT').toUpperCase();
-              if (titlePrefix.includes('FIRE')) titlePrefix = 'FIRE WARNING';
+
+            // IMPROVED LOGIC: Check for subCategory or incident_criteria first to avoid "SYSTEM" label
+            if (rawType === 'INCIDENT' || alert.category || alert.subCategory || alert.incident_criteria) {
+              const specificCat = (alert.subCategory || alert.incident_criteria || alert.category || 'INCIDENT').toUpperCase();
+              
+              if (specificCat.includes('FIRE')) {
+                titlePrefix = 'FIRE WARNING';
+              } else if (specificCat.includes('FELL')) {
+                titlePrefix = 'ILLEGAL FELLING';
+              } else if (specificCat.includes('POACH')) {
+                titlePrefix = 'ANIMAL POACHING';
+              } else {
+                titlePrefix = specificCat;
+              }
             } 
             else if (rawType === 'ATTENDANCE') titlePrefix = 'ATTENDANCE';
             else if (rawType === 'ONSITE') titlePrefix = 'ONSITE-ATTENDANCE';
@@ -877,13 +670,32 @@ loadData() {
               titlePrefix = rawType;
             }
 
-            const sev = rawType.includes('INCIDENT') || rawType.includes('CRIT') ? 'critical' : 
-                        rawType.includes('WARN') ? 'warning' : 'info';
+            // const sev = rawType.includes('INCIDENT') || rawType.includes('CRIT') ? 'critical' : 
+            //             rawType.includes('WARN') ? 'warning' : 'info';
+            // --- UPDATE THIS LINE ---
+const sev = rawType.includes('INCIDENT') || 
+            (alert.subcategory && alert.subcategory.toLowerCase().includes('fell')) || 
+            (alert.subcategory && alert.subcategory.toLowerCase().includes('fire')) ||
+            rawType.includes('CRIT') 
+            ? 'critical' : rawType.includes('WARN') ? 'warning' : 'info';
 
             return {
               ...alert,
               severity: sev,
-              displayTitle: `${titlePrefix} - ${alert.ranger_name || 'Ranger'}`,
+              // displayTitle: `${alert.type} - ${alert.ranger_name || 'Ranger'}`,
+              displayTitle: (() => {
+  const rName = alert.ranger_name || 'Ranger';
+  const type = (alert.type || '').toUpperCase();
+  
+  // Only use Subcategory if it's an INCIDENT
+  if (type === 'INCIDENT') {
+    const sub = alert.subcategory || alert.subCategory || 'Incident';
+    return `${sub} - ${rName}`;
+  }
+  
+  // For all other types (ATTENDANCE, PATROL, etc.), keep the standard format
+  return `${type} - ${rName}`;
+})(),
               displayDesc: `${alert.location_name || 'Forest Division'}`,
               displayTime: alert.created_at ? 
                 `${new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Just Now',
@@ -910,10 +722,14 @@ loadData() {
     },
     complete: () => {
       this.isFetching = false;
+      
+      this.updateFilteredAlerts(); 
       this.cdr.detectChanges();
     }
   });
-}
+    }
+ 
+
 
 trackByAlert(index: number, alert: any) {
   // Agar alert ki unique ID hai toh wo return karo, warna index
@@ -942,18 +758,41 @@ get dynamicFootStats() {
   });
   return activeStats;
 }
+setAlertFilter(filter: string) {
+  this.activeAlertFilter = filter; // Updates 'all', 'crit', 'warn', or 'info'
+  this.updateFilteredAlerts();    // Filters the data
+  this.cdr.detectChanges();       // Forces UI to show changes
+}
 
 updateFilteredAlerts() {
-  const filter = this.activeAlertFilter || 'all';
-  
-  if (filter === 'all') {
+  if (!this.alertsData) return;
+
+  if (this.activeAlertFilter === 'all') {
     this.filteredAlerts = [...this.alertsData];
   } else {
-    // This filters the results that already passed the Settings Toggles
-    this.filteredAlerts = this.alertsData.filter(a => a.type === filter);
+    // Map the short filter keys ('crit', 'warn') to the full severity strings
+    const severityMap: { [key: string]: string } = {
+      'crit': 'critical',
+      'warn': 'warning',
+      'info': 'info'
+    };
+    
+    const target = severityMap[this.activeAlertFilter];
+    this.filteredAlerts = this.alertsData.filter(a => a.severity === target);
   }
-  this.cdr.detectChanges();
 }
+
+// updateFilteredAlerts() {
+//   const filter = this.activeAlertFilter || 'all';
+  
+//   if (filter === 'all') {
+//     this.filteredAlerts = [...this.alertsData];
+//   } else {
+//     // This filters the results that already passed the Settings Toggles
+//     this.filteredAlerts = this.alertsData.filter(a => a.type === filter);
+//   }
+//   this.cdr.detectChanges();
+// }
 
   getAlertTheme(type: string) {
     const t = String(type).toUpperCase(); // Normalize to Uppercase
@@ -1475,9 +1314,9 @@ initAttChart() {
   }
 
   // This handles the logic for the filter chips
-  setAlertFilter(filter: string) {
-    this.activeAlertFilter = filter;
-  }
+  // setAlertFilter(filter: string) {
+  //   this.activeAlertFilter = filter;
+  // }
 
  
   openAnalytics() {

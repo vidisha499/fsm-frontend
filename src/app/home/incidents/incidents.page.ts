@@ -111,9 +111,7 @@ async loadIncidents() {
 getTranslationKey(val: string) {
   if (!val) return 'UNKNOWN';
   
-  // 1. Trim aur UpperCase karein
-  // 2. Spaces ko underscore se badlein
-  // 3. Dot (.) ko underscore se badlein (Kyunki translation keys mein dots problem karte hain)
+
   return val.toString().trim().toUpperCase().replace(/\s+/g, '_').replace(/\./g, '_');
 }
 

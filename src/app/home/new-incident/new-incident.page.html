@@ -81,16 +81,16 @@
 
   <div class="input-stack">
   <div class="input-group">
-    <label class="input-label category-lbl">Incident Category</label>
-    <div class="input-wrapper">
-      <i class="fas fa-layer-group"></i>
-      <select class="styled-select" [(ngModel)]="incidentData.criteria" (change)="resetSubFields()">
-        <option value="Criminal Activity">⚖️ Criminal Activity</option>
-        <option value="Fire Warning">🔥 Fire Warning</option>
-        <option value="Assets & Tools">🔧 Assets & Tools</option>
-      </select>
-    </div>
+  <label class="input-label category-lbl">Incident Category</label>
+  <div class="input-wrapper">
+    <i class="fas fa-layer-group"></i>
+    <select class="styled-select" [(ngModel)]="incidentData.criteria" (change)="resetSubFields()">
+      <option value="Criminal Activity">⚖️ Criminal Activity</option>
+      <option value="Fire Warning">🔥 Fire Warning</option>
+      <option value="Assets & Tools">🔧 Assets & Tools</option>
+    </select>
   </div>
+</div>
 
   <div class="input-group animate__animated animate__fadeIn" *ngIf="incidentData.criteria === 'Criminal Activity'">
     <label class="input-label category-lbl">Criminal Activity Type</label>
@@ -106,6 +106,8 @@
       </select>
     </div>
   </div>
+
+
 
   <ng-container *ngIf="incidentData.subCategory === 'Timber Transport'">
     <div class="input-group animate__animated animate__fadeIn">
