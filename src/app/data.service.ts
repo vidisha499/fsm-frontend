@@ -136,10 +136,10 @@ getPatrolById(id: number) {
   return this.http.get(`${this.baseApiUrl}/patrols/logs/${id}`);
 }
 
-postSOS(alertData: any) {
-  // Ensure this is using baseApiUrl and NOT a hardcoded string or missing the /api prefix
-  return this.http.post(`${this.baseApiUrl}/alerts/trigger-sos`, alertData);
-}
+// postSOS(alertData: any) {
+//   // Ensure this is using baseApiUrl and NOT a hardcoded string or missing the /api prefix
+//   return this.http.post(`${this.baseApiUrl}/alerts/trigger-sos`, alertData);
+// }
 
 // --- ADMIN DASHBOARD FUNCTIONS ---
 
@@ -340,5 +340,11 @@ getCategories(companyId: any) {
 // statuses fetch karne ke liye
 getStatuses(companyId: any) {
   return this.http.get(`${this.baseApiUrl}/assets/statuses/${companyId}`);
+}
+
+// data.service.ts [cite: 1108]
+sendSOSAlert(payload: any) {
+  // Ensure this uses your baseApiUrl and exactly 'alerts/sos'
+  return this.http.post(`${this.baseApiUrl}/alerts/sos`, payload);
 }
 }

@@ -5,117 +5,7 @@
 
 <ng-container *ngIf="translate.currentLang">
     
-    <!-- <div id="side-menu-overlay" (click)="toggleMenu(false)"
-    class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9998] hidden transition-opacity duration-300">
-</div> -->
-
-<!-- <div id="side-menu"
-    class="fixed top-0 left-0 h-full w-72 bg-[#f8fafc] border-r border-white shadow-2xl z-[9999] transform -translate-x-full transition-transform duration-300 ease-in-out flex flex-col font-sans">
-
-    <div style="background: linear-gradient(135deg, rgba(28, 138, 160, 0.98) 0%, rgba(11, 72, 87, 0.94) 100%), 
-                url('https://images.unsplash.com/photo-1473448912268-2022ce9509d8?auto=format&fit=crop&q=80&w=1000'); 
-                background-size: cover; background-position: center; padding: 30px 24px; border-radius: 0 0 40px 0; 
-                box-shadow: 0 10px 20px rgba(0,0,0,0.15);">
-
-        <div class="flex items-center space-x-4 mb-6">
-            <div class="relative">
-                <img src="https://placehold.co/56x56/10b981/FFF?text=N" alt="User"
-                    class="w-14 h-14 rounded-2xl border-2 border-emerald-400 shadow-lg">
-                <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-emerald-900 rounded-full">
-                </div>
-            </div>
-            <div>
-                <p class="font-extrabold text-lg text-white leading-tight">
-                    {{ rangerName || ('COMMON.PENDING_NAME' | translate) }}
-                </p>
-
-                <p class="text-[10px] text-emerald-200 font-black uppercase tracking-[0.15em] mt-1">
-                    {{ rangerDivision || ('COMMON.ASSIGN_DIVISION' | translate) }}
-                </p>
-            </div>
-        </div>
-
-        <div class="p-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-sm">
-            <div class="flex items-center space-x-2 mb-1">
-                <i class="fas fa-calendar-alt text-[10px] text-emerald-300"></i>
-                <span class="text-[9px] text-emerald-100 font-black uppercase tracking-widest">{{ 'MENU.DUTY_ASSIGNMENT' | translate }}</span>
-            </div>
-            <p class="text-[12px] text-white font-bold">14 Jul 2024 — 30 Nov 2024</p>
-        </div>
-    </div>
-
-    <nav class="flex-grow p-5 space-y-3 overflow-y-auto bg-[#f8fafc]">
-        <a (click)="goToPage('home')"
-            class="flex items-center space-x-4 p-3 rounded-2xl bg-white shadow-sm border border-emerald-100 text-emerald-700 cursor-pointer">
-            <div class="w-10 h-10 flex items-center justify-center bg-emerald-400 rounded-xl shadow-lg shadow-emerald-100">
-                <i class="fas fa-th-large text-white text-sm"></i>
-            </div>
-            <span class="font-black text-sm uppercase">{{ 'MENU.DASHBOARD' | translate }}</span>
-        </a>
-
-        <a (click)="goToPage('attendance')"
-            class="flex items-center space-x-4 p-3 rounded-2xl bg-white shadow-sm border border-transparent text-slate-600 hover:text-blue-600 transition-all cursor-pointer">
-            <div class="w-10 h-10 flex items-center justify-center bg-pink-100 rounded-xl">
-                <i class="fas fa-calendar-check text-pink-600"></i>
-            </div>
-            <span class="font-bold text-sm">{{ 'MENU.ATTENDANCE_REQ' | translate }}</span>
-        </a>
-
-        <a (click)="goToPage('updates')"
-            class="flex items-center space-x-4 p-3 rounded-2xl bg-white shadow-sm border border-transparent text-slate-600 hover:text-purple-600 transition-all cursor-pointer">
-            <div class="w-10 h-10 flex items-center justify-center bg-purple-100 rounded-xl">
-                <i class="fas fa-newspaper text-purple-600"></i>
-            </div>
-            <span class="font-bold text-sm">{{ 'MENU.DAILY_UPDATES' | translate }}</span>
-        </a>
-
-        <a (click)="goToPage('visits')"
-            class="flex items-center space-x-4 p-3 rounded-2xl bg-white shadow-sm border border-transparent text-slate-600 hover:text-indigo-600 transition-all cursor-pointer">
-            <div class="w-10 h-10 flex items-center justify-center bg-indigo-100 rounded-xl">
-                <i class="fas fa-briefcase text-indigo-600"></i>
-            </div>
-            <span class="font-bold text-sm">{{ 'MENU.CLIENT_VISITS' | translate }}</span>
-        </a>
-
-
-        <a [routerLink]="['/location']" (click)="toggleMenu(false)"
-    class="flex items-center space-x-4 p-3 rounded-2xl bg-white shadow-sm border border-transparent text-slate-600 hover:text-emerald-600 transition-all cursor-pointer">
-    <div class="w-10 h-10 flex items-center justify-center bg-emerald-100 rounded-xl">
-        <i class="fas fa-map-marker-alt text-emerald-600"></i>
-    </div>
-    <span class="font-bold text-sm">{{ 'MENU.CURRENT_LOCATION' | translate }}</span>
-</a>
-
-        <a (click)="goToPage('settings')"
-            class="flex items-center space-x-4 p-3 rounded-2xl bg-white shadow-sm border border-transparent text-slate-600 hover:text-slate-900 transition-all cursor-pointer">
-            <div class="w-10 h-10 flex items-center justify-center bg-slate-100 rounded-xl">
-                <i class="fas fa-cog text-slate-600"></i>
-            </div>
-            <span class="font-bold text-sm">{{ 'MENU.ACCOUNT_SETTINGS' | translate }}</span>
-        </a>
-
-        <a (click)="toggleLanguageModal(true)"
-            class="flex items-center space-x-4 p-3 rounded-2xl bg-white shadow-sm border border-transparent text-slate-600 hover:text-amber-600 transition-all cursor-pointer">
-            <div class="w-10 h-10 flex items-center justify-center bg-amber-100 rounded-xl">
-                <i class="fas fa-language text-amber-600"></i>
-            </div>
-            <span class="font-bold text-sm">{{ 'MENU.CHANGE_LANGUAGE' | translate }}</span>
-        </a>
-
-        <a (click)="goToPage('login')"
-            class="flex items-center space-x-4 p-3 rounded-2xl bg-white shadow-sm border border-red-50 text-red-500 transition-all cursor-pointer">
-            <div class="w-10 h-10 flex items-center justify-center bg-red-100 rounded-xl">
-                <i class="fas fa-power-off text-red-600"></i>
-            </div>
-            <span class="font-black text-sm uppercase">{{ 'MENU.LOGOUT' | translate }}</span>
-        </a>
-    </nav>
-
-    <div class="p-6 text-center bg-[#f8fafc]">
-        <span class="text-[9px] font-black text-slate-400 tracking-[0.3em] uppercase">{{ 'COMMON.SYSTEM_TAG' | translate }} v1.2.1</span>
-    </div>
-</div> -->
-
+   
 <ion-content [fullscreen]="true" style="--background: #fdfdfd;">
 
     <div *ngIf="currentPage === 'home'" id="dashboard-page"
@@ -127,10 +17,7 @@
             </div>
             <div
                 style="position: relative; padding: 40px 25px; display: flex; justify-content: space-between; align-items: flex-start;">
-                <!-- <button (click)="toggleMenu(true)"
-                    style="background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); color: white; width: 45px; height: 45px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                    <ion-icon name="menu-outline" style="font-size: 24px;"></ion-icon>
-                </button> -->
+               
                 <button (click)="openMenu()"
                 style="background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); color: white; width: 45px; height: 45px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
                 <ion-icon name="menu-outline" style="font-size: 24px;"></ion-icon>
@@ -327,9 +214,15 @@
     <div class="custom-nav-bar">
         <div class="nav-tab active"><i class="fas fa-home"></i><span>{{ 'NAV.HOME' | translate }}</span></div>
         <div class="nav-tab" (click)="goToPage('patrol-logs')"><i class="fas fa-shoe-prints"></i><span>{{ 'NAV.PATROL' | translate }}</span></div>
-        <div class="sos-anchor">
+        <!-- <div class="sos-anchor">
             <div class="sos-circle"><i class="fas fa-exclamation-triangle"></i><span>{{ 'NAV.SOS' | translate }}</span></div>
-        </div>
+        </div> -->
+        <div class="sos-anchor" (click)="triggerEmergency()">
+    <div class="sos-circle">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>{{ 'NAV.SOS' | translate }}</span>
+    </div>
+</div>
         <div class="nav-tab" (click)="goToPage('incidents')"><i class="fas fa-binoculars"></i><span>{{ 'NAV.ALERTS' | translate }}</span></div>
         <div class="nav-tab" (click)="goToPage('settings')"><i class="fas fa-user-shield"></i><span>{{ 'NAV.RANGER' | translate }}</span></div>
     </div>
