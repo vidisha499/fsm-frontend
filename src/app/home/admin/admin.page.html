@@ -513,20 +513,7 @@
 </div>
 </div>
 
-        <!-- <div class="map-foot">
-          <div>
-            <div class="map-sn" style="color: var(--p)">18</div>
-            <div class="map-sl">Patrols</div>
-          </div>
-          <div>
-            <div class="map-sn" style="color: #ef4444">3</div>
-            <div class="map-sl">Alerts</div>
-          </div>
-          <div>
-            <div class="map-sn" style="color: var(--amber)">7</div>
-            <div class="map-sl">Posts</div>
-          </div>
-        </div>-->
+       
         <div class="map-foot">
   <div *ngFor="let stat of dynamicFootStats">
     <div class="map-sn" [style.color]="stat.color">{{ stat.count }}</div>

@@ -143,7 +143,6 @@ infoCount: number = 0;
   isLayerVisible: boolean = true;
   attendanceChart: any;
   // --- Map & Layer State ---
-  // Near line 237 where activePinsDisplay is
 public allIncidents: any[] = [];
   public map: L.Map | null | any = null;
 private markerGroup = L.layerGroup(); // To manage dynamic markers
@@ -276,15 +275,7 @@ layerStates: { [key: string]: boolean } = {
     return this.activePinsDisplay;
   }
 
-    // get activeLegendItems() {
-    //   const active: any[] = [];
-    //   Object.values(this.LAYERS_DATA).forEach((cat: any) => {
-    //     cat.items.forEach((l: any) => {
-    //       if (this.layerStates[l.id]) active.push(l);
-    //     });
-    //   });
-    //   return active;
-    // }
+ 
     get activeLegendItems() {
   const active: any[] = [];
   
@@ -348,9 +339,9 @@ layerStates: { [key: string]: boolean } = {
 
  @HostListener('document:click', ['$event'])
   clickout(event: any) {
-    // Check if the layer panel is currently open
+    
     if (this.isLayerPanelOpen) {
-      // If the click is NOT inside this component's element, close the panel
+
       if (!this.eRef.nativeElement.contains(event.target)) {
         this.isLayerPanelOpen = false;
         this.cdr.detectChanges(); // Ensure UI updates immediately
@@ -361,7 +352,7 @@ layerStates: { [key: string]: boolean } = {
 ngOnInit() {
 
   this.startDataPoll();
-  // Pehle purana koi bhi interval ho toh usey finish karo
+  
   if (this.dataInterval) {
     clearInterval(this.dataInterval);
     this.dataInterval = null;
@@ -371,7 +362,7 @@ ngOnInit() {
 
   // Naya fresh interval lagao
   this.dataInterval = setInterval(() => {
-    // Check if the component is still active before loading
+    
     if (this.activeTab === 'home') {
       this.loadData();
     }
@@ -388,8 +379,7 @@ ngOnInit() {
 startDataPoll() {
   this.loadData();
   
-  // Agla call tabhi hoga jab 30 second poore honge
-  // Isse "Overlapping" band ho jayegi
+
   this.dataInterval = setTimeout(() => {
     if (this.activeTab === 'home') {
       this.startDataPoll();
@@ -397,18 +387,18 @@ startDataPoll() {
   }, 30000);
 }
 
- // Replace your current ngAfterViewInit with this:
+ 
 ngAfterViewInit() {
   this.initHomeCharts();
-  // Map initialization moved to onSegmentChange to ensure container existence
+ 
 }
 
-// Add this method to your AdminPage class:
+
 onSegmentChange(event: any) {
   this.activeSegment = event.detail.value;
   
   if (this.activeSegment === 'map') {
-    // Small delay to allow Angular to render the *ngIf container
+
     setTimeout(() => {
       this.initLeafletMap();
     }, 100);
@@ -523,6 +513,228 @@ private updateMapMarkers() {
   });
 } 
 
+
+
+// loadData() {
+//   if (this.isFetching) return;
+
+//   const storageData = localStorage.getItem('user_data');
+//   if (!storageData) return;
+
+//   const user = JSON.parse(storageData);
+//   const myCompanyId = Number(user.company_id || user.companyId);
+//   const localISOTime = new Date().toISOString().split('T')[0];
+//   const dates = this.getFilterDates();
+
+//   this.isFetching = true;
+
+//   // SABHI DATA SOURCES EK SAATH
+//   forkJoin({
+//     stats: this.dataService.getDashboardStats(myCompanyId, dates.from, dates.to),
+//     sightings: this.dataService.getSightingCount(myCompanyId, dates.from || '', dates.to || ''),
+//     fireCount: this.adminService.getFireAlertsCount(myCompanyId, localISOTime),
+//     onDuty: this.adminService.getOnDutyCount(myCompanyId, localISOTime),
+//     onLeave: this.adminService.getOnLeaveCount(myCompanyId),
+//     inactive: this.adminService.getInactiveCount(myCompanyId, localISOTime),
+//     users: this.dataService.getUsersByCompany(myCompanyId),
+//     alerts: this.dataService.getLatestAlerts(myCompanyId),
+//     assetsStats: this.dataService.getAdminStats(myCompanyId), 
+//     assetsTrend: this.dataService.getAssetsTrend(myCompanyId),
+//     mapIncidents: this.dataService.getIncidentsForMap(myCompanyId) 
+//   }).subscribe({
+//     next: (res: any) => {
+//       // --- 1. ASSETS DATA (Nursery, Plantation etc.) ---
+//       if (res.assetsStats) {
+//         this.totalAssetsCount = res.assetsStats.totalAssets || 0;
+//         this.operationalRate = res.assetsStats.operationalRate || '0%';
+        
+//         // Error fix: In variables ko 'this' ke saath assign karne se pehle class mein declare zaroor karna
+//         // Agar compile error aaye toh class ke top pe: realNurseryCount: any = 0; likh dena
+//         (this as any).realNurseryCount = res.assetsStats.nursery || 0;
+//         (this as any).realPlantationCount = res.assetsStats.plantations || 0;
+//         (this as any).realOfficeCount = res.assetsStats.offices || 0;
+//         (this as any).realEcoCount = res.assetsStats.ecoSites || 0;
+
+//         // Analytics specific refresh logic
+//         if ((this as any).activeTab === 'assets' && typeof (this as any).setAnaCat === 'function') {
+//           (this as any).setAnaCat('assets'); 
+//         }
+//       }
+
+//       // --- 2. TREND CHART LOGIC ---
+//       if (res.assetsTrend) {
+//         this.momStatus = res.assetsTrend.momLabel || '0% MoM';
+//         this.isGoodTrend = res.assetsTrend.isImprovement;
+//         setTimeout(() => {
+//           if (typeof (this as any).initTrendChart === 'function') {
+//             (this as any).initTrendChart(res.assetsTrend.labels, res.assetsTrend.values);
+//           }
+//         }, 300);
+//       }
+
+//       // --- 3. DASHBOARD COUNTS (Fire, Criminal, Attendance) ---
+//       const stats = res.stats || {};
+//       this.incidentsCount = stats.totalEvents || 0;
+//       this.criminalActivityCount = stats.criminalEvents || 0;
+//       // 1. General Stats Assign
+//       const stats = res.stats || {};
+//       this.incidentsCount = stats.totalEvents || 0;
+//       this.criminalActivityCount = stats.criminalEvents || 0;
+      
+//       this.fireAlertsCount = stats.fireEvents || (res.fireCount?.count ?? res.fireCount ?? 0);
+//       this.attendancePercent = stats.resolvedPercentage || 0;
+
+//       // --- 4. PERSONNEL & RANGERS ---
+//       this.sightingsCount = typeof res.sightings === 'object' ? (res.sightings.count ?? 0) : (res.sightings ?? 0);
+
+//       // 3. Personnel Status
+//       this.onDutyCount = res.onDuty?.count ?? res.onDuty ?? 0;
+//       this.onLeaveCount = res.onLeave?.count ?? res.onLeave ?? 0;
+//       this.inactiveCount = res.inactive?.count ?? res.inactive ?? 0;
+
+//       // 4. Rangers List
+//       const allUsers = res.users?.data || res.users || [];
+//       if (Array.isArray(allUsers)) {
+//         this.rangers = allUsers.filter((u: any) => Number(u.role_id || u.roleId) === 4);
+//         this.filteredRangers = [...this.rangers];
+//         this.allRangers = this.rangers.length;
+//       }
+      
+//       // --- 5. MAP INCIDENTS & LAYERS ---
+//       if (res.mapIncidents && Array.isArray(res.mapIncidents)) {
+//         this.allIncidents = res.mapIncidents.map((inc: any) => {
+//           const dbCriteria = (inc.incidentCriteria || '').toUpperCase();
+//           const rawSubCat = inc.subCategory || '';
+//           const normalizedSub = rawSubCat.toLowerCase().trim().replace(/\s+/g, '_');
+
+//           let finalLayerId = normalizedSub;
+//           if (dbCriteria.includes('POACH') || normalizedSub.includes('poach')) finalLayerId = 'animal_poaching'; 
+//           else if (dbCriteria.includes('FIRE') || normalizedSub.includes('fire')) finalLayerId = 'fire_warning';
+//           else if (dbCriteria.includes('FELL') || normalizedSub.includes('felling')) finalLayerId = 'illegal_felling';
+//       // 5. MAP & TABLE LOGIC (Updated to ensure Sub-Category visibility)
+//       if (res.mapIncidents && Array.isArray(res.mapIncidents)) {
+//         console.log('1. Raw Data from DB:', res.mapIncidents);
+//         this.allIncidents = res.mapIncidents.map((inc: any) => {
+//           const dbCriteria = (inc.incidentCriteria || '').toUpperCase();
+//           // Keep raw sub-category for display, but normalize for layer ID
+//           const rawSubCat = inc.subCategory || '';
+//           const normalizedSub = rawSubCat.toLowerCase().trim().replace(/\s+/g, '_');
+
+//           let finalLayerId = normalizedSub;
+
+//           // Standardize IDs for LAYERS_DATA keys
+//           if (dbCriteria.includes('POACH') || normalizedSub.includes('poach')) {
+//             finalLayerId = 'animal_poaching'; 
+//           } 
+//           else if (dbCriteria.includes('FIRE') || normalizedSub.includes('fire')) {
+//             finalLayerId = 'fire_warning';
+//           } 
+//           else if (dbCriteria.includes('FELL') || normalizedSub.includes('felling')) {
+//             finalLayerId = 'illegal_felling';
+//           }
+
+//           return {
+//             ...inc,
+//             layerId: finalLayerId,
+//             // This ensures the table and map popups show the specific sub-category
+//             subCategory: rawSubCat || inc.incidentCriteria || 'General Incident',
+//             displayLabel: dbCriteria.includes('FIRE') ? 'Fire Warning' : (rawSubCat || inc.incidentCriteria)
+//           };
+//         });
+//         if (typeof (this as any).updateVisiblePins === 'function') {
+//           (this as any).updateVisiblePins(); 
+//       }
+
+//       // --- 6. ALERTS LOGIC (Title & Style Fixes) ---
+        
+//         this.updateVisiblePins(); 
+//       }
+
+//       // 6. Alerts Logic (Updated: Title now shows Sub-Category instead of SYSTEM)
+//       if (res.alerts && Array.isArray(res.alerts)) {
+//         const savedPrefs = localStorage.getItem('admin_notification_settings');
+
+//         this.alertsData = res.alerts
+//           .filter((alert: any) => {
+//             if (!prefs) return true;
+//             const dbCat = (alert.category || alert.subCategory || 'SYSTEM').toUpperCase();
+            
+//             const isEnabled = (label: string) => {
+//               const p = prefs.find((x: any) => x.label.toLowerCase() === label.toLowerCase());
+//               return p ? p.enabled : true;
+//             };
+
+//             if (dbCat.includes('FIRE')) return isEnabled('Fire Alerts');
+//             if (dbCat.includes('FELL')) return isEnabled('Illegal Felling');
+//             if (dbCat.includes('POACH')) return isEnabled('Animal Poaching');
+//             if (dbCat.includes('CRIMINAL')) return isEnabled('Criminal Activity');
+//             return true;
+//           })
+//           .slice(0, 15)
+//           .map((alert: any) => {
+//             const rawType = (alert.type || 'INFO').toUpperCase();
+//             const theme = (this as any).getAlertTheme(rawType);
+            
+//             let titlePrefix = (alert.subCategory || alert.category || rawType).toUpperCase();
+//             if (titlePrefix.includes('FIRE')) titlePrefix = 'FIRE WARNING';
+//             const theme = this.getAlertTheme(rawType);
+//             const name = alert.ranger_name || 'Ranger';
+            
+//             let titlePrefix = '';
+            
+//             // LOGIC CHANGE: Check for subCategory or category to replace "SYSTEM"
+//             if (rawType === 'INCIDENT' || alert.category || alert.subCategory) {
+//               // Priority: Sub-Category -> Category -> Type
+//               titlePrefix = (alert.subCategory || alert.category || 'INCIDENT').toUpperCase();
+              
+//               // Specific fix for Fire Alert requirements
+//               if (titlePrefix.includes('FIRE')) titlePrefix = 'FIRE WARNING';
+//             } 
+//             else if (rawType === 'ATTENDANCE') titlePrefix = 'ATTENDANCE';
+//             else if (rawType === 'ONSITE') titlePrefix = 'ONSITE-ATTENDANCE';
+//             else if (rawType === 'PATROL_START') titlePrefix = 'PATROL-START';
+//             else if (rawType === 'PATROL_END') titlePrefix = 'PATROL-END';
+//             else {
+//               titlePrefix = rawType;
+//             }
+
+//             const sev = rawType.includes('INCIDENT') || rawType.includes('CRIT') ? 'critical' : 
+//                         rawType.includes('WARN') ? 'warning' : 'info';
+
+//             return {
+//               ...alert,
+//               severity: sev,
+//               displayTitle: `${titlePrefix} - ${alert.ranger_name || 'Ranger'}`,
+//               displayDesc: `${alert.location_name || 'Forest Division'}`,
+//               displayTime: alert.created_at ? 
+//                 `${new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Just Now',
+//               icon: theme?.icon || 'information-circle', 
+//               bg: theme?.bg || 'bg-blue-50', 
+//               color: theme?.color || 'text-blue-500', 
+//               label: theme?.label || 'INFO'
+//             };
+//           });
+
+//         this.critCount = this.alertsData.filter(a => a.severity === 'critical').length;
+//         this.warnCount = this.alertsData.filter(a => a.severity === 'warning').length;
+//         this.infoCount = this.alertsData.filter(a => a.severity === 'info').length;
+        
+//         if (typeof (this as any).updateFilteredAlerts === 'function') {
+//           (this as any).updateFilteredAlerts();
+//         }
+//       }
+//     },
+//     error: (err: any) => {
+//       console.error('Master Data Fetch Error:', err);
+//       this.isFetching = false;
+//       this.cdr.detectChanges();
+//     },
+//     complete: () => {
+//       this.isFetching = false;
+//       this.cdr.detectChanges();
+//     }
+//   });
+// }
 loadData() {
   if (this.isFetching) return;
 
@@ -556,14 +768,11 @@ loadData() {
         this.totalAssetsCount = res.assetsStats.totalAssets || 0;
         this.operationalRate = res.assetsStats.operationalRate || '0%';
         
-        // Error fix: In variables ko 'this' ke saath assign karne se pehle class mein declare zaroor karna
-        // Agar compile error aaye toh class ke top pe: realNurseryCount: any = 0; likh dena
         (this as any).realNurseryCount = res.assetsStats.nursery || 0;
         (this as any).realPlantationCount = res.assetsStats.plantations || 0;
         (this as any).realOfficeCount = res.assetsStats.offices || 0;
         (this as any).realEcoCount = res.assetsStats.ecoSites || 0;
 
-        // Analytics specific refresh logic
         if ((this as any).activeTab === 'assets' && typeof (this as any).setAnaCat === 'function') {
           (this as any).setAnaCat('assets'); 
         }
@@ -580,7 +789,7 @@ loadData() {
         }, 300);
       }
 
-      // --- 3. DASHBOARD COUNTS (Fire, Criminal, Attendance) ---
+      // --- 3. DASHBOARD COUNTS ---
       const stats = res.stats || {};
       this.incidentsCount = stats.totalEvents || 0;
       this.criminalActivityCount = stats.criminalEvents || 0;
@@ -608,9 +817,13 @@ loadData() {
           const normalizedSub = rawSubCat.toLowerCase().trim().replace(/\s+/g, '_');
 
           let finalLayerId = normalizedSub;
-          if (dbCriteria.includes('POACH') || normalizedSub.includes('poach')) finalLayerId = 'animal_poaching'; 
-          else if (dbCriteria.includes('FIRE') || normalizedSub.includes('fire')) finalLayerId = 'fire_warning';
-          else if (dbCriteria.includes('FELL') || normalizedSub.includes('felling')) finalLayerId = 'illegal_felling';
+          if (dbCriteria.includes('POACH') || normalizedSub.includes('poach')) {
+            finalLayerId = 'animal_poaching'; 
+          } else if (dbCriteria.includes('FIRE') || normalizedSub.includes('fire')) {
+            finalLayerId = 'fire_warning';
+          } else if (dbCriteria.includes('FELL') || normalizedSub.includes('felling')) {
+            finalLayerId = 'illegal_felling';
+          }
 
           return {
             ...inc,
@@ -619,12 +832,13 @@ loadData() {
             displayLabel: dbCriteria.includes('FIRE') ? 'Fire Warning' : (rawSubCat || inc.incidentCriteria)
           };
         });
+
         if (typeof (this as any).updateVisiblePins === 'function') {
           (this as any).updateVisiblePins(); 
         }
       }
 
-      // --- 6. ALERTS LOGIC (Title & Style Fixes) ---
+      // --- 6. ALERTS LOGIC ---
       if (res.alerts && Array.isArray(res.alerts)) {
         const savedPrefs = localStorage.getItem('admin_notification_settings');
         const prefs = savedPrefs ? JSON.parse(savedPrefs) : null;
@@ -633,10 +847,12 @@ loadData() {
           .filter((alert: any) => {
             if (!prefs) return true;
             const dbCat = (alert.category || alert.subCategory || 'SYSTEM').toUpperCase();
+            
             const isEnabled = (label: string) => {
               const p = prefs.find((x: any) => x.label.toLowerCase() === label.toLowerCase());
               return p ? p.enabled : true;
             };
+
             if (dbCat.includes('FIRE')) return isEnabled('Fire Alerts');
             if (dbCat.includes('FELL')) return isEnabled('Illegal Felling');
             if (dbCat.includes('POACH')) return isEnabled('Animal Poaching');
@@ -646,10 +862,20 @@ loadData() {
           .slice(0, 15)
           .map((alert: any) => {
             const rawType = (alert.type || 'INFO').toUpperCase();
-            const theme = (this as any).getAlertTheme(rawType);
+            const theme = (this as any).getAlertTheme ? (this as any).getAlertTheme(rawType) : null;
             
-            let titlePrefix = (alert.subCategory || alert.category || rawType).toUpperCase();
-            if (titlePrefix.includes('FIRE')) titlePrefix = 'FIRE WARNING';
+            let titlePrefix = '';
+            if (rawType === 'INCIDENT' || alert.category || alert.subCategory) {
+              titlePrefix = (alert.subCategory || alert.category || 'INCIDENT').toUpperCase();
+              if (titlePrefix.includes('FIRE')) titlePrefix = 'FIRE WARNING';
+            } 
+            else if (rawType === 'ATTENDANCE') titlePrefix = 'ATTENDANCE';
+            else if (rawType === 'ONSITE') titlePrefix = 'ONSITE-ATTENDANCE';
+            else if (rawType === 'PATROL_START') titlePrefix = 'PATROL-START';
+            else if (rawType === 'PATROL_END') titlePrefix = 'PATROL-END';
+            else {
+              titlePrefix = rawType;
+            }
 
             const sev = rawType.includes('INCIDENT') || rawType.includes('CRIT') ? 'critical' : 
                         rawType.includes('WARN') ? 'warning' : 'info';
@@ -835,77 +1061,6 @@ ngOnDestroy() {
 }
   
 
-
-// updateVisiblePins() {
-//   const newPins: any[] = [];
-  
-//   if (!this.allIncidents) return;
-
-//   this.allIncidents.forEach(incident => {
-//     // 1. Get the Raw ID
-//     let layerId = incident.layerId || '';
-
-//     // 2. EMERGENCY NORMALIZATION: 
-//     // If the layerId doesn't exist, we try to map common database strings to your style IDs.
-//     // This specifically fixes the Poaching and Fire mismatch issues.
-//     const criteria = (incident.incidentCriteria || '').toUpperCase();
-//     const subCat = (incident.subCategory || '').toLowerCase();
-
-//     if (criteria.includes('POACH') || subCat.includes('poach')) {
-//       layerId = 'animal_poaching';
-//     } else if (criteria.includes('FIRE') || subCat.includes('fire')) {
-//       layerId = 'fire_warning';
-//     } else if (criteria.includes('FELL') || subCat.includes('felling')) {
-//       layerId = 'illegal_felling';
-//     }
-
-//     // 3. Check if this layer is toggled ON in the UI
-//     if (this.layerStates && this.layerStates[layerId] === true) {
-//       let style: any = null;
-      
-//       // 4. Find the correct Icon/Color/Label from LAYERS_DATA
-//       Object.values(this.LAYERS_DATA).forEach((cat: any) => {
-//         const found = cat.items.find((i: any) => i.id === layerId);
-//         if (found) style = found;
-//       });
-
-//       // 5. SAFETY FALLBACK: Use a generic style if no match is found so the pin doesn't vanish
-//       if (!style) {
-//         style = { 
-//           emoji: '⚠️', 
-//           color: '#6366f1', 
-//           label: incident.subCategory || incident.incidentCriteria || 'Alert' 
-//         };
-//       }
-
-//       // 6. Push to the final display array with parsed coordinates
-//       const lat = parseFloat(incident.latitude);
-//       const lng = parseFloat(incident.longitude);
-
-//       // Only push if coordinates are valid numbers
-//       if (!isNaN(lat) && !isNaN(lng)) {
-//         newPins.push({
-//           ...incident,
-//           lat: lat,
-//           lng: lng,
-//           label: style.label,
-//           emoji: style.emoji,
-//           color: style.color,
-//           layerId: layerId // Pass the corrected ID for the footer count
-//         });
-//       } else {
-//         console.warn('Incident skipped due to invalid coordinates:', incident);
-//       }
-//     }
-//   });
-
-//   // 7. Update the UI and Map
-//   this.activePinsDisplay = newPins;
-//   console.log('Processed Pins for Map:', this.activePinsDisplay.length);
-  
-//   this.updateMapMarkers();
-//   this.cdr.detectChanges();
-// }
 updateVisiblePins() {
   const newPins: any[] = [];
   
@@ -1173,14 +1328,12 @@ initAttChart() {
       const el = document.getElementById('c-att') as HTMLCanvasElement;
       if (!el) return;
 
-      // --- YE FIX HAI: Purane chart ko khatam karo ---
-      // Agar 'c-att' chart pehle se bana hai, toh destroy karo
+    
       if (this.attChart) { 
         this.attChart.destroy();
       }
 
-      // Important: Actual data use ho raha hai
-      // Is line se naya chart assign ho jayega this.attChart ko
+   
       this.attChart = this.mkChart('c-att', { 
         type: 'line',
         data: {
