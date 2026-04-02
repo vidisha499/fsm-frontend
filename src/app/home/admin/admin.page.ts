@@ -107,6 +107,8 @@ export class AdminPage implements OnInit, AfterViewInit {
 
   // --- UI State ---
   // YE NEECHE WAALI LINES ADD KARO
+  sightingChart: any;
+  sightingSnapshotCount: number = 0;
   realNurseryCount: number = 0;
   realPlantationCount: number = 0;
   realOfficeCount: number = 0;
@@ -391,6 +393,11 @@ startDataPoll() {
 ngAfterViewInit() {
   this.initHomeCharts();
  
+}
+
+ionViewDidEnter() {
+  // Call it here so it runs every time the page is viewed
+  this.loadSightingAnalytics();
 }
 
 
@@ -1578,5 +1585,43 @@ goToAnalytics(category: string) {
   this.router.navigate(['/home/admin-analytics'], { 
     queryParams: { type: category } 
   });
+}
+
+// admin.page.ts
+loadSightingAnalytics() {
+  const companyId = localStorage.getItem('companyId') ? Number(localStorage.getItem('companyId')) : 1; 
+  
+  this.dataService.getSightingSnapshot(companyId).subscribe({
+    next: (res: any) => {
+      const dataArray = Array.isArray(res) ? res : [];
+      
+      let total = 0;
+      dataArray.forEach(item => {
+        total += Number(item.count || 0);
+      });
+      
+      this.sightingSnapshotCount = total;
+
+      // Update Chart labels and data
+      const labels = dataArray.map((item: any) => 
+        new Date(item.date).toLocaleDateString('en-US', { weekday: 'short' })
+      );
+      const dataPoints = dataArray.map((item: any) => Number(item.count || 0));
+
+      this.updateChart(labels, dataPoints);
+
+      // 🔥 THIS IS THE MAGIC FIX:
+      this.cdr.detectChanges(); 
+    },
+    error: (err) => console.error('Snapshot error:', err)
+  });
+}
+
+updateChart(labels: string[], data: number[]) {
+  if (this.sightingChart) {
+    this.sightingChart.data.labels = labels;
+    this.sightingChart.data.datasets[0].data = data;
+    this.sightingChart.update();
+  }
 }
 }

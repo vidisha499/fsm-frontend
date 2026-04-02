@@ -324,7 +324,7 @@
 
     <div class="mini-card" data-cat="events" (click)="goAnalytics('events')">
       <div class="mini-lbl">🐾 Events & Monitor.</div>
-      <div class="mini-val" style="color:var(--amber)" id="ms-events">342</div>
+      <div class="mini-val" style="color:var(--amber)" id="ms-events">{{ sightingSnapshotCount }}</div>
       <div class="mini-ch"><canvas id="mc-events"></canvas></div>
       <div class="mini-meta">Y: Events · X:{{ getFilterLabel() }}</div>
     </div>

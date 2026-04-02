@@ -339,6 +339,19 @@ getStatuses(companyId: any) {
   return this.http.get(`${this.baseApiUrl}/assets/statuses/${companyId}`);
 }
 
+// // Add to your data service
+// getSightingSnapshot(companyId: number) {
+//   return this.http.get(`${this.baseApiUrl}/patrols/sightings-snapshot?companyId=${companyId}`);
+// }
+
+// src/app/data.service.ts
+getSightingSnapshot(companyId: number) {
+  // Add /api if it's not already in your baseApiUrl, 
+  // but usually, it's safer to check your environment.ts first.
+  // The path must be: baseApiUrl + /patrols/sightings-snapshot
+  return this.http.get(`${this.baseApiUrl}/patrols/sightings-snapshot?companyId=${companyId}`);
+} 
+
 // data.service.ts [cite: 1108]
 sendSOSAlert(payload: any) {
   // Ensure this uses your baseApiUrl and exactly 'alerts/sos'
