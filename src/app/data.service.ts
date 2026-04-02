@@ -304,11 +304,7 @@ getAssetsTrend(companyId: number): Observable<any> {
   return this.http.get(`${this.baseApiUrl}/assets/assets-trend?company_id=${companyId}`);
 }
 
-// data.service.ts mein isse update karo
-getAssetsAnalytics(companyId: number) {
-  // Yahan '/admin' add kar diya hai
-  return this.http.get(`${this.baseApiUrl}/admin/analytics/assets?companyId=${companyId}`);
-}
+
 // src/app/data.service.ts mein ye add karo (agar nahi hai toh)
 getAssetStats(companyId: number): Observable<any> {
   return this.http.get(`${this.baseApiUrl}/admin/assets/stats/${companyId}`);
@@ -324,8 +320,9 @@ getIncidentsForMap(companyId: number) {
 
 
 // Isse badal kar...
-getAssetCategories(companyId: number) {
-  return this.http.get(`${this.baseApiUrl}/assets/categories/company/${companyId}`);
+// data.service.ts
+getAssetCategories(companyId: any): Observable<any[]> { // <--- Yahan <any[]> add kar
+  return this.http.get<any[]>(`${this.baseApiUrl}/assets/categories/${companyId}`);
 }
 
 getAssetStatuses(companyId: number) {
@@ -346,5 +343,22 @@ getStatuses(companyId: any) {
 sendSOSAlert(payload: any) {
   // Ensure this uses your baseApiUrl and exactly 'alerts/sos'
   return this.http.post(`${this.baseApiUrl}/alerts/sos`, payload);
+}
+
+// data.service.ts mein is function ko replace kar
+getAssetsAnalytics(companyId: number) {
+  // Path controller ke @Controller('assets') aur @Get('analytics/stats') se match hona chahiye
+  return this.http.get(`${this.baseApiUrl}/assets/analytics/stats?companyId=${companyId}`);
+}
+
+getCompanyDynamicAssets(companyId: number) {
+  return this.http.get(`${this.baseApiUrl}/assets/analytics/dynamic-stats/${companyId}`);
+}
+
+// data.service.ts mein existing constructor ke niche ye add karo:
+
+get(endpoint: string) {
+  // baseUrl pehle se environment se aa raha hai
+  return this.http.get(`${this.baseApiUrl}/${endpoint}`);
 }
 }

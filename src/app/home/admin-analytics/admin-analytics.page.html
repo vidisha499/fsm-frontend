@@ -22,16 +22,7 @@
       </div>
 
       <div class="filter-bar" [class.collapsed]="isFilterCollapsed">
-      
-        <!-- <select class="fselect" [(ngModel)]="selectedRange" (change)="onFilterChange()">
-  <option value="all">All Ranges</option>
-  <option *ngFor="let r of ranges" [value]="r">{{r}}</option>
-</select>
-
-<select class="fselect" [(ngModel)]="selectedBeat" (change)="onFilterChange()">
-  <option value="all">All Beats</option>
-  <option *ngFor="let b of beats" [value]="b">{{b}}</option>
-</select> -->
+   
 <select class="fselect" [(ngModel)]="selectedRange" (change)="onFilterChange()">
   <option value="all">All Ranges</option>
   <option *ngFor="let r of ranges" [value]="r">{{r}}</option>
@@ -43,24 +34,6 @@
 </select>
         <div class="date-chips">
          
-         
-  <!-- <div class="dchip" 
-       [class.active]="activeDateFilter==='today'" 
-       (click)="activeDateFilter='today'; onFilterChange()">
-       Today
-  </div>
-  
-  <div class="dchip" 
-       [class.active]="activeDateFilter==='week'" 
-       (click)="activeDateFilter='week'; onFilterChange()">
-       Week
-  </div>
-  
-  <div class="dchip" 
-       [class.active]="activeDateFilter==='month'" 
-       (click)="activeDateFilter='month'; onFilterChange()">
-       Month
-  </div> -->
   <div class="dchip" [class.active]="activeDateFilter==='today'" (click)="activeDateFilter='today'; onFilterChange()">Today</div>
 <div class="dchip" [class.active]="activeDateFilter==='week'" (click)="activeDateFilter='week'; onFilterChange()">Week</div>
 <div class="dchip" [class.active]="activeDateFilter==='month'" (click)="activeDateFilter='month'; onFilterChange()">Month</div>
@@ -88,66 +61,19 @@
       <div class="stile-val" [style.color]="s.color">
         {{ s.val?.toLocaleString() }}
       </div>
-      <div class="stile-lbl">{{ s.emoji }} {{ s.label }}</div>
-    </div>
-  </div>
+      <!-- <div class="stile-lbl">{{ s.emoji }} {{ s.label }}</div> -->
+       <div class="stile-lbl">
+  <ion-icon *ngIf="s.icon" [name]="s.icon" style="margin-right: 4px; vertical-align: middle;"></ion-icon>
+  
+  <span *ngIf="!s.icon">{{ s.emoji }}</span>
+  
+  {{ s.label }}
 </div>
-
-<!-- <div id="ana-charts-area">
-  <div class="card" *ngIf="displayProgList.length">
-    <div class="card-hdr">
-      <div class="card-title">Sub-Category Overview</div>
-      <div class="card-pill">{{ currentCatSubsCount }} categories</div>
-    </div>
-    <div class="card-body">
-      <div class="prog-list">
-        <div class="prog-item" *ngFor="let p of displayProgList">
-          <div class="prog-row">
-            <canvas [id]="ch.id"></canvas>
-            <span class="prog-lbl">{{p.emoji}} {{p.label}}</span>
-            <span class="prog-val">{{p.val?.toLocaleString()}}</span>
-          </div>
-          <div class="prog-bg">
-            <div class="prog-fill" [style.width.%]="p.pct" [style.background]="p.color"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-
-
-  <div class="card" *ngFor="let ch of currentSubCharts">
-  <div class="card-hdr">
-    <div>
-      <div class="card-title">{{ ch.title }}</div>
-      <div class="card-sub">{{ ch.sub }}</div>
-    </div>
-  </div>
-  <div class="card-body">
-    <div style="height:200px; position:relative"> 
-      <canvas [id]="ch.id"></canvas>
     </div>
   </div>
 </div>
 
 
-          <div class="card">
-            <div class="card-hdr"><div class="card-title">Recent Activity</div></div>
-            <div class="act-log">
-              <div class="act-item"*ngFor="let a of displayActivity">
-                <div class="act-dcol">
-                  <div class="act-dot" [style.background]="a.d"></div>
-                  <div class="act-line"></div>
-                </div>
-                <div>
-                  <div class="act-ttl">{{ a.t }}</div>
-                  <div class="act-meta">{{ a.m }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div> -->
 
         <div id="ana-charts-area">
   <div class="card" *ngIf="displayProgList.length">
@@ -159,7 +85,18 @@
       <div class="prog-list">
         <div class="prog-item" *ngFor="let p of displayProgList" (click)="setAnaSub(p.id)">
           <div class="prog-row">
-            <span class="prog-lbl">{{p.emoji}} {{p.label}}</span>
+            <!-- <span class="prog-lbl">{{p.emoji}} {{p.label}}</span> -->
+             <span class="prog-lbl">
+  <ion-icon *ngIf="p.icon" 
+            [name]="p.icon" 
+            [style.color]="getIconColor(p.label)"
+            style="margin-right: 8px; font-size: 1.2rem; vertical-align: middle;">
+  </ion-icon>
+  
+  <span *ngIf="!p.icon" style="margin-right: 8px;">{{ p.emoji }}</span>
+  
+  {{p.label}}
+</span>
             <span class="prog-val">{{p.val?.toLocaleString()}}</span>
           </div>
           <div class="prog-bg">

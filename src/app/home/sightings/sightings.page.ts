@@ -77,7 +77,6 @@ export class SightingsPage implements OnInit {
   toggleGender(type: string) {
     this.obsData.genderMale = (type === 'male');
     this.obsData.genderFemale = (type === 'female');
-    // this.obsData.genderUnknown = (type === 'unknown');
     this.obsData.genderUnknown = (type === 'unknown');
   }
 

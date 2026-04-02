@@ -446,23 +446,84 @@ updateChart() {
 }
 
 
+// setAnaCat(id: string) {
+//   const cat = this.ANA_CONFIG[id];
+//   if (cat) {
+//     this.activeTab = id; 
+//     this.activeCatId = id; 
+//     this.activeSubId = cat.subs[0]?.id; 
+
+//     console.log("Switching Category to:", id); // Check karo yahan kya aa raha hai
+
+//     this.destroyCharts(); 
+    
+//     // Yahan ensure karo ki loadData() ko pata chale ki category change hui hai
+//     this.loadData(); 
+//     this.updateUIData(); 
+    
+//     this.cdr.detectChanges();
+//   }
+// }
+
 setAnaCat(id: string) {
-  const cat = this.ANA_CONFIG[id];
-  if (cat) {
-    this.activeTab = id; 
-    this.activeCatId = id; 
-    this.activeSubId = cat.subs[0]?.id; 
+  this.activeTab = id; 
+  this.activeCatId = id; 
+  console.log("Switching Category to:", id);
 
-    console.log("Switching Category to:", id); // Check karo yahan kya aa raha hai
+  this.destroyCharts();
 
-    this.destroyCharts(); 
-    
-    // Yahan ensure karo ki loadData() ko pata chale ki category change hui hai
-    this.loadData(); 
-    this.updateUIData(); 
-    
-    this.cdr.detectChanges();
+  // --- YE SECTION ADD KARO (Surgical Strike) ---
+  if (id === 'assets') {
+    const companyId = localStorage.getItem('company_id') || 1;
+    // Database se categories fetch karo (Resorts/Safari ke liye)
+    this.dataService.get(`assets/categories/${companyId}`).subscribe((categories: any) => {
+      this.ANA_CONFIG.assets.subs = categories.map((cat: any) => ({
+        id: cat.name.toLowerCase().replace(/\s/g, '_'),
+        label: cat.name,
+        emoji: "🛡️", 
+        icon: cat.icon_name || 'shield-checkmark-outline',
+        val: 0,
+        charts: [{ 
+          id: "ch-" + cat.id, 
+          title: cat.name + " Status", 
+          render: (chartId: string) => {
+            const current = this.displayProgList.find(s => s.label === cat.name);
+            return this.renderGenericChart(chartId, cat.name, current?.val || 0);
+          }
+        }]
+      }));
+      this.activeSubId = this.ANA_CONFIG.assets.subs[0]?.id;
+      this.updateUIData(); // Data load karne ke liye
+    });
+  } else {
+    // Baaki tabs (Criminal, Fire) ke liye wahi purana logic
+    const cat = this.ANA_CONFIG[id];
+    if (cat) {
+      this.activeSubId = cat.subs[0]?.id; 
+      this.loadData(); 
+      this.updateUIData();
+    }
   }
+  // --------------------------------------------
+  
+  this.cdr.detectChanges();
+}
+
+renderGenericChart(chartId: string, label: string, currentVal: number) {
+  // Logic: Agar value hai toh 15% maintenance dikhao, varna default 2
+  const maintenance = currentVal > 0 ? Math.ceil(currentVal * 0.15) : 2; 
+
+  this.mkChart(chartId, {
+    type: 'doughnut',
+    data: {
+      labels: ['Operational', 'Maintenance'],
+      datasets: [{ 
+        data: [currentVal, maintenance], 
+        backgroundColor: [COLORS.teal, COLORS.amber] 
+      }]
+    },
+    options: CDAX
+  });
 }
   setAnaSub(id: string) {
     this.activeSubId = id;
@@ -590,33 +651,47 @@ onFilterChange() {
   }, 300);
 }
 
+getIconColor(label: string): string {
+  const l = label.toLowerCase();
+  if (l.includes('nursery')) return '#2dd36f';    // Green
+  if (l.includes('plantation')) return '#10dc60'; // Dark Green
+  if (l.includes('office')) return '#3880ff';     // Blue
+  if (l.includes('resort')) return '#ffce00';     // Yellow/Gold
+  if (l.includes('safari')) return '#f04141';     // Red
+  if (l.includes('tower')) return '#7044ff';      // Purple
+  if (l.includes('gate')) return '#92949c';       // Gray
+  return '#3dc2ff'; // Default Blue
+}
 async updateUIData() {
   const cat = this.getCurrentCat();
   if (!cat) return;
 
   const companyId = localStorage.getItem('companyId') || '1';
-  const timeframe = this.activeDateFilter;
+  const timeframe = this.activeDateFilter; // 'today' ya 'all'
   const range = this.selectedRange;
   const beat = this.selectedBeat;
 
   console.log(`Fetching data for Category: ${this.activeCatId}`);
 
-  // 1. Data Call ko saare tabs ke liye dynamic banao
   let dataCall;
   if (this.activeCatId === 'fire') {
     dataCall = this.dataService.getFireAnalytics(companyId, timeframe, range, beat);
   } else if (this.activeCatId === 'events') {
     dataCall = this.dataService.getEventsAnalytics(companyId as any, timeframe);
-  } else if (this.activeCatId === 'assets') {
-    dataCall = this.dataService.getAssetsAnalytics(companyId as any);
-  } else {
-    // Default: Criminal
+  } 
+  // --- YE WALA SECTION CHANGE KARO ---
+  else if (this.activeCatId === 'assets') {
+    const cId = localStorage.getItem('company_id') || localStorage.getItem('companyId') || '1';
+  dataCall = this.dataService.get(`assets/analytics/dynamic-stats/${cId}?timeframe=${timeframe}`);
+  } 
+  // ----------------------------------
+  else {
     dataCall = this.dataService.getCriminalAnalytics(companyId, timeframe, range, beat);
   }
 
   dataCall.subscribe({
     next: (res: any) => {
-      // 2. UI List mapping (Yahan koi change nahi, perfect hai)
+      // 2. UI List mapping (Same rahega, perfect hai)
       this.displayProgList = cat.subs.map((s: any) => {
         const dynamicVal = res[s.id] || 0; 
         return {
@@ -633,7 +708,7 @@ async updateUIData() {
       
       this.cdr.detectChanges();
       
-      // 4. Charts Render (Ensure karo ye function error na de agar canvas na mile)
+      // 4. Charts Render
       setTimeout(() => {
         this.renderSubCharts();
       }, 200);

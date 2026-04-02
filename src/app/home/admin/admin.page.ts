@@ -1072,6 +1072,9 @@ private mkChart(id: string, config: ChartConfiguration | any) {
     const tCtx = tCanvas.getContext('2d');
     if (!tCtx) return;
 
+    const existingChart = Chart.getChart('c-trend'); 
+if (existingChart) existingChart.destroy();
+
     this.mkChart('c-trend', {
       type: 'line',
       data: {
@@ -1129,6 +1132,9 @@ private mkChart(id: string, config: ChartConfiguration | any) {
       if (!el) return;
       const ctx = el.getContext('2d');
       if (!ctx) return;
+
+      const oldMini = Chart.getChart(id);
+  if (oldMini) oldMini.destroy();
 
       this.mkChart(id, {
         type: type as any,
