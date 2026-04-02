@@ -544,13 +544,16 @@ loadData() {
     inactive: this.adminService.getInactiveCount(myCompanyId, localISOTime),
     users: this.dataService.getUsersByCompany(myCompanyId),
     alerts: this.dataService.getLatestAlerts(myCompanyId),
-    assetsStats: this.dataService.getAdminStats(myCompanyId), 
+    // assetsStats: this.dataService.getAdminStats(myCompanyId), 
+    assetsStats: this.dataService.getAdminStats(myCompanyId, this.activeDateFilter, dates.from, dates.to),
     assetsTrend: this.dataService.getAssetsTrend(myCompanyId),
     mapIncidents: this.dataService.getIncidentsForMap(myCompanyId) 
   }).subscribe({
     next: (res: any) => {
       // --- 1. ASSETS DATA (Nursery, Plantation etc.) ---
       if (res.assetsStats) {
+        this.totalAssetsCount = res.assetsStats.totalAssets || 0;
+      this.operationalRate = res.assetsStats.operationalRate || '0%';
         this.totalAssetsCount = res.assetsStats.totalAssets || 0;
         this.operationalRate = res.assetsStats.operationalRate || '0%';
         
@@ -1072,23 +1075,118 @@ private mkChart(id: string, config: ChartConfiguration | any) {
     );
   }
 
-  initHomeCharts() {
-    // Check if element exists before trying to render (prevents errors on other segments)
-    const tCanvas = document.getElementById('c-trend') as HTMLCanvasElement;
-    if (!tCanvas) return;
+//   initHomeCharts() {
+//     // Check if element exists before trying to render (prevents errors on other segments)
+//     const tCanvas = document.getElementById('c-trend') as HTMLCanvasElement;
+//     if (!tCanvas) return;
+//     const tCtx = tCanvas.getContext('2d');
+//     if (!tCtx) return;
+
+//     const existingChart = Chart.getChart('c-trend'); 
+// if (existingChart) existingChart.destroy();
+
+//     this.mkChart('c-trend', {
+//       type: 'line',
+//       data: {
+//         labels: Array.from({ length: 30 }, (_, i) => `D${i + 1}`),
+//         datasets: [
+//           {
+//             data: this.rnd(30, 60, 15),
+//             borderColor: this.COLORS.p,
+//             backgroundColor: this.mkG(tCtx, this.COLORS.p),
+//             fill: true,
+//             tension: 0.4,
+//             pointRadius: 0,
+//             borderWidth: 2,
+//             label: 'Incidents',
+//           },
+//         ],
+//       },
+//       options: {
+//         ...this.CDAX,
+//         plugins: { ...this.CDAX.plugins, legend: { display: false } },
+//         scales: {
+//           x: {
+//             ...this.CDAX.scales.x,
+//             display: true,
+//             title: {
+//               display: true,
+//               text: 'Days',
+//               color: '#94a3b8',
+//               font: { size: 9 },
+//             },
+//           },
+//           y: {
+//             ...this.CDAX.scales.y,
+//             title: {
+//               display: true,
+//               text: 'No. of Incidents',
+//               color: '#94a3b8',
+//               font: { size: 9 },
+//             },
+//           },
+//         },
+//       },
+//     });
+
+//     const pairs: [string, number[], string, string?][] = [
+//       ['mc-crim', this.rnd(15, 20, 5), this.COLORS.rose],
+//       ['mc-events', this.rnd(15, 50, 20), this.COLORS.amber],
+//       ['mc-fire', this.rnd(15, 8, 1), this.COLORS.orange, 'bar'],
+//       ['mc-assets', this.rnd(15, 99, 85), this.COLORS.p],
+//       ['mc-duty', this.rnd(7, 420, 390), this.COLORS.blue, 'bar'],
+//     ];
+
+//     pairs.forEach(([id, data, color, type = 'line']) => {
+//       const el = document.getElementById(id) as HTMLCanvasElement;
+//       if (!el) return;
+//       const ctx = el.getContext('2d');
+//       if (!ctx) return;
+
+//       const oldMini = Chart.getChart(id);
+//   if (oldMini) oldMini.destroy();
+
+//       this.mkChart(id, {
+//         type: type as any,
+//         data: {
+//           labels: data.map((_, i) => i),
+//           datasets: [
+//             {
+//               data,
+//               borderColor: color,
+//               backgroundColor:
+//                 type === 'bar' ? color + '99' : this.mkG(ctx, color, 55),
+//               fill: type === 'line',
+//               tension: 0.4,
+//               pointRadius: 0,
+//               borderWidth: 1.5,
+//               borderRadius: 3,
+//               label: 'Value',
+//             },
+//           ],
+//         },
+//         options: this.CD,
+//       });
+//     });
+//   }
+
+
+initHomeCharts() {
+  // --- 1. MAIN INCIDENT TREND CHART ---
+  const tCanvas = document.getElementById('c-trend') as HTMLCanvasElement;
+  if (tCanvas) {
     const tCtx = tCanvas.getContext('2d');
-    if (!tCtx) return;
+    if (tCtx) {
+      // Purana chart destroy karo taaki error na aaye
+      const existingTrend = Chart.getChart('c-trend');
+      if (existingTrend) existingTrend.destroy();
 
-    const existingChart = Chart.getChart('c-trend'); 
-if (existingChart) existingChart.destroy();
-
-    this.mkChart('c-trend', {
-      type: 'line',
-      data: {
-        labels: Array.from({ length: 30 }, (_, i) => `D${i + 1}`),
-        datasets: [
-          {
-            data: this.rnd(30, 60, 15),
+      this.mkChart('c-trend', {
+        type: 'line',
+        data: {
+          labels: Array.from({ length: 30 }, (_, i) => `D${i + 1}`),
+          datasets: [{
+            data: this.rnd(30, 60, 15), // Isme tu real historical data bhi daal sakta hai
             borderColor: this.COLORS.p,
             backgroundColor: this.mkG(tCtx, this.COLORS.p),
             fill: true,
@@ -1096,76 +1194,88 @@ if (existingChart) existingChart.destroy();
             pointRadius: 0,
             borderWidth: 2,
             label: 'Incidents',
-          },
-        ],
+          }],
+        },
+        options: {
+          ...this.CDAX,
+          plugins: { ...this.CDAX.plugins, legend: { display: false } },
+          scales: {
+            x: { 
+              display: true, 
+              grid: { display: false },
+              border: { display: false },
+              ticks: { color: '#94a3b8', font: { size: 8 } }
+            },
+            y: { 
+              display: true, 
+              beginAtZero: true,
+              grid: { color: 'rgba(226, 232, 240, 0.3)', drawBorder: false },
+              border: { display: false },
+              ticks: { color: '#94a3b8', font: { size: 8 }, maxTicksLimit: 5 }
+            }
+          }
+        },
+      });
+    }
+  }
+
+  // --- 2. CATEGORY SNAPSHOTS (MINI CHARTS) ---
+  
+  // Dynamic Trend Logic: Agar data sirf 1 hai, toh hum use trend dikhane ke liye array mein convert kar rahe hain
+  const getTrend = (val: number) => [0, 0, 0, 0, val || 0];
+
+  const pairs: [string, number[], string, string?][] = [
+    // Mapping to YOUR specific variables:
+    ['mc-crim', getTrend(this.criminalActivityCount), this.COLORS.rose],
+    ['mc-events', getTrend(this.sightingsCount), this.COLORS.amber],
+    ['mc-fire', getTrend(this.fireAlertsCount), this.COLORS.orange, 'bar'],
+    ['mc-assets', getTrend(this.totalAssetsCount), this.COLORS.p],
+    ['mc-duty', getTrend(this.onDutyCount), this.COLORS.blue, 'bar'],
+  ];
+
+  pairs.forEach(([id, data, color, type = 'line']) => {
+    const el = document.getElementById(id) as HTMLCanvasElement;
+    if (!el) return;
+
+    const ctx = el.getContext('2d');
+    if (!ctx) return;
+
+    // Purana mini-chart destroy karo
+    const oldMini = Chart.getChart(id);
+    if (oldMini) oldMini.destroy();
+
+    this.mkChart(id, {
+      type: type as any,
+      data: {
+        labels: data.map((_, i) => i),
+        datasets: [{
+          data, 
+          borderColor: color,
+          backgroundColor: type === 'bar' ? color + '99' : this.mkG(ctx, color, 45),
+          fill: type === 'line',
+          tension: 0.4,
+          pointRadius: 0,
+          borderWidth: 1.5,
+          borderRadius: type === 'bar' ? 3 : 0,
+        }],
       },
       options: {
-        ...this.CDAX,
-        plugins: { ...this.CDAX.plugins, legend: { display: false } },
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
         scales: {
-          x: {
-            ...this.CDAX.scales.x,
-            display: true,
-            title: {
-              display: true,
-              text: 'Days',
-              color: '#94a3b8',
-              font: { size: 9 },
-            },
-          },
-          y: {
-            ...this.CDAX.scales.y,
-            title: {
-              display: true,
-              text: 'No. of Incidents',
-              color: '#94a3b8',
-              font: { size: 9 },
-            },
-          },
-        },
+          x: { display: false },
+          y: { 
+            display: false, 
+            beginAtZero: true,
+            // Isse graph area poora use hoga aur data ke hisaab se height adjust hogi
+            suggestedMax: Math.max(...data) > 0 ? Math.max(...data) * 1.2 : 10 
+          }
+        }
       },
     });
-
-    const pairs: [string, number[], string, string?][] = [
-      ['mc-crim', this.rnd(15, 20, 5), this.COLORS.rose],
-      ['mc-events', this.rnd(15, 50, 20), this.COLORS.amber],
-      ['mc-fire', this.rnd(15, 8, 1), this.COLORS.orange, 'bar'],
-      ['mc-assets', this.rnd(15, 99, 85), this.COLORS.p],
-      ['mc-duty', this.rnd(7, 420, 390), this.COLORS.blue, 'bar'],
-    ];
-
-    pairs.forEach(([id, data, color, type = 'line']) => {
-      const el = document.getElementById(id) as HTMLCanvasElement;
-      if (!el) return;
-      const ctx = el.getContext('2d');
-      if (!ctx) return;
-
-      const oldMini = Chart.getChart(id);
-  if (oldMini) oldMini.destroy();
-
-      this.mkChart(id, {
-        type: type as any,
-        data: {
-          labels: data.map((_, i) => i),
-          datasets: [
-            {
-              data,
-              borderColor: color,
-              backgroundColor:
-                type === 'bar' ? color + '99' : this.mkG(ctx, color, 55),
-              fill: type === 'line',
-              tension: 0.4,
-              pointRadius: 0,
-              borderWidth: 1.5,
-              borderRadius: 3,
-              label: 'Value',
-            },
-          ],
-        },
-        options: this.CD,
-      });
-    });
-  }
+  });
+}
 
 initAttChart() {
   const user = JSON.parse(localStorage.getItem('user_data') || '{}');

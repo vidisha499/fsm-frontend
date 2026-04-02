@@ -295,10 +295,6 @@ getEventsAnalytics(companyId: number, timeframe: string) {
   // Isse URL banega: .../api/assets/my-list?company_id=1&created_by=3
   return this.http.get(`${this.baseApiUrl}/assets/my-list?company_id=${companyId}&created_by=${userId}`);
 }
-// DataService.ts ke andar
-getAdminStats(companyId: number): Observable<any> {
-  return this.http.get(`${this.baseApiUrl}/assets/admin-stats?company_id=${companyId}`);
-}
 
 getAssetsTrend(companyId: number): Observable<any> {
   return this.http.get(`${this.baseApiUrl}/assets/assets-trend?company_id=${companyId}`);
@@ -339,18 +335,15 @@ getStatuses(companyId: any) {
   return this.http.get(`${this.baseApiUrl}/assets/statuses/${companyId}`);
 }
 
-// // Add to your data service
-// getSightingSnapshot(companyId: number) {
-//   return this.http.get(`${this.baseApiUrl}/patrols/sightings-snapshot?companyId=${companyId}`);
-// }
+// Pehle ye sirf (companyId: number) le raha hoga
+getAdminStats(companyId: number, timeframe?: string, from?: string, to?: string) {
+  // Query parameters banaiye
+  let params = `?timeframe=${timeframe || 'today'}`;
+  if (from) params += `&startDate=${from}`;
+  if (to) params += `&endDate=${to}`;
 
-// src/app/data.service.ts
-// getSightingSnapshot(companyId: number) {
-//   // Add /api if it's not already in your baseApiUrl, 
-//   // but usually, it's safer to check your environment.ts first.
-//   // The path must be: baseApiUrl + /patrols/sightings-snapshot
-//   return this.http.get(`${this.baseApiUrl}/patrols/sightings-snapshot?companyId=${companyId}`);
-// } 
+  return this.http.get(`${this.baseApiUrl}/assets/stats/${companyId}${params}`);
+}
 
 // data.service.ts [cite: 1108]
 sendSOSAlert(payload: any) {
