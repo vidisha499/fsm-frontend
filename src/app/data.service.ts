@@ -345,12 +345,12 @@ getStatuses(companyId: any) {
 // }
 
 // src/app/data.service.ts
-getSightingSnapshot(companyId: number) {
-  // Add /api if it's not already in your baseApiUrl, 
-  // but usually, it's safer to check your environment.ts first.
-  // The path must be: baseApiUrl + /patrols/sightings-snapshot
-  return this.http.get(`${this.baseApiUrl}/patrols/sightings-snapshot?companyId=${companyId}`);
-} 
+// getSightingSnapshot(companyId: number) {
+//   // Add /api if it's not already in your baseApiUrl, 
+//   // but usually, it's safer to check your environment.ts first.
+//   // The path must be: baseApiUrl + /patrols/sightings-snapshot
+//   return this.http.get(`${this.baseApiUrl}/patrols/sightings-snapshot?companyId=${companyId}`);
+// } 
 
 // data.service.ts [cite: 1108]
 sendSOSAlert(payload: any) {
