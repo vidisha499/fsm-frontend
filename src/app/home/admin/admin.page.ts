@@ -599,8 +599,39 @@ loadData() {
       }
       
       // --- 5. MAP INCIDENTS & LAYERS ---
+      // if (res.mapIncidents && Array.isArray(res.mapIncidents)) {
+      //   this.allIncidents = res.mapIncidents.map((inc: any) => {
+      //     const dbCriteria = (inc.incidentCriteria || '').toUpperCase();
+      //     const rawSubCat = inc.subCategory || '';
+      //     const normalizedSub = rawSubCat.toLowerCase().trim().replace(/\s+/g, '_');
+
+      //     let finalLayerId = normalizedSub;
+      //     if (dbCriteria.includes('POACH') || normalizedSub.includes('poach')) {
+      //       finalLayerId = 'animal_poaching'; 
+      //     } else if (dbCriteria.includes('FIRE') || normalizedSub.includes('fire')) {
+      //       finalLayerId = 'fire_warning';
+      //     } else if (dbCriteria.includes('FELL') || normalizedSub.includes('felling')) {
+      //       finalLayerId = 'illegal_felling';
+      //     }
+
+      //     return {
+      //       ...inc,
+      //       layerId: finalLayerId,
+      //       subCategory: rawSubCat || inc.incidentCriteria || 'General Incident',
+      //       displayLabel: dbCriteria.includes('FIRE') ? 'Fire Warning' : (rawSubCat || inc.incidentCriteria)
+      //     };
+      //   });
+
+      //   if (typeof (this as any).updateVisiblePins === 'function') {
+      //     (this as any).updateVisiblePins(); 
+      //   }
+      // }
+      // --- 5. MAP INCIDENTS & SIGHTINGS ---
+      let processedPins: any[] = [];
+
+      // A. Process standard Incidents (Felling, Fire, Poaching, Mining)
       if (res.mapIncidents && Array.isArray(res.mapIncidents)) {
-        this.allIncidents = res.mapIncidents.map((inc: any) => {
+        const incidentPins = res.mapIncidents.map((inc: any) => {
           const dbCriteria = (inc.incidentCriteria || '').toUpperCase();
           const rawSubCat = inc.subCategory || '';
           const normalizedSub = rawSubCat.toLowerCase().trim().replace(/\s+/g, '_');
@@ -612,6 +643,8 @@ loadData() {
             finalLayerId = 'fire_warning';
           } else if (dbCriteria.includes('FELL') || normalizedSub.includes('felling')) {
             finalLayerId = 'illegal_felling';
+          } else if (dbCriteria.includes('MINING') || normalizedSub.includes('mining')) {
+            finalLayerId = 'illegal_mining';
           }
 
           return {
@@ -621,10 +654,39 @@ loadData() {
             displayLabel: dbCriteria.includes('FIRE') ? 'Fire Warning' : (rawSubCat || inc.incidentCriteria)
           };
         });
+        processedPins = [...incidentPins];
+      }
 
-        if (typeof (this as any).updateVisiblePins === 'function') {
-          (this as any).updateVisiblePins(); 
-        }
+      // B. Process New Sightings (Animal Sightings & Water Status)
+      if (res.allSightings && Array.isArray(res.allSightings)) {
+        const sightingPins = res.allSightings.map((s: any) => {
+          // Check if the record is Water or Animal
+          const isWater = (s.category || '').toLowerCase().includes('water') || 
+                          (s.species || '').toLowerCase().includes('water');
+          const type = isWater ? 'water' : 'animal';
+          
+          return {
+            ...s,
+            id: `sighting-${s.id}`,
+            layerId: type, // Matches IDs in your LAYERS_DATA
+            // Convert GPS to Map Pixels
+            l: typeof (this as any).convertToLeft === 'function' ? (this as any).convertToLeft(s.longitude) : '50%',
+            t: typeof (this as any).convertToTop === 'function' ? (this as any).convertToTop(s.latitude) : '50%',
+            color: isWater ? '#0ea5e9' : '#e11d48',
+            emoji: isWater ? '💧' : '🐾',
+            label: isWater ? 'Water Status' : 'Animal Sighting',
+            displayLabel: isWater ? 'Water Status' : 'Animal Sighting',
+            delay: Math.random() * 2
+          };
+        });
+        processedPins = [...processedPins, ...sightingPins];
+      }
+
+      // Final update to the array used by the map
+      this.allIncidents = processedPins;
+
+      if (typeof (this as any).updateVisiblePins === 'function') {
+        (this as any).updateVisiblePins(); 
       }
 
       // --- 6. ALERTS LOGIC ---
@@ -738,6 +800,229 @@ const sev = rawType.includes('INCIDENT') ||
     }
   });
     }
+// loadData() {
+//   if (this.isFetching) return;
+
+//   const storageData = localStorage.getItem('user_data');
+//   if (!storageData) return;
+
+//   const user = JSON.parse(storageData);
+//   const myCompanyId = Number(user.company_id || user.companyId);
+//   const localISOTime = new Date().toISOString().split('T')[0];
+//   const dates = this.getFilterDates();
+
+//   this.isFetching = true;
+
+//   // SABHI DATA SOURCES EK SAATH
+//   forkJoin({
+//     stats: this.dataService.getDashboardStats(myCompanyId, dates.from, dates.to),
+//     sightingsCount: this.dataService.getSightingCount(myCompanyId, dates.from || '', dates.to || ''),
+//     // --- NEW: Fetching actual sighting records for the map ---
+//     allSightings: this.dataService.getAllMapSightings(myCompanyId), 
+//     fireCount: this.adminService.getFireAlertsCount(myCompanyId, localISOTime),
+//     onDuty: this.adminService.getOnDutyCount(myCompanyId, localISOTime),
+//     onLeave: this.adminService.getOnLeaveCount(myCompanyId),
+//     inactive: this.adminService.getInactiveCount(myCompanyId, localISOTime),
+//     users: this.dataService.getUsersByCompany(myCompanyId),
+//     alerts: this.dataService.getLatestAlerts(myCompanyId),
+//     assetsStats: this.dataService.getAdminStats(myCompanyId, this.activeDateFilter, dates.from, dates.to),
+//     assetsTrend: this.dataService.getAssetsTrend(myCompanyId),
+//     mapIncidents: this.dataService.getIncidentsForMap(myCompanyId) 
+//   }).subscribe({
+//     next: (res: any) => {
+//       // --- 1. ASSETS DATA (Nursery, Plantation etc.) ---
+//       if (res.assetsStats) {
+//         this.totalAssetsCount = res.assetsStats.totalAssets || 0;
+//         this.operationalRate = res.assetsStats.operationalRate || '0%';
+        
+//         (this as any).realNurseryCount = res.assetsStats.nursery || 0;
+//         (this as any).realPlantationCount = res.assetsStats.plantations || 0;
+//         (this as any).realOfficeCount = res.assetsStats.offices || 0;
+//         (this as any).realEcoCount = res.assetsStats.ecoSites || 0;
+
+//         if ((this as any).activeTab === 'assets' && typeof (this as any).setAnaCat === 'function') {
+//           (this as any).setAnaCat('assets'); 
+//         }
+//       }
+
+//       // --- 2. TREND CHART LOGIC ---
+//       if (res.assetsTrend) {
+//         this.momStatus = res.assetsTrend.momLabel || '0% MoM';
+//         this.isGoodTrend = res.assetsTrend.isImprovement;
+//         setTimeout(() => {
+//           if (typeof (this as any).initTrendChart === 'function') {
+//             (this as any).initTrendChart(res.assetsTrend.labels, res.assetsTrend.values);
+//           }
+//         }, 300);
+//       }
+
+//       // --- 3. DASHBOARD COUNTS ---
+//       const stats = res.stats || {};
+//       this.incidentsCount = stats.totalEvents || 0;
+//       this.criminalActivityCount = stats.criminalEvents || 0;
+//       this.fireAlertsCount = stats.fireEvents || (res.fireCount?.count ?? res.fireCount ?? 0);
+//       this.attendancePercent = stats.resolvedPercentage || 0;
+
+//       // --- 4. PERSONNEL & RANGERS ---
+//       this.sightingsCount = typeof res.sightingsCount === 'object' ? (res.sightingsCount.count ?? 0) : (res.sightingsCount ?? 0);
+//       this.onDutyCount = res.onDuty?.count ?? res.onDuty ?? 0;
+//       this.onLeaveCount = res.onLeave?.count ?? res.onLeave ?? 0;
+//       this.inactiveCount = res.inactive?.count ?? res.inactive ?? 0;
+
+//       const allUsers = res.users?.data || res.users || [];
+//       if (Array.isArray(allUsers)) {
+//         this.rangers = allUsers.filter((u: any) => Number(u.role_id || u.roleId) === 4);
+//         this.filteredRangers = [...this.rangers];
+//         this.allRangers = this.rangers.length;
+//       }
+      
+//       // --- 5. MAP INCIDENTS & SIGHTINGS ---
+//       let processedPins: any[] = [];
+
+//       // A. Process standard Incidents
+//       if (res.mapIncidents && Array.isArray(res.mapIncidents)) {
+//         const incidentPins = res.mapIncidents.map((inc: any) => {
+//           const dbCriteria = (inc.incidentCriteria || '').toUpperCase();
+//           const rawSubCat = inc.subCategory || '';
+//           const normalizedSub = rawSubCat.toLowerCase().trim().replace(/\s+/g, '_');
+
+//           let finalLayerId = normalizedSub;
+//           if (dbCriteria.includes('POACH') || normalizedSub.includes('poach')) {
+//             finalLayerId = 'animal_poaching'; 
+//           } else if (dbCriteria.includes('FIRE') || normalizedSub.includes('fire')) {
+//             finalLayerId = 'fire_warning';
+//           } else if (dbCriteria.includes('FELL') || normalizedSub.includes('felling')) {
+//             finalLayerId = 'illegal_felling';
+//           } else if (dbCriteria.includes('MINING') || normalizedSub.includes('mining')) {
+//             finalLayerId = 'illegal_mining';
+//           }
+
+//           return {
+//             ...inc,
+//             layerId: finalLayerId,
+//             subCategory: rawSubCat || inc.incidentCriteria || 'General Incident',
+//             displayLabel: dbCriteria.includes('FIRE') ? 'Fire Warning' : (rawSubCat || inc.incidentCriteria)
+//           };
+//         });
+//         processedPins = [...incidentPins];
+//       }
+
+//       // B. Process New Sightings (Animal & Water)
+//       if (res.allSightings && Array.isArray(res.allSightings)) {
+//         const sightingPins = res.allSightings.map((s: any) => {
+//           const isWater = (s.category || '').toLowerCase().includes('water') || (s.species || '').toLowerCase().includes('water');
+//           const type = isWater ? 'water' : 'animal';
+          
+//           return {
+//             ...s,
+//             id: `sighting-${s.id}`,
+//             layerId: type,
+//             // Assuming your coordinate-to-pixel functions exist:
+//             l: typeof (this as any).convertToLeft === 'function' ? (this as any).convertToLeft(s.longitude) : '50%',
+//             t: typeof (this as any).convertToTop === 'function' ? (this as any).convertToTop(s.latitude) : '50%',
+//             color: isWater ? '#0ea5e9' : '#e11d48',
+//             emoji: isWater ? '💧' : '🐾',
+//             label: isWater ? 'Water Status' : 'Animal Sighting',
+//             delay: Math.random() * 2
+//           };
+//         });
+//         processedPins = [...processedPins, ...sightingPins];
+//       }
+
+//       this.allIncidents = processedPins;
+
+//       if (typeof (this as any).updateVisiblePins === 'function') {
+//         (this as any).updateVisiblePins(); 
+//       }
+
+//       // --- 6. ALERTS LOGIC ---
+//       if (res.alerts && Array.isArray(res.alerts)) {
+//         const savedPrefs = localStorage.getItem('admin_notification_settings');
+//         const prefs = savedPrefs ? JSON.parse(savedPrefs) : null;
+
+//         this.alertsData = res.alerts
+//           .filter((alert: any) => {
+//             if (!prefs) return true;
+//             const dbCat = (alert.subCategory || alert.category || alert.incident_criteria || 'SYSTEM').toUpperCase();
+//             const isEnabled = (label: string) => {
+//               const p = prefs.find((x: any) => x.label.toLowerCase() === label.toLowerCase());
+//               return p ? p.enabled : true;
+//             };
+
+//             if (dbCat.includes('FIRE')) return isEnabled('Fire Alerts');
+//             if (dbCat.includes('FELL')) return isEnabled('Illegal Felling');
+//             if (dbCat.includes('POACH')) return isEnabled('Animal Poaching');
+//             if (dbCat.includes('CRIMINAL')) return isEnabled('Criminal Activity');
+//             return true;
+//           })
+//           .slice(0, 15)
+//           .map((alert: any) => {
+//             const rawType = (alert.type || 'INFO').toUpperCase();
+//             const theme = (this as any).getAlertTheme ? (this as any).getAlertTheme(rawType) : null;
+//             let titlePrefix = '';
+
+//             if (rawType === 'INCIDENT' || alert.category || alert.subCategory || alert.incident_criteria) {
+//               const specificCat = (alert.subCategory || alert.incident_criteria || alert.category || 'INCIDENT').toUpperCase();
+//               if (specificCat.includes('FIRE')) titlePrefix = 'FIRE WARNING';
+//               else if (specificCat.includes('FELL')) titlePrefix = 'ILLEGAL FELLING';
+//               else if (specificCat.includes('POACH')) titlePrefix = 'ANIMAL POACHING';
+//               else titlePrefix = specificCat;
+//             } 
+//             else if (rawType === 'ATTENDANCE') titlePrefix = 'ATTENDANCE';
+//             else if (rawType === 'ONSITE') titlePrefix = 'ONSITE-ATTENDANCE';
+//             else if (rawType === 'PATROL_START') titlePrefix = 'PATROL-START';
+//             else if (rawType === 'PATROL_END') titlePrefix = 'PATROL-END';
+//             else titlePrefix = rawType;
+
+//             const sev = rawType.includes('INCIDENT') || 
+//                         (alert.subcategory && alert.subcategory.toLowerCase().includes('fell')) || 
+//                         (alert.subcategory && alert.subcategory.toLowerCase().includes('fire')) ||
+//                         rawType.includes('CRIT') 
+//                         ? 'critical' : rawType.includes('WARN') ? 'warning' : 'info';
+
+//             return {
+//               ...alert,
+//               severity: sev,
+//               displayTitle: (() => {
+//                 const rName = alert.ranger_name || 'Ranger';
+//                 const type = (alert.type || '').toUpperCase();
+//                 if (type === 'INCIDENT') {
+//                   const sub = alert.subcategory || alert.subCategory || 'Incident';
+//                   return `${sub} - ${rName}`;
+//                 }
+//                 return `${type} - ${rName}`;
+//               })(),
+//               displayDesc: `${alert.location_name || 'Forest Division'}`,
+//               displayTime: alert.created_at ? 
+//                 `${new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Just Now',
+//               icon: theme?.icon || 'information-circle', 
+//               bg: theme?.bg || 'bg-blue-50', 
+//               color: theme?.color || 'text-blue-500', 
+//               label: theme?.label || 'INFO'
+//             };
+//           });
+
+//         this.critCount = this.alertsData.filter(a => a.severity === 'critical').length;
+//         this.warnCount = this.alertsData.filter(a => a.severity === 'warning').length;
+//         this.infoCount = this.alertsData.filter(a => a.severity === 'info').length;
+        
+//         if (typeof (this as any).updateFilteredAlerts === 'function') {
+//           (this as any).updateFilteredAlerts();
+//         }
+//       }
+//     },
+//     error: (err: any) => {
+//       console.error('Master Data Fetch Error:', err);
+//       this.isFetching = false;
+//       this.cdr.detectChanges();
+//     },
+//     complete: () => {
+//       this.isFetching = false;
+//       this.updateFilteredAlerts(); 
+//       this.cdr.detectChanges();
+//     }
+//   });
+// }
  
 
 
@@ -792,17 +1077,6 @@ updateFilteredAlerts() {
   }
 }
 
-// updateFilteredAlerts() {
-//   const filter = this.activeAlertFilter || 'all';
-  
-//   if (filter === 'all') {
-//     this.filteredAlerts = [...this.alertsData];
-//   } else {
-//     // This filters the results that already passed the Settings Toggles
-//     this.filteredAlerts = this.alertsData.filter(a => a.type === filter);
-//   }
-//   this.cdr.detectChanges();
-// }
 
   getAlertTheme(type: string) {
     const t = String(type).toUpperCase(); // Normalize to Uppercase
@@ -1075,100 +1349,6 @@ private mkChart(id: string, config: ChartConfiguration | any) {
     );
   }
 
-//   initHomeCharts() {
-//     // Check if element exists before trying to render (prevents errors on other segments)
-//     const tCanvas = document.getElementById('c-trend') as HTMLCanvasElement;
-//     if (!tCanvas) return;
-//     const tCtx = tCanvas.getContext('2d');
-//     if (!tCtx) return;
-
-//     const existingChart = Chart.getChart('c-trend'); 
-// if (existingChart) existingChart.destroy();
-
-//     this.mkChart('c-trend', {
-//       type: 'line',
-//       data: {
-//         labels: Array.from({ length: 30 }, (_, i) => `D${i + 1}`),
-//         datasets: [
-//           {
-//             data: this.rnd(30, 60, 15),
-//             borderColor: this.COLORS.p,
-//             backgroundColor: this.mkG(tCtx, this.COLORS.p),
-//             fill: true,
-//             tension: 0.4,
-//             pointRadius: 0,
-//             borderWidth: 2,
-//             label: 'Incidents',
-//           },
-//         ],
-//       },
-//       options: {
-//         ...this.CDAX,
-//         plugins: { ...this.CDAX.plugins, legend: { display: false } },
-//         scales: {
-//           x: {
-//             ...this.CDAX.scales.x,
-//             display: true,
-//             title: {
-//               display: true,
-//               text: 'Days',
-//               color: '#94a3b8',
-//               font: { size: 9 },
-//             },
-//           },
-//           y: {
-//             ...this.CDAX.scales.y,
-//             title: {
-//               display: true,
-//               text: 'No. of Incidents',
-//               color: '#94a3b8',
-//               font: { size: 9 },
-//             },
-//           },
-//         },
-//       },
-//     });
-
-//     const pairs: [string, number[], string, string?][] = [
-//       ['mc-crim', this.rnd(15, 20, 5), this.COLORS.rose],
-//       ['mc-events', this.rnd(15, 50, 20), this.COLORS.amber],
-//       ['mc-fire', this.rnd(15, 8, 1), this.COLORS.orange, 'bar'],
-//       ['mc-assets', this.rnd(15, 99, 85), this.COLORS.p],
-//       ['mc-duty', this.rnd(7, 420, 390), this.COLORS.blue, 'bar'],
-//     ];
-
-//     pairs.forEach(([id, data, color, type = 'line']) => {
-//       const el = document.getElementById(id) as HTMLCanvasElement;
-//       if (!el) return;
-//       const ctx = el.getContext('2d');
-//       if (!ctx) return;
-
-//       const oldMini = Chart.getChart(id);
-//   if (oldMini) oldMini.destroy();
-
-//       this.mkChart(id, {
-//         type: type as any,
-//         data: {
-//           labels: data.map((_, i) => i),
-//           datasets: [
-//             {
-//               data,
-//               borderColor: color,
-//               backgroundColor:
-//                 type === 'bar' ? color + '99' : this.mkG(ctx, color, 55),
-//               fill: type === 'line',
-//               tension: 0.4,
-//               pointRadius: 0,
-//               borderWidth: 1.5,
-//               borderRadius: 3,
-//               label: 'Value',
-//             },
-//           ],
-//         },
-//         options: this.CD,
-//       });
-//     });
-//   }
 
 
 initHomeCharts() {

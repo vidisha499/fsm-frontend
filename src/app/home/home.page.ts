@@ -503,62 +503,80 @@ async triggerEmergency() {
   await alert.present();
 }
 
-private async sendSOS(message: string) {
-  const rId = this.dataService.getRangerId();
-  if (!rId) return;
-
-  const payload = {
-    rangerId: +rId,
-    rangerName: this.rangerName, 
-    message: message || 'No specific message provided',
-    type: 'SOS_EMERGENCY',
-    // It's good practice to send these if available, 
-    // but the backend will handle the basic alert with just the above.
-    timestamp: new Date().toISOString()
-  };
-
-  this.dataService.sendSOSAlert(payload).subscribe({
-    next: async () => {
-      const toast = await this.toastController.create({
-        message: '🚨 SOS SENT SUCCESSFULLY TO ADMIN',
-        duration: 3000,
-        color: 'danger',
-        position: 'top',
-        mode: 'ios'
-      });
-      await toast.present();
-    },
-    error: (err) => {
-      console.error("SOS Error:", err);
-      this.showToast('Failed to send SOS. Please check your connection.');
-    }
-  });
-}
-
 // private async sendSOS(message: string) {
 //   const rId = this.dataService.getRangerId();
-//   if (!rId) return;
+  
+//   // 1. Get raw value from storage
+//   const rawCompanyId = localStorage.getItem('company_id'); 
+  
+//   // 2. LOG THESE IMMEDIATELY
+//   console.log('--- SOS DEBUG START ---');
+//   console.log('Raw Company ID from LocalStorage:', rawCompanyId);
+//   console.log('Type of Raw Company ID:', typeof rawCompanyId);
+//   console.log('Ranger ID:', rId);
+
+//   if (!rId) {
+//     console.error('SOS aborted: No Ranger ID found');
+//     return;
+//   }
 
 //   const payload = {
 //     rangerId: +rId,
-//     rangerName: this.rangerName, // Added this so the backend has the name immediately
+//     companyId: rawCompanyId ? Number(rawCompanyId) : null,
+//     rangerName: this.rangerName,
 //     message: message || 'No specific message provided',
 //     type: 'SOS_EMERGENCY',
 //     timestamp: new Date().toISOString()
 //   };
 
+//   // 3. LOG THE FINAL PAYLOAD
+//   console.log('Final SOS Payload being sent:', payload);
+//   console.log('--- SOS DEBUG END ---');
+
 //   this.dataService.sendSOSAlert(payload).subscribe({
 //     next: async () => {
-//       const toast = await this.toastController.create({
-//         message: '🚨 SOS SENT SUCCESSFULLY TO ADMIN',
-//         duration: 3000,
-//         color: 'danger',
-//         position: 'top',
-//         mode: 'ios'
-//       });
-//       await toast.present();
+//        console.log('Server accepted the SOS alert');
+//        this.showToast('🚨 SOS SENT SUCCESSFULLY');
 //     },
-//     error: () => this.showToast('Failed to send SOS. Please try again.')
+//     error: (err) => {
+//        console.error("SOS API Error:", err);
+//        this.showToast('Failed to send SOS');
+//     }
 //   });
 // }
+
+private async sendSOS(message: string) {
+  const rId = this.dataService.getRangerId();
+  const cId = localStorage.getItem('company_id'); 
+
+  if (!rId) return;
+
+  const payload = {
+    // 🔥 Changed to snake_case to match Backend DTO
+    ranger_id: +rId,             
+    company_id: cId ? +cId : 2,  
+    ranger_name: this.rangerName, 
+    message: message || 'No specific message provided',
+    type: 'SOS_EMERGENCY',
+    timestamp: new Date().toISOString()
+  };
+
+  console.log('Final SOS Payload (Corrected to Snake Case):', payload);
+
+  this.dataService.sendSOSAlert(payload).subscribe({
+    next: async () => {
+       const toast = await this.toastController.create({
+         message: '🚨 SOS SENT SUCCESSFULLY',
+         duration: 3000,
+         color: 'danger',
+         position: 'top',
+         mode: 'ios'
+       });
+       await toast.present();
+    },
+    error: (err) => {
+       console.error("SOS Error:", err);
+    }
+  });
+}
 }

@@ -367,4 +367,9 @@ get(endpoint: string) {
   // baseUrl pehle se environment se aa raha hai
   return this.http.get(`${this.baseApiUrl}/${endpoint}`);
 }
+
+// Inside your PatrolService or SightingsService
+getAllMapSightings(companyId: number) {
+  return this.http.get(`${this.baseApiUrl}/patrols/all-sightings?companyId=${companyId}`);
+}
 }
