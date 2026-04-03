@@ -176,6 +176,7 @@ async saveSighting() {
     } catch (e) { console.warn('User cancelled photo selection'); }
   }
 
+  // removePhoto(index: number) { this.obsData.photos.splice(index, 1); }
   removePhoto(index: number) { this.obsData.photos.splice(index, 1); }
   goBack() { this.navCtrl.back(); }
   
