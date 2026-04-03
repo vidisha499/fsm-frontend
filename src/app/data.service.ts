@@ -277,10 +277,15 @@ updateNotificationPrefs(companyId: number, prefs: any[]) {
 
 // data.service.ts ke andar
 
-getEventsAnalytics(companyId: number, timeframe: string) {
-  return this.http.get(`${this.baseApiUrl}/analytics/events?companyId=${companyId}&timeframe=${timeframe}`);
-}
+// getEventsAnalytics(companyId: number, timeframe: string) {
+//   return this.http.get(`${this.baseApiUrl}/analytics/events?companyId=${companyId}&timeframe=${timeframe}`);
+// }
 
+
+getEventsAnalytics(companyId: number, timeframe: string) {
+  // Yahan '/admin' add karo kyunki backend controller ka path 'admin' hai
+  return this.http.get(`${this.baseApiUrl}/admin/analytics/events?companyId=${companyId}&timeframe=${timeframe}`);
+}
 
 // Naya asset save karne ke liye function
   addAsset(assetData: any): Observable<any> {

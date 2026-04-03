@@ -89,122 +89,211 @@ beats = ['Beat Alpha', 'Beat Beta', 'Beat Gamma'];
   //  THE MAIN CONFIG OBJECT
   // ═══════════════════════════════════════════
   ANA_CONFIG: any = {
-    criminal: {
-      label: "🌲 Criminal Activity",
-      subs: [
-        { id: "felling", label: "Illegal Felling", emoji: "🪓", color: COLORS.rose, val: 20, charts: [
-         // ANA_CONFIG ke andar felling chart example
-{ 
-  title: "Volume by Species", 
-  id: "ac-f1", 
-  render: (id: string) => {
-    // Timeframe ke hisab se labels badlo
-    const labels = this.activeDateFilter === 'today' ? ['6 AM', '12 PM', '6 PM'] : SPECIES;
-    const data = this.activeDateFilter === 'today' ? [2, 5, 3] : this.rnd(8, 150, 20);
-
-    return this.mkChart(id, { 
-      type: "bar", 
-      data: { 
-        labels: labels, 
-        datasets: [{ label: "Qty", data: data, backgroundColor: COLORS.rose }] 
-      }, 
-      options: CDAX 
-    });
-  }
+   criminal: {
+  label: "🌲 Criminal Activity",
+  subs: [
+    { 
+      id: "felling", 
+      label: "Illegal Felling", 
+      emoji: "🪓", 
+      color: COLORS.rose, 
+      val: 0, 
+      charts: [
+        { 
+          title: "Volume by Species", 
+          id: "ac-f1", 
+          // 'obj' parameter se hum dynamicData access karenge
+          render: (id: string, obj: any) => {
+            const data = obj?.dynamicData || [];
+            const labels = this.activeDateFilter === 'today' ? ['6 AM', '12 PM', '6 PM'] : SPECIES;
+            
+            return this.mkChart(id, { 
+              type: "bar", 
+              data: { 
+                labels: labels, 
+                datasets: [{ label: "Qty", data: data, backgroundColor: COLORS.rose }] 
+              }, 
+              options: CDAX 
+            });
+          }
+        },
+        { 
+          title: "Probable Reason", 
+          id: "ac-f2", 
+          render: (id: string, obj: any) => this.mkChart(id, { 
+            type: "pie", 
+            data: { 
+              labels: ["Trade", "Fuel", "Agri", "Other"], 
+              datasets: [{ data: obj?.dynamicData || [], backgroundColor: PALETTE }] 
+            }, 
+            options: { ...CDAX, plugins: { legend: { display: true, position: 'bottom' } } } 
+          }) 
+        },
+        { 
+          title: "Range-wise Felling", 
+          id: "ac-f3", 
+          render: (id: string, obj: any) => this.mkChart(id, { 
+            type: "bar", 
+            data: { 
+              labels: REGIONS, 
+              datasets: [{ label: "Incidents", data: obj?.dynamicData || [], backgroundColor: COLORS.teal, borderRadius: 4 }] 
+            }, 
+            options: { ...CDAX, indexAxis: 'y' } 
+          }) 
+        } 
+      ]
+    },
+    { 
+      id: "transport", 
+      label: "Timber Transport", 
+      emoji: "🚛", 
+      color: COLORS.amber, 
+      val: 0, 
+      charts: [
+        { 
+          title: "Vehicle Type Analytics", 
+          id: "ac-t1", 
+          render: (id: string, obj: any) => this.mkChart(id, { 
+            type: "bar", 
+            data: { 
+              labels: ["Truck", "Tractor", "Tempo", "Private"], 
+              datasets: [{ data: obj?.dynamicData || [], backgroundColor: COLORS.ind, borderRadius: 4 }] 
+            }, 
+            options: CDAX 
+          }) 
+        }
+      ]
+    },
+    { 
+      id: "storage", 
+      label: "Timber Storage", 
+      emoji: "📦", 
+      color: COLORS.orange, 
+      val: 0, 
+      charts: [
+        { 
+          title: "Storage by Species", 
+          id: "ac-s1", 
+          render: (id: string, obj: any) => this.mkChart(id, { 
+            type: "bar", 
+            data: { 
+              labels: SPECIES.slice(0, 6), 
+              datasets: [
+                { label: "Storage Data", data: obj?.dynamicData || [], backgroundColor: COLORS.amber }
+              ] 
+            }, 
+            options: CDAX 
+          }) 
+        }
+      ]
+    },
+    { 
+      id: "poaching", 
+      label: "Poaching", 
+      emoji: "🐾", 
+      color: COLORS.red, 
+      val: 0, 
+      charts: [
+        { 
+          title: "Species vs Incidents", 
+          id: "ac-p1", 
+          render: (id: string, obj: any) => this.mkChart(id, { 
+            type: "bar", 
+            data: { 
+              labels: ANIMALS.slice(0, 5), 
+              datasets: [{ label: "Incidents", data: obj?.dynamicData || [], backgroundColor: COLORS.rose }] 
+            }, 
+            options: CDAX 
+          }) 
+        }
+      ]
+    }
+  ]
 },
-          { title: "Probable Reason", sub: "Trade / Fuel / Agri / Other", id: "ac-f2", render: (id: string) => this.mkChart(id, { type: "pie", data: { labels: ["Trade", "Fuel", "Agri", "Other"], datasets: [{ data: [45, 25, 20, 10], backgroundColor: PALETTE }] }, options: { ...CDAX, plugins: { legend: { display: true, position: 'bottom' } } } }) },
-//           { 
-//   title: "Range-wise Felling", 
-//   sub: "Incidents per forest range", 
-//   id: "ac-f3", 
-//   render: (id: string) => this.mkChart(id, { 
-//     type: "bar", 
-//     data: { 
-//       labels: ["North Div", "South Valley", "East Plateau", "River Buffer", "West Ridge"], 
-//       datasets: [{ 
-//         label: "Incidents", 
-//         data: [45, 25, 32, 18, 40], // Example data from your SS
-//         backgroundColor: COLORS.teal + "CC", 
-//         borderRadius: 4 
-//       }] 
-//     }, 
-//     options: { 
-//       ...CDAX, 
-//       indexAxis: 'y', // This makes the bar chart horizontal
-//       scales: { 
-//         x: { display: true, grid: { display: false }, ticks: { font: { size: 9 } } }, 
-//         y: { display: true, grid: { display: false }, ticks: { font: { size: 9 } } } 
-//       } 
-//     } 
-//   }) 
-// }
-//        
-// ANA_CONFIG ke andar felling -> ac-f3 ko update karein
-{ 
-  title: "Range-wise Felling", 
-  sub: "Incidents per forest range", 
-  id: "ac-f3", 
-  render: (id: string) => this.mkChart(id, { 
-    type: "bar", 
-    data: { 
-      labels: REGIONS, 
-      datasets: [{ 
-        label: "Incidents", 
-        data: this.rnd(5, 50, 10), 
-        backgroundColor: COLORS.teal, 
-        borderRadius: 4 
-      }] 
-    }, 
-    options: { 
-      ...CDAX, 
-      indexAxis: 'y', // Horizontal bars
-      scales: {
-        x: { beginAtZero: true, grid: { display: false } },
-        y: { grid: { display: false } }
-      }
-    } 
-  }) 
-} 
-]},
-        { id: "transport", label: "Timber Transport", emoji: "🚛", color: COLORS.amber, val: 15, charts: [
-          { title: "Vehicle Type Analytics", id: "ac-t1", render: (id: string) => this.mkChart(id, { type: "bar", data: { labels: ["Truck", "Tractor", "Tempo", "Private"], datasets: [{ data: this.rnd(4, 300, 20), backgroundColor: COLORS.ind + "CC", borderRadius: 4 }] }, options: CDAX }) }
-        ]},
-        { id: "storage", label: "Timber Storage", emoji: "📦", color: COLORS.orange, val: 12, charts: [
-          { title: "Storage by Species", id: "ac-s1", render: (id: string) => this.mkChart(id, { type: "bar", data: { labels: SPECIES.slice(0, 6), datasets: [{ label: "Godown", data: this.rnd(6, 100, 10), backgroundColor: COLORS.amber + "BB" }, { label: "Open", data: this.rnd(6, 50, 5), backgroundColor: COLORS.p + "BB" }] }, options: { ...CDAX, scales: { x: { stacked: true }, y: { stacked: true } } } }) }
-        ]},
-        { id: "poaching", label: "Poaching", emoji: "🐾", color: COLORS.red, val: 18, charts: [
-          { title: "Species vs Incidents", id: "ac-p1", render: (id: string) => this.mkChart(id, { type: "bar", data: { labels: ANIMALS.slice(0, 5), datasets: [{ label: "Incidents", data: this.rnd(5, 20, 2), backgroundColor: COLORS.rose + "CC" }] }, options: CDAX }) }
-        ]},
-        { id: "encroach", label: "Encroachment", emoji: "🚧", color: COLORS.pur, val: 16, charts: [
-          { title: "Encroachment Scale", sub: "Area (Ha) per range", id: "ac-e1", render: (id: string) => this.mkChart(id, { type: "bar", data: { labels: REGIONS, datasets: [{ data: this.rnd(5, 50, 5), backgroundColor: COLORS.pur + "CC" }] }, options: CDAX }) }
-        ]},
-        { id: "mining", label: "Illegal Mining", emoji: "⛏️", color: COLORS.sl, val: 8, charts: [
-          { title: "Mining by Region", id: "ac-m1", render: (id: string) => this.mkChart(id, { type: "bar", data: { labels: REGIONS, datasets: [{ data: this.rnd(5, 15, 1), backgroundColor: COLORS.sl + "CC" }] }, options: { ...CDAX, indexAxis: 'y' } }) }
-        ]}
-      ]
+// --- Updated ANA_CONFIG for Mobile App Options ---
+events: {
+  label: "🐾 Events & Monitoring",
+  subs: [
+    { 
+      id: "animal", 
+      label: "Animal Sighting", 
+      emoji: "🐾", 
+      color: COLORS.orange, 
+      val: 0, 
+      charts: [{ title: "Sighting Trend", id: "ev-an1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.orange) }]
     },
-    events: {
-      label: "🐾 Events & Monitoring",
-      subs: [
-        { id: "wildlife", label: "Wild Animal Sighting", emoji: "🦌", color: COLORS.green, val: 18, charts: [
-          { title: "Sightings Trend", id: "ac-w1", render: (id: string) => this.mkChart(id, { type: "line", data: { labels: ['D1', 'D2', 'D3', 'D4', 'D5'], datasets: [{ data: this.rnd(5, 30, 5), borderColor: COLORS.green, fill: true, tension: 0.4 }] }, options: CDAX }) }
-        ]},
-        { id: "water", label: "Water Source Status", emoji: "💧", color: COLORS.blue, val: 12, charts: [
-          { title: "Water Level %", id: "ac-ws1", render: (id: string) => this.mkChart(id, { type: "bar", data: { labels: ["Lake A", "River B", "Tank C"], datasets: [{ data: [80, 45, 90], backgroundColor: COLORS.blue }] }, options: CDAX }) }
-        ]},
-        { id: "compensation", label: "Wildlife Compensation", emoji: "💰", color: COLORS.teal, val: 7, charts: [
-          { title: "Cases by Range", id: "ac-c1", render: (id: string) => this.mkChart(id, { type: "bar", data: { labels: REGIONS, datasets: [{ label: "Cases", data: this.rnd(5, 10, 1), backgroundColor: COLORS.teal }] }, options: CDAX }) }
-        ]}
-      ]
+    { 
+      id: "water", 
+      label: "Water Source", 
+      emoji: "💧", 
+      color: COLORS.blue, 
+      val: 0, 
+      charts: [{ title: "Water Levels", id: "ev-wa1", render: (id: string, obj: any) => this.renderBarChart(id, obj.dynamicData || [], COLORS.blue, ["Lake", "River", "Tank"]) }]
     },
-    fire: {
-      label: "🔥 Fire Incidents",
-      subs: [
-        { id: "fire_incidents", label: "Fire Alerts", emoji: "🔥", color: COLORS.orange, val: 12, charts: [
-          { title: "30-Day Fire Trend", id: "ac-fi1", render: (id: string) => this.mkChart(id, { type: "line", data: { labels: ['W1', 'W2', 'W3', 'W4'], datasets: [{ data: [2, 8, 4, 1], borderColor: COLORS.orange }] }, options: CDAX }) }
-        ]}
-      ]
+    { 
+      id: "impact", 
+      label: "Human Impact", 
+      emoji: "🚶", 
+      color: COLORS.pur, 
+      val: 0, 
+      charts: [{ title: "Activity Trend", id: "ev-im1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.pur) }]
     },
+    { 
+      id: "death", 
+      label: "Wildlife Death", 
+      emoji: "💀", 
+      color: COLORS.red, 
+      val: 0, 
+      charts: [{ title: "Mortality Cases", id: "ev-de1", render: (id: string, obj: any) => this.renderBarChart(id, obj.dynamicData || [], COLORS.red, ["Z1", "Z2", "Z3"]) }]
+    },
+    { 
+      id: "felling", 
+      label: "Illegal Felling", 
+      emoji: "🪓", 
+      color: COLORS.green, 
+      val: 0, 
+      charts: [{ title: "Trees Lost", id: "ev-fe1", render: (id: string, obj: any) => this.renderBarChart(id, obj.dynamicData || [], COLORS.green, ["Teak", "Sal", "Other"]) }]
+    }
+  ]
+},
+ fire: {
+  label: "🔥 Fire Incidents",
+  subs: [
+    { 
+      id: "fire_incidents", 
+      label: "Fire Alerts", 
+      emoji: "🔥", 
+      color: COLORS.orange, 
+      val: 0, // Hardcoded 12 hata diya
+      charts: [
+        { 
+          title: "30-Day Fire Trend", 
+          id: "ac-fi1", 
+          render: (id: string, obj: any) => {
+            // Backend se aane wala dynamic data lo
+            const data = obj?.dynamicData || [];
+            
+            return this.mkChart(id, { 
+              type: "line", 
+              data: { 
+                labels: ['W1', 'W2', 'W3', 'W4'], // Ye labels backend ke hisab se bhi badal sakte ho
+                datasets: [{ 
+                  label: "Fire Counts",
+                  data: data, // Ab backend data dikhega
+                  borderColor: COLORS.orange,
+                  backgroundColor: COLORS.orange + '33', // Light fill for line chart
+                  fill: true,
+                  tension: 0.4 
+                }] 
+              }, 
+              options: CDAX 
+            });
+          }
+        }
+      ]
+    }
+  ]
+},
 
     assets: {
   label: "🛡️ Forest Assets",
@@ -566,26 +655,67 @@ renderGenericChart(chartId: string, label: string, currentVal: number) {
 
 
 
+// private mkChart(id: string, config: any) {
+//   const canvas = document.getElementById(id) as HTMLCanvasElement;
+//   if (!canvas) return;
+
+//   // 1. Chart.js ka built-in method use karo instance check karne ke liye
+//   const existingChart = Chart.getChart(canvas); 
+//   if (existingChart) {
+//     existingChart.destroy();
+//   }
+
+//   // 2. Extra safety: Clear the canvas context
+//   const ctx = canvas.getContext('2d');
+//   if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+//   try {
+//     const chart = new Chart(canvas, config);
+//     this.chartInstances.set(id, chart);
+//     return chart;
+//   } catch (e) {
+//     console.error("Chart Creation Error:", e);
+//     return null;
+//   }
+// }
+
+
 private mkChart(id: string, config: any) {
   const canvas = document.getElementById(id) as HTMLCanvasElement;
-  if (!canvas) return;
+  
+  // 1. Basic checks
+  if (!canvas || !config) {
+    console.warn(`Canvas or Config missing for ID: ${id}`);
+    return null;
+  }
 
-  // 1. Chart.js ka built-in method use karo instance check karne ke liye
+  // 2. Clear Existing Instance (Conflict Fix)
   const existingChart = Chart.getChart(canvas); 
   if (existingChart) {
     existingChart.destroy();
   }
 
-  // 2. Extra safety: Clear the canvas context
+  // 3. Clear Context (Surgical Clean)
+  // Kabhi-kabhi destroy() ke baad bhi context mein purana data reh jata hai
   const ctx = canvas.getContext('2d');
-  if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (ctx) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
 
   try {
-    const chart = new Chart(canvas, config);
-    this.chartInstances.set(id, chart);
-    return chart;
+    // 4. Data Validation before Render
+    if (config.data && config.data.datasets && config.data.datasets.length > 0) {
+      const chart = new Chart(canvas, config);
+      
+      // 5. Global state mein store karein taaki ngOnDestroy pe clean kar sakein
+      this.chartInstances.set(id, chart);
+      return chart;
+    } else {
+      console.warn(`No data found to render chart for ID: ${id}`);
+      return null;
+    }
   } catch (e) {
-    console.error("Chart Creation Error:", e);
+    console.error("Chart Render Error:", e);
     return null;
   }
 }
@@ -609,20 +739,29 @@ private mkChart(id: string, config: any) {
     }, 800);
   }
 
-  renderSubCharts() {
+renderSubCharts() {
   const sub = this.getCurrentSub();
   if (!sub || !sub.charts) return;
   
-  // This clears old charts and renders all new ones in the array
+  // Pehle saare purane charts clear honge (optional but good practice)
+  this.destroyCharts();
+
   sub.charts.forEach((ch: any) => {
     const el = document.getElementById(ch.id);
+    
+    // Check karo ki Canvas element DOM mein aa gaya hai ya nahi
     if (el) {
-      ch.render(ch.id);
+      console.log(`Rendering Chart: ${ch.id}`, ch);
+      
+      // SIRF EK BAAR CALL KARO aur 'ch' (object) pass karo
+      // Taaki render function ko 'dynamicData' mil sake
+      ch.render(ch.id, ch);
+    } else {
+      console.warn(`Canvas element with ID ${ch.id} not found in DOM yet.`);
     }
   });
 }
 // admin-analytics.page.ts
-
 onFilterChange() {
   console.log("Applying Filters:", {
     range: this.selectedRange,
@@ -630,25 +769,23 @@ onFilterChange() {
     timeframe: this.activeDateFilter
   });
 
-  // 1. SABSE PEHLE: Purane charts memory se hatao (Canvas Error Fix)
-  this.destroyCharts(); 
-
+  // 1. UI Status update
   this.isRefreshing = true;
+  this.destroyCharts(); // Purane charts clean karein
+  this.cdr.detectChanges();
+
+  // 2. Data Fetch (Ensure karein ki ye Promise ya Observable handle kare)
+  // Hum updateUIData() ko call kar rahe hain jo internally subscribe karta hai
+  this.updateUIData(); 
+
+  // Note: updateUIData ke andar humne already setTimeout aur renderSubCharts lagaya hai,
+  // isliye yahan double mehnat ki zaroori nahi hai. 
   
-  // Fake delay taaki user ko feel aaye data load ho raha hai
+  // Bas ek safety check ke liye Refreshing spinner ko 1 second baad band karein
   setTimeout(() => {
-    // 2. Data calculate karo
-    this.updateUIData(); 
-    
-    // 3. UI ko refresh karo (Must for Canvas)
-    this.cdr.detectChanges();
-
-    // 4. Naye data ke saath charts draw karo
-    this.renderSubCharts();
-
     this.isRefreshing = false;
     this.cdr.detectChanges();
-  }, 300);
+  }, 1000);
 }
 
 getIconColor(label: string): string {
@@ -662,66 +799,165 @@ getIconColor(label: string): string {
   if (l.includes('gate')) return '#92949c';       // Gray
   return '#3dc2ff'; // Default Blue
 }
+
+
+// async updateUIData() {
+//   const cat = this.getCurrentCat();
+//   if (!cat) return;
+
+//   const companyId = localStorage.getItem('companyId') || '1';
+//   const timeframe = this.activeDateFilter; 
+//   const range = this.selectedRange;
+//   const beat = this.selectedBeat;
+
+//   this.isRefreshing = true; // Spinner on
+
+//   let dataCall;
+//   if (this.activeCatId === 'fire') {
+//     dataCall = this.dataService.getFireAnalytics(companyId, timeframe, range, beat);
+//   } else if (this.activeCatId === 'events') {
+//     dataCall = this.dataService.getEventsAnalytics(Number(companyId), timeframe);
+//   } else if (this.activeCatId === 'assets') {
+//     const cId = localStorage.getItem('company_id') || localStorage.getItem('companyId') || '1';
+//     dataCall = this.dataService.get(`assets/analytics/dynamic-stats/${cId}?timeframe=${timeframe}`);
+//   } else {
+//     dataCall = this.dataService.getCriminalAnalytics(companyId, timeframe, range, beat);
+//   }
+
+//   dataCall.subscribe({
+//     next: (res: any) => {
+//       console.log("Backend Response Received:", res);
+
+//       // 1. Data Mapping & Injection
+//       this.displayProgList = cat.subs.map((s: any) => {
+//         const backendKey = s.id; // e.g., 'wildlife'
+//         const dynamicData = res[backendKey] || { val: 0, trend: [], levels: [], casesByRange: [], cases: [] }; 
+
+//         // IMPORTANT: Inject data for the render function
+//         if (s.charts) {
+//           s.charts.forEach((ch: any) => {
+//             // Yahan hum chart object ke andar hi data ghusa rahe hain
+//             ch.dynamicData = dynamicData.trend || dynamicData.levels || dynamicData.casesByRange || dynamicData.cases || [];
+            
+//             // Backup update (agar static config use ho raha ho)
+//             if (ch.data && ch.data.datasets) {
+//               ch.data.datasets[0].data = ch.dynamicData;
+//             }
+//           });
+//         }
+
+//         return {
+//           ...s,
+//           val: dynamicData.val ?? dynamicData.count ?? 0,
+//           pct: Math.min(Math.round(((dynamicData.val || dynamicData.count || 0) / 50) * 100), 100) 
+//         };
+//       });
+
+//       // 2. UI Refresh Logic
+//       this.destroyCharts(); // Purane canvas instances saaf karo
+//       this.cdr.detectChanges(); // DOM update
+
+//       // 3. Current Sub-category refresh
+//       const currentSub = cat.subs.find((s: any) => s.id === this.activeSubId);
+//       this.currentSubCharts = currentSub?.charts || [];
+//       this.displayActivity = this.getActivity(this.activeSubId);
+      
+//       this.isRefreshing = false;
+//       this.cdr.detectChanges();
+
+//       // 4. Render with dynamic data
+//       setTimeout(() => {
+//         this.renderSubCharts(); // Ye function ab 'ch.dynamicData' uthayega
+//       }, 300);
+//     },
+//     error: (err: any) => {
+//       console.error(`Fetch Error:`, err);
+//       this.isRefreshing = false;
+//       this.destroyCharts();
+//       this.cdr.detectChanges();
+//     }
+//   });
+// }
+
 async updateUIData() {
   const cat = this.getCurrentCat();
   if (!cat) return;
 
   const companyId = localStorage.getItem('companyId') || '1';
-  const timeframe = this.activeDateFilter; // 'today' ya 'all'
-  const range = this.selectedRange;
-  const beat = this.selectedBeat;
+  const timeframe = this.activeDateFilter; 
+  
+  // ERROR FIX: In dono variables ko pass karna zaroori hai
+  const range = this.selectedRange || 'all';
+  const beat = this.selectedBeat || 'all';
 
-  console.log(`Fetching data for Category: ${this.activeCatId}`);
+  this.isRefreshing = true;
 
   let dataCall;
+  
   if (this.activeCatId === 'fire') {
+    // 4 Arguments pass kiye (companyId, timeframe, range, beat)
     dataCall = this.dataService.getFireAnalytics(companyId, timeframe, range, beat);
-  } else if (this.activeCatId === 'events') {
-    dataCall = this.dataService.getEventsAnalytics(companyId as any, timeframe);
   } 
-  // --- YE WALA SECTION CHANGE KARO ---
+  else if (this.activeCatId === 'events') {
+    dataCall = this.dataService.getEventsAnalytics(Number(companyId), timeframe);
+  } 
   else if (this.activeCatId === 'assets') {
     const cId = localStorage.getItem('company_id') || localStorage.getItem('companyId') || '1';
-  dataCall = this.dataService.get(`assets/analytics/dynamic-stats/${cId}?timeframe=${timeframe}`);
+    dataCall = this.dataService.get(`assets/analytics/dynamic-stats/${cId}?timeframe=${timeframe}`);
   } 
-  // ----------------------------------
   else {
+    // 4 Arguments pass kiye (companyId, timeframe, range, beat)
     dataCall = this.dataService.getCriminalAnalytics(companyId, timeframe, range, beat);
   }
 
   dataCall.subscribe({
     next: (res: any) => {
-      // 2. UI List mapping (Same rahega, perfect hai)
+      console.log("Backend Response Received:", res);
+
       this.displayProgList = cat.subs.map((s: any) => {
-        const dynamicVal = res[s.id] || 0; 
+        let backendKey = s.id; 
+        
+        // --- 🐾 Animal aur Death ki mapping ---
+        if (s.id === 'animal') backendKey = 'wildlife';
+        if (s.id === 'impact' || s.id === 'death') backendKey = 'compensation'; 
+
+        const dynamicData = res[backendKey] || { val: 0, trend: [], levels: [], cases: [] }; 
+
+        if (s.charts) {
+          s.charts.forEach((ch: any) => {
+            ch.dynamicData = dynamicData.trend || dynamicData.levels || dynamicData.cases || [0,0,0,0,0];
+          });
+        }
+
         return {
           ...s,
-          val: dynamicVal,
-          pct: Math.min(Math.round((dynamicVal / 50) * 100), 100) 
+          val: dynamicData.val ?? dynamicData.count ?? 0,
+          pct: Math.min(Math.round(((dynamicData.val || dynamicData.count || 0) / 50) * 100), 100) 
         };
       });
 
-      // 3. Sub-Category logic
-      const sub = cat.subs.find((s: any) => s.id === this.activeSubId);
-      this.currentSubCharts = sub?.charts || [];
+      this.destroyCharts();
+      this.cdr.detectChanges(); 
+
+      const currentSub = cat.subs.find((s: any) => s.id === this.activeSubId);
+      this.currentSubCharts = currentSub?.charts || [];
       this.displayActivity = this.getActivity(this.activeSubId);
       
+      this.isRefreshing = false;
       this.cdr.detectChanges();
-      
-      // 4. Charts Render
+
       setTimeout(() => {
-        this.renderSubCharts();
-      }, 200);
+        this.renderSubCharts(); 
+      }, 300);
     },
     error: (err: any) => {
-      console.error(`Data fetch error for ${this.activeCatId}:`, err);
-      this.displayProgList = [];
+      console.error(`Fetch Error:`, err);
       this.isRefreshing = false;
+      this.destroyCharts();
       this.cdr.detectChanges();
     }
   });
 }
-
 // ngOnInit ya kisi refresh function mein ye call karo
 fetchRealAssetData() {
   const companyIdRaw = localStorage.getItem('company_id') || '1';
@@ -736,6 +972,40 @@ const companyId = Number(companyIdRaw); // Ya fir use karo: parseInt(companyIdRa
 
     // Data aane ke baad UI refresh karne ke liye config update karo
     this.setAnaCat('assets'); 
+  });
+}
+
+// --- HELPER FUNCTIONS FOR CHARTS (Add these) ---
+
+renderLineChart(id: string, data: any[], color: string) {
+  return this.mkChart(id, {
+    type: "line",
+    data: {
+      labels: ['D1', 'D2', 'D3', 'D4', 'D5'],
+      datasets: [{ 
+        data, 
+        borderColor: color, 
+        fill: true, 
+        tension: 0.4, 
+        backgroundColor: color + '1A' // 10% opacity for fill
+      }]
+    },
+    options: CDAX
+  });
+}
+
+renderBarChart(id: string, data: any[], color: string, labels: string[]) {
+  return this.mkChart(id, {
+    type: "bar",
+    data: {
+      labels: labels,
+      datasets: [{ 
+        data, 
+        backgroundColor: color, 
+        borderRadius: 4 
+      }]
+    },
+    options: CDAX
   });
 }
 }

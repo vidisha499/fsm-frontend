@@ -526,9 +526,20 @@ loadData() {
 
   const storageData = localStorage.getItem('user_data');
   if (!storageData) return;
+  
 
   const user = JSON.parse(storageData);
-  const myCompanyId = Number(user.company_id || user.companyId);
+  const myCompanyId = Number(user.company_id || user.companyId); 
+
+  // Agar ID missing hai ya 0 hai, toh aage mat badho
+  if (!myCompanyId || isNaN(myCompanyId)) {
+    console.error("CRITICAL: Company ID missing or invalid!", myCompanyId);
+    // Isse tujhe pata chal jayega ki problem frontend storage mein hai ya nahi
+    return; 
+  }
+
+  // const user = JSON.parse(storageData);
+  // const myCompanyId = Number(user.company_id || user.companyId);
   const localISOTime = new Date().toISOString().split('T')[0];
   const dates = this.getFilterDates();
 
@@ -697,8 +708,10 @@ loadData() {
 
         this.alertsData = res.alerts
           .filter((alert: any) => {
-            if (!prefs) return true;
             
+            if (!prefs) return true;
+               const alertCompanyId = Number(alert.company_id || alert.companyId);
+      if (alertCompanyId !== myCompanyId) return false; 
             // Normalize the category from the database for filtering
             const dbCat = (alert.subCategory || alert.category || alert.incident_criteria || 'SYSTEM').toUpperCase();
             
