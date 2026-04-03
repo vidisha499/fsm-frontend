@@ -377,4 +377,9 @@ get(endpoint: string) {
 getAllMapSightings(companyId: number) {
   return this.http.get(`${this.baseApiUrl}/patrols/all-sightings?companyId=${companyId}`);
 }
+// Add this inside your DataService class
+getAlertsByCompany(companyId: number): Observable<any[]> {
+  // This will call your NestJS: @Get('company/:companyId') inside AlertsController
+  return this.http.get<any[]>(`${this.baseApiUrl}/alerts/company/${companyId}`);
+}
 }
