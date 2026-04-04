@@ -110,6 +110,8 @@ export class AdminPage implements OnInit, AfterViewInit {
 
   // --- UI State ---
   // YE NEECHE WAALI LINES ADD KARO
+  private sightingsLayer = L.layerGroup();
+public allSightings: any[] = [];
   sightingChart: any;
   sightingSnapshotCount: number = 0;
   realNurseryCount: number = 0;
@@ -167,7 +169,9 @@ public filteredAlerts: any[] = [];
   alerts: ForestAlert[] = [];
   // Inside your class variables
   public sightingsCount: number = 0;
-  attChart: any;     // Attendance chart ke liye
+  attChart: any;  
+  public allActivePatrols: any[] = [];  
+  private patrolInterval: any; // Attendance chart ke liye
 // trendChart: any;
 
 layerStates: { [key: string]: boolean } = {
@@ -264,13 +268,6 @@ layerStates: { [key: string]: boolean } = {
         color: '#f43f5e',
         bg: '#fff1f2',
       },
-      // {
-      //   id: 'checkposts',
-      //   label: 'Checkposts',
-      //   emoji: '🏠',
-      //   color: '#4f46e5',
-      //   bg: '#eef2ff',
-      // },
     ],
   },
 };
@@ -358,6 +355,13 @@ layerStates: { [key: string]: boolean } = {
 
 ngOnInit() {
 
+  this.loadActivePatrols();
+
+  // Har 30 seconds mein update karein (Live Tracking feel ke liye)
+  this.patrolInterval = setInterval(() => {
+    this.loadActivePatrols();
+  }, 30000);
+
   this.startDataPoll();
   
   if (this.dataInterval) {
@@ -380,6 +384,39 @@ ngOnInit() {
   setTimeout(() => {
   this.initHomeCharts();
 }, 1000);
+}
+
+
+ngOnDestroy() {
+  // 1. Interval band karo (Ye tere paas hai)
+  if (this.dataInterval) {
+    clearInterval(this.dataInterval);
+    this.dataInterval = null;
+  }
+
+  // 2. Saare Charts ko poori tarah khatam karo
+  // Agar tune charts ko this._charts mein save kiya hai toh:
+  if (this._charts) {
+    Object.keys(this._charts).forEach(id => {
+      if (this._charts[id]) {
+        this._charts[id].destroy(); 
+      }
+    });
+    this._charts = {}; 
+  }
+
+  // 3. Map ko destroy karo (Sabse zyada RAM yehi khata hai)
+  if (this.map) {
+    this.map.off(); // Saare click events hatao
+    this.map.remove(); // Map ko DOM se delete karo
+    this.map = null;
+  }
+
+   if (this.patrolInterval) {
+    clearInterval(this.patrolInterval);
+  }
+  
+  console.log("Admin Page Destroyed: Memory Cleared!");
 }
 
 
@@ -484,46 +521,14 @@ onSegmentChange(event: any) {
 }
 
 
-// private updateMapMarkers() {
-//   if (!this.map || !this.markerGroup) return;
+loadSightings() {
+  const companyId = 1; // Aapka dynamic company ID
+  this.dataService.getAllMapSightings(companyId).subscribe((data: any) => {
+    this.allSightings = data;
+    this.updateMapMarkers(); // Map par dikhane ke liye
+  });
+}
 
-//   this.markerGroup.clearLayers();
-
-//   // FIX: Loop through activePinsDisplay instead of activePins
-//   this.activePinsDisplay.forEach(pin => {
-    
-//     if (this.layerStates && this.layerStates[pin.layerId] === false) {
-//       return; 
-//     }
-
-//     if (!pin.lat || !pin.lng || isNaN(pin.lat) || isNaN(pin.lng)) {
-//       return; 
-//     }
-
-//     const customIcon = L.divIcon({
-//       className: 'custom-pin-container',
-//       html: `
-//         <div class="mpin-wrapper">
-//           <div class="mpin-ring" style="background: ${pin.color}33; border: 1px solid ${pin.color}66;"></div>
-//           <div class="mpin-bubble" style="background: ${pin.color}">
-//             ${pin.emoji || '📍'}
-//           </div>
-//           <div class="mpin-label">${pin.label ? pin.label.split(' ')[0] : 'Alert'}</div> 
-//         </div>`,
-//       iconSize: [50, 60],
-//       iconAnchor: [25, 25] 
-//     });
-
-//     L.marker([pin.lat, pin.lng], { icon: customIcon })
-//       .addTo(this.markerGroup)
-//       .bindPopup(`
-//         <div style="font-family: 'Poppins', sans-serif; padding: 5px;">
-//           <strong style="color: ${pin.color}">${pin.label}</strong><br>
-//           <small>${new Date(pin.createdAt || Date.now()).toLocaleString()}</small>
-//         </div>
-//       `);
-//   });
-// } 
 // REPLACE existing updateMapMarkers starting at line 752
 private updateMapMarkers() {
   if (!this.map || !this.markerGroup) return;
@@ -570,6 +575,7 @@ private updateMapMarkers() {
       `);
   });
 }
+
 
 
 loadData() {
@@ -963,126 +969,170 @@ updateFilteredAlerts() {
 
   
 
-ngOnDestroy() {
-  // 1. Interval band karo (Ye tere paas hai)
-  if (this.dataInterval) {
-    clearInterval(this.dataInterval);
-    this.dataInterval = null;
-  }
 
-  // 2. Saare Charts ko poori tarah khatam karo
-  // Agar tune charts ko this._charts mein save kiya hai toh:
-  if (this._charts) {
-    Object.keys(this._charts).forEach(id => {
-      if (this._charts[id]) {
-        this._charts[id].destroy(); 
-      }
-    });
-    this._charts = {}; 
-  }
 
-  // 3. Map ko destroy karo (Sabse zyada RAM yehi khata hai)
-  if (this.map) {
-    this.map.off(); // Saare click events hatao
-    this.map.remove(); // Map ko DOM se delete karo
-    this.map = null;
-  }
+loadActivePatrols() {
+  // 1. LocalStorage se user/ranger data nikaalein
+  const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
   
-  console.log("Admin Page Destroyed: Memory Cleared!");
+  // 2. Company ID prioritize karein (User object se ya fir storage se)
+  const companyId = userData.companyId || userData.company_id || localStorage.getItem('company_id');
+
+  if (!companyId) {
+    console.error("Company ID not found in storage");
+    return;
+  }
+
+  // 3. API Call with dynamic ID
+  this.dataService.getActivePatrols(Number(companyId)).subscribe({
+    next: (res: any) => {
+      this.allActivePatrols = res;
+      this.updateVisiblePins();
+    },
+    error: (err) => {
+      console.error("Error fetching active patrols:", err);
+    }
+  });
 }
+
   
 
 
 updateVisiblePins() {
   const newPins: any[] = [];
   
-  // 1. Combine data sources correctly
-  const combinedData = [...(this.allIncidents || []), ...(this.alerts || [])];
+  // 1. Data merge karein (Incidents, Alerts, Sightings aur ab Active Patrols bhi)
+  const combinedData = [
+    ...(this.allIncidents || []), 
+    ...(this.alerts || []),
+    ...(this.allSightings || []),
+    ...(this.allActivePatrols || []) // Naya: Active patrols list
+  ];
   
   if (combinedData.length === 0) return;
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  // Filter logic: Today (Last 24 hours)
+  const now = new Date();
+  const yesterday = new Date(now.getTime() - (24 * 60 * 60 * 1000));
 
   combinedData.forEach(item => {
-    // 2. Normalize Date (Handles both camelCase and snake_case)
-    const rawDate = item.created_at || item.createdAt;
-    const itemDateStr = rawDate ? new Date(rawDate).toISOString().split('T')[0] : '';
+    const rawDate = item.created_at || item.createdAt || item.startTime; // Patrols use startTime
+    const itemDate = new Date(rawDate);
     
-    // For debugging: comment this next line out if you still don't see pins 
-    // to check if it's a timezone issue
-    if (itemDateStr !== todayStr) return;
+    // Agar data 24 ghante se purana hai toh skip karein 
+    // (Note: Active patrols hamesha current hoti hain, so ye pass ho jayengi)
+    if (itemDate < yesterday && !item.isActive) return;
 
     let layerId = '';
+    const category = (item.category || '').toUpperCase();
+    const type = (item.type || '').toUpperCase();
 
-    // 3. SOS Detection (Matches your NestJS 'finalCategory')
-    if (item.category === 'SOS' || (item.type && item.type.toUpperCase().includes('SOS'))) {
+    // 2. Mapping Logic (Including Active Patrol Detection)
+    
+    // Sabse pehle check karein kya ye active patrol hai
+    if (item.isActive === true && item.liveLatitude) {
+      layerId = 'active_patrol';
+    } 
+    // SOS Detection
+    else if (category === 'SOS' || type.includes('SOS')) {
       layerId = 'sos';
     } 
-    // 4. Incident Detection (Keep as is)
-    else {
-      const criteria = (item.incidentCriteria || '').toUpperCase();
-      const subCat = (item.subCategory || '').toLowerCase();
+    // Sightings & Alerts Mapping
+    else if (category.includes('ANIMAL')) layerId = 'animal_sighting';
+    else if (category.includes('WATER')) layerId = 'water_status';
+    else if (category.includes('DEATH')) layerId = 'wildlife_death';
+    else if (category.includes('FELLING')) layerId = 'illegal_felling';
+    else if (category.includes('IMPACT')) layerId = 'human_impact';
+    else if (type.includes('POACH')) layerId = 'animal_poaching';
+    else if (type.includes('FIRE')) layerId = 'fire_warning';
+    else if (type.includes('MINING')) layerId = 'illegal_mining';
+    else layerId = 'others';
 
-      if (criteria.includes('POACH') || subCat.includes('poach')) {
-        layerId = 'animal_poaching';
-      } else if (criteria.includes('FIRE') || subCat.includes('fire')) {
-        layerId = 'fire_warning';
-      } else if (criteria.includes('FELL') || subCat.includes('felling')) {
-        layerId = 'illegal_felling';
-      } else if (criteria.includes('MINING') || subCat.includes('mining')) {
-        layerId = 'illegal_mining';
-      }
-    }
-
-    // 5. Visibility Check
+    // 3. Check if layer is toggled ON in UI
     if (layerId && this.layerStates[layerId] === true) {
       let style: any = null;
+      // LAYERS_DATA se design (emoji, color) uthayein
       Object.values(this.LAYERS_DATA).forEach((cat: any) => {
         const found = cat.items.find((i: any) => i.id === layerId);
         if (found) style = found;
       });
 
-      // 6. Coordinate Parsing
-      const lat = parseFloat(item.latitude);
-      const lng = parseFloat(item.longitude);
+      // 4. Coordinate Parsing (Live location for Patrols, Static for Alerts)
+      const lat = parseFloat(item.liveLatitude || item.latitude);
+      const lng = parseFloat(item.liveLongitude || item.longitude);
 
       if (!isNaN(lat) && !isNaN(lng)) {
         newPins.push({
           ...item,
           lat: lat,
           lng: lng,
-          label: style?.label || 'Alert',
-          emoji: style?.emoji || '🚨',
-          color: style?.color || '#f43f5e',
-          layerId: layerId
+          // Agar patrol hai toh Ranger ka naam dikhayein, warna Alert label
+          label: layerId === 'active_patrol' ? (item.ranger?.name || 'Active Ranger') : (style?.label || item.category || 'Alert'),
+          emoji: style?.emoji || this.getMarkerEmoji(layerId),
+          color: style?.color || this.getLayerColor(layerId),
+          layerId: layerId,
+          isPatrol: layerId === 'active_patrol' // Flag for special popup logic in updateMapMarkers
         });
       }
     }
   });
 
   this.activePinsDisplay = newPins;
+  
+  // Map markers refresh karein
   this.updateMapMarkers();
+  
+  // UI update trigger karein
   this.cdr.detectChanges();
 }
+
+
 
 getMarkerEmoji(id: string) {
   if (id.includes('fire')) return '🔥';
   if (id.includes('felling')) return '🪓';
   if (id.includes('poaching')) return '🐾';
   if (id.includes('mining')) return '⛏️';
+  if (id.includes('animal')) return '🦌';
+  if (id.includes('water')) return '💧';
+  if (id.includes('death')) return '💀';
+  if (id.includes('impact')) return '⚠️';
+  if (id.includes('sos')) return '🆘';
   return '📍';
 }
 
-// Helper to keep colors consistent
 getLayerColor(layerId: string) {
   const colors: any = {
     'illegal_felling': '#0d9488',
-    'poaching': '#f59e0b',
-    'fire_alert': '#ef4444',
-    'illegal_mining': '#7c3aed'
+    'animal_poaching': '#f59e0b',
+    'fire_warning': '#ef4444',
+    'illegal_mining': '#7c3aed',
+    'animal_sighting': '#10b981',
+    'water_status': '#3b82f6',
+    'sos': '#dc2626'
   };
   return colors[layerId] || '#3b82f6';
 }
+
+
+// getMarkerEmoji(id: string) {
+//   if (id.includes('fire')) return '🔥';
+//   if (id.includes('felling')) return '🪓';
+//   if (id.includes('poaching')) return '🐾';
+//   if (id.includes('mining')) return '⛏️';
+//   return '📍';
+// }
+
+// // Helper to keep colors consistent
+// getLayerColor(layerId: string) {
+//   const colors: any = {
+//     'illegal_felling': '#0d9488',
+//     'poaching': '#f59e0b',
+//     'fire_alert': '#ef4444',
+//     'illegal_mining': '#7c3aed'
+//   };
+//   return colors[layerId] || '#3b82f6';
+// }
 
   // --- UI Methods ---
   updateTime() {

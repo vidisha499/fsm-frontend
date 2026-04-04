@@ -386,4 +386,9 @@ getAlertsByCompany(companyId: number): Observable<any[]> {
   // This will call your NestJS: @Get('company/:companyId') inside AlertsController
   return this.http.get<any[]>(`${this.baseApiUrl}/alerts/company/${companyId}`);
 }
+
+// data.service.ts mein add karein
+getActivePatrols(companyId: number) {
+  return this.http.get(`${this.baseApiUrl}/patrols/active?companyId=${companyId}`);
+}
 }
