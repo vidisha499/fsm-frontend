@@ -105,6 +105,7 @@ async saveSighting() {
 
       // 2. Build the Payload (Matching your backend Entity/DTO)
      const payload = {
+      
     patrolId: finalPatrolId, // Use the verified number here
     category: this.category,
     sightingType: this.obsData.sightingType,

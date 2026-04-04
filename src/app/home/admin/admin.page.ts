@@ -18,6 +18,7 @@ Chart.register(...registerables);
 
 interface ForestAlert {
   id?: number;
+  type?: string;
   title: string;
   description: string;
   severity: 'critical' | 'warning' | 'info' | 'clear';
@@ -25,6 +26,8 @@ interface ForestAlert {
   beat_name?: string;
   created_at: string;
   assigned_ranger?: string;
+  latitude?: number; // <--- Ensure these exist
+  longitude?: number;
 }
 
 @Component({
@@ -178,6 +181,8 @@ layerStates: { [key: string]: boolean } = {
   sos: true,
  
 };
+
+
 
 
   readonly LAYERS_DATA: any = {
@@ -479,314 +484,94 @@ onSegmentChange(event: any) {
 }
 
 
+// private updateMapMarkers() {
+//   if (!this.map || !this.markerGroup) return;
+
+//   this.markerGroup.clearLayers();
+
+//   // FIX: Loop through activePinsDisplay instead of activePins
+//   this.activePinsDisplay.forEach(pin => {
+    
+//     if (this.layerStates && this.layerStates[pin.layerId] === false) {
+//       return; 
+//     }
+
+//     if (!pin.lat || !pin.lng || isNaN(pin.lat) || isNaN(pin.lng)) {
+//       return; 
+//     }
+
+//     const customIcon = L.divIcon({
+//       className: 'custom-pin-container',
+//       html: `
+//         <div class="mpin-wrapper">
+//           <div class="mpin-ring" style="background: ${pin.color}33; border: 1px solid ${pin.color}66;"></div>
+//           <div class="mpin-bubble" style="background: ${pin.color}">
+//             ${pin.emoji || '📍'}
+//           </div>
+//           <div class="mpin-label">${pin.label ? pin.label.split(' ')[0] : 'Alert'}</div> 
+//         </div>`,
+//       iconSize: [50, 60],
+//       iconAnchor: [25, 25] 
+//     });
+
+//     L.marker([pin.lat, pin.lng], { icon: customIcon })
+//       .addTo(this.markerGroup)
+//       .bindPopup(`
+//         <div style="font-family: 'Poppins', sans-serif; padding: 5px;">
+//           <strong style="color: ${pin.color}">${pin.label}</strong><br>
+//           <small>${new Date(pin.createdAt || Date.now()).toLocaleString()}</small>
+//         </div>
+//       `);
+//   });
+// } 
+// REPLACE existing updateMapMarkers starting at line 752
 private updateMapMarkers() {
   if (!this.map || !this.markerGroup) return;
-
   this.markerGroup.clearLayers();
 
-  // FIX: Loop through activePinsDisplay instead of activePins
   this.activePinsDisplay.forEach(pin => {
-    
+    // 1. Check if the layer is turned on in the UI
     if (this.layerStates && this.layerStates[pin.layerId] === false) {
-      return; 
+      return;
     }
 
-    if (!pin.lat || !pin.lng || isNaN(pin.lat) || isNaN(pin.lng)) {
-      return; 
-    }
+    // 2. Validate coordinates
+    const lat = pin.lat || pin.latitude; // Backend might send 'latitude'
+    const lng = pin.lng || pin.longitude; // Backend might send 'longitude'
+
+    if (!lat || !lng || isNaN(lat) || isNaN(lng)) return;
+
+    // 3. Set Color based on type
+    const markerColor = pin.type === 'SIGHTING' ? '#10b981' : (pin.color || '#f43f5e');
+    const markerEmoji = pin.type === 'SIGHTING' ? '🦌' : (pin.emoji || '📍');
 
     const customIcon = L.divIcon({
       className: 'custom-pin-container',
       html: `
         <div class="mpin-wrapper">
-          <div class="mpin-ring" style="background: ${pin.color}33; border: 1px solid ${pin.color}66;"></div>
-          <div class="mpin-bubble" style="background: ${pin.color}">
-            ${pin.emoji || '📍'}
+          <div class="mpin-ring" style="background: ${markerColor}33; border: 1px solid ${markerColor}66;"></div>
+          <div class="mpin-bubble" style="background: ${markerColor}">
+            ${markerEmoji}
           </div>
-          <div class="mpin-label">${pin.label ? pin.label.split(' ')[0] : 'Alert'}</div> 
+          <div class="mpin-label">${pin.category || 'Alert'}</div>
         </div>`,
       iconSize: [50, 60],
-      iconAnchor: [25, 25] 
+      iconAnchor: [25, 25]
     });
 
-    L.marker([pin.lat, pin.lng], { icon: customIcon })
+    L.marker([lat, lng], { icon: customIcon })
       .addTo(this.markerGroup)
       .bindPopup(`
         <div style="font-family: 'Poppins', sans-serif; padding: 5px;">
-          <strong style="color: ${pin.color}">${pin.label}</strong><br>
-          <small>${new Date(pin.createdAt || Date.now()).toLocaleString()}</small>
+          <strong style="color: ${markerColor}">${pin.category || pin.title}</strong><br>
+          <p>${pin.message || pin.description || ''}</p>
+          <small>${new Date(pin.created_at || pin.createdAt || Date.now()).toLocaleString()}</small>
         </div>
       `);
   });
-} 
+}
 
 
-// loadData() {
-//   if (this.isFetching) return;
-
-//   const storageData = localStorage.getItem('user_data');
-//   if (!storageData) return;
-  
-
-//   const user = JSON.parse(storageData);
-//   const myCompanyId = Number(user.company_id || user.companyId); 
-
-//   // Agar ID missing hai ya 0 hai, toh aage mat badho
-//   if (!myCompanyId || isNaN(myCompanyId)) {
-//     console.error("CRITICAL: Company ID missing or invalid!", myCompanyId);
-//     // Isse tujhe pata chal jayega ki problem frontend storage mein hai ya nahi
-//     return; 
-//   }
-
-//   // const user = JSON.parse(storageData);
-//   // const myCompanyId = Number(user.company_id || user.companyId);
-//   const localISOTime = new Date().toISOString().split('T')[0];
-//   const dates = this.getFilterDates();
-
-//   this.isFetching = true;
-
-//   // SABHI DATA SOURCES EK SAATH
-//   forkJoin({
-//     stats: this.dataService.getDashboardStats(myCompanyId, dates.from, dates.to),
-//     sightings: this.dataService.getSightingCount(myCompanyId, dates.from || '', dates.to || ''),
-//     fireCount: this.adminService.getFireAlertsCount(myCompanyId, localISOTime),
-//     onDuty: this.adminService.getOnDutyCount(myCompanyId, localISOTime),
-//     onLeave: this.adminService.getOnLeaveCount(myCompanyId),
-//     inactive: this.adminService.getInactiveCount(myCompanyId, localISOTime),
-//     users: this.dataService.getUsersByCompany(myCompanyId),
-//     alerts: this.dataService.getLatestAlerts(myCompanyId),
-//     // assetsStats: this.dataService.getAdminStats(myCompanyId), 
-//     assetsStats: this.dataService.getAdminStats(myCompanyId, this.activeDateFilter, dates.from, dates.to),
-//     assetsTrend: this.dataService.getAssetsTrend(myCompanyId),
-//     mapIncidents: this.dataService.getIncidentsForMap(myCompanyId) 
-//   }).subscribe({
-//     next: (res: any) => {
-//       // --- 1. ASSETS DATA (Nursery, Plantation etc.) ---
-//       if (res.assetsStats) {
-//         this.totalAssetsCount = res.assetsStats.totalAssets || 0;
-//       this.operationalRate = res.assetsStats.operationalRate || '0%';
-//         this.totalAssetsCount = res.assetsStats.totalAssets || 0;
-//         this.operationalRate = res.assetsStats.operationalRate || '0%';
-        
-//         (this as any).realNurseryCount = res.assetsStats.nursery || 0;
-//         (this as any).realPlantationCount = res.assetsStats.plantations || 0;
-//         (this as any).realOfficeCount = res.assetsStats.offices || 0;
-//         (this as any).realEcoCount = res.assetsStats.ecoSites || 0;
-
-//         if ((this as any).activeTab === 'assets' && typeof (this as any).setAnaCat === 'function') {
-//           (this as any).setAnaCat('assets'); 
-//         }
-//       }
-
-//       // --- 2. TREND CHART LOGIC ---
-//       if (res.assetsTrend) {
-//         this.momStatus = res.assetsTrend.momLabel || '0% MoM';
-//         this.isGoodTrend = res.assetsTrend.isImprovement;
-//         setTimeout(() => {
-//           if (typeof (this as any).initTrendChart === 'function') {
-//             (this as any).initTrendChart(res.assetsTrend.labels, res.assetsTrend.values);
-//           }
-//         }, 300);
-//       }
-
-//       // --- 3. DASHBOARD COUNTS ---
-//       const stats = res.stats || {};
-//       this.incidentsCount = stats.totalEvents || 0;
-//       this.criminalActivityCount = stats.criminalEvents || 0;
-//       this.fireAlertsCount = stats.fireEvents || (res.fireCount?.count ?? res.fireCount ?? 0);
-//       this.attendancePercent = stats.resolvedPercentage || 0;
-
-//       // --- 4. PERSONNEL & RANGERS ---
-//       this.sightingsCount = typeof res.sightings === 'object' ? (res.sightings.count ?? 0) : (res.sightings ?? 0);
-//       this.onDutyCount = res.onDuty?.count ?? res.onDuty ?? 0;
-//       this.onLeaveCount = res.onLeave?.count ?? res.onLeave ?? 0;
-//       this.inactiveCount = res.inactive?.count ?? res.inactive ?? 0;
-
-//       const allUsers = res.users?.data || res.users || [];
-//       if (Array.isArray(allUsers)) {
-//         this.rangers = allUsers.filter((u: any) => Number(u.role_id || u.roleId) === 4);
-//         this.filteredRangers = [...this.rangers];
-//         this.allRangers = this.rangers.length;
-//       }
-      
-//       // --- 5. MAP INCIDENTS & LAYERS ---
-//       let processedPins: any[] = [];
-
-//       // A. Process standard Incidents (Felling, Fire, Poaching, Mining)
-//       if (res.mapIncidents && Array.isArray(res.mapIncidents)) {
-//         const incidentPins = res.mapIncidents.map((inc: any) => {
-//           const dbCriteria = (inc.incidentCriteria || '').toUpperCase();
-//           const rawSubCat = inc.subCategory || '';
-//           const normalizedSub = rawSubCat.toLowerCase().trim().replace(/\s+/g, '_');
-
-//           let finalLayerId = normalizedSub;
-//           if (dbCriteria.includes('POACH') || normalizedSub.includes('poach')) {
-//             finalLayerId = 'animal_poaching'; 
-//           } else if (dbCriteria.includes('FIRE') || normalizedSub.includes('fire')) {
-//             finalLayerId = 'fire_warning';
-//           } else if (dbCriteria.includes('FELL') || normalizedSub.includes('felling')) {
-//             finalLayerId = 'illegal_felling';
-//           } else if (dbCriteria.includes('MINING') || normalizedSub.includes('mining')) {
-//             finalLayerId = 'illegal_mining';
-//           }
-
-//           return {
-//             ...inc,
-//             layerId: finalLayerId,
-//             subCategory: rawSubCat || inc.incidentCriteria || 'General Incident',
-//             displayLabel: dbCriteria.includes('FIRE') ? 'Fire Warning' : (rawSubCat || inc.incidentCriteria)
-//           };
-//         });
-//         processedPins = [...incidentPins];
-//       }
-
-//       // B. Process New Sightings (Animal Sightings & Water Status)
-//       if (res.allSightings && Array.isArray(res.allSightings)) {
-//         const sightingPins = res.allSightings.map((s: any) => {
-//           // Check if the record is Water or Animal
-//           const isWater = (s.category || '').toLowerCase().includes('water') || 
-//                           (s.species || '').toLowerCase().includes('water');
-//           const type = isWater ? 'water' : 'animal';
-          
-//           return {
-//             ...s,
-//             id: `sighting-${s.id}`,
-//             layerId: type, // Matches IDs in your LAYERS_DATA
-//             // Convert GPS to Map Pixels
-//             l: typeof (this as any).convertToLeft === 'function' ? (this as any).convertToLeft(s.longitude) : '50%',
-//             t: typeof (this as any).convertToTop === 'function' ? (this as any).convertToTop(s.latitude) : '50%',
-//             color: isWater ? '#0ea5e9' : '#e11d48',
-//             emoji: isWater ? '💧' : '🐾',
-//             label: isWater ? 'Water Status' : 'Animal Sighting',
-//             displayLabel: isWater ? 'Water Status' : 'Animal Sighting',
-//             delay: Math.random() * 2
-//           };
-//         });
-//         processedPins = [...processedPins, ...sightingPins];
-//       }
-
-//       // Final update to the array used by the map
-//       this.allIncidents = processedPins;
-
-//       if (typeof (this as any).updateVisiblePins === 'function') {
-//         (this as any).updateVisiblePins(); 
-//       }
-
-//       // --- 6. ALERTS LOGIC ---
-  
-//       if (res.alerts && Array.isArray(res.alerts)) {
-//         const savedPrefs = localStorage.getItem('admin_notification_settings');
-//         const prefs = savedPrefs ? JSON.parse(savedPrefs) : null;
-
-//         this.alertsData = res.alerts
-//           .filter((alert: any) => {
-            
-//             if (!prefs) return true;
-//                const alertCompanyId = Number(alert.company_id || alert.companyId);
-//       if (alertCompanyId !== myCompanyId) return false; 
-//             // Normalize the category from the database for filtering
-//             const dbCat = (alert.subCategory || alert.category || alert.incident_criteria || 'SYSTEM').toUpperCase();
-            
-//             const isEnabled = (label: string) => {
-//               const p = prefs.find((x: any) => x.label.toLowerCase() === label.toLowerCase());
-//               return p ? p.enabled : true;
-//             };
-
-//             if (dbCat.includes('FIRE')) return isEnabled('Fire Alerts');
-//             if (dbCat.includes('FELL')) return isEnabled('Illegal Felling');
-//             if (dbCat.includes('POACH')) return isEnabled('Animal Poaching');
-//             if (dbCat.includes('CRIMINAL')) return isEnabled('Criminal Activity');
-//             return true;
-//           })
-//           .slice(0, 15)
-//           .map((alert: any) => {
-//             const rawType = (alert.type || 'INFO').toUpperCase();
-//             const theme = (this as any).getAlertTheme ? (this as any).getAlertTheme(rawType) : null;
-            
-//             let titlePrefix = '';
-
-//             // IMPROVED LOGIC: Check for subCategory or incident_criteria first to avoid "SYSTEM" label
-//             if (rawType === 'INCIDENT' || alert.category || alert.subCategory || alert.incident_criteria) {
-//               const specificCat = (alert.subCategory || alert.incident_criteria || alert.category || 'INCIDENT').toUpperCase();
-              
-//               if (specificCat.includes('FIRE')) {
-//                 titlePrefix = 'FIRE WARNING';
-//               } else if (specificCat.includes('FELL')) {
-//                 titlePrefix = 'ILLEGAL FELLING';
-//               } else if (specificCat.includes('POACH')) {
-//                 titlePrefix = 'ANIMAL POACHING';
-//               } else {
-//                 titlePrefix = specificCat;
-//               }
-//             } 
-//             else if (rawType === 'ATTENDANCE') titlePrefix = 'ATTENDANCE';
-//             else if (rawType === 'ONSITE') titlePrefix = 'ONSITE-ATTENDANCE';
-//             else if (rawType === 'PATROL_START') titlePrefix = 'PATROL-START';
-//             else if (rawType === 'PATROL_END') titlePrefix = 'PATROL-END';
-//             else {
-//               titlePrefix = rawType;
-//             }
-
-            
-
-//           const sev = rawType.includes('INCIDENT') || 
-//             (alert.subcategory && alert.subcategory.toLowerCase().includes('fell')) || 
-//             (alert.subcategory && alert.subcategory.toLowerCase().includes('fire')) ||
-//             rawType.includes('CRIT') 
-//             ? 'critical' : rawType.includes('WARN') ? 'warning' : 'info';
-
-
-// return {
-//   ...alert,
-//   severity: sev,
-//   // 1. UPDATE THIS: To show Subcategory + Ranger Name in title
-//   displayTitle: (() => {
-//     const rName = alert.ranger_name || 'Ranger';
-//     const type = (alert.type || '').toUpperCase();
-    
-//     // If it's an SOS or INCIDENT, prioritize the more specific label
-//     if (type.includes('SOS') || type.includes('INCIDENT')) {
-//       const sub = alert.subcategory || alert.subCategory || alert.category || 'Emergency';
-//       return `${sub} - ${rName}`;
-//     }
-//     return `${type} - ${rName}`;
-//   })(),
-//   displayDesc: (alert.location_name && alert.location_name !== 'Unknown Location') 
-//                 ? alert.location_name 
-//                 : (alert.message || 'Location not specified'),
-
-//   displayTime: alert.created_at ? 
-//     `${new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Just Now',
-
-//               icon: theme?.icon || 'information-circle', 
-//               bg: theme?.bg || 'bg-blue-50', 
-//               color: theme?.color || 'text-blue-500', 
-//               label: theme?.label || 'INFO'
-//             };
-//           });
-
-//         this.critCount = this.alertsData.filter(a => a.severity === 'critical').length;
-//         this.warnCount = this.alertsData.filter(a => a.severity === 'warning').length;
-//         this.infoCount = this.alertsData.filter(a => a.severity === 'info').length;
-        
-//         if (typeof (this as any).updateFilteredAlerts === 'function') {
-//           (this as any).updateFilteredAlerts();
-//         }
-//       }
-//     },
-//     error: (err: any) => {
-//       console.error('Master Data Fetch Error:', err);
-//       this.isFetching = false;
-//       this.cdr.detectChanges();
-//     },
-//     complete: () => {
-//       this.isFetching = false;
-      
-//       this.updateFilteredAlerts(); 
-//       this.cdr.detectChanges();
-//     }
-//   });
-//     }
 loadData() {
   if (this.isFetching) return;
 
@@ -1046,6 +831,9 @@ loadData() {
    });
      }
 
+
+
+
 trackByAlert(index: number, alert: any) {
   // Agar alert ki unique ID hai toh wo return karo, warna index
   return alert.id || index; 
@@ -1204,85 +992,6 @@ ngOnDestroy() {
 }
   
 
-// updateVisiblePins() {
-//   const newPins: any[] = [];
-  
-//   if (!this.allIncidents) return;
-
-//   // Get today's date string in YYYY-MM-DD format for comparison
-//   const todayStr = new Date().toISOString().split('T')[0];
-
-//   this.allIncidents.forEach(incident => {
-//     // --- NEW DATE FILTER LOGIC ---
-//     // Extract the date part from the incident's timestamp (e.g., "2026-03-30")
-//     const incidentDate = incident.createdAt || incident.created_at;
-//     const incidentDateStr = incidentDate ? new Date(incidentDate).toISOString().split('T')[0] : '';
-
-//     // If the incident date does not match today, skip it
-//     if (incidentDateStr !== todayStr) {
-//       return;
-//     }
-
-//     // 1. Get/Normalize the Layer ID
-//     let layerId = incident.layerId || '';
-//     const criteria = (incident.incidentCriteria || '').toUpperCase();
-//     const subCat = (incident.subCategory || '').toLowerCase();
-
-//     // Mapping logic to ensure Poaching/Fire/Felling match LAYERS_DATA
-//     if (criteria.includes('POACH') || subCat.includes('poach')) {
-//       layerId = 'animal_poaching';
-//     } else if (criteria.includes('FIRE') || subCat.includes('fire')) {
-//       layerId = 'fire_warning';
-//     } else if (criteria.includes('FELL') || subCat.includes('felling')) {
-//       layerId = 'illegal_felling';
-//     }
-
-//     // 2. Check if this layer is toggled ON in the UI
-//     if (this.layerStates && this.layerStates[layerId] === true) {
-//       let style: any = null;
-      
-//       // Find Style from LAYERS_DATA
-//       Object.values(this.LAYERS_DATA).forEach((cat: any) => {
-//         const found = cat.items.find((i: any) => i.id === layerId);
-//         if (found) style = found;
-//       });
-
-//       // Fallback style
-//       if (!style) {
-//         style = { 
-//           emoji: '⚠️', 
-//           color: '#6366f1', 
-//           label: incident.subCategory || incident.incidentCriteria || 'Alert' 
-//         };
-//       }
-
-//       // 3. Parse and Validate Coordinates
-//       const lat = parseFloat(incident.latitude);
-//       const lng = parseFloat(incident.longitude);
-
-//       if (!isNaN(lat) && !isNaN(lng)) {
-//         newPins.push({
-//           ...incident,
-//           lat: lat,
-//           lng: lng,
-//           label: style.label,
-//           emoji: style.emoji,
-//           color: style.color,
-//           layerId: layerId 
-//         });
-//       }
-//     }
-//   });
-
-//   // 4. Update the UI and Map
-//   this.activePinsDisplay = newPins;
-  
-//   // Debug to see how many of today's pins are being shown
-//   console.log(`Showing ${this.activePinsDisplay.length} incidents marked today (${todayStr})`);
-  
-//   this.updateMapMarkers();
-//   this.cdr.detectChanges();
-// }
 
 updateVisiblePins() {
   const newPins: any[] = [];
@@ -1925,10 +1634,15 @@ initAttChart() {
     const now = new Date();
     const from = new Date();
 
+    // if (this.activeDateFilter === 'today') {
+    //   // This is the magic line:
+    //   // It sets the time to 00:00:00 (Midnight) of the current day
+    //   from.setHours(0, 0, 0, 0);
+    // } 
+    
     if (this.activeDateFilter === 'today') {
-      // This is the magic line:
-      // It sets the time to 00:00:00 (Midnight) of the current day
-      from.setHours(0, 0, 0, 0);
+  // Look back 24 hours from right now to catch all recent sightings
+  from.setHours(now.getHours() - 24); 
     } else if (this.activeDateFilter === 'week') {
       from.setDate(now.getDate() - 7);
     } else if (this.activeDateFilter === 'month') {
