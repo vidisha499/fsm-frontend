@@ -723,59 +723,215 @@ loadData() {
         (this as any).updateVisiblePins();
       }
 
-// --- 6. ALERTS NOTIFICATION LIST LOGIC (WITH DEBUG LOGS) ---
-console.log("--- 🕵️ ALERTS DEBUG START ---");
-      // if (res.alerts && Array.isArray(res.alerts)) {
-      //   const savedPrefs = localStorage.getItem('admin_notification_settings');
-      //   const prefs = savedPrefs ? JSON.parse(savedPrefs) : null;
-        
-      //   const processedAlerts = res.alerts.map((alert: any) => {
-      //     const rawType = (alert.type || 'INFO').toUpperCase();
-      //     const baseType = rawType.includes(' - ') ? rawType.split(' - ')[0].trim() : rawType; 
-      //     const theme = this.getAlertTheme(baseType);
-      //     const catRaw = (alert.category || baseType || '').toLowerCase();
-          
-      //     return {
-      //       ...alert,
-      //       bg: theme.bg,
-      //       color: theme.color,
-      //       label: theme.label,
-      //       icon: this.getAlertIcon ? this.getAlertIcon(catRaw) : theme.icon,
-      //       severity: (baseType === 'SOS' || baseType === 'INCIDENT' || catRaw.includes('death')) ? 'critical' : 'info',
-      //       displayTitle: `${alert.category || baseType} - ${alert.ranger_name || 'Ranger'}`,
-      //       displayDesc: alert.location_name || alert.message || 'Reported',
-      //       displayTime: alert.created_at ? new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just Now'
-      //     };
-      //   });
 
-      //   this.alertsData = processedAlerts.filter((alert: any) => {
-      //     const alertCoId = alert.company_id || alert.companyId;
-      //     const isCompanyMatch = (alertCoId == 0 || alertCoId == null || Number(alertCoId) === myCompanyId);
-      //     if (!isCompanyMatch) return false;
-
-      //     if (!prefs || !Array.isArray(prefs)) return true;
-      //     const cat = (alert.category || '').toUpperCase();
-      //     const isEnabled = (label: string) => {
-      //       const p = prefs.find((x: any) => x.label.toLowerCase() === label.toLowerCase());
-      //       return p ? p.enabled : true;
-      //     };
-
-      //     if (cat.includes('FIRE') && !isEnabled('Fire Alerts')) return false;
-      //     if (cat.includes('FELL') && !isEnabled('Illegal Felling')) return false;
-      //     return true;
-      //   }).slice(0, 15);
-
-      //   console.log("✅ Final AlertsData:", this.alertsData);
-      //   this.critCount = this.alertsData.filter(a => a.severity === 'critical').length;
-      //   this.warnCount = this.alertsData.filter(a => a.severity === 'warning').length;
-      //   this.infoCount = this.alertsData.filter(a => a.severity === 'info').length;
-      // }
-      // console.log("--- 🕵️ ALERTS DEBUG END ---");
-
-      // this.cdr.markForCheck();
-      // this.cdr.detectChanges();
+     
       // --- 6. ALERTS NOTIFICATION LIST LOGIC (FIXED ICONS) ---
-  console.log("--- 🕵️ ALERTS DEBUG START ---");
+//       console.log("--- 🕵️ ALERTS DEBUG START ---");
+//       if (res.alerts && Array.isArray(res.alerts)) {
+//         const savedPrefs = localStorage.getItem('admin_notification_settings');
+//         const prefs = savedPrefs ? JSON.parse(savedPrefs) : null;
+        
+//         const processedAlerts = res.alerts.map((alert: any) => {
+//           const rawType = (alert.type || 'INFO').toUpperCase();
+//           const baseType = rawType.includes(' - ') ? rawType.split(' - ')[0].trim() : rawType; 
+          
+//           // Keyword search in Category, Type, and Message
+//           const searchKey = `${alert.category || ''} ${alert.type || ''} ${alert.message || ''}`.toLowerCase();
+          
+//           // Decide Theme based on baseType (for colors)
+//           const theme = this.getAlertTheme(baseType);
+          
+//           // --- ROBUST ICON & COLOR OVERRIDE ---
+//           let finalIcon = theme.icon || 'notifications'; 
+//           let finalColor = theme.color || '#64748b';
+
+//           if (searchKey.includes('fire')) {
+//             finalIcon = 'flame';
+//             finalColor = '#ff4d4f'; // Vibrant Red
+//           } else if (searchKey.includes('fell') || searchKey.includes('tree') || searchKey.includes('timber')) {
+//             finalIcon = 'leaf';
+//             finalColor = '#52c41a'; // Green
+//           } else if (searchKey.includes('poach') || searchKey.includes('animal') || searchKey.includes('sighting')) {
+//             finalIcon = 'paw';
+//             finalColor = '#fa8c16'; // Orange
+//           } else if (searchKey.includes('sos') || searchKey.includes('emergency')) {
+//             finalIcon = 'nuclear';
+//             finalColor = '#f5222d'; // Deep Red
+//           } else if (searchKey.includes('criminal')) {
+//             finalIcon = 'shield-half';
+//             finalColor = '#2b2d42'; // Navy
+//           } else if (searchKey.includes('patrol') && searchKey.includes('end')) {
+//             finalIcon = 'stop-circle';
+//             finalColor = '#0d9488'; // Teal
+//           } else if (searchKey.includes('patrol') && searchKey.includes('start')) {
+//             finalIcon = 'play-circle';
+//             finalColor = '#3b82f6'; // Blue
+//           } else if (searchKey.includes('onsite') || searchKey.includes('attendance')) {
+//             finalIcon = 'location';
+//             finalColor = '#d97706'; // Amber
+//           }
+
+//           return {
+//             ...alert,
+//             normalizedType: baseType,
+//             bg: theme.bg || '#f8fafc',
+//             color: finalColor, // Direct vibrant color
+//             label: theme.label || baseType,
+//             icon: finalIcon, 
+//             severity: (baseType === 'SOS' || baseType === 'INCIDENT' || searchKey.includes('death')) ? 'critical' : 'info',
+//             displayTitle: `${alert.category || baseType} - ${alert.ranger_name || 'Ranger'}`,
+//             displayDesc: alert.message || alert.location_name || 'Reported activity',
+//             displayTime: alert.created_at ? new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just Now'
+//           };
+//         });
+
+//         // 3. FILTERING LOGIC
+//         this.alertsData = processedAlerts.filter((alert: any) => {
+//           const alertCoId = alert.company_id || alert.companyId;
+//           const isCompanyMatch = (alertCoId == 0 || alertCoId == null || Number(alertCoId) === myCompanyId);
+//           if (!isCompanyMatch) return false;
+
+//           if (!prefs || !Array.isArray(prefs)) return true;
+//           const cat = (alert.category || alert.type || '').toUpperCase();
+//           const isEnabled = (label: string) => {
+//             const p = prefs.find((x: any) => x.label.toLowerCase() === label.toLowerCase());
+//             return p ? p.enabled : true;
+//           };
+
+//           if (cat.includes('FIRE') && !isEnabled('Fire Alerts')) return false;
+//           if (cat.includes('FELL') && !isEnabled('Illegal Felling')) return false;
+//           if ((cat.includes('POACH') || cat.includes('ANIMAL')) && !isEnabled('Animal Poaching')) return false;
+//           if (cat.includes('CRIMINAL') && !isEnabled('Criminal Activity')) return false;
+          
+//           return true; 
+//         }).slice(0, 15);
+
+//         this.critCount = this.alertsData.filter(a => a.severity === 'critical').length;
+//         this.warnCount = this.alertsData.filter(a => a.severity === 'warning').length;
+//         this.infoCount = this.alertsData.filter(a => a.severity === 'info').length;
+//       }
+//       console.log("--- 🕵️ ALERTS DEBUG END ---");
+
+//       // --- 4. Assets & Extra Data ---
+//       if (res.assetsStats) {
+//         this.totalAssetsCount = res.assetsStats.totalAssets || 0;
+//         this.operationalRate = res.assetsStats.operationalRate || '0%';
+//       }
+      
+//       this.cdr.markForCheck();
+//       this.cdr.detectChanges();
+//     },
+//     error: (err: any) => {
+//       console.error('Master Data Fetch Error:', err);
+//       this.isFetching = false;
+//       this.cdr.detectChanges();
+//     },
+//     complete: () => {
+//       this.isFetching = false;
+//       if (typeof (this as any).updateFilteredAlerts === 'function') {
+//         (this as any).updateFilteredAlerts();
+//       }
+//       this.cdr.detectChanges();
+//     }
+//   });
+// }
+// console.log("--- 🕵️ ALERTS PROCESSING START ---");
+//       if (res.alerts && Array.isArray(res.alerts)) {
+//         const savedPrefs = localStorage.getItem('admin_notification_settings');
+//         const prefs = savedPrefs ? JSON.parse(savedPrefs) : null;
+        
+//         const processedAlerts = res.alerts.map((alert: any) => {
+//           const rawType = (alert.type || 'INFO').toUpperCase();
+//           const baseType = rawType.includes(' - ') ? rawType.split(' - ')[0].trim() : rawType; 
+//           const searchKey = `${alert.category || ''} ${alert.type || ''} ${alert.message || ''}`.toLowerCase();
+          
+//           // --- 1. Identify Severity First ---
+//           let severity: 'critical' | 'warning' | 'info' = 'info';
+//           if (searchKey.includes('fire') || searchKey.includes('sos') || searchKey.includes('criminal') || baseType === 'CRIT' || baseType === 'INCIDENT' || baseType === 'FIRE' || baseType === 'SOS') {
+//             severity = 'critical';
+//           } else if (searchKey.includes('sighting') || searchKey.includes('animal') || searchKey.includes('poach')) {
+//             severity = 'warning';
+//           } else if (searchKey.includes('patrol') || searchKey.includes('attendance') || searchKey.includes('onsite')) {
+//             severity = 'info';
+//           }
+
+//           // --- 2. Get Base Theme ---
+//           let theme = this.getAlertTheme(baseType);
+          
+//           // --- 3. Dynamic Override for Colors/Icons based on Keyword ---
+//           let finalIcon = theme.icon;
+//           let finalColor = theme.color;
+//           let finalBg = theme.bg;
+
+//           if (severity === 'critical') {
+//             // Ensure Critical items ALWAYS have red-tone colors even if baseType is weird
+//             if (searchKey.includes('fire')) { finalIcon = 'flame'; finalColor = '#ff4d4f'; finalBg = '#fff1f0'; }
+//             else if (searchKey.includes('sos') || searchKey.includes('emergency')) { finalIcon = 'nuclear'; finalColor = '#e63946'; finalBg = '#fff1f2'; }
+//             else if (searchKey.includes('criminal')) { finalIcon = 'shield-half'; finalColor = '#1e293b'; finalBg = '#f1f5f9'; }
+//           }
+
+//           return {
+//             ...alert,
+//             normalizedType: baseType,
+//             bg: finalBg || '#f8fafc',
+//             color: finalColor, 
+//             label: severity.toUpperCase(), // Yeh "INFO" ki jagah actual severity dikhayega
+//             icon: finalIcon, 
+//             severity: severity, 
+//             displayTitle: `${alert.category || baseType} - ${alert.ranger_name || 'Ranger'}`,
+//             displayDesc: alert.message || alert.location_name || 'Reported activity',
+//             displayTime: alert.created_at ? new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just Now'
+//           };
+//         });
+
+//         const companyFiltered = processedAlerts.filter((alert: any) => {
+//           const alertCoId = alert.company_id || alert.companyId;
+//           return (alertCoId == 0 || alertCoId == null || Number(alertCoId) === myCompanyId);
+//         });
+
+//         this.alertsData = companyFiltered.filter((alert: any) => {
+//           if (!prefs || !Array.isArray(prefs)) return true; 
+//           const cat = (alert.category || alert.type || '').toUpperCase();
+//           const isEnabled = (label: string) => {
+//             const p = prefs.find((x: any) => x.label.toLowerCase() === label.toLowerCase());
+//             return p ? p.enabled : true;
+//           };
+//           if (cat.includes('FIRE') && !isEnabled('Fire Alerts')) return false;
+//           if (cat.includes('FELL') && !isEnabled('Illegal Felling')) return false;
+//           if ((cat.includes('POACH') || cat.includes('ANIMAL')) && !isEnabled('Animal Poaching')) return false;
+//           if (cat.includes('CRIMINAL') && !isEnabled('Criminal Activity')) return false;
+//           return true; 
+//         }).slice(0, 15);
+
+//         this.critCount = this.alertsData.filter(a => a.severity === 'critical').length;
+//         this.warnCount = this.alertsData.filter(a => a.severity === 'warning').length;
+//         this.infoCount = this.alertsData.filter(a => a.severity === 'info').length;
+//       }
+//       console.log("--- 🕵️ ALERTS PROCESSING END ---");
+
+//       if (res.assetsStats) {
+//         this.totalAssetsCount = res.assetsStats.totalAssets || 0;
+//         this.operationalRate = res.assetsStats.operationalRate || '0%';
+//       }
+      
+//       this.cdr.markForCheck();
+//       this.cdr.detectChanges();
+//     },
+//     error: (err: any) => {
+//       console.error('Master Data Fetch Error:', err);
+//       this.isFetching = false;
+//       this.cdr.detectChanges();
+//     },
+//     complete: () => {
+//       this.isFetching = false;
+//       if (typeof (this as any).updateFilteredAlerts === 'function') {
+//         (this as any).updateFilteredAlerts();
+//       }
+//       this.cdr.detectChanges();
+//     }
+//   });
+// }
+console.log("--- 🕵️ ALERTS PROCESSING START ---");
       if (res.alerts && Array.isArray(res.alerts)) {
         const savedPrefs = localStorage.getItem('admin_notification_settings');
         const prefs = savedPrefs ? JSON.parse(savedPrefs) : null;
@@ -783,64 +939,63 @@ console.log("--- 🕵️ ALERTS DEBUG START ---");
         const processedAlerts = res.alerts.map((alert: any) => {
           const rawType = (alert.type || 'INFO').toUpperCase();
           const baseType = rawType.includes(' - ') ? rawType.split(' - ')[0].trim() : rawType; 
-          
-          // Keyword search in Category, Type, and Message
           const searchKey = `${alert.category || ''} ${alert.type || ''} ${alert.message || ''}`.toLowerCase();
           
-          // Decide Theme based on baseType (for colors)
-          const theme = this.getAlertTheme(baseType);
-          
-          // --- ROBUST ICON & COLOR OVERRIDE ---
-          let finalIcon = theme.icon || 'notifications'; 
-          let finalColor = theme.color || '#64748b';
+          // --- 1. Identify Severity Based on Your Rules ---
+          let severity: 'critical' | 'warning' | 'info' = 'info';
+          if (searchKey.includes('fire') || searchKey.includes('sos') || searchKey.includes('criminal') || 
+              baseType === 'CRIT' || baseType === 'INCIDENT' || baseType === 'FIRE' || baseType === 'SOS' || baseType === 'CRIMINAL') {
+            severity = 'critical';
+          } else if (searchKey.includes('sighting') || searchKey.includes('animal') || searchKey.includes('poach')) {
+            severity = 'warning';
+          } else if (searchKey.includes('patrol') || searchKey.includes('attendance') || searchKey.includes('onsite')) {
+            severity = 'info';
+          }
 
-          if (searchKey.includes('fire')) {
-            finalIcon = 'flame';
-            finalColor = '#ff4d4f'; // Vibrant Red
-          } else if (searchKey.includes('fell') || searchKey.includes('tree') || searchKey.includes('timber')) {
-            finalIcon = 'leaf';
-            finalColor = '#52c41a'; // Green
-          } else if (searchKey.includes('poach') || searchKey.includes('animal') || searchKey.includes('sighting')) {
-            finalIcon = 'paw';
-            finalColor = '#fa8c16'; // Orange
-          } else if (searchKey.includes('sos') || searchKey.includes('emergency')) {
-            finalIcon = 'nuclear';
-            finalColor = '#f5222d'; // Deep Red
-          } else if (searchKey.includes('criminal')) {
+          // --- 2. Get Base Theme ---
+          let theme = this.getAlertTheme(baseType);
+          
+          // --- 3. Final Overrides (Colors, Icons, Backgrounds) ---
+          let finalIcon = theme.icon;
+          let finalColor = theme.color;
+          let finalBg = theme.bg;
+
+          // Special Criminal Override
+          if (searchKey.includes('criminal') || baseType === 'CRIMINAL') {
+            finalColor = '#3768b7'; // Requested Blue
             finalIcon = 'shield-half';
-            finalColor = '#2b2d42'; // Navy
-          } else if (searchKey.includes('patrol') && searchKey.includes('end')) {
-            finalIcon = 'stop-circle';
-            finalColor = '#0d9488'; // Teal
-          } else if (searchKey.includes('patrol') && searchKey.includes('start')) {
-            finalIcon = 'play-circle';
-            finalColor = '#3b82f6'; // Blue
-          } else if (searchKey.includes('onsite') || searchKey.includes('attendance')) {
-            finalIcon = 'location';
-            finalColor = '#d97706'; // Amber
+            finalBg = '#f1f5f9';
+          } 
+          // Fire & SOS Overrides (for safety)
+          else if (searchKey.includes('fire')) { 
+            finalIcon = 'flame'; finalColor = '#ff4d4f'; finalBg = '#fff1f0'; 
+          } 
+          else if (searchKey.includes('sos') || searchKey.includes('emergency')) { 
+            finalIcon = 'nuclear'; finalColor = '#e63946'; finalBg = '#fff1f2'; 
           }
 
           return {
             ...alert,
             normalizedType: baseType,
-            bg: theme.bg || '#f8fafc',
-            color: finalColor, // Direct vibrant color
-            label: theme.label || baseType,
+            bg: finalBg || '#f8fafc',
+            color: finalColor, 
+            label: severity.toUpperCase(), // This fixes the "INFO" label on Critical items
             icon: finalIcon, 
-            severity: (baseType === 'SOS' || baseType === 'INCIDENT' || searchKey.includes('death')) ? 'critical' : 'info',
+            severity: severity, 
             displayTitle: `${alert.category || baseType} - ${alert.ranger_name || 'Ranger'}`,
             displayDesc: alert.message || alert.location_name || 'Reported activity',
             displayTime: alert.created_at ? new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just Now'
           };
         });
 
-        // 3. FILTERING LOGIC
-        this.alertsData = processedAlerts.filter((alert: any) => {
+        // --- 4. FILTERING LOGIC ---
+        const companyFiltered = processedAlerts.filter((alert: any) => {
           const alertCoId = alert.company_id || alert.companyId;
-          const isCompanyMatch = (alertCoId == 0 || alertCoId == null || Number(alertCoId) === myCompanyId);
-          if (!isCompanyMatch) return false;
+          return (alertCoId == 0 || alertCoId == null || Number(alertCoId) === myCompanyId);
+        });
 
-          if (!prefs || !Array.isArray(prefs)) return true;
+        this.alertsData = companyFiltered.filter((alert: any) => {
+          if (!prefs || !Array.isArray(prefs)) return true; 
           const cat = (alert.category || alert.type || '').toUpperCase();
           const isEnabled = (label: string) => {
             const p = prefs.find((x: any) => x.label.toLowerCase() === label.toLowerCase());
@@ -855,13 +1010,13 @@ console.log("--- 🕵️ ALERTS DEBUG START ---");
           return true; 
         }).slice(0, 15);
 
+        // Update counts based on filtered data
         this.critCount = this.alertsData.filter(a => a.severity === 'critical').length;
         this.warnCount = this.alertsData.filter(a => a.severity === 'warning').length;
         this.infoCount = this.alertsData.filter(a => a.severity === 'info').length;
       }
-      console.log("--- 🕵️ ALERTS DEBUG END ---");
+      console.log("--- 🕵️ ALERTS PROCESSING END ---");
 
-      // --- 4. Assets & Extra Data ---
       if (res.assetsStats) {
         this.totalAssetsCount = res.assetsStats.totalAssets || 0;
         this.operationalRate = res.assetsStats.operationalRate || '0%';
@@ -938,179 +1093,28 @@ updateFilteredAlerts() {
 }
 
 
-  // getAlertTheme(type: string) {
-  //   const t = String(type).toUpperCase(); // Normalize to Uppercase
 
-  //   const themes: any = {
-  //     INCIDENT: {
-  //       bg: '#fff1f2',
-  //       color: '#ef4444',
-  //       icon: '🚨',
-  //       label: 'CRITICAL',
-  //     },
-  //       SOS: { bg: '#fff1f2', 
-  //       color: '#ef4444',
-  //       icon: '🆘',
-  //       label: 'EMERGENCY' 
-  //     },
-  //     CRIT: { bg: '#fff1f2', color: '#ef4444', icon: '🚨', label: 'CRITICAL' },
 
-  //     ONSITE_ATTENDANCE: {
-  //       bg: '#fffbeb',
-  //       color: '#d97706',
-  //       icon: '📍',
-  //       label: 'VERIFY',
-  //     },
-  //     SIGHTING: {
-  //       bg: '#f0f9ff',
-  //       color: '#0ea5e9',
-  //       icon: '🐾',
-  //       label: 'SIGHTING' },
-  //     WARN: { bg: '#fffbeb', color: '#d97706', icon: '🔥', label: 'WARNING' },
-
-  //     PATROL_START: {
-  //       bg: '#eff6ff',
-  //       color: '#3b82f6',
-  //       icon: '🛡️',
-  //       label: 'ACTIVE',
-  //     },
-  //     ATTENDANCE: {
-  //       bg: '#f5f3ff',
-  //       color: '#8b5cf6',
-  //       icon: '👤',
-  //       label: 'ON-DUTY',
-  //     },
-  //     PATROL_END: {
-  //       bg: '#f0fdfa',
-  //       color: '#0d9488',
-  //       icon: '✅',
-  //       label: 'COMPLETED',
-  //     },
-      
-  //     SAFE: { bg: '#f0fdfa', color: '#0d9488', icon: '✅', label: 'CLEAR' },
-
-  //     INFO: { bg: '#f8fafc', color: '#64748b', icon: '🔔', label: 'INFO' },
-  //   };
-
-  //   return themes[t] || themes['INFO'];
-  // }
-
-//   getAlertTheme(type: string) {
-//   const t = String(type).toUpperCase(); // Normalize to Uppercase
-
-//   const themes: any = {
-//     // --- CRITICAL / SOS / FIRE ---
-//     INCIDENT: {
-//       bg: '#fff1f2',
-//       color: '#ef4444', // Red
-//       icon: 'flashlight', 
-//       label: 'CRITICAL',
-//     },
-//     SOS: { 
-//       bg: '#fff1f2', 
-//       color: '#ef4444', // Red
-//       icon: 'alert-circle', 
-//       label: 'EMERGENCY' 
-//     },
-//     CRIT: { 
-//       bg: '#fff1f2', 
-//       color: '#ef4444', 
-//       icon: 'nuclear', 
-//       label: 'CRITICAL' 
-//     },
-//     FIRE: {
-//       bg: '#fff1f0',
-//       color: '#ff4d4f', // Fire Red
-//       icon: 'flame',
-//       label: 'FIRE ALERT'
-//     },
-
-//     // --- WARNING / ONSITE ---
-//     ONSITE_ATTENDANCE: {
-//       bg: '#fffbeb',
-//       color: '#d97706', // Amber/Orange
-//       icon: 'location',
-//       label: 'VERIFY',
-//     },
-//     WARN: { 
-//       bg: '#fffbeb', 
-//       color: '#d97706', 
-//       icon: 'warning', 
-//       label: 'WARNING' 
-//     },
-//     CRIMINAL: {
-//       bg: '#f0f0f0',
-//       color: '#2b2d42', // Dark Navy/Black
-//       icon: 'shield-half',
-//       label: 'CRIMINAL'
-//     },
-
-//     // --- SIGHTINGS ---
-//     SIGHTING: {
-//       bg: '#f0f9ff',
-//       color: '#0ea5e9', // Bright Blue
-//       icon: 'paw',
-//       label: 'SIGHTING' 
-//     },
-
-//     // --- PATROL & ATTENDANCE ---
-//     PATROL_START: {
-//       bg: '#eff6ff',
-//       color: '#3b82f6', // Blue
-//       icon: 'play-circle',
-//       label: 'ACTIVE',
-//     },
-//     ATTENDANCE: {
-//       bg: '#f5f3ff',
-//       color: '#8b5cf6', // Purple
-//       icon: 'person',
-//       label: 'ON-DUTY',
-//     },
-//     PATROL_END: {
-//       bg: '#f0fdfa',
-//       color: '#0d9488', // Teal
-//       icon: 'stop-circle',
-//       label: 'COMPLETED',
-//     },
-    
-//     // --- SAFE / INFO ---
-//     SAFE: { 
-//       bg: '#f0fdfa', 
-//       color: '#0d9488', 
-//       icon: 'checkmark-circle', 
-//       label: 'CLEAR' 
-//     },
-//     INFO: { 
-//       bg: '#f8fafc', 
-//       color: '#64748b', 
-//       icon: 'notifications', 
-//       label: 'INFO' 
-//     },
-//   };
-
-//   // Return the theme or fallback to INFO
-//   return themes[t] || themes['INFO'];
-// }
 getAlertTheme(type: string) {
   const t = String(type).toUpperCase();
 
   const themes: any = {
-    // --- CRITICAL & EMERGENCY (Red Tones) ---
+    // --- 🚨 CRITICAL GROUP ---
+    FIRE:     { bg: '#fff1f0', color: '#ff4d4f', icon: 'flame', label: 'CRITICAL' },
+    SOS:      { bg: '#fff1f2', color: '#e63946', icon: 'nuclear', label: 'CRITICAL' },
+    CRIT:     { bg: '#fff1f2', color: '#ea5f9d', icon: 'nuclear', label: 'CRITICAL' },
+    CRIMINAL: { bg: '#f1f5f9', color: '#3768b7', icon: 'shield-half', label: 'CRITICAL' },
     INCIDENT: { bg: '#fff1f2', color: '#ff4d4d', icon: 'flashlight', label: 'CRITICAL' },
-    SOS:      { bg: '#fff1f2', color: '#e63946', icon: 'megaphone', label: 'EMERGENCY' },
-    CRIT:     { bg: '#fff1f2', color: '#f72585', icon: 'nuclear', label: 'CRITICAL' },
-    FIRE:     { bg: '#fff1f0', color: '#ff4d4f', icon: 'flame', label: 'FIRE ALERT' },
 
-    // --- WARNINGS & SIGHTINGS (Orange/Amber Tones) ---
-    SIGHTING: { bg: '#f0f9ff', color: '#0ea5e9', icon: 'paw', label: 'SIGHTING' },
+    // --- ⚠️ WARNING GROUP ---
+    SIGHTING: { bg: '#f0f9ff', color: '#fa8c16', icon: 'paw', label: 'WARNING' },
     WARN:     { bg: '#fffbeb', color: '#f39c12', icon: 'warning', label: 'WARNING' },
-    ONSITE_ATTENDANCE: { bg: '#fffbeb', color: '#d97706', icon: 'location', label: 'VERIFY' },
-    CRIMINAL: { bg: '#f0f0f0', color: '#2b2d42', icon: 'shield-half', label: 'CRIMINAL' },
 
-    // --- LOGISTICS & FLOW (Blue/Teal Tones) ---
-    PATROL_START: { bg: '#eff6ff', color: '#3b82f6', icon: 'play-circle', label: 'ACTIVE' },
-    PATROL_END:   { bg: '#f0fdfa', color: '#0d9488', icon: 'stop-circle', label: 'COMPLETED' },
-    ATTENDANCE:   { bg: '#f5f3ff', color: '#8b5cf6', icon: 'person', label: 'ON-DUTY' },
+    // --- ℹ️ INFO GROUP ---
+    PATROL_START:      { bg: '#eff6ff', color: '#3b82f6', icon: 'rocket', label: 'INFO' },
+    PATROL_END:        { bg: '#f0fdf4', color: '#10b981', icon: 'flag', label: 'INFO' },
+    ATTENDANCE:        { bg: '#f5f3ff', color: '#8b5cf6', icon: 'finger-print', label: 'INFO' },
+    ONSITE_ATTENDANCE: { bg: '#fffbeb', color: '#d97706', icon: 'navigate-circle', label: 'INFO' },
     
     // --- OTHERS ---
     SAFE: { bg: '#f0fdfa', color: '#0d9488', icon: 'checkmark-circle', label: 'CLEAR' },
@@ -1144,16 +1148,7 @@ getAlertTheme(type: string) {
   return map[cat] || 'information-circle';
 }
 
-  // getAlertIcon(category: string): string {
-  //   const map: any = {
-  //     fire: '🔥',
-  //     timber: '🪓',
-  //     animal: '🐾',
-  //     poaching: '👣',
-  //     patrol: '✅',
-  //   };
-  //   return map[category?.toLowerCase()] ;
-  // }
+  
 
   getCount(sev: string): number {
     // Add (a: ForestAlert) here
@@ -1195,10 +1190,6 @@ loadActivePatrols() {
     }
   });
 }
-
-  
-
-
 updateVisiblePins() {
   const newPins: any[] = [];
   
