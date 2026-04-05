@@ -136,10 +136,6 @@ getPatrolById(id: number) {
   return this.http.get(`${this.baseApiUrl}/patrols/logs/${id}`);
 }
 
-// postSOS(alertData: any) {
-//   // Ensure this is using baseApiUrl and NOT a hardcoded string or missing the /api prefix
-//   return this.http.post(`${this.baseApiUrl}/alerts/trigger-sos`, alertData);
-// }
 
 // --- ADMIN DASHBOARD FUNCTIONS ---
 
