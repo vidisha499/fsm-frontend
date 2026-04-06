@@ -1,8 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { NavController, ActionSheetController } from '@ionic/angular';
+import { NavController, ActionSheetController , ToastController, LoadingController} from '@ionic/angular';
 import { Geolocation } from '@capacitor/geolocation';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { DataService } from 'src/app/data.service';
 
 @Component({
   selector: 'app-events-fields',
@@ -11,6 +12,7 @@ import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
   standalone: false,
 })
 export class EventsFieldsPage implements OnInit {
+  reportData: any = {};
   eventTitle: string = 'Logs';
   dynamicFields: any[] = [];
   capturedPhoto: string | undefined;
@@ -134,7 +136,10 @@ export class EventsFieldsPage implements OnInit {
   constructor(
     private route: ActivatedRoute, 
     private navCtrl: NavController,
-    private actionSheetCtrl: ActionSheetController
+    private actionSheetCtrl: ActionSheetController,
+    private dataService: DataService, // DataService yahan inject kiya
+    private toastCtrl: ToastController,
+    private loadingCtrl: LoadingController
   ) {}
 
   // ngOnInit() {
@@ -222,6 +227,61 @@ export class EventsFieldsPage implements OnInit {
     } catch (error) {
       console.log('User cancelled or camera failed', error);
     }
+  }
+
+
+  // --- SUBMIT LOGIC (Backend Connection) ---
+  async submitReport() {
+    const loading = await this.loadingCtrl.create({
+      message: 'Saving Report...',
+      spinner: 'circles'
+    });
+    await loading.present();
+
+    const gpsField = this.dynamicFields.find(f => f.id === 'gps');
+    
+    // Backend Payload (NestJS DTO ke hisaab se)
+    const payload = {
+      report_id: 'FOR-' + Date.now(),
+      user_id: Number(this.dataService.getRangerId()) || 1, // Storage se Ranger ID uthayega
+      company_id: 1, // Default or fetch from profile
+      category: 'Forest Event',
+      report_type: this.eventTitle,
+      date_time: new Date().toISOString(),
+      date: new Date().toISOString().split('T')[0],
+      time: new Date().toLocaleTimeString(),
+      latitude: gpsField?.value?.split(',')[0]?.trim() || "0",
+      longitude: gpsField?.value?.split(',')[1]?.trim() || "0",
+      beat: this.reportData['Assigned Beat'] || 'General',
+      report_data: this.reportData, // Pura dynamic object (Illegal Mining/Felling details)
+      photo: this.capturedPhoto || '',
+      status: 'Pending'
+    };
+
+    // API Call using your DataService
+    this.dataService.submitForestEvent(payload).subscribe({
+      next: async (res) => {
+        await loading.dismiss();
+        const toast = await this.toastCtrl.create({
+          message: 'Report submitted successfully! ✅',
+          duration: 2000,
+          color: 'success',
+          position: 'bottom'
+        });
+        toast.present();
+        this.navCtrl.back();
+      },
+      error: async (err) => {
+        await loading.dismiss();
+        console.error("Submission error:", err);
+        const toast = await this.toastCtrl.create({
+          message: 'Failed to save report. Please try again. ❌',
+          duration: 3000,
+          color: 'danger'
+        });
+        toast.present();
+      }
+    });
   }
 
   goBack() {

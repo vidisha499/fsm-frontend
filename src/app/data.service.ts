@@ -281,12 +281,6 @@ updateNotificationPrefs(companyId: number, prefs: any[]) {
 }
 
 
-// data.service.ts ke andar
-
-// getEventsAnalytics(companyId: number, timeframe: string) {
-//   return this.http.get(`${this.baseApiUrl}/analytics/events?companyId=${companyId}&timeframe=${timeframe}`);
-// }
-
 // Naya asset save karne ke liye function
   addAsset(assetData: any): Observable<any> {
     return this.http.post(`${this.baseApiUrl}/assets/add`, assetData);
@@ -402,6 +396,11 @@ getEventsAnalytics(companyId: number, timeframe: string = 'today', start?: strin
 // data.service.ts mein add karein
 getActivePatrols(companyId: number) {
   return this.http.get(`${this.baseApiUrl}/patrols/active?companyId=${companyId}`);
+}
+
+submitForestEvent(payload: any) {
+  // Isse URL banega: YOUR_URL/api/forest-events/submit
+  return this.http.post(`${this.baseApiUrl}/forest-events/submit`, payload);
 }
 }
 
