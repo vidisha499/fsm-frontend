@@ -163,16 +163,14 @@ private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw';
   showCompartments: boolean = false;
   attendancePercent: number = 0;
   public selectedRanger: any = null;
-  // Replace your hardcoded alertsData with an empty array
   public alertsData: any[] = [];
 public filteredAlerts: any[] = [];
   alerts: ForestAlert[] = [];
-  // Inside your class variables
   public sightingsCount: number = 0;
   attChart: any;  
   public allActivePatrols: any[] = [];  
   private patrolInterval: any; // Attendance chart ke liye
-// trendChart: any;
+
 
 layerStates: { [key: string]: boolean } = {
   illegal_felling: true,
@@ -185,9 +183,6 @@ layerStates: { [key: string]: boolean } = {
   sos: true,
  
 };
-
-
-
 
   readonly LAYERS_DATA: any = {
   criminal: {
@@ -254,13 +249,13 @@ layerStates: { [key: string]: boolean } = {
     label: 'Personnel & Tools',
     emoji: '🛡️',
     items: [
-      {
-        id: 'patrols',
-        label: 'Active Patrols',
-        emoji: '👮',
-        color: '#0d9488',
-        bg: '#f0fdfa',
-      },
+      // {
+      //   id: 'patrols',
+      //   label: 'Active Patrols',
+      //   emoji: '👮',
+      //   color: '#0d9488',
+      //   bg: '#f0fdfa',
+      // },
       {
         id: 'sos',
         label: 'SOS Units',
@@ -280,7 +275,7 @@ layerStates: { [key: string]: boolean } = {
   }
 
  
-    get activeLegendItems() {
+  get activeLegendItems() {
   const active: any[] = [];
   
   if (!this.LAYERS_DATA || !this.layerStates) return active;
@@ -660,278 +655,150 @@ loadData() {
       }
 
       // --- 5. MAP DATA PROCESSING (INCIDENTS + SOS + SIGHTINGS) ---
-      let processedPins: any[] = [];
+      // let processedPins: any[] = [];
 
-      // A. Standard Incidents
-      if (res.mapIncidents && Array.isArray(res.mapIncidents)) {
-        const incidentPins = res.mapIncidents.map((inc: any) => {
-          const dbCriteria = (inc.incidentCriteria || '').toUpperCase();
-          const rawSubCat = inc.subCategory || '';
-          const normalizedSub = rawSubCat.toLowerCase().trim().replace(/\s+/g, '_');
+      // // A. Standard Incidents
+      // if (res.mapIncidents && Array.isArray(res.mapIncidents)) {
+      //   const incidentPins = res.mapIncidents.map((inc: any) => {
+      //     const dbCriteria = (inc.incidentCriteria || '').toUpperCase();
+      //     const rawSubCat = inc.subCategory || '';
+      //     const normalizedSub = rawSubCat.toLowerCase().trim().replace(/\s+/g, '_');
 
-          let finalLayerId = 'general_incident';
-          if (dbCriteria.includes('POACH') || normalizedSub.includes('poach')) finalLayerId = 'animal_poaching';
-          else if (dbCriteria.includes('FIRE') || normalizedSub.includes('fire')) finalLayerId = 'fire_warning';
-          else if (dbCriteria.includes('FELL') || normalizedSub.includes('felling')) finalLayerId = 'illegal_felling';
-          else if (dbCriteria.includes('MINING') || normalizedSub.includes('mining')) finalLayerId = 'illegal_mining';
+      //     let finalLayerId = 'general_incident';
+      //     if (dbCriteria.includes('POACH') || normalizedSub.includes('poach')) finalLayerId = 'animal_poaching';
+      //     else if (dbCriteria.includes('FIRE') || normalizedSub.includes('fire')) finalLayerId = 'fire_warning';
+      //     else if (dbCriteria.includes('FELL') || normalizedSub.includes('felling')) finalLayerId = 'illegal_felling';
+      //     else if (dbCriteria.includes('MINING') || normalizedSub.includes('mining')) finalLayerId = 'illegal_mining';
 
-          return {
-            ...inc,
-            layerId: finalLayerId,
-            displayLabel: dbCriteria.includes('FIRE') ? 'Fire Warning' : (rawSubCat || inc.incidentCriteria || 'Incident')
-          };
-        });
-        processedPins = [...incidentPins];
-      }
+      //     return {
+      //       ...inc,
+      //       layerId: finalLayerId,
+      //       displayLabel: dbCriteria.includes('FIRE') ? 'Fire Warning' : (rawSubCat || inc.incidentCriteria || 'Incident')
+      //     };
+      //   });
+      //   processedPins = [...incidentPins];
+      // }
 
-      // B. SOS Alerts for Map
-      if (res.alerts && Array.isArray(res.alerts)) {
-        const sosPins = res.alerts
-          .filter((a: any) => (a.category === 'SOS' || (a.type && a.type.toUpperCase().includes('SOS'))))
-          .map((sos: any) => ({
-            ...sos,
-            layerId: 'sos',
-            displayLabel: 'SOS Emergency',
-            emoji: '🚨',
-            color: '#f43f5e'
-          }));
-        processedPins = [...processedPins, ...sosPins];
-      }
+      // // B. SOS Alerts for Map
+      // if (res.alerts && Array.isArray(res.alerts)) {
+      //   const sosPins = res.alerts
+      //     .filter((a: any) => (a.category === 'SOS' || (a.type && a.type.toUpperCase().includes('SOS'))))
+      //     .map((sos: any) => ({
+      //       ...sos,
+      //       layerId: 'sos',
+      //       displayLabel: 'SOS Emergency',
+      //       emoji: '🚨',
+      //       color: '#f43f5e'
+      //     }));
+      //   processedPins = [...processedPins, ...sosPins];
+      // }
 
-      // C. Sightings (Water & Animal)
-      if (res.allSightings && Array.isArray(res.allSightings)) {
-        const sightingPins = res.allSightings.map((s: any) => {
-          const isWater = (s.category || '').toLowerCase().includes('water') || (s.species || '').toLowerCase().includes('water');
-          const type = isWater ? 'water' : 'animal';
-          return {
-            ...s,
-            layerId: type,
-            displayLabel: isWater ? 'Water Status' : 'Animal Sighting',
-            emoji: isWater ? '💧' : '🐾',
-            color: isWater ? '#0ea5e9' : '#e11d48'
-          };
-        });
-        processedPins = [...processedPins, ...sightingPins];
-      }
+      // // C. Sightings (Water & Animal)
+      // if (res.allSightings && Array.isArray(res.allSightings)) {
+      //   const sightingPins = res.allSightings.map((s: any) => {
+      //     const isWater = (s.category || '').toLowerCase().includes('water') || (s.species || '').toLowerCase().includes('water');
+      //     const type = isWater ? 'water' : 'animal';
+      //     return {
+      //       ...s,
+      //       layerId: type,
+      //       displayLabel: isWater ? 'Water Status' : 'Animal Sighting',
+      //       emoji: isWater ? '💧' : '🐾',
+      //       color: isWater ? '#0ea5e9' : '#e11d48'
+      //     };
+      //   });
+      //   processedPins = [...processedPins, ...sightingPins];
+      // }
 
-      // Store in array for updateVisiblePins()
-      this.allIncidents = processedPins;
-      // Ensure alerts variable is also populated for the notification list
-      this.alerts = res.alerts || []; 
+      // // Store in array for updateVisiblePins()
+      // this.allIncidents = processedPins;
+      // // Ensure alerts variable is also populated for the notification list
+      // this.alerts = res.alerts || []; 
 
-      if (typeof (this as any).updateVisiblePins === 'function') {
-        (this as any).updateVisiblePins();
-      }
+      // if (typeof (this as any).updateVisiblePins === 'function') {
+      //   (this as any).updateVisiblePins();
+      // }
+      // 1. Aaj ki date nikaalein (YYYY-MM-DD format mein)
+const today = new Date().toISOString().split('T')[0];
 
+let processedPins: any[] = [];
 
-     
-      // --- 6. ALERTS NOTIFICATION LIST LOGIC (FIXED ICONS) ---
-//       console.log("--- 🕵️ ALERTS DEBUG START ---");
-//       if (res.alerts && Array.isArray(res.alerts)) {
-//         const savedPrefs = localStorage.getItem('admin_notification_settings');
-//         const prefs = savedPrefs ? JSON.parse(savedPrefs) : null;
-        
-//         const processedAlerts = res.alerts.map((alert: any) => {
-//           const rawType = (alert.type || 'INFO').toUpperCase();
-//           const baseType = rawType.includes(' - ') ? rawType.split(' - ')[0].trim() : rawType; 
-          
-//           // Keyword search in Category, Type, and Message
-//           const searchKey = `${alert.category || ''} ${alert.type || ''} ${alert.message || ''}`.toLowerCase();
-          
-//           // Decide Theme based on baseType (for colors)
-//           const theme = this.getAlertTheme(baseType);
-          
-//           // --- ROBUST ICON & COLOR OVERRIDE ---
-//           let finalIcon = theme.icon || 'notifications'; 
-//           let finalColor = theme.color || '#64748b';
+// A. Standard Incidents (Filter for Today)
+if (res.mapIncidents && Array.isArray(res.mapIncidents)) {
+  const incidentPins = res.mapIncidents
+    .filter((inc: any) => {
+      // Sirf aaj ke incidents rakhein
+      const incDate = inc.created_at ? inc.created_at.split('T')[0] : '';
+      return incDate === today;
+    })
+    .map((inc: any) => {
+      const dbCriteria = (inc.incidentCriteria || '').toUpperCase();
+      const rawSubCat = inc.subCategory || '';
+      const normalizedSub = rawSubCat.toLowerCase().trim().replace(/\s+/g, '_');
 
-//           if (searchKey.includes('fire')) {
-//             finalIcon = 'flame';
-//             finalColor = '#ff4d4f'; // Vibrant Red
-//           } else if (searchKey.includes('fell') || searchKey.includes('tree') || searchKey.includes('timber')) {
-//             finalIcon = 'leaf';
-//             finalColor = '#52c41a'; // Green
-//           } else if (searchKey.includes('poach') || searchKey.includes('animal') || searchKey.includes('sighting')) {
-//             finalIcon = 'paw';
-//             finalColor = '#fa8c16'; // Orange
-//           } else if (searchKey.includes('sos') || searchKey.includes('emergency')) {
-//             finalIcon = 'nuclear';
-//             finalColor = '#f5222d'; // Deep Red
-//           } else if (searchKey.includes('criminal')) {
-//             finalIcon = 'shield-half';
-//             finalColor = '#2b2d42'; // Navy
-//           } else if (searchKey.includes('patrol') && searchKey.includes('end')) {
-//             finalIcon = 'stop-circle';
-//             finalColor = '#0d9488'; // Teal
-//           } else if (searchKey.includes('patrol') && searchKey.includes('start')) {
-//             finalIcon = 'play-circle';
-//             finalColor = '#3b82f6'; // Blue
-//           } else if (searchKey.includes('onsite') || searchKey.includes('attendance')) {
-//             finalIcon = 'location';
-//             finalColor = '#d97706'; // Amber
-//           }
+      let finalLayerId = 'general_incident';
+      if (dbCriteria.includes('POACH') || normalizedSub.includes('poach')) finalLayerId = 'animal_poaching';
+      else if (dbCriteria.includes('FIRE') || normalizedSub.includes('fire')) finalLayerId = 'fire_warning';
+      else if (dbCriteria.includes('FELL') || normalizedSub.includes('felling')) finalLayerId = 'illegal_felling';
+      else if (dbCriteria.includes('MINING') || normalizedSub.includes('mining')) finalLayerId = 'illegal_mining';
 
-//           return {
-//             ...alert,
-//             normalizedType: baseType,
-//             bg: theme.bg || '#f8fafc',
-//             color: finalColor, // Direct vibrant color
-//             label: theme.label || baseType,
-//             icon: finalIcon, 
-//             severity: (baseType === 'SOS' || baseType === 'INCIDENT' || searchKey.includes('death')) ? 'critical' : 'info',
-//             displayTitle: `${alert.category || baseType} - ${alert.ranger_name || 'Ranger'}`,
-//             displayDesc: alert.message || alert.location_name || 'Reported activity',
-//             displayTime: alert.created_at ? new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just Now'
-//           };
-//         });
+      return {
+        ...inc,
+        layerId: finalLayerId,
+        displayLabel: dbCriteria.includes('FIRE') ? 'Fire Warning' : (rawSubCat || inc.incidentCriteria || 'Incident')
+      };
+    });
+  processedPins = [...incidentPins];
+}
 
-//         // 3. FILTERING LOGIC
-//         this.alertsData = processedAlerts.filter((alert: any) => {
-//           const alertCoId = alert.company_id || alert.companyId;
-//           const isCompanyMatch = (alertCoId == 0 || alertCoId == null || Number(alertCoId) === myCompanyId);
-//           if (!isCompanyMatch) return false;
+// B. SOS Alerts (Filter for Today)
+if (res.alerts && Array.isArray(res.alerts)) {
+  const sosPins = res.alerts
+    .filter((a: any) => {
+      const isSos = (a.category === 'SOS' || (a.type && a.type.toUpperCase().includes('SOS')));
+      const isToday = a.created_at ? a.created_at.split('T')[0] === today : false;
+      return isSos && isToday;
+    })
+    .map((sos: any) => ({
+      ...sos,
+      layerId: 'sos',
+      displayLabel: 'SOS Emergency',
+      emoji: '🚨',
+      color: '#f43f5e'
+    }));
+  processedPins = [...processedPins, ...sosPins];
+}
 
-//           if (!prefs || !Array.isArray(prefs)) return true;
-//           const cat = (alert.category || alert.type || '').toUpperCase();
-//           const isEnabled = (label: string) => {
-//             const p = prefs.find((x: any) => x.label.toLowerCase() === label.toLowerCase());
-//             return p ? p.enabled : true;
-//           };
+// C. Sightings (Filter for Today)
+if (res.allSightings && Array.isArray(res.allSightings)) {
+  const sightingPins = res.allSightings
+    .filter((s: any) => {
+      const sDate = s.created_at ? s.created_at.split('T')[0] : '';
+      return sDate === today;
+    })
+    .map((s: any) => {
+      const isWater = (s.category || '').toLowerCase().includes('water') || (s.species || '').toLowerCase().includes('water');
+      const type = isWater ? 'water' : 'animal';
+      return {
+        ...s,
+        layerId: type,
+        displayLabel: isWater ? 'Water Status' : 'Animal Sighting',
+        emoji: isWater ? '💧' : '🐾',
+        color: isWater ? '#0ea5e9' : '#e11d48'
+      };
+    });
+  processedPins = [...processedPins, ...sightingPins];
+}
 
-//           if (cat.includes('FIRE') && !isEnabled('Fire Alerts')) return false;
-//           if (cat.includes('FELL') && !isEnabled('Illegal Felling')) return false;
-//           if ((cat.includes('POACH') || cat.includes('ANIMAL')) && !isEnabled('Animal Poaching')) return false;
-//           if (cat.includes('CRIMINAL') && !isEnabled('Criminal Activity')) return false;
-          
-//           return true; 
-//         }).slice(0, 15);
+// Store and Update Map
+this.allIncidents = processedPins;
+this.alerts = res.alerts || []; 
 
-//         this.critCount = this.alertsData.filter(a => a.severity === 'critical').length;
-//         this.warnCount = this.alertsData.filter(a => a.severity === 'warning').length;
-//         this.infoCount = this.alertsData.filter(a => a.severity === 'info').length;
-//       }
-//       console.log("--- 🕵️ ALERTS DEBUG END ---");
+if (typeof (this as any).updateVisiblePins === 'function') {
+  (this as any).updateVisiblePins();
+}
 
-//       // --- 4. Assets & Extra Data ---
-//       if (res.assetsStats) {
-//         this.totalAssetsCount = res.assetsStats.totalAssets || 0;
-//         this.operationalRate = res.assetsStats.operationalRate || '0%';
-//       }
-      
-//       this.cdr.markForCheck();
-//       this.cdr.detectChanges();
-//     },
-//     error: (err: any) => {
-//       console.error('Master Data Fetch Error:', err);
-//       this.isFetching = false;
-//       this.cdr.detectChanges();
-//     },
-//     complete: () => {
-//       this.isFetching = false;
-//       if (typeof (this as any).updateFilteredAlerts === 'function') {
-//         (this as any).updateFilteredAlerts();
-//       }
-//       this.cdr.detectChanges();
-//     }
-//   });
-// }
-// console.log("--- 🕵️ ALERTS PROCESSING START ---");
-//       if (res.alerts && Array.isArray(res.alerts)) {
-//         const savedPrefs = localStorage.getItem('admin_notification_settings');
-//         const prefs = savedPrefs ? JSON.parse(savedPrefs) : null;
-        
-//         const processedAlerts = res.alerts.map((alert: any) => {
-//           const rawType = (alert.type || 'INFO').toUpperCase();
-//           const baseType = rawType.includes(' - ') ? rawType.split(' - ')[0].trim() : rawType; 
-//           const searchKey = `${alert.category || ''} ${alert.type || ''} ${alert.message || ''}`.toLowerCase();
-          
-//           // --- 1. Identify Severity First ---
-//           let severity: 'critical' | 'warning' | 'info' = 'info';
-//           if (searchKey.includes('fire') || searchKey.includes('sos') || searchKey.includes('criminal') || baseType === 'CRIT' || baseType === 'INCIDENT' || baseType === 'FIRE' || baseType === 'SOS') {
-//             severity = 'critical';
-//           } else if (searchKey.includes('sighting') || searchKey.includes('animal') || searchKey.includes('poach')) {
-//             severity = 'warning';
-//           } else if (searchKey.includes('patrol') || searchKey.includes('attendance') || searchKey.includes('onsite')) {
-//             severity = 'info';
-//           }
-
-//           // --- 2. Get Base Theme ---
-//           let theme = this.getAlertTheme(baseType);
-          
-//           // --- 3. Dynamic Override for Colors/Icons based on Keyword ---
-//           let finalIcon = theme.icon;
-//           let finalColor = theme.color;
-//           let finalBg = theme.bg;
-
-//           if (severity === 'critical') {
-//             // Ensure Critical items ALWAYS have red-tone colors even if baseType is weird
-//             if (searchKey.includes('fire')) { finalIcon = 'flame'; finalColor = '#ff4d4f'; finalBg = '#fff1f0'; }
-//             else if (searchKey.includes('sos') || searchKey.includes('emergency')) { finalIcon = 'nuclear'; finalColor = '#e63946'; finalBg = '#fff1f2'; }
-//             else if (searchKey.includes('criminal')) { finalIcon = 'shield-half'; finalColor = '#1e293b'; finalBg = '#f1f5f9'; }
-//           }
-
-//           return {
-//             ...alert,
-//             normalizedType: baseType,
-//             bg: finalBg || '#f8fafc',
-//             color: finalColor, 
-//             label: severity.toUpperCase(), // Yeh "INFO" ki jagah actual severity dikhayega
-//             icon: finalIcon, 
-//             severity: severity, 
-//             displayTitle: `${alert.category || baseType} - ${alert.ranger_name || 'Ranger'}`,
-//             displayDesc: alert.message || alert.location_name || 'Reported activity',
-//             displayTime: alert.created_at ? new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just Now'
-//           };
-//         });
-
-//         const companyFiltered = processedAlerts.filter((alert: any) => {
-//           const alertCoId = alert.company_id || alert.companyId;
-//           return (alertCoId == 0 || alertCoId == null || Number(alertCoId) === myCompanyId);
-//         });
-
-//         this.alertsData = companyFiltered.filter((alert: any) => {
-//           if (!prefs || !Array.isArray(prefs)) return true; 
-//           const cat = (alert.category || alert.type || '').toUpperCase();
-//           const isEnabled = (label: string) => {
-//             const p = prefs.find((x: any) => x.label.toLowerCase() === label.toLowerCase());
-//             return p ? p.enabled : true;
-//           };
-//           if (cat.includes('FIRE') && !isEnabled('Fire Alerts')) return false;
-//           if (cat.includes('FELL') && !isEnabled('Illegal Felling')) return false;
-//           if ((cat.includes('POACH') || cat.includes('ANIMAL')) && !isEnabled('Animal Poaching')) return false;
-//           if (cat.includes('CRIMINAL') && !isEnabled('Criminal Activity')) return false;
-//           return true; 
-//         }).slice(0, 15);
-
-//         this.critCount = this.alertsData.filter(a => a.severity === 'critical').length;
-//         this.warnCount = this.alertsData.filter(a => a.severity === 'warning').length;
-//         this.infoCount = this.alertsData.filter(a => a.severity === 'info').length;
-//       }
-//       console.log("--- 🕵️ ALERTS PROCESSING END ---");
-
-//       if (res.assetsStats) {
-//         this.totalAssetsCount = res.assetsStats.totalAssets || 0;
-//         this.operationalRate = res.assetsStats.operationalRate || '0%';
-//       }
-      
-//       this.cdr.markForCheck();
-//       this.cdr.detectChanges();
-//     },
-//     error: (err: any) => {
-//       console.error('Master Data Fetch Error:', err);
-//       this.isFetching = false;
-//       this.cdr.detectChanges();
-//     },
-//     complete: () => {
-//       this.isFetching = false;
-//       if (typeof (this as any).updateFilteredAlerts === 'function') {
-//         (this as any).updateFilteredAlerts();
-//       }
-//       this.cdr.detectChanges();
-//     }
-//   });
-// }
-console.log("--- 🕵️ ALERTS PROCESSING START ---");
+      //alerts sections here
+      console.log("--- 🕵️ ALERTS PROCESSING START ---");
       if (res.alerts && Array.isArray(res.alerts)) {
         const savedPrefs = localStorage.getItem('admin_notification_settings');
         const prefs = savedPrefs ? JSON.parse(savedPrefs) : null;
@@ -1046,28 +913,66 @@ trackByAlert(index: number, alert: any) {
   return alert.id || index; 
 }
 
+// get dynamicFootStats() {
+//   const activeStats: any[] = [];
+//   if (!this.LAYERS_DATA || !this.layerStates || !this.activePinsDisplay) return activeStats;
+
+//   Object.values(this.LAYERS_DATA).forEach((category: any) => {
+//     category.items.forEach((item: any) => {
+//       // Only show if the toggle is ON
+//       if (this.layerStates[item.id]) {
+//         // We filter the processed pins by the layerId we assigned
+//         const count = this.activePinsDisplay.filter(p => p.layerId === item.id).length;
+        
+//         activeStats.push({
+//           label: item.label,
+//           count: count,
+//           color: item.color,
+//           emoji: item.emoji
+//         });
+//       }
+//     });
+//   });
+//   return activeStats;
+// }
 get dynamicFootStats() {
   const activeStats: any[] = [];
   if (!this.LAYERS_DATA || !this.layerStates || !this.activePinsDisplay) return activeStats;
 
+  // Aaj ki date (YYYY-MM-DD format mein)
+  const today = new Date().toISOString().split('T')[0];
+
   Object.values(this.LAYERS_DATA).forEach((category: any) => {
     category.items.forEach((item: any) => {
-      // Only show if the toggle is ON
+      // Only show if the toggle is ON for this layer
       if (this.layerStates[item.id]) {
-        // We filter the processed pins by the layerId we assigned
-        const count = this.activePinsDisplay.filter(p => p.layerId === item.id).length;
         
-        activeStats.push({
-          label: item.label,
-          count: count,
-          color: item.color,
-          emoji: item.emoji
-        });
+        // Filter pins by:
+        // 1. Layer ID (e.g., 'animal_poaching', 'fire_warning')
+        // 2. Date (Must match today)
+        const count = this.activePinsDisplay.filter(p => {
+          const isSameLayer = p.layerId === item.id;
+          const isToday = p.created_at ? p.created_at.split('T')[0] === today : false;
+          return isSameLayer && isToday;
+        }).length;
+        
+        // Only push to footer if count is more than 0 (Optional, but looks cleaner)
+        if (count >= 0) {
+          activeStats.push({
+            label: item.label,
+            count: count,
+            color: item.color,
+            emoji: item.emoji
+          });
+        }
       }
     });
   });
+  
   return activeStats;
 }
+
+
 setAlertFilter(filter: string) {
   this.activeAlertFilter = filter; // Updates 'all', 'crit', 'warn', or 'info'
   this.updateFilteredAlerts();    // Filters the data
@@ -1091,8 +996,6 @@ updateFilteredAlerts() {
     this.filteredAlerts = this.alertsData.filter(a => a.severity === target);
   }
 }
-
-
 
 
 getAlertTheme(type: string) {
@@ -1278,8 +1181,6 @@ updateVisiblePins() {
   this.cdr.detectChanges();
 }
 
-
-
 getMarkerEmoji(id: string) {
   if (id.includes('fire')) return '🔥';
   if (id.includes('felling')) return '🪓';
@@ -1305,26 +1206,6 @@ getLayerColor(layerId: string) {
   };
   return colors[layerId] || '#3b82f6';
 }
-
-
-// getMarkerEmoji(id: string) {
-//   if (id.includes('fire')) return '🔥';
-//   if (id.includes('felling')) return '🪓';
-//   if (id.includes('poaching')) return '🐾';
-//   if (id.includes('mining')) return '⛏️';
-//   return '📍';
-// }
-
-// // Helper to keep colors consistent
-// getLayerColor(layerId: string) {
-//   const colors: any = {
-//     'illegal_felling': '#0d9488',
-//     'poaching': '#f59e0b',
-//     'fire_alert': '#ef4444',
-//     'illegal_mining': '#7c3aed'
-//   };
-//   return colors[layerId] || '#3b82f6';
-// }
 
   // --- UI Methods ---
   updateTime() {
@@ -1659,11 +1540,6 @@ initAttChart() {
     }
   }
 
-  // This handles the logic for the filter chips
-  // setAlertFilter(filter: string) {
-  //   this.activeAlertFilter = filter;
-  // }
-
  
   openAnalytics() {
     // 1. Sabse pehle interval band karein
@@ -1827,8 +1703,7 @@ initAttChart() {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
-  // FIX: Agar purana chart hai, toh usse seedha DESTROY karo.
-  // Ye sabse safe tareeka hai 'Canvas in use' error se bachne ka.
+  
   if (this.trendChart) {
     this.trendChart.destroy();
   }
@@ -1875,12 +1750,6 @@ initAttChart() {
   getFilterDates() {
     const now = new Date();
     const from = new Date();
-
-    // if (this.activeDateFilter === 'today') {
-    //   // This is the magic line:
-    //   // It sets the time to 00:00:00 (Midnight) of the current day
-    //   from.setHours(0, 0, 0, 0);
-    // } 
     
     if (this.activeDateFilter === 'today') {
   // Look back 24 hours from right now to catch all recent sightings

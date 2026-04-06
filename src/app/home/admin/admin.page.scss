@@ -978,7 +978,7 @@
   /* --- LEGEND SECTION --- */
   .legend-card {
     margin: 16px; background: #fff; border: 1.5px solid var(--bord);
-    border-radius: var(--rs); padding: 16px;
+    border-radius: var(--rs); padding: 16px; 
     .legend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .legend-item { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--tx2); }
     .legend-dot { width: 6px; height: 6px; border-radius: 50%; }
