@@ -1,0 +1,141 @@
+.forest-bg {
+  --background: #f4f7f9;
+}
+
+.header-container {
+  background: linear-gradient(180deg, rgba(13, 148, 136, 0.8) 0%, rgba(6, 78, 59, 1) 100%), 
+              url('https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&q=80&w=800');    
+  background-size: cover;
+  background-position: center;
+  height: 200px;
+  border-bottom-left-radius: 40px;
+  border-bottom-right-radius: 40px;
+  display: flex;
+  align-items: flex-start;
+  padding-top: env(safe-area-inset-top);
+}
+
+.header-content {
+  width: 100%;
+  padding: 20px;
+
+  .nav-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 40px; // Back button aur Heading ko kaafi upar shift kiya
+  }
+
+  .title-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+}
+
+.back-btn {
+  --background: rgba(255, 255, 255, 0.2);
+  --border-radius: 12px;
+  backdrop-filter: blur(10px);
+  height: 42px;
+  width: 42px;
+  color: white;
+}
+
+.page-title {
+  color: white;
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.content-body {
+  padding: 20px;
+  margin-top: -95px; // Card ko header ke upar aur overlap kiya
+  position: relative;
+  z-index: 10;
+}
+
+.form-card {
+  background: #ffffff;
+  border-radius: 30px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.form-instruction {
+  font-size: 15px;
+  color: #4b5563;
+  margin-bottom: 20px;
+  font-weight: 600;
+}
+
+.input-wrapper {
+  margin-bottom: 18px;
+
+  .field-label {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #64748b;
+    margin-bottom: 6px;
+    font-weight: 700;
+  }
+}
+
+.custom-input {
+  --background: #f8fafc;
+  --border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  font-size: 14px;
+
+  .field-icon {
+    color: #0d9488;
+    margin-right: 10px;
+    font-size: 18px;
+  }
+}
+
+.image-preview {
+  width: 100%;
+  height: 180px;
+  border-radius: 15px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  border: 2px dashed #0d9488;
+  
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.photo-upload-box .upload-btn {
+  --border-radius: 14px;
+  --border-color: #0d9488;
+  --color: #0d9488;
+  width: 100%;
+  height: 52px;
+  font-weight: 600;
+}
+
+.submit-btn {
+  --background: linear-gradient(135deg, #064e3b 0%, #0d9488 100%);
+  --border-radius: 16px;
+  margin-top: 30px;
+  height: 56px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.animate-up {
+  animation: slideUp 0.4s ease-out forwards;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}

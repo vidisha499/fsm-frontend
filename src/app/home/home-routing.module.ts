@@ -119,6 +119,10 @@ loadChildren:() => import('./admin/admin.module').then( m => m.AdminPageModule)
     path: 'forest-events',
     loadChildren: () => import('./forest-events/forest-events.module').then( m => m.ForestEventsPageModule)
   },
+  {
+    path: 'events-fields',
+    loadChildren: () => import('./events-fields/events-fields.module').then( m => m.EventsFieldsPageModule)
+  },
 
 
  

@@ -171,13 +171,9 @@ public filteredAlerts: any[] = [];
   attChart: any;  
   public allActivePatrols: any[] = [];  
   private patrolInterval: any; // Attendance chart ke liye
-<<<<<<< Updated upstream
-
-=======
   private sightingsLayer = L.layerGroup();
 public allSightings: any[] = [];
 // trendChart: any;
->>>>>>> Stashed changes
 
 layerStates: { [key: string]: boolean } = {
   illegal_felling: true,
@@ -678,69 +674,7 @@ const localISOTime = new Date().toLocaleDateString('en-CA');
       }
 
       // --- 5. MAP DATA PROCESSING (INCIDENTS + SOS + SIGHTINGS) ---
-      // let processedPins: any[] = [];
-
-      // // A. Standard Incidents
-      // if (res.mapIncidents && Array.isArray(res.mapIncidents)) {
-      //   const incidentPins = res.mapIncidents.map((inc: any) => {
-      //     const dbCriteria = (inc.incidentCriteria || '').toUpperCase();
-      //     const rawSubCat = inc.subCategory || '';
-      //     const normalizedSub = rawSubCat.toLowerCase().trim().replace(/\s+/g, '_');
-
-      //     let finalLayerId = 'general_incident';
-      //     if (dbCriteria.includes('POACH') || normalizedSub.includes('poach')) finalLayerId = 'animal_poaching';
-      //     else if (dbCriteria.includes('FIRE') || normalizedSub.includes('fire')) finalLayerId = 'fire_warning';
-      //     else if (dbCriteria.includes('FELL') || normalizedSub.includes('felling')) finalLayerId = 'illegal_felling';
-      //     else if (dbCriteria.includes('MINING') || normalizedSub.includes('mining')) finalLayerId = 'illegal_mining';
-
-      //     return {
-      //       ...inc,
-      //       layerId: finalLayerId,
-      //       displayLabel: dbCriteria.includes('FIRE') ? 'Fire Warning' : (rawSubCat || inc.incidentCriteria || 'Incident')
-      //     };
-      //   });
-      //   processedPins = [...incidentPins];
-      // }
-
-      // // B. SOS Alerts for Map
-      // if (res.alerts && Array.isArray(res.alerts)) {
-      //   const sosPins = res.alerts
-      //     .filter((a: any) => (a.category === 'SOS' || (a.type && a.type.toUpperCase().includes('SOS'))))
-      //     .map((sos: any) => ({
-      //       ...sos,
-      //       layerId: 'sos',
-      //       displayLabel: 'SOS Emergency',
-      //       emoji: '🚨',
-      //       color: '#f43f5e'
-      //     }));
-      //   processedPins = [...processedPins, ...sosPins];
-      // }
-
-      // // C. Sightings (Water & Animal)
-      // if (res.allSightings && Array.isArray(res.allSightings)) {
-      //   const sightingPins = res.allSightings.map((s: any) => {
-      //     const isWater = (s.category || '').toLowerCase().includes('water') || (s.species || '').toLowerCase().includes('water');
-      //     const type = isWater ? 'water' : 'animal';
-      //     return {
-      //       ...s,
-      //       layerId: type,
-      //       displayLabel: isWater ? 'Water Status' : 'Animal Sighting',
-      //       emoji: isWater ? '💧' : '🐾',
-      //       color: isWater ? '#0ea5e9' : '#e11d48'
-      //     };
-      //   });
-      //   processedPins = [...processedPins, ...sightingPins];
-      // }
-
-      // // Store in array for updateVisiblePins()
-      // this.allIncidents = processedPins;
-      // // Ensure alerts variable is also populated for the notification list
-      // this.alerts = res.alerts || []; 
-
-      // if (typeof (this as any).updateVisiblePins === 'function') {
-      //   (this as any).updateVisiblePins();
-      // }
-      // 1. Aaj ki date nikaalein (YYYY-MM-DD format mein)
+      
 const today = new Date().toISOString().split('T')[0];
 
 let processedPins: any[] = [];
@@ -936,28 +870,7 @@ trackByAlert(index: number, alert: any) {
   return alert.id || index; 
 }
 
-// get dynamicFootStats() {
-//   const activeStats: any[] = [];
-//   if (!this.LAYERS_DATA || !this.layerStates || !this.activePinsDisplay) return activeStats;
 
-//   Object.values(this.LAYERS_DATA).forEach((category: any) => {
-//     category.items.forEach((item: any) => {
-//       // Only show if the toggle is ON
-//       if (this.layerStates[item.id]) {
-//         // We filter the processed pins by the layerId we assigned
-//         const count = this.activePinsDisplay.filter(p => p.layerId === item.id).length;
-        
-//         activeStats.push({
-//           label: item.label,
-//           count: count,
-//           color: item.color,
-//           emoji: item.emoji
-//         });
-//       }
-//     });
-//   });
-//   return activeStats;
-// }
 get dynamicFootStats() {
   const activeStats: any[] = [];
   if (!this.LAYERS_DATA || !this.layerStates || !this.activePinsDisplay) return activeStats;
@@ -1230,8 +1143,6 @@ getLayerColor(layerId: string) {
   return colors[layerId] || '#3b82f6';
 }
 
-<<<<<<< Updated upstream
-=======
 
 loadKPIs() {
   const cId = 1; // Tera Company ID
@@ -1261,7 +1172,6 @@ loadKPIs() {
   });
 }
 
->>>>>>> Stashed changes
   // --- UI Methods ---
  updateTime() {
   const now = new Date();
@@ -1765,16 +1675,7 @@ initTrendChart(labels: string[], values: number[]) {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
-<<<<<<< Updated upstream
-  
-  if (this.trendChart) {
-    this.trendChart.destroy();
-  }
-
-  // Gradient setup
-=======
   // Fresh Gradient
->>>>>>> Stashed changes
   const gradient = ctx.createLinearGradient(0, 0, 0, 140);
   gradient.addColorStop(0, 'rgba(0, 137, 123, 0.2)');
   gradient.addColorStop(1, 'rgba(0, 137, 123, 0)');
@@ -1825,26 +1726,6 @@ getFilterDates() {
   const now = new Date();
   const from = new Date();
 
-<<<<<<< Updated upstream
-  getFilterDates() {
-    const now = new Date();
-    const from = new Date();
-    
-    if (this.activeDateFilter === 'today') {
-  // Look back 24 hours from right now to catch all recent sightings
-  from.setHours(now.getHours() - 24); 
-    } else if (this.activeDateFilter === 'week') {
-      from.setDate(now.getDate() - 7);
-    } else if (this.activeDateFilter === 'month') {
-      from.setDate(1); // First day of the month
-      from.setHours(0, 0, 0, 0);
-    }
-
-    return {
-      from: from.toISOString(), // Example: 2026-03-25T00:00:00
-      to: now.toISOString(), // Example: 2026-03-25T14:13:00 (Current time)
-    };
-=======
   if (this.activeDateFilter === 'today') {
     // Backend se match karne ke liye: Midnight (Aaj ki shuruat)
     from.setHours(0, 0, 0, 0); 
@@ -1856,7 +1737,6 @@ getFilterDates() {
     // Pichle 30 din (Fixed logic: Month ki 1st date ki jagah pichle 30 din lo)
     from.setDate(now.getDate() - 30);
     from.setHours(0, 0, 0, 0);
->>>>>>> Stashed changes
   }
 
   return {

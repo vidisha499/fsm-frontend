@@ -119,7 +119,10 @@ loadChildren:() => import('./home/admin/admin.module').then( m => m.AdminPageMod
   path: 'forest-events',
   loadChildren: () => import('./home/forest-events/forest-events.module').then(m => m.ForestEventsPageModule)
 },
-
+{
+  path: 'events-fields/:title', // Isme '/:title' add karna zaroori hai
+  loadChildren: () => import('./home/events-fields/events-fields.module').then(m => m.EventsFieldsPageModule)
+}
 
 
 
