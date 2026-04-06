@@ -142,17 +142,6 @@ export class EventsFieldsPage implements OnInit {
     private loadingCtrl: LoadingController
   ) {}
 
-  // ngOnInit() {
-  //   const title = this.route.snapshot.paramMap.get('title');
-  //   if (title) {
-  //     this.eventTitle = title;
-  //     if (this.fieldsConfig[this.eventTitle]) {
-  //       this.dynamicFields = this.fieldsConfig[this.eventTitle];
-  //       this.fetchLocation();
-  //     }
-  //   }
-  // }
-
   ngOnInit() {
   // 1. URL se title lein aur use decode karein
   let title = this.route.snapshot.paramMap.get('title');
