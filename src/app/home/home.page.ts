@@ -9,6 +9,7 @@ import { Subscription } from 'rxjs';
 import { MenuController } from '@ionic/angular';
 import { AlertController } from '@ionic/angular';
 import { Geolocation } from '@capacitor/geolocation';
+import { HierarchyService } from '../services/hierarchy.service';
 
 @Component({
   selector: 'app-home',
@@ -30,6 +31,7 @@ private maxSlide: number = 0;
 isSubmitting: boolean = false;
   // ✅ SOS State
   showSOSModal: boolean = false;
+  assignedBeatName: string = 'FETCHING...';
   
 
   // Ranger Data
@@ -73,19 +75,14 @@ passwordType: string = 'password';
     private platform: Platform,
     private actionSheetCtrl: ActionSheetController,
     private alertController: AlertController,
+    private hierarchyService: HierarchyService,
  
   ) {}
 
   ngOnInit() {
     this.loadRangerData();
     this.initLanguage();
-
-    // 2. Ensure DataService is using Vercel URL
-    // if (this.dataService) {
-    //   (this.dataService as any).apiUrl = `${this.vercelBaseUrl}/users`;
-    // }
-
-    
+    this.loadRangerBeat();    
   }
 
   private initLanguage() {
@@ -123,7 +120,23 @@ passwordType: string = 'password';
   await actionSheet.present();
 }
 
+loadRangerBeat() {
+  const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+  const rangerId = userData.id; // User ID nikalna
 
+  if (rangerId) {
+    this.hierarchyService.getAssignedBeat(rangerId).subscribe({
+      next: (data) => {
+        if (data) {
+          this.assignedBeatName = data.beatName; // Table se beat_name mil jayega
+        } else {
+          this.assignedBeatName = 'NO BEAT ASSIGNED';
+        }
+      },
+      error: () => this.assignedBeatName = 'ERROR LOADING'
+    });
+  }
+}
 
 async captureProfileImage(source: CameraSource) {
     try {

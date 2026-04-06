@@ -122,7 +122,11 @@ loadChildren:() => import('./home/admin/admin.module').then( m => m.AdminPageMod
 {
   path: 'events-fields/:title', // Isme '/:title' add karna zaroori hai
   loadChildren: () => import('./home/events-fields/events-fields.module').then(m => m.EventsFieldsPageModule)
-}
+},
+{
+    path: 'category',
+    loadChildren: () => import('./home/category/category.module').then( m => m.CategoryPageModule)
+  },
 
 
 

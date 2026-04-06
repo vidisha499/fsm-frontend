@@ -65,6 +65,15 @@
   <div class="item-text"><span>Admin Dashboard</span></div>
 </a>
 
+<a *ngIf="userRole === '2'" class="menu-item" (click)="goToPage('category')" [class.active]="router.url.includes('category')">
+  <div class="icon-box purple">
+    <i class="fas fa-sitemap"></i>
+  </div>
+  <div class="item-text">
+    <span>Manage Hierarchy</span>
+  </div>
+</a>
+
 <!-- Ye sirf tab dikhega jab user Ranger hoga -->
 <a *ngIf="userRole === 'ranger'" class="menu-item" (click)="goToPage('ranger-dashboard')">
   <div class="icon-box green"><i class="fas fa-map-marked-alt"></i></div>
