@@ -83,14 +83,14 @@ async fetchAndFilter() {
 
   this.http.get(url).subscribe({
     next: (data: any) => {
-      this.allLogs = data.map((log: any) => {
-        const rawDate = log.created_at || log.createdAt; 
-        const utcDate = new Date(rawDate);
-        const IST_OFFSET = 5.5 * 60 * 60 * 1000;
-        return {
-          ...log,
-          createdAt: new Date(utcDate.getTime() - IST_OFFSET).toISOString()
-        };
+ // fetchAndFilter aur loadAttendanceLogs dono mein ye change kar:
+this.allLogs = data.map((log: any) => {
+  const rawDate = log.created_at || log.createdAt; 
+  return {
+    ...log,
+    // Sirf raw date string pass karo, manipulation mat karo
+    createdAt: rawDate 
+  };
       });
 
       // Default logic: Sirf aaj ka dikhao
@@ -149,62 +149,6 @@ applyFrontendLogic() {
   await this.loadAttendanceLogs();
 }
 
-  // UPDATE: Added 'from' and 'to' parameters to fix TS2554
-// async loadAttendanceLogs(from?: string, to?: string) {
-//   const rangerId = localStorage.getItem('ranger_id');
-//   if (!rangerId) return;
-
-//   const loader = await this.loadingCtrl.create({
-//     message: 'Fetching Logs...',
-//     spinner: 'crescent',
-//     mode: 'ios'
-//   });
-//   await loader.present();
-
-//   // 1. URL Build Karein
-//   let url = `${this.apiUrl}/ranger/${rangerId}`;
-//   if (from && to) {
-//     const formattedFrom = from.split('T')[0];
-//     const formattedTo = to.split('T')[0];
-//     url += `?startDate=${formattedFrom}&endDate=${formattedTo}`;
-//   }
-
-//   this.http.get(url).subscribe({
-//     next: (data: any) => {
-//       // 2. Data ko Format aur IST adjust karein
-//       let formattedData = data.map((log: any) => {
-//         const rawDate = log.created_at || log.createdAt; 
-//         const utcDate = new Date(rawDate);
-//         const validDate = isNaN(utcDate.getTime()) ? new Date() : utcDate;
-
-//         const IST_OFFSET = 5.5 * 60 * 60 * 1000;
-//         const adjustedDate = new Date(validDate.getTime() - IST_OFFSET);
-        
-//         return {
-//           ...log,
-//           createdAt: adjustedDate.toISOString() 
-//         };
-//       });
-
-//       // 3. 📍 LOCATION FILTER LOGIC (Yahan add kiya hai)
-//       if (this.filterLocation && this.filterLocation.trim() !== '') {
-//         const query = this.filterLocation.toLowerCase().trim();
-//         formattedData = formattedData.filter((log: any) => {
-//           // Check karein geofence ya location name mein query hai ya nahi
-//           const locationName = (log.geofence || log.location_name || '').toLowerCase();
-//           return locationName.includes(query);
-//         });
-//       }
-
-//       this.attendanceLogs = formattedData;
-//       loader.dismiss();
-//     },
-//     error: (err) => {
-//       console.error("Fetch error:", err);
-//       loader.dismiss();
-//     }
-//   });
-// }
 
 async loadAttendanceLogs() {
   const rangerId = localStorage.getItem('ranger_id');
@@ -219,14 +163,14 @@ async loadAttendanceLogs() {
   this.http.get(`${this.apiUrl}/ranger/${rangerId}`).subscribe({
     next: (data: any) => {
       // 1. Saara data format karke backup mein rakhein
-      this.allLogs = data.map((log: any) => {
-        const rawDate = log.created_at || log.createdAt; 
-        const utcDate = new Date(rawDate);
-        const IST_OFFSET = 5.5 * 60 * 60 * 1000;
-        return {
-          ...log,
-          createdAt: new Date(utcDate.getTime() - IST_OFFSET).toISOString()
-        };
+  // fetchAndFilter aur loadAttendanceLogs dono mein ye change kar:
+this.allLogs = data.map((log: any) => {
+  const rawDate = log.created_at || log.createdAt; 
+  return {
+    ...log,
+    // Sirf raw date string pass karo, manipulation mat karo
+    createdAt: rawDate 
+  };
       });
 
       // 2. Sirf AAJ ka data dikhayein (Starts with YYYY-MM-DD)

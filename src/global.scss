@@ -141,6 +141,13 @@ body.capacitor-map-active {
   body { background-color: #f1f5f9 !important; }
 }
 
+
+.leaflet-container {
+    height: 100% !important;
+    width: 100% !important;
+    display: block;
+}
+
 /* 4. Other UI Fixes */
 ion-label {
   color: #475569 !important;

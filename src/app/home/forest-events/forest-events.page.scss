@@ -1,0 +1,192 @@
+.premium-wrapper {
+  --primary-teal: #0d9488;
+  --accent-gold: #fbbf24;
+  --dark-slate: #0f172a;
+  
+  min-height: 100vh;
+  background: #f8fafc;
+  position: relative;
+  overflow-x: hidden;
+
+  .ambient-glow {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(70px);
+    opacity: 0.1;
+    z-index: 0;
+    &.glow-1 { width: 300px; height: 300px; background: var(--primary-teal); top: -50px; right: -50px; }
+    &.glow-2 { width: 250px; height: 250px; background: var(--accent-gold); bottom: 50px; left: -50px; }
+  }
+
+  // Header Image 1 Style
+.hero-header {
+    position: relative;
+    height: 180px;
+    background: url('https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&q=80&w=800') center/cover;
+    border-radius: 0 0 45px 45px;
+    
+ .header-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(13, 148, 136, 0.95) 0%, rgba(15, 23, 42, 0.8) 100%);
+      border-radius: 0 0 45px 45px;
+    }
+
+  .header-content {
+    position: relative;
+    z-index: 2;
+    padding: 20px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    .tracking-badge {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(16, 185, 129, 0.15);
+      padding: 6px 12px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      
+      .dot { 
+        width: 8px; height: 8px; 
+        background: #10b981; 
+        border-radius: 50%; 
+        box-shadow: 0 0 8px #10b981; 
+      }
+      span { color: #10b981; font-size: 9px; font-weight: 800; letter-spacing: 1px; }
+    }
+
+    .nav-row {
+      display: flex;
+    //   justify-content: space-between;
+      justify-content: flex-start;
+      align-items: center;
+      margin-top: 20px; // Badge ke niche space dene ke liye
+      width: 100%;
+      gap: 5px;
+      
+      .back-btn, .side-icon-btn {
+        width: 45px; 
+        height: 45px; 
+        background: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(10px); 
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 14px; 
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .title-block {
+        flex: 1; // Center karne ke liye sabse important
+        text-align: left;
+        padding: 0 10px;
+
+        h1 { 
+          color: white; 
+          font-size: 22px; 
+          font-weight: 700; 
+          margin: 0; 
+          text-transform: none;
+        }
+        span { 
+          color: rgba(255, 255, 255, 0.7); 
+          font-size: 10px; 
+          font-weight: 700; 
+          letter-spacing: 2px;
+          display: block;
+          margin-top: 2px;
+        }
+      }
+    }
+  }
+
+  }
+
+  // Floating White Bar
+  .location-bar {
+    position: relative;
+    z-index: 5;
+    margin: -30px 20px 0;
+    background: white;
+    padding: 18px 20px;
+    border-radius: 20px;
+    display: flex;
+    justify-content: space-between;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    
+    .loc-left {
+      display: flex; align-items: center; gap: 10px;
+      i { color: #10b981; }
+      span { font-weight: 800; color: var(--dark-slate); font-size: 14px; }
+    }
+    .fa-paw { color: #064e3b; opacity: 0.8; }
+  }
+
+  // Content Area
+  .main-content-area {
+    padding: 30px 20px 100px;
+
+    .module-section {
+      margin-bottom: 35px;
+
+      .ops-tag {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 6px 14px; border-radius: 12px; font-size: 10px; font-weight: 800;
+        margin-bottom: 15px;
+        &.protection { background: #fee2e2; color: #ef4444; }
+        &.monitoring { background: #dcfce7; color: #10b981; }
+      }
+
+      .section-title { font-size: 20px; font-weight: 800; color: #1e293b; margin: 0; }
+      .section-sub { font-size: 12px; color: #94a3b8; margin: 4px 0 20px; }
+    }
+
+    .grid-layout {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .cat-card {
+      background: white; padding: 20px 10px; border-radius: 24px;
+      text-align: center; border: 1px solid #f1f5f9;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+
+      .icon-wrap {
+        width: 50px; height: 50px; margin: 0 auto 10px;
+        border-radius: 18px; display: flex; align-items: center; justify-content: center;
+        font-size: 20px;
+      }
+
+      p { margin: 0; font-size: 11px; font-weight: 700; color: #334155; line-height: 1.2; }
+
+      &.pink-variant .icon-wrap { background: #fff1f2; color: #f43f5e; }
+      &.green-variant .icon-wrap { background: #f0fdf4; color: #22c55e; }
+    }
+  }
+
+  .fab-refresh {
+    position: fixed; bottom: 30px; right: 25px;
+    width: 65px; height: 65px; background: #22c55e;
+    border-radius: 22px; color: white; font-size: 24px;
+    box-shadow: 0 10px 25px rgba(34, 197, 94, 0.4); border: none; z-index: 10;
+  }
+}
+
+.animate-up {
+  animation: slideUp 0.6s ease-out forwards;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}

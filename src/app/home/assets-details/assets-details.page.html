@@ -1,13 +1,87 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>assets-details</ion-title>
-  </ion-toolbar>
-</ion-header>
-
 <ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">assets-details</ion-title>
-    </ion-toolbar>
-  </ion-header>
+  <div class="premium-wrapper">
+    <!-- Ambient Glow Effects -->
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <!-- Hero Header -->
+    <div class="hero-header">
+      <div class="header-overlay"></div>
+      <div class="header-content">
+        <div class="nav-bar">
+          <div class="left-section">
+            <button (click)="goBack()" class="glass-btn">
+              <ion-icon name="arrow-back-outline"></ion-icon>
+            </button>
+            <h1>Asset Details</h1>
+          </div>
+          <div class="right-actions">
+            <button class="glass-btn circular">
+              <ion-icon name="share-social-outline"></ion-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-container" *ngIf="asset; else noData">
+      
+      <!-- Asset Info Card -->
+      <div class="glass-card animate__animated animate__fadeInUp">
+        <div class="card-accent"></div>
+        
+        <div class="status-badge" [ngClass]="(asset.condition_status || asset.condition)?.toLowerCase()">
+          {{ asset.condition_status || asset.condition || 'Operational' }}
+        </div>
+
+        <div class="card-header-main">
+          <div class="icon-box-premium">
+            <ion-icon [name]="getIcon(asset.category)"></ion-icon>
+          </div>
+          <div class="title-info">
+            <h3>{{ asset.name }}</h3>
+            <span class="cat-tag">{{ asset.category }}</span>
+          </div>
+        </div>
+
+        <div class="info-grid-premium">
+          <div class="info-pill">
+            <span class="lbl">INSTALL YEAR</span>
+            <span class="val">{{ asset.year || '2026' }}</span>
+          </div>
+          <div class="info-pill">
+            <span class="lbl">ADDED ON</span>
+            <span class="val">{{ asset.created_at | date:'dd MMM, yyyy' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Map Location Card (Same as Incident Style) -->
+      <div class="glass-card animate__animated animate__fadeInUp" style="margin-top: 20px; animation-delay: 0.1s">
+        <div class="card-accent" style="background: #fbbf24;"></div>
+        <p class="section-label">
+          <ion-icon name="map-outline"></ion-icon> Asset Location
+        </p>
+        
+    <div class="map-container-wrapper">
+  <!-- ID ko bilkul unique rakhein -->
+  <div id="assetDetailMap" class="detail-map" style="height: 250px; width: 100%; display: block;"></div>
+  
+  <div class="coords-footer" *ngIf="asset?.latitude">
+    {{ asset.latitude }}, {{ asset.longitude }}
+  </div>
+</div>
+      </div>
+
+    </div>
+
+    <!-- Loading State -->
+    <ng-template #noData>
+      <div class="no-data-premium">
+        <ion-spinner name="crescent"></ion-spinner>
+        <p>Fetching details...</p>
+      </div>
+    </ng-template>
+  </div>
 </ion-content>

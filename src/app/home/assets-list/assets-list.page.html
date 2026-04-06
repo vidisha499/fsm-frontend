@@ -86,7 +86,11 @@
 
       <p class="list-label">Online Assets</p>
 
-      <div class="glass-card animate__animated animate__fadeInUp" *ngFor="let asset of assets; let i = index" [style.animation-delay]="i * 0.1 + 's'">
+      <!-- <div class="glass-card animate__animated animate__fadeInUp" *ngFor="let asset of assets; let i = index" [style.animation-delay]="i * 0.1 + 's'"> -->
+        <div class="glass-card animate__animated animate__fadeInUp" 
+     *ngFor="let asset of assets; let i = index" 
+     [style.animation-delay]="i * 0.1 + 's'"
+     (click)="openAssetDetails(asset)">
         <div class="card-accent"></div>
         
         <div class="card-header">

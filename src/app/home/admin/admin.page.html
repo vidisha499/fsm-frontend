@@ -3,9 +3,14 @@
     <div class="header-section">
       <div class="toolbar">
         <div class="tbar-left">
-          <div class="tbar-logo">
+          <!-- <div class="tbar-logo">
             <img src="assets/icon/logo.png" alt="logo" />
-          </div>
+          </div> -->
+            
+                <button (click)="openMenu()"
+                style="background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); color: white; width: 45px; height: 45px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                <ion-icon name="menu-outline" style="font-size: 24px;"></ion-icon>
+            </button>
           <div>
             <div class="tbar-title">ForestFix</div>
             <div class="tbar-sub">Admin Console</div>

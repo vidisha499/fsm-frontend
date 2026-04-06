@@ -50,12 +50,21 @@ export class AdminDataService {
     });
   }
 
-  getFireAlertsCount(companyId: any, date: string) {
-    return this.http.get(`${this.baseApiUrl}/fire-alerts-count`, {
-      params: { companyId, date }
-    });
+// admin-data.service.ts ya admin.service.ts (Frontend wali file)
+
+// ISSE REPLACE KARO (Arguments add karo)
+getFireAlertsCount(companyId: any, date: string, start?: string, end?: string) {
+  // Params create karo
+  let params: any = { companyId, date };
+  
+  if (start && end) {
+    params.start = start;
+    params.end = end;
   }
 
+  // baseApiUrl pehle se environment.apiUrl + '/admin' hai
+  return this.http.get(`${this.baseApiUrl}/fire-alerts-count`, { params });
+}
   // --- NAYA DYNAMIC STATS CODE (FIXED) ---
 
   getInactiveCount(companyId: number, date: string) {
@@ -73,5 +82,15 @@ export class AdminDataService {
 }
 
 // admin-data.service.ts mein add karo
-
+// Isse strictly aaj ka fresh data milega
+getEventsAnalytics(companyId: number, timeframe: string = 'today', start?: string, end?: string) {
+  // baseUrl pehle se environment.apiUrl + '/admin' hai
+  let url = `${this.baseApiUrl}/analytics/events?companyId=${companyId}&timeframe=${timeframe}`;
+  
+  if (start && end) {
+    url += `&startDate=${start}&endDate=${end}`;
+  }
+  
+  return this.http.get(url);
+}
 }

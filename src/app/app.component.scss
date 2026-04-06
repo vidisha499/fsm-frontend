@@ -93,11 +93,11 @@ ion-menu {
 
       &:active { transform: scale(0.96); }
 
-      &.active {
-        background: #f0fdf4;
-        .icon-box { background: #10b981; color: white; box-shadow: 0 8px 15px rgba(16, 185, 129, 0.2); }
-        .item-text span { color: #065f46; font-weight: 900; }
-      }
+      // &.active {
+      //   background: #f0fdf4;
+      //   .icon-box { background: #10b981; color: white; box-shadow: 0 8px 15px rgba(16, 185, 129, 0.2); }
+      //   .item-text span { color: #065f46; font-weight: 900; }
+      // }
 
       .icon-box {
         width: 44px; height: 44px; border-radius: 15px;
@@ -129,6 +129,28 @@ ion-menu {
     padding: 20px; text-align: center;
     .version-tag { font-size: 9px; font-weight: 900; color: #cbd5e1; letter-spacing: 3px; }
   }
+
+  /* Icons ke naye color variants */
+.icon-box {
+  &.green-tint { 
+    background: #f0fdf4 !important; 
+    color: #10b981 !important; 
+  }
+  
+  &.emerald-soft {
+    background: #ecfdf5 !important;
+    color: #059669 !important;
+  }
+}
+
+/* Active state handle karne ke liye (Emerald theme) */
+.menu-item.active {
+  .icon-box.green-tint, .icon-box.emerald-soft {
+    background: #10b981 !important;
+    color: white !important;
+    box-shadow: 0 8px 15px rgba(16, 185, 129, 0.2);
+  }
+}
 }
 
 // --- LANGUAGE MODAL (Out of ion-menu for Z-Index) ---

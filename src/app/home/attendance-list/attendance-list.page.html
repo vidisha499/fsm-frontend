@@ -47,7 +47,8 @@
           <div class="row-content">
             <div class="top-line">
               <!-- <span class="type-text" [attr.data-type]="log.type">{{ log.type }}</span> -->
-              <span class="log-date">{{ (log.createdAt || log.created_at) | date:'hh:mm a' }}</span>
+              <span class="log-date">{{ (log.createdAt || log.created_at) | date:'hh:mm a':'UTC+0530'}}</span>
+              <!-- <h2 class="priority-title">{{ (log.createdAt || log.created_at) | date:'dd MMMM, yyyy':'UTC+0530' }}</h2> -->
             </div>
             <h2 class="priority-title">{{ (log.createdAt || log.created_at) | date:'dd MMMM, yyyy' }}</h2>
             <div class="reporter-line">

@@ -8,7 +8,7 @@ import {
   ChangeDetectionStrategy
 } from '@angular/core';
 import { Router } from '@angular/router'; // 1. Added Router
-import { NavController } from '@ionic/angular';
+import { NavController ,  MenuController } from '@ionic/angular';
 import { Chart, registerables, ChartConfiguration } from 'chart.js';
 import { DataService } from 'src/app/data.service';
 import { AdminDataService } from 'src/app/services/admin-data';
@@ -110,8 +110,9 @@ export class AdminPage implements OnInit, AfterViewInit {
 
   // --- UI State ---
   // YE NEECHE WAALI LINES ADD KARO
-  private sightingsLayer = L.layerGroup();
-public allSightings: any[] = [];
+  
+  trends: any = { events: [0, 0, 0, 0, 0] };
+  trendChart: any = null;
   sightingChart: any;
   sightingSnapshotCount: number = 0;
   realNurseryCount: number = 0;
@@ -125,7 +126,7 @@ warnCount: number = 0;
 infoCount: number = 0;
   momStatus: string = '0% MoM';
   isGoodTrend: boolean = true;
-  trendChart: any;
+  // trendChart: any;
   rangers: any[] = [];
   private dataSubscription: any;
   allRangers: number = 0;
@@ -170,7 +171,13 @@ public filteredAlerts: any[] = [];
   attChart: any;  
   public allActivePatrols: any[] = [];  
   private patrolInterval: any; // Attendance chart ke liye
+<<<<<<< Updated upstream
 
+=======
+  private sightingsLayer = L.layerGroup();
+public allSightings: any[] = [];
+// trendChart: any;
+>>>>>>> Stashed changes
 
 layerStates: { [key: string]: boolean } = {
   illegal_felling: true,
@@ -266,6 +273,7 @@ layerStates: { [key: string]: boolean } = {
     ],
   },
 };
+ 
 
   // --- Map Pin Coordinates (Relative %) ---
 
@@ -327,6 +335,7 @@ layerStates: { [key: string]: boolean } = {
 
   // 2. Injected Router into Constructor
   constructor(
+    private menuCtrl: MenuController,
     private router: Router,
     private cdr: ChangeDetectorRef,
     private dataService: DataService,
@@ -347,6 +356,12 @@ layerStates: { [key: string]: boolean } = {
       }
     }
   }
+
+  
+openMenu() {
+    this.menuCtrl.open('start');
+  }
+
 
 ngOnInit() {
 
@@ -516,13 +531,6 @@ onSegmentChange(event: any) {
 }
 
 
-loadSightings() {
-  const companyId = 1; // Aapka dynamic company ID
-  this.dataService.getAllMapSightings(companyId).subscribe((data: any) => {
-    this.allSightings = data;
-    this.updateMapMarkers(); // Map par dikhane ke liye
-  });
-}
 
 // REPLACE existing updateMapMarkers starting at line 752
 private updateMapMarkers() {
@@ -588,16 +596,22 @@ loadData() {
     return;
   }
 
-  const localISOTime = new Date().toISOString().split('T')[0];
-  const dates = this.getFilterDates();
+  const dates = this.getFilterDates(); 
+const currentTimeframe = this.activeDateFilter || 'today'; // Iske aage 'const' hona chahiye
+const localISOTime = new Date().toLocaleDateString('en-CA');
 
   this.isFetching = true;
 
   // FECHING ALL DATA SOURCES
   forkJoin({
     stats: this.dataService.getDashboardStats(myCompanyId, dates.from, dates.to),
-    sightings: this.dataService.getSightingCount(myCompanyId, dates.from || '', dates.to || ''),
-    fireCount: this.adminService.getFireAlertsCount(myCompanyId, localISOTime),
+    // sightings: this.dataService.getSightingCount(myCompanyId, dates.from || '', dates.to || ''),
+    sightings: this.dataService.getEventsAnalytics(myCompanyId, currentTimeframe, dates.from, dates.to),
+    
+    // Fire Alerts (Backend handle karega dates)
+    // fireCount: this.adminService.getFireAlertsCount(myCompanyId, localISOTime, dates.from, dates.to),
+    fireCount: this.adminService.getFireAlertsCount(myCompanyId, localISOTime, dates.from, dates.to),
+    // fireCount: this.adminService.getFireAlertsCount(myCompanyId, localISOTime),
     onDuty: this.adminService.getOnDutyCount(myCompanyId, localISOTime),
     onLeave: this.adminService.getOnLeaveCount(myCompanyId),
     inactive: this.adminService.getInactiveCount(myCompanyId, localISOTime),
@@ -609,6 +623,13 @@ loadData() {
     allSightings: this.dataService.getAllMapSightings(myCompanyId) // Added this to ensure sightings load
   }).subscribe({
     next: (res: any) => {
+
+      // Backend se 'total_events' aa raha hai, toh wahi assign karo
+  if (res.sightings) {
+    this.sightingsCount = res.sightings.total_events ?? 0; 
+  } else {
+    this.sightingsCount = 0;
+  }
       // --- 1. ASSETS DATA ---
       if (res.assetsStats) {
         this.totalAssetsCount = res.assetsStats.totalAssets || 0;
@@ -642,7 +663,9 @@ loadData() {
       this.attendancePercent = stats.resolvedPercentage || 0;
 
       // --- 4. PERSONNEL & RANGERS ---
-      this.sightingsCount = typeof res.sightings === 'object' ? (res.sightings.count ?? 0) : (res.sightings ?? 0);
+      // this.sightingsCount = typeof res.sightings === 'object' ? (res.sightings.count ?? 0) : (res.sightings ?? 0);
+      
+      
       this.onDutyCount = res.onDuty?.count ?? res.onDuty ?? 0;
       this.onLeaveCount = res.onLeave?.count ?? res.onLeave ?? 0;
       this.inactiveCount = res.inactive?.count ?? res.inactive ?? 0;
@@ -1207,15 +1230,49 @@ getLayerColor(layerId: string) {
   return colors[layerId] || '#3b82f6';
 }
 
-  // --- UI Methods ---
-  updateTime() {
-    const now = new Date();
-    this.currentTime = now.toLocaleTimeString('en-IN', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  }
+<<<<<<< Updated upstream
+=======
 
+loadKPIs() {
+  const cId = 1; // Tera Company ID
+  const today = new Date().toLocaleDateString('en-CA'); // "2024-03-22" format
+
+  // 1. Sightings KPI (Events)
+  this.adminService.getEventsAnalytics(cId, 'today').subscribe((res: any) => {
+    // Ab yahan res.total_events mein "0" aayega agar aaj entry nahi hai
+    this.sightingsCount = res.total_events || 0; 
+    
+    // Graph update
+    this.trends.events = [0, 0, 0, 0, this.sightingsCount];
+    this.initHomeCharts();
+    this.cdr.detectChanges();
+  });
+
+  // 2. Fire Alerts KPI
+  this.adminService.getFireAlertsCount(cId, today).subscribe((res: any) => {
+    this.fireAlertsCount = res.count || 0;
+    this.cdr.detectChanges();
+  });
+
+  // 3. On Duty KPI
+  this.adminService.getOnDutyCount(cId, today).subscribe((res: any) => {
+    this.onDutyCount = res.count || 0;
+    this.cdr.detectChanges();
+  });
+}
+
+>>>>>>> Stashed changes
+  // --- UI Methods ---
+ updateTime() {
+  const now = new Date();
+  this.currentTime = now.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
+  // Update every minute
+  setTimeout(() => this.updateTime(), 60000);
+}
   toggleFilterBar() {
     this.isFilterCollapsed = !this.isFilterCollapsed;
   }
@@ -1695,39 +1752,47 @@ initAttChart() {
       error: (err) => console.error('Trend Chart Error:', err),
     });
   }
-
-  initTrendChart(labels: string[], values: number[]) {
+initTrendChart(labels: string[], values: number[]) {
   const canvas = document.getElementById('c-trend') as HTMLCanvasElement;
   if (!canvas) return;
+
+  // Purana chart destroy karo (Canvas reuse error fix)
+  if (this.trendChart) {
+    this.trendChart.destroy();
+    this.trendChart = null;
+  }
 
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
+<<<<<<< Updated upstream
   
   if (this.trendChart) {
     this.trendChart.destroy();
   }
 
   // Gradient setup
+=======
+  // Fresh Gradient
+>>>>>>> Stashed changes
   const gradient = ctx.createLinearGradient(0, 0, 0, 140);
-  gradient.addColorStop(0, 'rgba(0, 137, 123, 0.3)');
+  gradient.addColorStop(0, 'rgba(0, 137, 123, 0.2)');
   gradient.addColorStop(1, 'rgba(0, 137, 123, 0)');
 
-  // Naya Chart banao (Fresh start har baar data load hone par)
   this.trendChart = new Chart(ctx, {
     type: 'line',
     data: {
-      labels: labels,
+      labels: labels, // Yahan 'labels' pass ho rahe hain
       datasets: [{
-        label: 'Assets Trend', // "Incidents" ki jagah "Assets" kar diya
+        label: 'Trend',
         data: values,
         borderColor: '#00897b',
         backgroundColor: gradient,
         fill: true,
         tension: 0.4,
         borderWidth: 2,
-        pointRadius: 0,
-        pointHoverRadius: 5,
+        pointRadius: 2, // Thoda sa point dikhega toh timeline samajh aayegi
+        pointBackgroundColor: '#00897b'
       }],
     },
     options: {
@@ -1735,18 +1800,32 @@ initAttChart() {
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { display: false },
+        x: { 
+          display: true, // <--- ISSE TRUE KAR DIYA
+          grid: { display: false }, // Vertical lines hide kar di
+          ticks: { 
+            font: { size: 9 }, 
+            color: '#9ca3af', // Gray color for clean look
+            maxRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: 7 // Zyada labels mesh nahi honge
+          }
+        },
         y: {
           display: true,
           beginAtZero: true,
           grid: { color: 'rgba(0,0,0,0.03)', drawTicks: false },
-          ticks: { font: { size: 9 }, stepSize: 10 },
+          ticks: { font: { size: 9 }, stepSize: 20 }
         },
       },
     },
   });
 }
+getFilterDates() {
+  const now = new Date();
+  const from = new Date();
 
+<<<<<<< Updated upstream
   getFilterDates() {
     const now = new Date();
     const from = new Date();
@@ -1765,8 +1844,26 @@ initAttChart() {
       from: from.toISOString(), // Example: 2026-03-25T00:00:00
       to: now.toISOString(), // Example: 2026-03-25T14:13:00 (Current time)
     };
+=======
+  if (this.activeDateFilter === 'today') {
+    // Backend se match karne ke liye: Midnight (Aaj ki shuruat)
+    from.setHours(0, 0, 0, 0); 
+  } else if (this.activeDateFilter === 'week') {
+    // Pichle 7 din
+    from.setDate(now.getDate() - 7);
+    from.setHours(0, 0, 0, 0);
+  } else if (this.activeDateFilter === 'month') {
+    // Pichle 30 din (Fixed logic: Month ki 1st date ki jagah pichle 30 din lo)
+    from.setDate(now.getDate() - 30);
+    from.setHours(0, 0, 0, 0);
+>>>>>>> Stashed changes
   }
 
+  return {
+    from: from.toISOString(),
+    to: now.toISOString(),
+  };
+}
   getFilterLabel() {
   // Check karo tumhara filter variable ka naam kya hai (usually activeDateFilter hota hai)
   switch (this.activeDateFilter) {

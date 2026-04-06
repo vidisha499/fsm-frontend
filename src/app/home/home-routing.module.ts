@@ -95,7 +95,8 @@ loadChildren:() => import('./admin/admin.module').then( m => m.AdminPageModule)
   {
     path: 'category',
     loadChildren: () => import('./category/category.module').then( m => m.CategoryPageModule)
-  },  {
+  },
+  {
     path: 'admin-analytics',
     loadChildren: () => import('./admin-analytics/admin-analytics.module').then( m => m.AdminAnalyticsPageModule)
   },
@@ -113,8 +114,12 @@ loadChildren:() => import('./admin/admin.module').then( m => m.AdminPageModule)
   },
   {
     path: 'assets-details',
-    loadChildren: () => import('./assets-details/assets-details.module').then( m => m.AssetsDetailsPageModule)
+    loadChildren: () => import('./assets-details/assets-details.module').then( m => m.AssetDetailsPageModule)
+  },  {
+    path: 'forest-events',
+    loadChildren: () => import('./forest-events/forest-events.module').then( m => m.ForestEventsPageModule)
   },
+
 
  
 

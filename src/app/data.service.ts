@@ -8,10 +8,20 @@ export class DataService {
   private baseApiUrl = environment.apiUrl;
   private selectedIncident: any;
   private selectedAttendance: any;
+  private selectedAsset: any;
 
   constructor(private http: HttpClient,
     
   ) {}
+
+  getSelectedAsset() {
+    return this.selectedAsset;
+  }
+
+  // List page se data set karna
+  setSelectedAsset(asset: any) {
+    this.selectedAsset = asset;
+  }
 
 
   // Attendance set karne ke liye
@@ -277,12 +287,6 @@ updateNotificationPrefs(companyId: number, prefs: any[]) {
 //   return this.http.get(`${this.baseApiUrl}/analytics/events?companyId=${companyId}&timeframe=${timeframe}`);
 // }
 
-
-getEventsAnalytics(companyId: number, timeframe: string) {
-  // Yahan '/admin' add karo kyunki backend controller ka path 'admin' hai
-  return this.http.get(`${this.baseApiUrl}/admin/analytics/events?companyId=${companyId}&timeframe=${timeframe}`);
-}
-
 // Naya asset save karne ke liye function
   addAsset(assetData: any): Observable<any> {
     return this.http.post(`${this.baseApiUrl}/assets/add`, assetData);
@@ -382,9 +386,22 @@ getAlertsByCompany(companyId: number): Observable<any[]> {
   // This will call your NestJS: @Get('company/:companyId') inside AlertsController
   return this.http.get<any[]>(`${this.baseApiUrl}/alerts/company/${companyId}`);
 }
+// data.service.ts
+// Purana: getEventsAnalytics(companyId: number, timeframe: string)
+// Naya (Isse replace karo):
+getEventsAnalytics(companyId: number, timeframe: string = 'today', start?: string, end?: string) {
+  let url = `${this.baseApiUrl}/admin/analytics/events?companyId=${companyId}&timeframe=${timeframe}`;
+  
+  if (start && end && start !== 'undefined') {
+    url += `&startDate=${start}&endDate=${end}`;
+  }
+  
+  return this.http.get(url);
+}
 
 // data.service.ts mein add karein
 getActivePatrols(companyId: number) {
   return this.http.get(`${this.baseApiUrl}/patrols/active?companyId=${companyId}`);
 }
 }
+

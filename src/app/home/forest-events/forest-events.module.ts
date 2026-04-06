@@ -1,17 +1,20 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+
 import { IonicModule } from '@ionic/angular';
-import { AssetDetailsPageRoutingModule } from './assets-details-routing.module';
-import { AssetDetailsPage } from './assets-details.page';
+
+import { ForestEventsPageRoutingModule } from './forest-events-routing.module';
+
+import { ForestEventsPage } from './forest-events.page';
 
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
     IonicModule,
-    AssetDetailsPageRoutingModule
+    ForestEventsPageRoutingModule
   ],
-  declarations: [AssetDetailsPage]
+  declarations: [ForestEventsPage]
 })
-export class AssetDetailsPageModule {}
+export class ForestEventsPageModule {}

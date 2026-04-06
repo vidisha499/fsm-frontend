@@ -37,6 +37,13 @@ export class AssetsListPage implements OnInit {
     this.getCompanyInfo();
   }
 
+
+  // Is function ko AssetsListPage class ke andar kahin bhi paste kar do
+openAssetDetails(asset: any) {
+
+  this.dataService.setSelectedAsset(asset);
+  this.navCtrl.navigateForward('/assets-details');
+}
   // 1. Session se Company ID nikalna
   getCompanyInfo() {
     const userData = localStorage.getItem('user_data');
@@ -115,7 +122,27 @@ export class AssetsListPage implements OnInit {
   
   goToAddAsset() { this.navCtrl.navigateForward('/assets'); }
 
-  goBack() { this.navCtrl.navigateBack('/home'); }
+  // goBack() { this.navCtrl.navigateBack('/home'); }
+  goBack() {
+  // Login page wala exact key name: 'user_role'
+  const userRole = localStorage.getItem('user_role'); 
+  console.log('Back from List - Role:', userRole);
+
+  // Agar Role ID 2 hai (Admin), toh Admin dashboard pe bhejo
+  if (userRole === '2') {
+    this.navCtrl.navigateRoot('/admin', { 
+      animated: true, 
+      animationDirection: 'back' 
+    });
+  } else {
+    // Baaki sab ke liye Ranger dashboard (home)
+    this.navCtrl.navigateRoot('/home', { 
+      animated: true, 
+      animationDirection: 'back' 
+    });
+  }
+}
+  
 
   // Refresh karne ke liye (Pull to refresh ke liye bhi use kar sakte ho)
   doRefresh(event: any) {

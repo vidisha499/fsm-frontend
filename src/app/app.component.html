@@ -39,7 +39,7 @@
     </div>
 
     <nav class="menu-nav">
-      <div class="menu-section-label">{{ 'MENU.NAVIGATION' | translate }}</div>
+      <!-- <div class="menu-section-label">{{ 'MENU.NAVIGATION' | translate }}</div> -->
       
       <a class="menu-item" (click)="goToPage('home')" [class.active]="router.url.includes('home')">
         <div class="icon-box emerald"><i class="fas fa-th-large"></i></div>
@@ -54,10 +54,37 @@
     <div class="icon-box amber"><i class="fas fa-user-check"></i></div>
     <div class="item-text"><span>{{ 'MENU.ATTENDANCE_REQ' | translate }}</span></div>
   </a>
-
+<!-- 
   <a class="menu-item" (click)="goToPage('assets-list')" [class.active]="router.url === '/home/assets-list'">
   <div class="icon-box red"><i class="fas fa-boxes"></i></div>
   <div class="item-text"><span>{{ 'MENU.ASSETS' | translate }}</span></div>
+</a> -->
+<!-- Ye sirf tab dikhega jab user Admin hoga -->
+<a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('admin-dashboard')">
+  <div class="icon-box blue"><i class="fas fa-chart-line"></i></div>
+  <div class="item-text"><span>Admin Dashboard</span></div>
+</a>
+
+<!-- Ye sirf tab dikhega jab user Ranger hoga -->
+<a *ngIf="userRole === 'ranger'" class="menu-item" (click)="goToPage('ranger-dashboard')">
+  <div class="icon-box green"><i class="fas fa-map-marked-alt"></i></div>
+  <div class="item-text"><span>Ranger Dashboard</span></div>
+</a>
+
+<!-- Assets List dono ko dikh rahi hai toh rehne do -->
+<a class="menu-item" (click)="goToPage('assets-list')" [class.active]="router.url === '/home/assets-list'">
+  <div class="icon-box red"><i class="fas fa-boxes"></i></div>
+  <div class="item-text"><span>{{ 'MENU.ASSETS' | translate }}</span></div>
+</a>
+
+<!-- Forest Events Dashboard (New Addition) -->
+<a class="menu-item" (click)="goToPage('forest-events')" [class.active]="router.url.includes('forest-events')">
+  <div class="icon-box green-tint">
+    <i class="fas fa-shield-virus"></i>
+  </div>
+  <div class="item-text">
+    <span>Forest Events Dashboard</span>
+  </div>
 </a>
 
       <a class="menu-item" (click)="goToPage('updates')" [class.active]="router.url.includes('updates')">

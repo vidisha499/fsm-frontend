@@ -800,113 +800,26 @@ getIconColor(label: string): string {
   return '#3dc2ff'; // Default Blue
 }
 
-
-// async updateUIData() {
-//   const cat = this.getCurrentCat();
-//   if (!cat) return;
-
-//   const companyId = localStorage.getItem('companyId') || '1';
-//   const timeframe = this.activeDateFilter; 
-//   const range = this.selectedRange;
-//   const beat = this.selectedBeat;
-
-//   this.isRefreshing = true; // Spinner on
-
-//   let dataCall;
-//   if (this.activeCatId === 'fire') {
-//     dataCall = this.dataService.getFireAnalytics(companyId, timeframe, range, beat);
-//   } else if (this.activeCatId === 'events') {
-//     dataCall = this.dataService.getEventsAnalytics(Number(companyId), timeframe);
-//   } else if (this.activeCatId === 'assets') {
-//     const cId = localStorage.getItem('company_id') || localStorage.getItem('companyId') || '1';
-//     dataCall = this.dataService.get(`assets/analytics/dynamic-stats/${cId}?timeframe=${timeframe}`);
-//   } else {
-//     dataCall = this.dataService.getCriminalAnalytics(companyId, timeframe, range, beat);
-//   }
-
-//   dataCall.subscribe({
-//     next: (res: any) => {
-//       console.log("Backend Response Received:", res);
-
-//       // 1. Data Mapping & Injection
-//       this.displayProgList = cat.subs.map((s: any) => {
-//         const backendKey = s.id; // e.g., 'wildlife'
-//         const dynamicData = res[backendKey] || { val: 0, trend: [], levels: [], casesByRange: [], cases: [] }; 
-
-//         // IMPORTANT: Inject data for the render function
-//         if (s.charts) {
-//           s.charts.forEach((ch: any) => {
-//             // Yahan hum chart object ke andar hi data ghusa rahe hain
-//             ch.dynamicData = dynamicData.trend || dynamicData.levels || dynamicData.casesByRange || dynamicData.cases || [];
-            
-//             // Backup update (agar static config use ho raha ho)
-//             if (ch.data && ch.data.datasets) {
-//               ch.data.datasets[0].data = ch.dynamicData;
-//             }
-//           });
-//         }
-
-//         return {
-//           ...s,
-//           val: dynamicData.val ?? dynamicData.count ?? 0,
-//           pct: Math.min(Math.round(((dynamicData.val || dynamicData.count || 0) / 50) * 100), 100) 
-//         };
-//       });
-
-//       // 2. UI Refresh Logic
-//       this.destroyCharts(); // Purane canvas instances saaf karo
-//       this.cdr.detectChanges(); // DOM update
-
-//       // 3. Current Sub-category refresh
-//       const currentSub = cat.subs.find((s: any) => s.id === this.activeSubId);
-//       this.currentSubCharts = currentSub?.charts || [];
-//       this.displayActivity = this.getActivity(this.activeSubId);
-      
-//       this.isRefreshing = false;
-//       this.cdr.detectChanges();
-
-//       // 4. Render with dynamic data
-//       setTimeout(() => {
-//         this.renderSubCharts(); // Ye function ab 'ch.dynamicData' uthayega
-//       }, 300);
-//     },
-//     error: (err: any) => {
-//       console.error(`Fetch Error:`, err);
-//       this.isRefreshing = false;
-//       this.destroyCharts();
-//       this.cdr.detectChanges();
-//     }
-//   });
-// }
-
 async updateUIData() {
   const cat = this.getCurrentCat();
   if (!cat) return;
 
   const companyId = localStorage.getItem('companyId') || '1';
   const timeframe = this.activeDateFilter; 
-  
-  // ERROR FIX: In dono variables ko pass karna zaroori hai
   const range = this.selectedRange || 'all';
   const beat = this.selectedBeat || 'all';
 
   this.isRefreshing = true;
 
   let dataCall;
-  
   if (this.activeCatId === 'fire') {
-    // 4 Arguments pass kiye (companyId, timeframe, range, beat)
     dataCall = this.dataService.getFireAnalytics(companyId, timeframe, range, beat);
-  } 
-  else if (this.activeCatId === 'events') {
+  } else if (this.activeCatId === 'events') {
     dataCall = this.dataService.getEventsAnalytics(Number(companyId), timeframe);
-  } 
-  else if (this.activeCatId === 'assets') {
+  } else if (this.activeCatId === 'assets') {
     const cId = localStorage.getItem('company_id') || localStorage.getItem('companyId') || '1';
     dataCall = this.dataService.get(`assets/analytics/dynamic-stats/${cId}?timeframe=${timeframe}`);
-  } 
-  else {
-    // 4 Arguments pass kiye (companyId, timeframe, range, beat)
+  } else {
     dataCall = this.dataService.getCriminalAnalytics(companyId, timeframe, range, beat);
   }
 
@@ -914,41 +827,67 @@ async updateUIData() {
     next: (res: any) => {
       console.log("Backend Response Received:", res);
 
-      this.displayProgList = cat.subs.map((s: any) => {
-        let backendKey = s.id; 
-        
-        // --- 🐾 Animal aur Death ki mapping ---
-        if (s.id === 'animal') backendKey = 'wildlife';
-        if (s.id === 'impact' || s.id === 'death') backendKey = 'compensation'; 
+      // Step 1: Pehle saare counts extract kar lo (Simple + Object types)
+      const mappedItems = cat.subs.map((s: any) => {
+        let backendKey = s.id;
 
-        const dynamicData = res[backendKey] || { val: 0, trend: [], levels: [], cases: [] }; 
-
-        if (s.charts) {
-          s.charts.forEach((ch: any) => {
-            ch.dynamicData = dynamicData.trend || dynamicData.levels || dynamicData.cases || [0,0,0,0,0];
-          });
+        // Domain Specific Mapping
+        if (this.activeCatId === 'criminal') {
+          const crimMap: any = { 'felling': 'felling', 'transport': 'transport', 'storage': 'storage', 'poaching': 'poaching', 'encroach': 'encroach' };
+          backendKey = crimMap[s.id] || s.id;
+        } else if (this.activeCatId === 'events') {
+          const eventMap: any = { 'animal': 'animal_sighting', 'water': 'water_source', 'impact': 'human_impact', 'death': 'wildlife_death', 'felling': 'illegal_felling' };
+          backendKey = eventMap[s.id] || s.id;
+        } else if (this.activeCatId === 'assets') {
+          const assetMap: any = { 'nursery': 'nursery', 'offices': 'offices', 'watchtowers': 'watch_towers', 'plantations': 'plantations' };
+          backendKey = assetMap[s.id] || s.id;
+        } else if (this.activeCatId === 'fire') {
+          backendKey = 'fire_incidents';
         }
 
-        return {
-          ...s,
-          val: dynamicData.val ?? dynamicData.count ?? 0,
-          pct: Math.min(Math.round(((dynamicData.val || dynamicData.count || 0) / 50) * 100), 100) 
-        };
+        const rawData = res[backendKey];
+        let countVal = 0;
+
+        // Dynamic extraction based on your console logs
+        if (typeof rawData === 'number') countVal = rawData;
+        else if (rawData?.val !== undefined) countVal = rawData.val;
+        else if (res[backendKey] !== undefined) countVal = typeof res[backendKey] === 'number' ? res[backendKey] : (res[backendKey].val || 0);
+
+        return { ...s, val: countVal, rawData: rawData };
       });
 
+      // Step 2: DYNAMIC MAX: Pooray list mein se Max value dhoondo
+      const maxVal = Math.max(...mappedItems.map((i: any) => i.val), 10); // Default 5 rakha hai taaki line ekdam se full na ho jaye
+
+      // Step 3: Final list create karo PCT calculation ke saath
+      this.displayProgList = mappedItems.map((item: any) => {
+        // PCT formula jo HTML [style.width.%] ke liye chahiye
+        const percentage = item.val > 0 ? Math.min(Math.round((item.val / maxVal) * 100), 100) : 0;
+
+        // Chart dynamic data injection
+        let trendArray = [0, 0, 0, item.val];
+        if (item.rawData && Array.isArray(item.rawData.trend)) trendArray = item.rawData.trend;
+
+        if (item.charts) {
+          item.charts.forEach((ch: any) => { ch.dynamicData = trendArray; });
+        }
+
+        return { ...item, pct: percentage };
+      });
+
+      // Force UI Update
       this.destroyCharts();
       this.cdr.detectChanges(); 
 
       const currentSub = cat.subs.find((s: any) => s.id === this.activeSubId);
       this.currentSubCharts = currentSub?.charts || [];
-      this.displayActivity = this.getActivity(this.activeSubId);
       
       this.isRefreshing = false;
       this.cdr.detectChanges();
 
       setTimeout(() => {
         this.renderSubCharts(); 
-      }, 300);
+      }, 600);
     },
     error: (err: any) => {
       console.error(`Fetch Error:`, err);
@@ -958,6 +897,7 @@ async updateUIData() {
     }
   });
 }
+
 // ngOnInit ya kisi refresh function mein ye call karo
 fetchRealAssetData() {
   const companyIdRaw = localStorage.getItem('company_id') || '1';
@@ -1008,4 +948,7 @@ renderBarChart(id: string, data: any[], color: string, labels: string[]) {
     options: CDAX
   });
 }
+
+
+
 }

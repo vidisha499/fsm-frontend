@@ -101,6 +101,10 @@ loadChildren:() => import('./home/admin/admin.module').then( m => m.AdminPageMod
   path: 'assets-list',
   loadChildren: () => import('./home/assets-list/assets-list.module').then( m => m.AssetsListPageModule)
 },
+{
+  path: 'assets-details',
+  loadChildren: () => import('./home/assets-details/assets-details.module').then( m => m.AssetDetailsPageModule)
+},
 
 
   {
@@ -111,6 +115,10 @@ loadChildren:() => import('./home/admin/admin.module').then( m => m.AdminPageMod
     path: 'admin-settings',
     loadChildren: () => import('./home/admin-settings/admin-settings.module').then(m => m.AdminSettingsPageModule)
   },
+  {
+  path: 'forest-events',
+  loadChildren: () => import('./home/forest-events/forest-events.module').then(m => m.ForestEventsPageModule)
+},
 
 
 
