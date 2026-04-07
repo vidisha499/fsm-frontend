@@ -371,10 +371,7 @@ get(endpoint: string) {
   return this.http.get(`${this.baseApiUrl}/${endpoint}`);
 }
 
-// Inside your PatrolService or SightingsService
-// getAllMapSightings(companyId: number) {
-//   return this.http.get(`${this.baseApiUrl}/patrols/all-sightings?companyId=${companyId}`);
-// }
+
 getAllMapSightings(companyId: number) {
   return this.http.get(`${this.baseApiUrl}/patrols/all-sightings?companyId=${companyId}`);
 }

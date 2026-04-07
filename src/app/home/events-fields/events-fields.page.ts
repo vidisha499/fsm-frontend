@@ -4,6 +4,7 @@ import { NavController, ActionSheetController , ToastController, LoadingControll
 import { Geolocation } from '@capacitor/geolocation';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { DataService } from 'src/app/data.service';
+import { HierarchyService } from 'src/app/services/hierarchy.service';
 
 @Component({
   selector: 'app-events-fields',
@@ -17,6 +18,7 @@ export class EventsFieldsPage implements OnInit {
   currentCategory: string = 'General'; // <--- YE LINE ADD KARO
  dynamicFields: any[] = [];
   capturedPhoto: string | undefined;
+  assignedBeat: string = 'Loading...';
   speciesOptions: string[] = ['Sal', 'Saja', 'Sagaon', 'Beeja', 'Haldu', 'Dhawda', 'Safed Siris', 'Kala Siris', 'Jamun', 'Aam', 'Semal', 'Mahua', 'Tendu', 'Nilgiri', 'Others'];
   animalSpecies: string[] = ['Sloth Bear', 'Leopard', 'Hyena', 'Jackal', 'Wild Bear', 'Spotted Deer', 'Sambar', 'Others'];
 
@@ -140,22 +142,12 @@ export class EventsFieldsPage implements OnInit {
     private actionSheetCtrl: ActionSheetController,
     private dataService: DataService, // DataService yahan inject kiya
     private toastCtrl: ToastController,
-    private loadingCtrl: LoadingController
+    private loadingCtrl: LoadingController,
+    private hierarchyService: HierarchyService,
   ) {}
 
-  // ngOnInit() {
-  //   const title = this.route.snapshot.paramMap.get('title');
-  //   if (title) {
-  //     this.eventTitle = title;
-  //     if (this.fieldsConfig[this.eventTitle]) {
-  //       this.dynamicFields = this.fieldsConfig[this.eventTitle];
-  //       this.fetchLocation();
-  //     }
-  //   }
-  // }
-
-ngOnInit() {
-  // 1. URL se title lein
+  ngOnInit() {
+  // 1. URL se title lein aur use decode karein
   let title = this.route.snapshot.paramMap.get('title');
   
   // 2. URL se category lein (Jo humne dashboard se bheji hai)
@@ -171,9 +163,36 @@ ngOnInit() {
     if (this.fieldsConfig[this.eventTitle]) {
       this.dynamicFields = this.fieldsConfig[this.eventTitle];
       this.fetchLocation();
+      this.loadDefaultBeat();
     } else {
       console.error("No config found for title:", this.eventTitle);
     }
+  }
+}
+
+
+async loadDefaultBeat() {
+  const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+  const rangerId = userData.id;
+
+  if (rangerId) {
+    // Aapne pehle hierarchyService banaya tha, use yahan inject karke call karein
+    this.hierarchyService.getAssignedBeat(rangerId).subscribe({
+      next: (data) => {
+        if (data && data.beat_name) {
+          this.assignedBeat = data.beat_name;
+          // IMPORTANT: reportData mein fill karna taaki [(ngModel)] use pakad le
+          this.reportData['Assigned Beat'] = this.assignedBeat;
+        } else {
+          this.assignedBeat = 'General';
+          this.reportData['Assigned Beat'] = 'General';
+        }
+      },
+      error: () => {
+        this.assignedBeat = 'General';
+        this.reportData['Assigned Beat'] = 'General';
+      }
+    });
   }
 }
 

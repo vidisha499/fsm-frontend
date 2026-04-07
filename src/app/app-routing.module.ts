@@ -123,7 +123,11 @@ loadChildren:() => import('./home/admin/admin.module').then( m => m.AdminPageMod
 {
   path: 'events-fields/:title/:category', // Dono parameters add kar diye
   loadChildren: () => import('./home/events-fields/events-fields.module').then(m => m.EventsFieldsPageModule)
-}
+},
+{
+    path: 'category',
+    loadChildren: () => import('./home/category/category.module').then( m => m.CategoryPageModule)
+  },
 
 
 ];
