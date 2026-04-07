@@ -176,18 +176,42 @@ fieldsConfig: any = {
 }
 
 
+// async loadDefaultBeat() {
+//   const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+//   const rangerId = userData.id;
+
+//   if (rangerId) {
+//     // Aapne pehle hierarchyService banaya tha, use yahan inject karke call karein
+//     this.hierarchyService.getAssignedBeat(rangerId).subscribe({
+//       next: (data) => {
+//         if (data && data.beat_name) {
+//           this.assignedBeat = data.beat_name;
+//           // IMPORTANT: reportData mein fill karna taaki [(ngModel)] use pakad le
+//           this.reportData['Assigned Beat'] = this.assignedBeat;
+//         } else {
+//           this.assignedBeat = 'General';
+//           this.reportData['Assigned Beat'] = 'General';
+//         }
+//       },
+//       error: () => {
+//         this.assignedBeat = 'General';
+//         this.reportData['Assigned Beat'] = 'General';
+//       }
+//     });
+//   }
+// }
 async loadDefaultBeat() {
   const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
   const rangerId = userData.id;
 
   if (rangerId) {
-    // Aapne pehle hierarchyService banaya tha, use yahan inject karke call karein
     this.hierarchyService.getAssignedBeat(rangerId).subscribe({
-      next: (data) => {
-        if (data && data.beat_name) {
-          this.assignedBeat = data.beat_name;
-          // IMPORTANT: reportData mein fill karna taaki [(ngModel)] use pakad le
-          this.reportData['Assigned Beat'] = this.assignedBeat;
+      next: (data: any) => {
+        // HomePage ki tarah yahan bhi 'beatName' use karein
+        if (data && data.beatName) { 
+          this.assignedBeat = data.beatName;
+          // Form field ka label 'Assigned Beat' hai, isliye yahi key use hogi
+          this.reportData['Assigned Beat'] = data.beatName;
         } else {
           this.assignedBeat = 'General';
           this.reportData['Assigned Beat'] = 'General';
