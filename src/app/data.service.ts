@@ -411,5 +411,16 @@ getUserCompanyId() {
   // Agar user object mein company_id hai toh wo return karo, nahi toh null
   return user.company_id || null; 
 }
+
+// data.service.ts
+getForestKPIs(category: string, timeframe: string) {
+  // Yahan 'forest-events' path add kiya gaya hai
+  return this.http.get(`${this.baseApiUrl}/forest-events/analytics/kpi`, {
+    params: {
+      category: category,
+      range: timeframe
+    }
+  });
+}
 }
 

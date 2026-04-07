@@ -30,7 +30,7 @@ openEventsFields(title: string, category: string) {
   openCriminalFields(title: string) {
     this.navCtrl.navigateForward(['/events-fields', { 
       title: title, 
-      category: 'Criminal Activity' 
+      category: 'criminal' 
     }]);
   }
 
@@ -38,7 +38,7 @@ openEventsFields(title: string, category: string) {
   openEventFields(title: string) {
     this.navCtrl.navigateForward(['/events-fields', { 
       title: title, 
-      category: 'Events' 
+      category: 'events' 
     }]);
   }
 

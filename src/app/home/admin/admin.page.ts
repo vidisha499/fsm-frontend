@@ -110,6 +110,9 @@ export class AdminPage implements OnInit, AfterViewInit {
 
   // --- UI State ---
   // YE NEECHE WAALI LINES ADD KARO
+  criminalCount: number = 0;
+eventsCount: number = 0;
+selectedTimeframe: string = 'today';
   
   trends: any = { events: [0, 0, 0, 0, 0] };
   trendChart: any = null;
@@ -376,6 +379,8 @@ ngOnInit() {
   }
 
   this.loadData();
+  this.loadAllKPIs('today');
+
 
   // Naya fresh interval lagao
   this.dataInterval = setInterval(() => {
@@ -390,6 +395,79 @@ ngOnInit() {
   setTimeout(() => {
   this.initHomeCharts();
 }, 1000);
+}
+
+
+// Main function jo filters ke hisab se data refresh karega
+loadAllKPIs(timeframe: string) {
+  this.selectedTimeframe = timeframe;
+  this.fetchCriminalKPI(timeframe);
+  this.fetchEventsKPI(timeframe);
+}
+
+// 1. Criminal Activity Function
+fetchCriminalKPI(timeframe: string) {
+  this.dataService.getForestKPIs('criminal', timeframe).subscribe((res: any) => {
+    // Database mein category 'criminal' honi chahiye tabhi count aayega
+    this.criminalCount = res.count || 0;
+    console.log('Criminal Count:', this.criminalCount);
+  }, err => {
+    this.criminalCount = 0;
+  });
+}
+
+// 2. Events & Monitoring Function
+fetchEventsKPI(timeframe: string) {
+  this.dataService.getForestKPIs('events', timeframe).subscribe((res: any) => {
+    // Database mein category 'events' honi chahiye
+    this.eventsCount = res.count || 0;
+    console.log('Events Count:', this.eventsCount);
+  }, err => {
+    this.eventsCount = 0;
+  });
+}
+
+
+// admin.page.ts mein filter change function:
+
+onRangeChange(newRange: string) {
+  this.selectedRange = newRange; // 'today', 'week', ya 'month'
+  
+  // Dono KPIs ko dobara fetch karein
+  this.fetchKPI('criminal', newRange);
+  this.fetchKPI('events', newRange);
+}
+
+fetchKPI(category: string, range: string) {
+  this.dataService.getForestKPIs(category, range).subscribe((res: any) => {
+    console.log(`Data for ${category}:`, res); // Check karo 'count' aa raha hai ya 'criminal_count'
+
+    if (category === 'criminal') {
+      // 🔥 FIX: Agar backend 'criminal_count' bhej raha hai toh wahi likho
+      this.criminalCount = res.criminal_count !== undefined ? res.criminal_count : (res.count || 0);
+    } else {
+      // 🔥 FIX: Events ke liye bhi same check
+      this.eventsCount = res.events_count !== undefined ? res.events_count : (res.count || 0);
+    }
+  }, err => {
+    console.error("KPI Fetch Error:", err);
+    if (category === 'criminal') this.criminalCount = 0;
+    else this.eventsCount = 0;
+  });
+}
+
+// admin.page.ts
+
+segmentChanged(ev: any) {
+  const val = ev.detail.value; // 'today', 'week', ya 'month'
+  this.selectedTimeframe = val;
+  
+  // Dono KPIs ko refresh karein
+  this.fetchCriminalKPI(val);
+  this.fetchEventsKPI(val);
+  
+  // Chart ko bhi naye data ke saath update karne ka trigger yahan dein
+  this.loadTrendData(); 
 }
 
 

@@ -147,7 +147,7 @@ events: {
       },
       { 
         id: "water", label: "Water Source Status", emoji: "💧", color: COLORS.blue, val: 0,
-        charts: [{ title: "Water Levels", id: "ev-wa1", render: (id: string, obj: any) => this.renderBarChart(id, obj, COLORS.blue, ["Full", "Low", "Dry"]) }]
+       charts: [{ title: "Water Levels", id: "ev-wa1", render: (id: string, obj: any) => this.renderBarChart(id, obj.dynamicData || [], COLORS.blue, ["Full", "Low", "Dry"]) }]
       },
       { 
         id: "compensation", label: "Wildlife Compensation", emoji: "💵", color: COLORS.teal, val: 0,
@@ -648,96 +648,176 @@ getIconColor(label: string): string {
   return '#3dc2ff'; // Default Blue
 }
 
-async updateUIData() {
-  const cat = this.getCurrentCat();
-  if (!cat) return;
+// async updateUIData() {
+//   const cat = this.getCurrentCat();
+//   if (!cat) return;
 
-  const companyId = localStorage.getItem('company_id') || '1';
-  const timeframe = this.activeDateFilter || 'today';
+//   const companyId = localStorage.getItem('company_id') || '1';
+//   const timeframe = this.activeDateFilter || 'today';
   
-  // Custom range handle karne ke liye
-  const startDate = this.startDate; 
-  const endDate = this.endDate;
+//   // Custom range handle karne ke liye
+//   const startDate = this.startDate; 
+//   const endDate = this.endDate;
 
-  this.isRefreshing = true;
-  this.cdr.detectChanges();
+//   this.isRefreshing = true;
+//   this.cdr.detectChanges();
 
-  // 1. Dynamic API Call based on Active Tab
-  let dataCall;
-  if (this.activeCatId === 'fire') {
-    dataCall = this.dataService.getFireAnalytics(companyId, timeframe, 'all', 'all');
-  } else if (this.activeCatId === 'assets') {
-    dataCall = this.dataService.getAssetsAnalytics(Number(companyId), startDate, endDate);
-  } else {
-    // Ye 'criminal' aur 'events' dono ke liye common analytics call hai
-    dataCall = this.dataService.getEventsAnalytics(Number(companyId), timeframe, startDate, endDate);
-  }
+//   // 1. Dynamic API Call based on Active Tab
+//   let dataCall;
+//   if (this.activeCatId === 'fire') {
+//     dataCall = this.dataService.getFireAnalytics(companyId, timeframe, 'all', 'all');
+//   } else if (this.activeCatId === 'assets') {
+//     dataCall = this.dataService.getAssetsAnalytics(Number(companyId), startDate, endDate);
+//   } else {
+//     // Ye 'criminal' aur 'events' dono ke liye common analytics call hai
+//     dataCall = this.dataService.getEventsAnalytics(Number(companyId), timeframe, startDate, endDate);
+//   }
 
-  dataCall.subscribe({
-    next: (res: any) => {
-      console.log("🚀 Full Backend Response:", res);
+//   dataCall.subscribe({
+//     next: (res: any) => {
+//       console.log("🚀 Full Backend Response:", res);
 
-      // 2. Global KPI Cards Update (Header cards sync)
-      this.criminalCount = res.criminal_count || 0;
-      this.eventsCount = res.events_count || 0;
-      this.totalEvents = res.total_events || 0;
+//       // 2. Global KPI Cards Update (Header cards sync)
+//       this.criminalCount = res.criminal_count || 0;
+//       this.eventsCount = res.events_count || 0;
+//       this.totalEvents = res.total_events || 0;
 
-      // 3. Sub-Category List & Chart Data Mapping
-      this.displayProgList = cat.subs.map((s: any) => {
-        // Backend keys match (e.g., res['felling'], res['jfmc_social_forestry'])
-        const rawData = res[s.id] || { val: 0 };
-        const countVal = (typeof rawData === 'number') ? rawData : (rawData.val || 0);
+//       // 3. Sub-Category List & Chart Data Mapping
+//       this.displayProgList = cat.subs.map((s: any) => {
+//         // Backend keys match (e.g., res['felling'], res['jfmc_social_forestry'])
+//         const rawData = res[s.id] || { val: 0 };
+//         const countVal = (typeof rawData === 'number') ? rawData : (rawData.val || 0);
 
-        // Progress percentage (Max 100 based on target 50)
-        const percentage = Math.min(Math.round((countVal / 50) * 100), 100);
+//         // Progress percentage (Max 100 based on target 50)
+//         const percentage = Math.min(Math.round((countVal / 50) * 100), 100);
 
-        // 4. Inject Dynamic Data into Charts
-        if (s.charts && Array.isArray(s.charts)) {
-          s.charts.forEach((ch: any) => {
-            if (s.id === 'felling' && ch.id === 'ac-f1') {
-              // Species volume bar chart logic
-              ch.dynamicData = res.species_volume || [];
-            } else {
-              // Default logic: Agar trend data hai toh wo, warna single point trend dikhao
-              ch.dynamicData = (rawData && Array.isArray(rawData.trend) && rawData.trend.length > 0) 
-                ? rawData.trend 
-                : [countVal];
-            }
-          });
+//         // 4. Inject Dynamic Data into Charts
+//         if (s.charts && Array.isArray(s.charts)) {
+//           s.charts.forEach((ch: any) => {
+//             if (s.id === 'felling' && ch.id === 'ac-f1') {
+//               // Species volume bar chart logic
+//               ch.dynamicData = res.species_volume || [];
+//             } else {
+//               // Default logic: Agar trend data hai toh wo, warna single point trend dikhao
+//               ch.dynamicData = (rawData && Array.isArray(rawData.trend) && rawData.trend.length > 0) 
+//                 ? rawData.trend 
+//                 : [countVal];
+//             }
+//           });
+//         }
+
+//         return { 
+//           ...s, 
+//           val: countVal, 
+//           pct: percentage,
+//           rawData: rawData 
+//         };
+//       });
+
+//       // 5. DOM Cleanup & Chart Re-rendering
+//       this.destroyCharts();
+//       this.currentSubCharts = []; // Reset sub-charts for a moment
+//       this.cdr.detectChanges();
+
+//       // Find currently selected sub-category to show charts
+//       const currentSub = this.displayProgList.find((s: any) => s.id === this.activeSubId);
+//       this.currentSubCharts = currentSub?.charts || [];
+
+//       this.isRefreshing = false;
+//       this.cdr.detectChanges();
+
+//       // 6. Final Render (Timeout to ensure canvas is ready in DOM)
+//       setTimeout(() => {
+//         this.renderSubCharts();
+//       }, 400); 
+//     },
+//     error: (err: any) => {
+//       console.error("❌ Analytics Fetch Error:", err);
+//       this.isRefreshing = false;
+//       this.cdr.detectChanges();
+//     }
+//   });
+// }
+async updateUIData() {
+    const cat = this.getCurrentCat();
+    if (!cat) return;
+
+    const companyId = localStorage.getItem('company_id') || '1';
+    const timeframe = this.activeDateFilter || 'today';
+
+    this.isRefreshing = true;
+    this.cdr.detectChanges();
+
+    this.dataService.getEventsAnalytics(Number(companyId), timeframe, this.startDate, this.endDate).subscribe({
+        next: (res: any) => {
+            console.log("🚀 Data Received:", res);
+
+            // KPI Cards Update
+            this.criminalCount = res.criminal_count || 0;
+            this.eventsCount = res.events_count || 0;
+            this.totalEvents = res.total_events || 0;
+
+            // List & Chart Mapping
+            this.displayProgList = cat.subs.map((s: any) => {
+                const rawData = res[s.id] || { val: 0 };
+                const countVal = (typeof rawData === 'number') ? rawData : (rawData.val || 0);
+
+                if (s.charts && Array.isArray(s.charts)) {
+                    s.charts.forEach((ch: any) => {
+                        // PINK BAR CHART MAPPING
+                        if (s.id === 'felling' && ch.id === 'ac-f1') {
+                            ch.dynamicData = res.species_volume || []; 
+                        } else if (s.id === 'felling' && ch.id === 'ac-f2') {
+                            ch.dynamicData = res.reasons || {};
+                        } else {
+                            ch.dynamicData = [countVal];
+                        }
+                    });
+                }
+
+                return { ...s, val: countVal, pct: Math.min(Math.round((countVal / 50) * 100), 100) };
+            });
+
+            // Refresh UI
+            this.destroyCharts();
+            this.cdr.detectChanges();
+
+            const currentSub = this.displayProgList.find(sub => sub.id === this.activeSubId);
+            this.currentSubCharts = currentSub?.charts || [];
+            this.cdr.detectChanges();
+
+            // PHOTO 3 FIX: Canvas ready hone ka wait (800ms)
+            setTimeout(() => {
+                this.renderSubCharts();
+            }, 800); 
+        },
+        error: (err) => {
+            this.isRefreshing = false;
+            this.cdr.detectChanges();
         }
-
-        return { 
-          ...s, 
-          val: countVal, 
-          pct: percentage,
-          rawData: rawData 
-        };
-      });
-
-      // 5. DOM Cleanup & Chart Re-rendering
-      this.destroyCharts();
-      this.currentSubCharts = []; // Reset sub-charts for a moment
-      this.cdr.detectChanges();
-
-      // Find currently selected sub-category to show charts
-      const currentSub = this.displayProgList.find((s: any) => s.id === this.activeSubId);
-      this.currentSubCharts = currentSub?.charts || [];
-
-      this.isRefreshing = false;
-      this.cdr.detectChanges();
-
-      // 6. Final Render (Timeout to ensure canvas is ready in DOM)
-      setTimeout(() => {
-        this.renderSubCharts();
-      }, 400); 
-    },
-    error: (err: any) => {
-      console.error("❌ Analytics Fetch Error:", err);
-      this.isRefreshing = false;
-      this.cdr.detectChanges();
-    }
-  });
+    });
 }
+
+// Photo 3 Pink Style Renderer
+renderBarChart(id: string, data: any[], color: string, labels: string[]) {
+    const photo3Pink = '#f43f5e'; 
+    return this.mkChart(id, {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [{ 
+                data: data, 
+                backgroundColor: photo3Pink, 
+                borderRadius: 6,
+                barThickness: 25
+            }]
+        },
+        options: this.CDAX // Ensure CDAX is defined at class level
+    });
+}
+
+
+
 // ngOnInit ya kisi refresh function mein ye call karo
 fetchRealAssetData() {
   const companyIdRaw = localStorage.getItem('company_id') || '1';
@@ -779,48 +859,113 @@ renderLineChart(id: string, data: any[], color: string) {
   });
 }
 
-renderBarChart(id: string, data: any[], color: string, labels: string[]) {
-  return this.mkChart(id, {
-    type: "bar",
-    data: {
-      labels: labels,
-      datasets: [{ 
-        data, 
-        backgroundColor: color, 
-        borderRadius: 4 
-      }]
-    },
-    options: CDAX
-  });
-}
+// renderBarChart(id: string, data: any[], color: string, labels: string[]) {
+//   // Photo 3 jaisa colorful palette
+//   const colors = ['#f43f5e', '#fb923c', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#14b8a6'];
 
+//   return this.mkChart(id, {
+//     type: "bar",
+//     data: {
+//       labels: labels,
+//       datasets: [{ 
+//         data: data, 
+//         backgroundColor: labels.map((_, i) => colors[i % colors.length]), // Har bar alag color
+//         borderRadius: 6,
+//         barThickness: 25
+//       }]
+//     },
+//     options: {
+//       ...CDAX,
+//       scales: {
+//         x: { grid: { display: false } },
+//         y: { beginAtZero: true }
+//       }
+//     }
+//   });
+// }
+
+// renderPieChart(id: string, dataMap: any) {
+//   // Check if dataMap is valid, else use fallback
+//   const labels = Object.keys(dataMap).length ? Object.keys(dataMap) : ['No Data'];
+//   const values = Object.values(dataMap).length ? Object.values(dataMap) : [1];
+
+//   return this.mkChart(id, {
+//     type: 'pie',
+//     data: {
+//       labels: labels,
+//       datasets: [{
+//         data: values,
+//         backgroundColor: ['#14b8a6', '#f59e0b', '#ef4444', '#6366f1', '#8b5cf6'],
+//         borderWidth: 0
+//       }]
+//     },
+//     options: {
+//       responsive: true,
+//       maintainAspectRatio: false,
+//       plugins: {
+//         legend: { 
+//           position: 'bottom', 
+//           labels: { 
+//             usePointStyle: true, 
+//             pointStyle: 'circle',
+//             padding: 15,
+//             font: { size: 10, weight: '500' } 
+//           } 
+//         }
+//       }
+//     }
+//   });
+// }
+
+
+// 1. CDAX Definition (To fix Property 'CDAX' error)
+CDAX = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: {
+    y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 } } },
+    x: { grid: { display: false }, ticks: { font: { size: 10, weight: '600' } } }
+  }
+};
+
+// 2. Photo 3 Style Pink Bar Chart
+// renderBarChart(id: string, data: any[], color: string, labels: string[]) {
+//   const photo3Pink = '#f43f5e'; // Exact Pink from Photo 3
+
+//   return this.mkChart(id, {
+//     type: "bar",
+//     data: {
+//       labels: labels,
+//       datasets: [{ 
+//         data: data, 
+//         backgroundColor: photo3Pink, 
+//         borderRadius: 6,
+//         barThickness: 25
+//       }]
+//     },
+//     options: this.CDAX
+//   });
+// }
 renderPieChart(id: string, dataMap: any) {
-  const labels = Object.keys(dataMap);
-  const values = Object.values(dataMap);
-
-  return this.mkChart(id, {
-    type: 'pie',
-    data: {
-      labels: labels,
-      datasets: [{
-        data: values,
-        backgroundColor: [
-          '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'
-        ]
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
-      }
-    }
-  });
+    return this.mkChart(id, {
+        type: 'pie',
+        data: {
+            labels: Object.keys(dataMap),
+            datasets: [{
+                data: Object.values(dataMap),
+                backgroundColor: ['#14b8a6', '#f59e0b', '#ef4444', '#6366f1'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            ...this.CDAX,
+            plugins: { legend: { display: true, position: 'bottom' } }
+        }
+    });
 }
 
 renderHorizontalBarChart(id: string, data: any[]) {
-  // data expected: [{label: 'North', value: 10}, ...]
   return this.mkChart(id, {
     type: 'bar',
     data: {
@@ -828,23 +973,30 @@ renderHorizontalBarChart(id: string, data: any[]) {
       datasets: [{
         label: 'Incidents',
         data: data.map(d => d.value),
-        backgroundColor: '#4BC0C0', // Teal color
-        borderRadius: 5
+        backgroundColor: '#2dd4bf', // Modern Teal
+        borderRadius: 4,
+        barThickness: 15
       }]
     },
     options: {
-      indexAxis: 'y', // This makes it horizontal
+      indexAxis: 'y', 
       responsive: true,
       maintainAspectRatio: false,
       scales: {
-        x: { beginAtZero: true, grid: { display: false } },
-        y: { grid: { display: false } }
+        x: { 
+          beginAtZero: true, 
+          grid: { color: '#f1f5f9' },
+          ticks: { font: { size: 9 } }
+        },
+        y: { 
+          grid: { display: false },
+          ticks: { font: { size: 10, weight: 'bold' } }
+        }
       },
       plugins: { legend: { display: false } }
     }
   });
 }
-
 
 
 }
