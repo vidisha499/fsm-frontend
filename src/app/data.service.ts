@@ -351,9 +351,13 @@ sendSOSAlert(payload: any) {
 }
 
 // data.service.ts mein is function ko replace kar
-getAssetsAnalytics(companyId: number) {
-  // Path controller ke @Controller('assets') aur @Get('analytics/stats') se match hona chahiye
-  return this.http.get(`${this.baseApiUrl}/assets/analytics/stats?companyId=${companyId}`);
+// DataService ke andar isko replace karo
+getAssetsAnalytics(companyId: number, startDate?: string, endDate?: string) {
+  let url = `${this.baseApiUrl}/admin/analytics/assets?companyId=${companyId}`;
+  if (startDate && endDate) {
+    url += `&startDate=${startDate}&endDate=${endDate}`;
+  }
+  return this.http.get(url);
 }
 
 getCompanyDynamicAssets(companyId: number) {
@@ -383,13 +387,13 @@ getAlertsByCompany(companyId: number): Observable<any[]> {
 // data.service.ts
 // Purana: getEventsAnalytics(companyId: number, timeframe: string)
 // Naya (Isse replace karo):
-getEventsAnalytics(companyId: number, timeframe: string = 'today', start?: string, end?: string) {
+getEventsAnalytics(companyId: number, timeframe: string, startDate?: string, endDate?: string) {
+  // Naya endpoint jo humne backend mein banaya hai
   let url = `${this.baseApiUrl}/admin/analytics/events?companyId=${companyId}&timeframe=${timeframe}`;
   
-  if (start && end && start !== 'undefined') {
-    url += `&startDate=${start}&endDate=${end}`;
+  if (startDate && endDate) {
+    url += `&startDate=${startDate}&endDate=${endDate}`;
   }
-  
   return this.http.get(url);
 }
 
@@ -401,6 +405,14 @@ getActivePatrols(companyId: number) {
 submitForestEvent(payload: any) {
   // Isse URL banega: YOUR_URL/api/forest-events/submit
   return this.http.post(`${this.baseApiUrl}/forest-events/submit`, payload);
+}
+
+// data.service.ts mein niche ye function dalo
+
+getUserCompanyId() {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  // Agar user object mein company_id hai toh wo return karo, nahi toh null
+  return user.company_id || null; 
 }
 }
 

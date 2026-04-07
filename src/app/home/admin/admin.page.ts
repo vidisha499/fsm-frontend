@@ -640,7 +640,55 @@ const localISOTime = new Date().toLocaleDateString('en-CA');
         }
       }
 
-      // --- 2. TREND CHART ---
+//       // --- 2. TREND CHART ---
+//       if (res.assetsTrend) {
+//         this.momStatus = res.assetsTrend.momLabel || '0% MoM';
+//         this.isGoodTrend = res.assetsTrend.isImprovement;
+//         setTimeout(() => {
+//           if (typeof (this as any).initTrendChart === 'function') {
+//             (this as any).initTrendChart(res.assetsTrend.labels, res.assetsTrend.values);
+//           }
+//         }, 300);
+//       }
+
+//       // --- 1. FOREST REPORTS (CRIMINAL & EVENTS) - PRIORITY DATA ---
+//     // Yahan se '2' aur '4' counts uthaye ja rahe hain
+//     if (res.sightings) {
+//       // Red Icon Card: Criminal Activity
+//       this.criminalActivityCount = Number(res.sightings.criminal_count || 0);
+
+//       // Green Icon Card: Events & Monitoring
+//       this.sightingsCount = Number(res.sightings.events_count || 0);
+
+//       // Total Dashboard incidents
+//       this.incidentsCount = Number(res.sightings.total_events || 0);
+//     }
+// -
+
+// // --- 3. DASHBOARD COUNTS (OVERWRITE SE BACHEIN) ---
+//   const stats = res.stats || {};
+// if (stats.criminalEvents !== undefined && stats.criminalEvents > 0) {
+//     this.criminalActivityCount = stats.criminalEvents;
+// }
+//       this.fireAlertsCount = stats.fireEvents || (res.fireCount?.count ?? res.fireCount ?? 0);
+//       this.attendancePercent = stats.resolvedPercentage || 0;
+
+//       // --- 4. PERSONNEL & RANGERS ---
+//       // this.sightingsCount = typeof res.sightings === 'object' ? (res.sightings.count ?? 0) : (res.sightings ?? 0);
+      
+      
+//       this.onDutyCount = res.onDuty?.count ?? res.onDuty ?? 0;
+//       this.onLeaveCount = res.onLeave?.count ?? res.onLeave ?? 0;
+//       this.inactiveCount = res.inactive?.count ?? res.inactive ?? 0;
+
+//       const allUsers = res.users?.data || res.users || [];
+//       if (Array.isArray(allUsers)) {
+//         this.rangers = allUsers.filter((u: any) => Number(u.role_id || u.roleId) === 4);
+//         this.filteredRangers = [...this.rangers];
+//         this.allRangers = this.rangers.length;
+//       }
+
+// --- 2. TREND CHART ---
       if (res.assetsTrend) {
         this.momStatus = res.assetsTrend.momLabel || '0% MoM';
         this.isGoodTrend = res.assetsTrend.isImprovement;
@@ -651,17 +699,31 @@ const localISOTime = new Date().toLocaleDateString('en-CA');
         }, 300);
       }
 
-      // --- 3. DASHBOARD COUNTS ---
+// SIRF TABHI UPDATE KARO JAB DATA 0 SE JYADA HO
+  // Taaki bad mein aane wala empty response data ko overwrite na kare
+  if (res.sightings && (Number(res.sightings.criminal_count) > 0 || Number(res.sightings.events_count) > 0)) {
+    this.criminalActivityCount = Number(res.sightings.criminal_count);
+    this.sightingsCount = Number(res.sightings.events_count);
+    this.incidentsCount = Number(res.sightings.total_events);
+    console.log("✅ KPI Updated with Real Data!");
+  } else if (!this.criminalActivityCount) { 
+    // Agar pehle se koi data nahi hai, tabhi 0 set karo
+    this.criminalActivityCount = 0;
+    this.sightingsCount = 0;
+  }
+      // --- 3. DASHBOARD COUNTS (OVERWRITE PROTECTION) ---
       const stats = res.stats || {};
-      this.incidentsCount = stats.totalEvents || 0;
-      this.criminalActivityCount = stats.criminalEvents || 0;
+
+      // FIX: Sirf tabhi overwrite karo agar sightings khali ho aur stats mein kuch real data ho
+      if ((!this.criminalActivityCount || this.criminalActivityCount === 0) && stats.criminalEvents > 0) {
+          this.criminalActivityCount = stats.criminalEvents;
+      }
+      
+      // Fire, Attendance aur baaki dashboard specific counts
       this.fireAlertsCount = stats.fireEvents || (res.fireCount?.count ?? res.fireCount ?? 0);
       this.attendancePercent = stats.resolvedPercentage || 0;
 
       // --- 4. PERSONNEL & RANGERS ---
-      // this.sightingsCount = typeof res.sightings === 'object' ? (res.sightings.count ?? 0) : (res.sightings ?? 0);
-      
-      
       this.onDutyCount = res.onDuty?.count ?? res.onDuty ?? 0;
       this.onLeaveCount = res.onLeave?.count ?? res.onLeave ?? 0;
       this.inactiveCount = res.inactive?.count ?? res.inactive ?? 0;

@@ -14,7 +14,8 @@ import { DataService } from 'src/app/data.service';
 export class EventsFieldsPage implements OnInit {
   reportData: any = {};
   eventTitle: string = 'Logs';
-  dynamicFields: any[] = [];
+  currentCategory: string = 'General'; // <--- YE LINE ADD KARO
+ dynamicFields: any[] = [];
   capturedPhoto: string | undefined;
   speciesOptions: string[] = ['Sal', 'Saja', 'Sagaon', 'Beeja', 'Haldu', 'Dhawda', 'Safed Siris', 'Kala Siris', 'Jamun', 'Aam', 'Semal', 'Mahua', 'Tendu', 'Nilgiri', 'Others'];
   animalSpecies: string[] = ['Sloth Bear', 'Leopard', 'Hyena', 'Jackal', 'Wild Bear', 'Spotted Deer', 'Sambar', 'Others'];
@@ -153,16 +154,20 @@ export class EventsFieldsPage implements OnInit {
   //   }
   // }
 
-  ngOnInit() {
-  // 1. URL se title lein aur use decode karein
+ngOnInit() {
+  // 1. URL se title lein
   let title = this.route.snapshot.paramMap.get('title');
   
+  // 2. URL se category lein (Jo humne dashboard se bheji hai)
+  const category = this.route.snapshot.paramMap.get('category');
+  if (category) {
+    this.currentCategory = category;
+  }
+
   if (title) {
-    // 2. Browser spaces ko %20 bana deta hai, hum use wapas normal karenge
     title = decodeURIComponent(title);
     this.eventTitle = title;
 
-    // 3. Exact match check karein (Make sure keys in fieldsConfig match exactly)
     if (this.fieldsConfig[this.eventTitle]) {
       this.dynamicFields = this.fieldsConfig[this.eventTitle];
       this.fetchLocation();
@@ -244,8 +249,10 @@ export class EventsFieldsPage implements OnInit {
     const payload = {
       report_id: 'FOR-' + Date.now(),
       user_id: Number(this.dataService.getRangerId()) || 1, // Storage se Ranger ID uthayega
-      company_id: 1, // Default or fetch from profile
-      category: 'Forest Event',
+      // company_id: 1, // Default or fetch from profile
+      company_id: Number(this.dataService.getUserCompanyId()) || 1,
+      // category: 'Forest Event',
+      category: this.currentCategory,
       report_type: this.eventTitle,
       date_time: new Date().toISOString(),
       date: new Date().toISOString().split('T')[0],
