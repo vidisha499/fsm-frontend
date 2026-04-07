@@ -3,6 +3,7 @@
 import { Component } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { NavController } from '@ionic/angular';
+import { HierarchyService } from 'src/app/services/hierarchy.service';
 
 @Component({
   selector: 'app-forest-events',
@@ -11,8 +12,37 @@ import { NavController } from '@ionic/angular';
   standalone: false
 })
 export class ForestEventsPage {
-  constructor(private navCtrl: NavController , private route: ActivatedRoute) {}
+  constructor(private navCtrl: NavController , private route: ActivatedRoute,private hierarchyService: HierarchyService) {}
+  assignedBeatName: string = 'FETCHING...';
 
+  // constructor(private navCtrl: NavController,
+  //    private hierarchyService: HierarchyService
+  //   ) {}
+
+    ngOnInit() {
+    this.loadBeat();
+  }
+
+  loadBeat() {
+    const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+    const rangerId = userData.id;
+
+    if (rangerId) {
+      this.hierarchyService.getAssignedBeat(rangerId).subscribe({
+        next: (data: any) => {
+          // Aapke DB screenshot ke hisaab se key 'beatName' hai
+          if (data && data.beatName) {
+            this.assignedBeatName = data.beatName.toUpperCase();
+          } else {
+            this.assignedBeatName = 'GENERAL';
+          }
+        },
+        error: () => {
+          this.assignedBeatName = 'PANNA SITE 4.2'; // Error pe fallback
+        }
+      });
+    }
+  }
  
 //   openEventsFields(title: string) {
 //   // Purana tarika: ['/events-fields', { title: title }]
