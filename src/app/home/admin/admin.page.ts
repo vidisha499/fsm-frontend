@@ -656,6 +656,7 @@ private updateMapMarkers() {
 
 
 loadData() {
+  console.log("DEBUG: DataService Object ->", this.dataService);
   if (this.isFetching) return;
 
   const storageData = localStorage.getItem('user_data');
@@ -694,6 +695,7 @@ const localISOTime = new Date().toLocaleDateString('en-CA');
     assetsStats: this.dataService.getAdminStats(myCompanyId, this.activeDateFilter, dates.from, dates.to),
     assetsTrend: this.dataService.getAssetsTrend(myCompanyId),
     mapIncidents: this.dataService.getIncidentsForMap(myCompanyId),
+    forestReports: this.dataService.getForestMapData(myCompanyId),
     allSightings: this.dataService.getAllMapSightings(myCompanyId) // Added this to ensure sightings load
   }).subscribe({
     next: (res: any) => {
@@ -813,86 +815,186 @@ const localISOTime = new Date().toLocaleDateString('en-CA');
         this.allRangers = this.rangers.length;
       }
 
-      // --- 5. MAP DATA PROCESSING (INCIDENTS + SOS + SIGHTINGS) ---
+     
+      // --- 5. MAP DATA PROCESSING (INCIDENTS + SOS + SIGHTINGS + FOREST REPORTS) ---
       
+// --- START DEBUGGING LOGS ---
+// --- START OF COMPLETE UPDATED LOGIC ---
+
+// 1. Get Today's Date for reference
+// --- START OF COMPLETE UPDATED LOGIC ---
+
 const today = new Date().toISOString().split('T')[0];
+console.log("%c🔍 STEP 1: Reference Date:", "color: orange; font-weight: bold", today);
 
 let processedPins: any[] = [];
 
-// A. Standard Incidents (Filter for Today)
+// A. Standard Incidents
 if (res.mapIncidents && Array.isArray(res.mapIncidents)) {
-  const incidentPins = res.mapIncidents
-    .filter((inc: any) => {
-      // Sirf aaj ke incidents rakhein
-      const incDate = inc.created_at ? inc.created_at.split('T')[0] : '';
-      return incDate === today;
-    })
-    .map((inc: any) => {
-      const dbCriteria = (inc.incidentCriteria || '').toUpperCase();
-      const rawSubCat = inc.subCategory || '';
-      const normalizedSub = rawSubCat.toLowerCase().trim().replace(/\s+/g, '_');
+    const incidentPins = res.mapIncidents
+        .filter((inc: any) => !isNaN(parseFloat(inc.latitude)) && parseFloat(inc.latitude) !== 0)
+        .map((inc: any) => {
+            const dbCriteria = (inc.incidentCriteria || '').toUpperCase();
+            const sub = (inc.subCategory || '').toLowerCase();
+            let layerId = 'general_incident';
+            
+            if (dbCriteria.includes('POACH') || sub.includes('poach')) layerId = 'animal_poaching';
+            else if (dbCriteria.includes('FIRE') || sub.includes('fire')) layerId = 'fire_warning';
+            else if (dbCriteria.includes('FELL') || sub.includes('felling')) layerId = 'illegal_felling';
+            else if (dbCriteria.includes('MINING') || sub.includes('mining')) layerId = 'illegal_mining';
 
-      let finalLayerId = 'general_incident';
-      if (dbCriteria.includes('POACH') || normalizedSub.includes('poach')) finalLayerId = 'animal_poaching';
-      else if (dbCriteria.includes('FIRE') || normalizedSub.includes('fire')) finalLayerId = 'fire_warning';
-      else if (dbCriteria.includes('FELL') || normalizedSub.includes('felling')) finalLayerId = 'illegal_felling';
-      else if (dbCriteria.includes('MINING') || normalizedSub.includes('mining')) finalLayerId = 'illegal_mining';
-
-      return {
-        ...inc,
-        layerId: finalLayerId,
-        displayLabel: dbCriteria.includes('FIRE') ? 'Fire Warning' : (rawSubCat || inc.incidentCriteria || 'Incident')
-      };
-    });
-  processedPins = [...incidentPins];
+            return {
+                ...inc,
+                latitude: parseFloat(inc.latitude),
+                longitude: parseFloat(inc.longitude),
+                layerId: layerId,
+                displayLabel: inc.incidentCriteria || 'Incident'
+            };
+        });
+    processedPins = [...incidentPins];
 }
 
-// B. SOS Alerts (Filter for Today)
+// B. SOS Alerts
 if (res.alerts && Array.isArray(res.alerts)) {
-  const sosPins = res.alerts
-    .filter((a: any) => {
-      const isSos = (a.category === 'SOS' || (a.type && a.type.toUpperCase().includes('SOS')));
-      const isToday = a.created_at ? a.created_at.split('T')[0] === today : false;
-      return isSos && isToday;
-    })
-    .map((sos: any) => ({
-      ...sos,
-      layerId: 'sos',
-      displayLabel: 'SOS Emergency',
-      emoji: '🚨',
-      color: '#f43f5e'
-    }));
-  processedPins = [...processedPins, ...sosPins];
+    const sosPins = res.alerts
+        .filter((a: any) => (a.category === 'SOS' || (a.type && a.type.toUpperCase().includes('SOS'))))
+        .map((sos: any) => ({
+            ...sos,
+            latitude: parseFloat(sos.latitude),
+            longitude: parseFloat(sos.longitude),
+            layerId: 'sos',
+            displayLabel: 'SOS Emergency',
+            emoji: '🚨',
+            color: '#f43f5e'
+        }));
+    processedPins = [...processedPins, ...sosPins];
 }
 
-// C. Sightings (Filter for Today)
-if (res.allSightings && Array.isArray(res.allSightings)) {
-  const sightingPins = res.allSightings
-    .filter((s: any) => {
-      const sDate = s.created_at ? s.created_at.split('T')[0] : '';
-      return sDate === today;
-    })
-    .map((s: any) => {
-      const isWater = (s.category || '').toLowerCase().includes('water') || (s.species || '').toLowerCase().includes('water');
-      const type = isWater ? 'water' : 'animal';
-      return {
-        ...s,
-        layerId: type,
-        displayLabel: isWater ? 'Water Status' : 'Animal Sighting',
-        emoji: isWater ? '💧' : '🐾',
-        color: isWater ? '#0ea5e9' : '#e11d48'
-      };
-    });
-  processedPins = [...processedPins, ...sightingPins];
+// D. Forest Reports (ID 30 Fix)
+if (res.forestReports && Array.isArray(res.forestReports)) {
+    console.log(`🌲 Processing ${res.forestReports.length} Forest Reports...`);
+    const forestPins = res.forestReports
+        .filter((f: any) => !isNaN(parseFloat(f.latitude)) && parseFloat(f.latitude) !== 0)
+        .map((f: any) => {
+            const type = (f.report_type || '').toLowerCase();
+            let layerId = 'general_incident';
+            let emoji = '📌';
+
+            if (type.includes('mining')) { layerId = 'illegal_mining'; emoji = '⛏️'; }
+            else if (type.includes('felling')) { layerId = 'illegal_felling'; emoji = '🪓'; }
+            else if (type.includes('poaching')) { layerId = 'animal_poaching'; emoji = '🏹'; }
+            else if (type.includes('sighting')) { layerId = 'animal_sighting'; emoji = '🐾'; }
+            else if (type.includes('water')) { layerId = 'water_status'; emoji = '💧'; }
+
+            return {
+                ...f,
+                latitude: parseFloat(f.latitude),
+                longitude: parseFloat(f.longitude),
+                layerId: layerId,
+                displayLabel: f.report_type || 'Forest Report',
+                emoji: emoji,
+                color: '#2e7d32'
+            };
+        });
+    processedPins = [...processedPins, ...forestPins];
 }
 
-// Store and Update Map
+console.log("%c🔍 STEP 3: Final Combined Pins Array:", "color: green; font-weight: bold", processedPins);
+
+// Data Save Karein
 this.allIncidents = processedPins;
 this.alerts = res.alerts || []; 
 
-if (typeof (this as any).updateVisiblePins === 'function') {
-  (this as any).updateVisiblePins();
+// Function Call
+if (typeof this.updateVisiblePins === 'function') {
+    console.log("%c✅ STEP 4: Triggering updateVisiblePins...", "color: cyan");
+    this.updateVisiblePins();
+} else {
+    console.error("❌ updateVisiblePins function not found!");
 }
+
+// --- END OF COMPLETE UPDATED LOGIC ---
+
+
+      
+// const today = new Date().toISOString().split('T')[0];
+
+// let processedPins: any[] = [];
+
+// // A. Standard Incidents (Filter for Today)
+// if (res.mapIncidents && Array.isArray(res.mapIncidents)) {
+//   const incidentPins = res.mapIncidents
+//     .filter((inc: any) => {
+//       // Sirf aaj ke incidents rakhein
+//       const incDate = inc.created_at ? inc.created_at.split('T')[0] : '';
+//       return incDate === today;
+//     })
+//     .map((inc: any) => {
+//       const dbCriteria = (inc.incidentCriteria || '').toUpperCase();
+//       const rawSubCat = inc.subCategory || '';
+//       const normalizedSub = rawSubCat.toLowerCase().trim().replace(/\s+/g, '_');
+
+//       let finalLayerId = 'general_incident';
+//       if (dbCriteria.includes('POACH') || normalizedSub.includes('poach')) finalLayerId = 'animal_poaching';
+//       else if (dbCriteria.includes('FIRE') || normalizedSub.includes('fire')) finalLayerId = 'fire_warning';
+//       else if (dbCriteria.includes('FELL') || normalizedSub.includes('felling')) finalLayerId = 'illegal_felling';
+//       else if (dbCriteria.includes('MINING') || normalizedSub.includes('mining')) finalLayerId = 'illegal_mining';
+
+//       return {
+//         ...inc,
+//         layerId: finalLayerId,
+//         displayLabel: dbCriteria.includes('FIRE') ? 'Fire Warning' : (rawSubCat || inc.incidentCriteria || 'Incident')
+//       };
+//     });
+//   processedPins = [...incidentPins];
+// }
+
+// // B. SOS Alerts (Filter for Today)
+// if (res.alerts && Array.isArray(res.alerts)) {
+//   const sosPins = res.alerts
+//     .filter((a: any) => {
+//       const isSos = (a.category === 'SOS' || (a.type && a.type.toUpperCase().includes('SOS')));
+//       const isToday = a.created_at ? a.created_at.split('T')[0] === today : false;
+//       return isSos && isToday;
+//     })
+//     .map((sos: any) => ({
+//       ...sos,
+//       layerId: 'sos',
+//       displayLabel: 'SOS Emergency',
+//       emoji: '🚨',
+//       color: '#f43f5e'
+//     }));
+//   processedPins = [...processedPins, ...sosPins];
+// }
+
+// // C. Sightings (Filter for Today)
+// if (res.allSightings && Array.isArray(res.allSightings)) {
+//   const sightingPins = res.allSightings
+//     .filter((s: any) => {
+//       const sDate = s.created_at ? s.created_at.split('T')[0] : '';
+//       return sDate === today;
+//     })
+//     .map((s: any) => {
+//       const isWater = (s.category || '').toLowerCase().includes('water') || (s.species || '').toLowerCase().includes('water');
+//       const type = isWater ? 'water' : 'animal';
+//       return {
+//         ...s,
+//         layerId: type,
+//         displayLabel: isWater ? 'Water Status' : 'Animal Sighting',
+//         emoji: isWater ? '💧' : '🐾',
+//         color: isWater ? '#0ea5e9' : '#e11d48'
+//       };
+//     });
+//   processedPins = [...processedPins, ...sightingPins];
+// }
+
+// // Store and Update Map
+// this.allIncidents = processedPins;
+// this.alerts = res.alerts || []; 
+
+// if (typeof (this as any).updateVisiblePins === 'function') {
+//   (this as any).updateVisiblePins();
+// }
 
       //alerts sections here
       console.log("--- 🕵️ ALERTS PROCESSING START ---");
@@ -1169,92 +1271,199 @@ loadActivePatrols() {
     }
   });
 }
+
+
+// updateVisiblePins() {
+//   const newPins: any[] = [];
+  
+//   // 1. Data merge karein (Incidents, Alerts, Sightings aur ab Active Patrols bhi)
+//   const combinedData = [
+//     ...(this.allIncidents || []), 
+//     ...(this.alerts || []),
+//     ...(this.allSightings || []),
+//     ...(this.allActivePatrols || []) // Naya: Active patrols list
+//   ];
+  
+//   if (combinedData.length === 0) return;
+
+//   // Filter logic: Today (Last 24 hours)
+//   const now = new Date();
+//   const yesterday = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+
+//   combinedData.forEach(item => {
+//     const rawDate = item.created_at || item.createdAt || item.startTime; // Patrols use startTime
+//     const itemDate = new Date(rawDate);
+    
+//     // Agar data 24 ghante se purana hai toh skip karein 
+//     // (Note: Active patrols hamesha current hoti hain, so ye pass ho jayengi)
+//     if (itemDate < yesterday && !item.isActive) return;
+
+//     let layerId = '';
+//     const category = (item.category || '').toUpperCase();
+//     const type = (item.type || '').toUpperCase();
+
+//     // 2. Mapping Logic (Including Active Patrol Detection)
+    
+//     // Sabse pehle check karein kya ye active patrol hai
+//     if (item.isActive === true && item.liveLatitude) {
+//       layerId = 'active_patrol';
+//     } 
+//     // SOS Detection
+//     else if (category === 'SOS' || type.includes('SOS')) {
+//       layerId = 'sos';
+//     } 
+//     // Sightings & Alerts Mapping
+//     else if (category.includes('ANIMAL')) layerId = 'animal_sighting';
+//     else if (category.includes('WATER')) layerId = 'water_status';
+//     else if (category.includes('DEATH')) layerId = 'wildlife_death';
+//     else if (category.includes('FELLING')) layerId = 'illegal_felling';
+//     else if (category.includes('IMPACT')) layerId = 'human_impact';
+//     else if (type.includes('POACH')) layerId = 'animal_poaching';
+//     else if (type.includes('FIRE')) layerId = 'fire_warning';
+//     else if (type.includes('MINING')) layerId = 'illegal_mining';
+//     else layerId = 'others';
+
+//     // 3. Check if layer is toggled ON in UI
+//     if (layerId && this.layerStates[layerId] === true) {
+//       let style: any = null;
+//       // LAYERS_DATA se design (emoji, color) uthayein
+//       Object.values(this.LAYERS_DATA).forEach((cat: any) => {
+//         const found = cat.items.find((i: any) => i.id === layerId);
+//         if (found) style = found;
+//       });
+
+//       // 4. Coordinate Parsing (Live location for Patrols, Static for Alerts)
+//       const lat = parseFloat(item.liveLatitude || item.latitude);
+//       const lng = parseFloat(item.liveLongitude || item.longitude);
+
+//       if (!isNaN(lat) && !isNaN(lng)) {
+//         newPins.push({
+//           ...item,
+//           lat: lat,
+//           lng: lng,
+//           // Agar patrol hai toh Ranger ka naam dikhayein, warna Alert label
+//           label: layerId === 'active_patrol' ? (item.ranger?.name || 'Active Ranger') : (style?.label || item.category || 'Alert'),
+//           emoji: style?.emoji || this.getMarkerEmoji(layerId),
+//           color: style?.color || this.getLayerColor(layerId),
+//           layerId: layerId,
+//           isPatrol: layerId === 'active_patrol' // Flag for special popup logic in updateMapMarkers
+//         });
+//       }
+//     }
+//   });
+
+//   this.activePinsDisplay = newPins;
+  
+//   // Map markers refresh karein
+//   this.updateMapMarkers();
+  
+//   // UI update trigger karein
+//   this.cdr.detectChanges();
+// }
+// 1. UPDATE VISIBLE PINS FUNCTION (Isko class ke andar rakhein)
 updateVisiblePins() {
+  console.log("%c📍 updateVisiblePins logic started...", "color: yellow");
   const newPins: any[] = [];
   
-  // 1. Data merge karein (Incidents, Alerts, Sightings aur ab Active Patrols bhi)
   const combinedData = [
     ...(this.allIncidents || []), 
     ...(this.alerts || []),
     ...(this.allSightings || []),
-    ...(this.allActivePatrols || []) // Naya: Active patrols list
+    ...(this.allActivePatrols || [])
   ];
   
-  if (combinedData.length === 0) return;
+  if (combinedData.length === 0) {
+    this.activePinsDisplay = [];
+    if (this.updateMapMarkers) this.updateMapMarkers();
+    return;
+  }
 
-  // Filter logic: Today (Last 24 hours)
-  const now = new Date();
-  const yesterday = new Date(now.getTime() - (24 * 60 * 60 * 1000));
-
-  combinedData.forEach(item => {
-    const rawDate = item.created_at || item.createdAt || item.startTime; // Patrols use startTime
-    const itemDate = new Date(rawDate);
+  combinedData.forEach((item: any) => {
+    let layerId = item.layerId || 'others';
     
-    // Agar data 24 ghante se purana hai toh skip karein 
-    // (Note: Active patrols hamesha current hoti hain, so ye pass ho jayengi)
-    if (itemDate < yesterday && !item.isActive) return;
-
-    let layerId = '';
-    const category = (item.category || '').toUpperCase();
-    const type = (item.type || '').toUpperCase();
-
-    // 2. Mapping Logic (Including Active Patrol Detection)
-    
-    // Sabse pehle check karein kya ye active patrol hai
-    if (item.isActive === true && item.liveLatitude) {
-      layerId = 'active_patrol';
-    } 
-    // SOS Detection
-    else if (category === 'SOS' || type.includes('SOS')) {
-      layerId = 'sos';
-    } 
-    // Sightings & Alerts Mapping
-    else if (category.includes('ANIMAL')) layerId = 'animal_sighting';
-    else if (category.includes('WATER')) layerId = 'water_status';
-    else if (category.includes('DEATH')) layerId = 'wildlife_death';
-    else if (category.includes('FELLING')) layerId = 'illegal_felling';
-    else if (category.includes('IMPACT')) layerId = 'human_impact';
-    else if (type.includes('POACH')) layerId = 'animal_poaching';
-    else if (type.includes('FIRE')) layerId = 'fire_warning';
-    else if (type.includes('MINING')) layerId = 'illegal_mining';
-    else layerId = 'others';
-
-    // 3. Check if layer is toggled ON in UI
-    if (layerId && this.layerStates[layerId] === true) {
+    // Check if layer is ON in UI
+    if (this.layerStates && this.layerStates[layerId] === true) {
       let style: any = null;
-      // LAYERS_DATA se design (emoji, color) uthayein
       Object.values(this.LAYERS_DATA).forEach((cat: any) => {
         const found = cat.items.find((i: any) => i.id === layerId);
         if (found) style = found;
       });
 
-      // 4. Coordinate Parsing (Live location for Patrols, Static for Alerts)
-      const lat = parseFloat(item.liveLatitude || item.latitude);
-      const lng = parseFloat(item.liveLongitude || item.longitude);
+      const lat = parseFloat(item.latitude || item.lat);
+      const lng = parseFloat(item.longitude || item.lng);
 
       if (!isNaN(lat) && !isNaN(lng)) {
         newPins.push({
           ...item,
           lat: lat,
           lng: lng,
-          // Agar patrol hai toh Ranger ka naam dikhayein, warna Alert label
-          label: layerId === 'active_patrol' ? (item.ranger?.name || 'Active Ranger') : (style?.label || item.category || 'Alert'),
-          emoji: style?.emoji || this.getMarkerEmoji(layerId),
-          color: style?.color || this.getLayerColor(layerId),
-          layerId: layerId,
-          isPatrol: layerId === 'active_patrol' // Flag for special popup logic in updateMapMarkers
+          label: item.displayLabel || style?.label || 'Forest Data',
+          emoji: item.emoji || style?.emoji || '📌',
+          color: item.color || style?.color || '#2e7d32',
+          layerId: layerId
         });
       }
     }
   });
 
-  this.activePinsDisplay = newPins;
+  console.log(`🚀 Final Pins on Map: ${newPins.length}`);
+  this.activePinsDisplay = [...newPins];
   
-  // Map markers refresh karein
-  this.updateMapMarkers();
-  
-  // UI update trigger karein
+  if (this.updateMapMarkers) this.updateMapMarkers();
   this.cdr.detectChanges();
+}
+
+// 2. API RESPONSE LOGIC (Isko API call ke subscribe ke andar paste karein)
+handleApiResponse(res: any) {
+    const today = new Date().toISOString().split('T')[0];
+    let processedPins: any[] = [];
+
+    // --- A. Forest Events & Reports (Dono handle ho rahe hain) ---
+    // Agar backend 'forestEvents' bhej raha hai ya 'forestReports', dono merge ho jayenge
+    const forestData = [...(res.forestReports || []), ...(res.forest_events || [])];
+
+    if (forestData.length > 0) {
+        console.log(`🌲 Processing ${forestData.length} Forest Items...`);
+        const forestPins = forestData
+            .filter((f: any) => !isNaN(parseFloat(f.latitude)) && parseFloat(f.latitude) !== 0)
+            .map((f: any) => {
+                const type = (f.report_type || f.event_type || '').toLowerCase();
+                let layerId = 'general_incident';
+                
+                if (type.includes('mining')) layerId = 'illegal_mining';
+                else if (type.includes('felling')) layerId = 'illegal_felling';
+                else if (type.includes('poaching')) layerId = 'animal_poaching';
+                else if (type.includes('sighting')) layerId = 'animal_sighting';
+                else if (type.includes('water')) layerId = 'water_status';
+
+                return {
+                    ...f,
+                    latitude: parseFloat(f.latitude),
+                    longitude: parseFloat(f.longitude),
+                    layerId: layerId,
+                    displayLabel: f.report_type || f.event_type || 'Forest Event'
+                };
+            });
+        processedPins = [...processedPins, ...forestPins];
+    }
+
+    // --- B. Standard Incidents (Fixed TS7006 Error) ---
+    if (res.mapIncidents && Array.isArray(res.mapIncidents)) {
+        const standardPins = res.mapIncidents.map((inc: any) => ({
+            ...inc,
+            latitude: parseFloat(inc.latitude),
+            longitude: parseFloat(inc.longitude),
+            layerId: 'general_incident',
+            displayLabel: inc.incidentCriteria || 'Incident'
+        }));
+        processedPins = [...processedPins, ...standardPins];
+    }
+
+    this.allIncidents = processedPins;
+    this.alerts = res.alerts || [];
+    
+    console.log("%c✅ Data Processed. Triggering Map...", "color: cyan");
+    this.updateVisiblePins();
 }
 
 getMarkerEmoji(id: string) {
@@ -1910,6 +2119,7 @@ goToAnalytics(category: string) {
     queryParams: { type: category } 
   });
 }
+
 
 
 }

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit,ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { NavController, ActionSheetController , ToastController, LoadingController} from '@ionic/angular';
 import { Geolocation } from '@capacitor/geolocation';
@@ -149,6 +149,7 @@ fieldsConfig: any = {
     private toastCtrl: ToastController,
     private loadingCtrl: LoadingController,
     private hierarchyService: HierarchyService,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit() {
@@ -176,30 +177,6 @@ fieldsConfig: any = {
 }
 
 
-// async loadDefaultBeat() {
-//   const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
-//   const rangerId = userData.id;
-
-//   if (rangerId) {
-//     // Aapne pehle hierarchyService banaya tha, use yahan inject karke call karein
-//     this.hierarchyService.getAssignedBeat(rangerId).subscribe({
-//       next: (data) => {
-//         if (data && data.beat_name) {
-//           this.assignedBeat = data.beat_name;
-//           // IMPORTANT: reportData mein fill karna taaki [(ngModel)] use pakad le
-//           this.reportData['Assigned Beat'] = this.assignedBeat;
-//         } else {
-//           this.assignedBeat = 'General';
-//           this.reportData['Assigned Beat'] = 'General';
-//         }
-//       },
-//       error: () => {
-//         this.assignedBeat = 'General';
-//         this.reportData['Assigned Beat'] = 'General';
-//       }
-//     });
-//   }
-// }
 async loadDefaultBeat() {
   const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
   const rangerId = userData.id;
@@ -225,36 +202,59 @@ async loadDefaultBeat() {
   }
 }
 
-  async fetchLocation() {
-    try {
-      const coordinates = await Geolocation.getCurrentPosition();
-      const lat = coordinates.coords.latitude;
-      const lon = coordinates.coords.longitude;
+async fetchLocation() {
+  try {
+    const coordinates = await Geolocation.getCurrentPosition();
+    const lat = coordinates.coords.latitude;
+    const lon = coordinates.coords.longitude;
+
+    // --- CRITICAL FIX: Save numeric coordinates to reportData ---
+    // Inhein save karna zaroori hai taaki submitReport() inhein DB mein bhej sake
+    this.reportData['latitude'] = lat.toString();
+    this.reportData['longitude'] = lon.toString();
+    
+    console.log(`Current Coordinates: Lat ${lat}, Lon ${lon}`);
+
+    const gpsField = this.dynamicFields.find(f => f.id === 'gps');
+    
+    if (gpsField) {
+      // Step A: Show loading status in UI
+      gpsField.value = "Fetching Address...";
+      this.cdr.detectChanges();
+
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+      const data = await response.json();
       
-      const gpsField = this.dynamicFields.find(f => f.id === 'gps');
-      
-      if (gpsField) {
-        // Calling free Nominatim API for address
-        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
-        const data = await response.json();
-        
-        if (data && data.display_name) {
-          // Displaying a shorter version of the address
-          const addressParts = data.address;
-          const shortAddress = addressParts.suburb || addressParts.town || addressParts.village || addressParts.city || "Unknown Location";
-          const state = addressParts.state || "";
-          
-          gpsField.value = `${shortAddress}, ${state}`;
-        } else {
-          gpsField.value = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-        }
+      if (data && data.display_name) {
+        // Step B: Update UI with readable address
+        gpsField.value = data.display_name; 
+
+        // Step C: Update reportData for HTML binding
+        // gpsField.label 'GPS Status' ya 'GPS Location' ho sakta hai config ke hisaab se
+        this.reportData[gpsField.label] = data.display_name;
+
+        // Step D: Force UI refresh
+        this.cdr.detectChanges();
+
+        console.log('UI Updated with Address:', data.display_name);
+      } else {
+        // Backup: Agar address na mile toh coordinates hi dikha dein
+        gpsField.value = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+        this.reportData[gpsField.label] = gpsField.value;
+        this.cdr.detectChanges();
       }
-    } catch (err) {
-      console.error("Location error", err);
-      const gpsField = this.dynamicFields.find(f => f.id === 'gps');
-      if (gpsField) gpsField.value = "Location Access Denied";
+    }
+  } catch (err) {
+    console.error("Location error", err);
+    const gpsField = this.dynamicFields.find(f => f.id === 'gps');
+    if (gpsField) {
+      gpsField.value = "Location Error (Check GPS Settings)";
+      this.reportData[gpsField.label] = "Location Error";
+      this.cdr.detectChanges();
     }
   }
+}
+
 
   async selectImageSource() {
     const actionSheet = await this.actionSheetCtrl.create({
@@ -286,89 +286,208 @@ async loadDefaultBeat() {
   // --- SUBMIT LOGIC (Backend Connection) ---
 // --- events-fields.page.ts (COMPLETE FUNCTION) ---
 
-  async submitReport() {
-    const loading = await this.loadingCtrl.create({
-      message: 'Saving Report...',
-      spinner: 'circles'
-    });
-    await loading.present();
+  // async submitReport() {
+  //   const loading = await this.loadingCtrl.create({
+  //     message: 'Saving Report...',
+  //     spinner: 'circles'
+  //   });
+  //   await loading.present();
 
-    try {
-      const formattedReportData: any = {};
+  //   try {
+  //     const formattedReportData: any = {};
       
-      // 1. Dynamic fields se data nikalna
-      this.dynamicFields.forEach(field => {
-        const userValue = this.reportData[field.label];
-        if (field.key) {
-          formattedReportData[field.key] = userValue || "";
-        } else {
-          formattedReportData[field.label] = userValue || "";
-        }
-      });
+  //     // 1. Dynamic fields se data nikalna
+  //     this.dynamicFields.forEach(field => {
+  //       const userValue = this.reportData[field.label];
+  //       if (field.key) {
+  //         formattedReportData[field.key] = userValue || "";
+  //       } else {
+  //         formattedReportData[field.label] = userValue || "";
+  //       }
+  //     });
+  //   const gpsField = this.dynamicFields.find(f => f.id === 'gps');
+    
+  //   // Backend Payload (NestJS DTO ke hisaab se)
+  //   const payload = {
+  //     report_id: 'FOR-' + Date.now(),
+  //     user_id: Number(this.dataService.getRangerId()) || 1, // Storage se Ranger ID uthayega
+  //     // company_id: 1, // Default or fetch from profile
+  //     company_id: Number(this.dataService.getUserCompanyId()) || 1,
+  //     // category: 'Forest Event',
+  //     category: this.currentCategory,
+  //     report_type: this.eventTitle,
+  //     date_time: new Date().toISOString(),
+  //     date: new Date().toISOString().split('T')[0],
+  //     time: new Date().toLocaleTimeString(),
+  //     // latitude: gpsField?.value?.split(',')[0]?.trim() || "0",
+  //     // longitude: gpsField?.value?.split(',')[1]?.trim() || "0",
+  //     latitude: this.reportData['latitude'] || "0", 
+  // longitude: this.reportData['longitude'] || "0",
+  //     beat: this.reportData['Assigned Beat'] || 'General',
+  //     report_data: this.reportData, // Pura dynamic object (Illegal Mining/Felling details)
+  //     photo: this.capturedPhoto || '',
+  //     status: 'Pending'
+  //   };
 
-      const gpsField = this.dynamicFields.find(f => f.id === 'gps');
-      const gpsValue = gpsField?.value || ""; // Fetching from the field value directly
+  //     const gpsField = this.dynamicFields.find(f => f.id === 'gps');
+  //     const gpsValue = gpsField?.value || ""; // Fetching from the field value directly
 
-      // 2. FINAL PAYLOAD (Table Structure ke hisaab se)
-      const payload = {
-        report_id: 'FOR-' + Date.now(),
-        user_id: Number(this.dataService.getRangerId()) || 1,
-        company_id: Number(this.dataService.getUserCompanyId()) || 1,
+  //     // 2. FINAL PAYLOAD (Table Structure ke hisaab se)
+  //     const payload = {
+  //       report_id: 'FOR-' + Date.now(),
+  //       user_id: Number(this.dataService.getRangerId()) || 1,
+  //       company_id: Number(this.dataService.getUserCompanyId()) || 1,
         
-        // 🔥 Category Fix: Table expect kar rahi hai 'crimes' ya 'events'
-        category: this.currentCategory.toLowerCase().includes('criminal') || 
-                  this.currentCategory.toLowerCase().includes('crimes') ? 'crimes' : 'events',
+  //       // 🔥 Category Fix: Table expect kar rahi hai 'crimes' ya 'events'
+  //       category: this.currentCategory.toLowerCase().includes('criminal') || 
+  //                 this.currentCategory.toLowerCase().includes('crimes') ? 'crimes' : 'events',
         
-        report_type: this.eventTitle.toLowerCase().trim().replace(/\s/g, '_'),
+  //       report_type: this.eventTitle.toLowerCase().trim().replace(/\s/g, '_'),
         
-        // Saara form data JSON mein jayega
-        report_data: formattedReportData, 
+  //       // Saara form data JSON mein jayega
+  //       report_data: formattedReportData, 
         
-        // 🔥 Direct Columns Mapping (Jo aapne table list bheji uske hisaab se)
-        latitude: gpsValue.includes(',') ? gpsValue.split(',')[0].trim() : "0",
-        longitude: gpsValue.includes(',') ? gpsValue.split(',')[1].trim() : "0",
-        photo: this.capturedPhoto || '',
-        beat: this.reportData['Assigned Beat'] || 'General',
-        status: 'Pending',
+  //       // 🔥 Direct Columns Mapping (Jo aapne table list bheji uske hisaab se)
+  //       latitude: gpsValue.includes(',') ? gpsValue.split(',')[0].trim() : "0",
+  //       longitude: gpsValue.includes(',') ? gpsValue.split(',')[1].trim() : "0",
+  //       photo: this.capturedPhoto || '',
+  //       beat: this.reportData['Assigned Beat'] || 'General',
+  //       status: 'Pending',
         
-        // Frontend se hi date bhej rahe hain for safety
-        date: new Date().toISOString().split('T')[0]
-      };
+  //       // Frontend se hi date bhej rahe hain for safety
+  //       date: new Date().toISOString().split('T')[0]
+  //     };
 
-      console.log("🚀 Final Payload sending to DB:", payload);
+  //     console.log("🚀 Final Payload sending to DB:", payload);
 
-      // 3. SERVICE CALL
-      this.dataService.submitForestEvent(payload).subscribe({
-        next: async (res) => {
-          await loading.dismiss();
-          const toast = await this.toastCtrl.create({
-            message: 'Report Submitted Successfully! ✅',
-            duration: 2000,
-            color: 'success',
-            position: 'top'
-          });
-          await toast.present();
-          this.navCtrl.back();
-        },
-        error: async (err) => {
-          await loading.dismiss();
-          console.error("❌ Submission Error Log:", err);
+  //     // 3. SERVICE CALL
+  //     this.dataService.submitForestEvent(payload).subscribe({
+  //       next: async (res) => {
+  //         await loading.dismiss();
+  //         const toast = await this.toastCtrl.create({
+  //           message: 'Report Submitted Successfully! ✅',
+  //           duration: 2000,
+  //           color: 'success',
+  //           position: 'top'
+  //         });
+  //         await toast.present();
+  //         this.navCtrl.back();
+  //       },
+  //       error: async (err) => {
+  //         await loading.dismiss();
+  //         console.error("❌ Submission Error Log:", err);
           
-          const toast = await this.toastCtrl.create({
-            message: 'Error: ' + (err.error?.message || 'Server connection failed'),
-            duration: 3000,
-            color: 'danger',
-            position: 'top'
-          });
-          await toast.present();
-        }
-      });
+  //         const toast = await this.toastCtrl.create({
+  //           message: 'Error: ' + (err.error?.message || 'Server connection failed'),
+  //           duration: 3000,
+  //           color: 'danger',
+  //           position: 'top'
+  //         });
+  //         await toast.present();
+  //       }
+  //     });
 
-    } catch (err) {
-      await loading.dismiss();
-      console.error("Fatal Script Error:", err);
+  //   } catch (err) {
+  //     await loading.dismiss();
+  //     console.error("Fatal Script Error:", err);
+  //   }
+  // }
+  async submitReport() {
+  const loading = await this.loadingCtrl.create({
+    message: 'Saving Report...',
+    spinner: 'circles'
+  });
+  await loading.present();
+
+  try {
+    const formattedReportData: any = {};
+    
+    // 1. Dynamic fields se data nikalna (Formatting for report_data JSON)
+    this.dynamicFields.forEach(field => {
+      const userValue = this.reportData[field.label];
+      const key = field.key || field.label;
+      formattedReportData[key] = userValue || "";
+    });
+
+    // 2. GPS Coordinates extraction (Dono logic ka best part)
+    const gpsField = this.dynamicFields.find(f => f.id === 'gps');
+    const gpsValue = gpsField?.value || ""; 
+    
+    // Latitude/Longitude nikalne ke liye prioritized logic
+    let lat = "0";
+    let lng = "0";
+
+    if (gpsValue && gpsValue.includes(',')) {
+      lat = gpsValue.split(',')[0].trim();
+      lng = gpsValue.split(',')[1].trim();
+    } else if (this.reportData['latitude'] && this.reportData['longitude']) {
+      lat = this.reportData['latitude'];
+      lng = this.reportData['longitude'];
     }
+
+    // 3. FINAL PAYLOAD (Dono versions ka merged data)
+    const payload = {
+      report_id: 'FOR-' + Date.now(),
+      user_id: Number(this.dataService.getRangerId()) || 1,
+      company_id: Number(this.dataService.getUserCompanyId()) || 1,
+      
+      // Category Mapping Logic
+      category: (this.currentCategory?.toLowerCase().includes('criminal') || 
+                this.currentCategory?.toLowerCase().includes('crimes')) ? 'crimes' : 'events',
+      
+      // Type Mapping
+      report_type: this.eventTitle ? this.eventTitle.toLowerCase().trim().replace(/\s/g, '_') : 'general_report',
+      
+      // Timing Data
+      date_time: new Date().toISOString(),
+      date: new Date().toISOString().split('T')[0],
+      time: new Date().toLocaleTimeString(),
+      
+      // Location Data
+      latitude: lat,
+      longitude: lng,
+      beat: this.reportData['Assigned Beat'] || this.reportData['beat'] || 'General',
+      
+      // Merged Data Fields
+      report_data: formattedReportData, // Form data as JSON
+      photo: this.capturedPhoto || '',
+      status: 'Pending'
+    };
+
+    console.log("🚀 Final Merged Payload sending to DB:", payload);
+
+    // 4. SERVICE CALL
+    this.dataService.submitForestEvent(payload).subscribe({
+      next: async (res) => {
+        await loading.dismiss();
+        const toast = await this.toastCtrl.create({
+          message: 'Report Submitted Successfully! ✅',
+          duration: 2000,
+          color: 'success',
+          position: 'top'
+        });
+        await toast.present();
+        this.navCtrl.back();
+      },
+      error: async (err) => {
+        await loading.dismiss();
+        console.error("❌ Submission Error Log:", err);
+        
+        const toast = await this.toastCtrl.create({
+          message: 'Error: ' + (err.error?.message || 'Server connection failed'),
+          duration: 3000,
+          color: 'danger',
+          position: 'top'
+        });
+        await toast.present();
+      }
+    });
+
+  } catch (err) {
+    if (loading) await loading.dismiss();
+    console.error("Fatal Script Error:", err);
   }
+}
 
   goBack() {
     this.navCtrl.back();

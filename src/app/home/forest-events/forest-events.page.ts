@@ -1,5 +1,3 @@
-
-
 import { Component } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { NavController } from '@ionic/angular';
@@ -12,43 +10,19 @@ import { HierarchyService } from 'src/app/services/hierarchy.service';
   standalone: false
 })
 export class ForestEventsPage {
-  constructor(private navCtrl: NavController , private route: ActivatedRoute,private hierarchyService: HierarchyService) {}
-  assignedBeatName: string = 'FETCHING...';
+ assignedBeatName: string = 'FETCHING...';
+ 
 
-  // constructor(private navCtrl: NavController,
-  //    private hierarchyService: HierarchyService
-  //   ) {}
+  constructor(private navCtrl: NavController , 
+    private route: ActivatedRoute,
+    private hierarchyService: HierarchyService) {}
+ 
 
     ngOnInit() {
     this.loadBeat();
   }
 
-  loadBeat() {
-    const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
-    const rangerId = userData.id;
 
-    if (rangerId) {
-      this.hierarchyService.getAssignedBeat(rangerId).subscribe({
-        next: (data: any) => {
-          // Aapke DB screenshot ke hisaab se key 'beatName' hai
-          if (data && data.beatName) {
-            this.assignedBeatName = data.beatName.toUpperCase();
-          } else {
-            this.assignedBeatName = 'GENERAL';
-          }
-        },
-        error: () => {
-          this.assignedBeatName = 'PANNA SITE 4.2'; // Error pe fallback
-        }
-      });
-    }
-  }
- 
-//   openEventsFields(title: string) {
-//   // Purana tarika: ['/events-fields', { title: title }]
-//   // Naya tarika:
-//   this.navCtrl.navigateForward(['/events-fields', title]); 
-// }
 
 // forest-events.page.ts mein
 openEventsFields(title: string, category: string) {
@@ -80,4 +54,38 @@ openEventsFields(title: string, category: string) {
       this.navCtrl.navigateRoot('/home');
     }
   }
+
+  loadBeat() {
+  // 1. Check karein ki user_data mil raha hai ya nahi
+  const storageData = localStorage.getItem('user_data');
+  console.log('Raw Storage Data:', storageData);
+
+  const userData = JSON.parse(storageData || '{}');
+  const rangerId = userData.id;
+
+  console.log('Extracted Ranger ID:', rangerId);
+
+  if (rangerId) {
+    this.hierarchyService.getAssignedBeat(rangerId).subscribe({
+      next: (data: any) => {
+        console.log('Backend Response Data:', data);
+
+        // Aapke AssignmentEntity ke hisaab se backend 'beatName' bhejta hai
+        // Hum safe side ke liye teenon variations check karenge
+        if (data && (data.beatName || data.beat_name || data.beatId)) {
+          this.assignedBeatName = (data.beatName || data.beat_name || 'BEAT: ' + data.beatId).toUpperCase();
+        } else {
+          this.assignedBeatName = 'GENERAL';
+        }
+      },
+      error: (err) => {
+        console.error('API Error details:', err);
+        this.assignedBeatName = 'OFFLINE / NO BEAT';
+      }
+    });
+  } else {
+    this.assignedBeatName = 'ID NOT FOUND';
+    console.error('Ranger ID is missing in localStorage');
+  }
+}
 }

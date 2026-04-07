@@ -3,6 +3,7 @@
   --accent-gold: #fbbf24;
   --dark-slate: #0f172a;
   
+  
   min-height: 100vh;
   background: #f8fafc;
   position: relative;
@@ -21,7 +22,7 @@
   // Header Image 1 Style
 .hero-header {
     position: relative;
-    height: 180px;
+    height: 140px;
     background: url('https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&q=80&w=800') center/cover;
     border-radius: 0 0 45px 45px;
     
@@ -190,3 +191,4 @@
   from { opacity: 0; transform: translateY(30px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
