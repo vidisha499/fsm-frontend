@@ -394,6 +394,23 @@ getEventsAnalytics(companyId: number, timeframe: string, startDate?: string, end
   return this.http.get(url);
 }
 
+// Sub-category wise detailed analytics from forest_reports
+getSubCategoryAnalytics(
+  companyId: number, 
+  category: string, 
+  subCategory: string, 
+  timeframe: string, 
+  startDate?: string, 
+  endDate?: string
+): Observable<any> {
+  let url = `${this.baseApiUrl}/admin/analytics/subcategory-details?companyId=${companyId}&category=${category}&subCategory=${encodeURIComponent(subCategory)}&timeframe=${timeframe}`;
+  
+  if (startDate && endDate) {
+    url += `&startDate=${startDate}&endDate=${endDate}`;
+  }
+  return this.http.get(url);
+}
+
 // data.service.ts mein add karein
 getActivePatrols(companyId: number) {
   return this.http.get(`${this.baseApiUrl}/patrols/active?companyId=${companyId}`);

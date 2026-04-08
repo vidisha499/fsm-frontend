@@ -100,39 +100,61 @@ criminal: {
     { 
       id: "felling", label: "Illegal Felling", emoji: "🪓", color: COLORS.rose, val: 0,
       charts: [
-  { 
-    title: "Volume by Species", id: "ac-f1", 
-    render: (id: string, obj: any) => {
-      const d = obj.dynamicData || [];
-      // Yahan check karo ki 'this' accessible hai
-      return this.renderBarChart(id, d, COLORS.rose, []);
-    }
-  },
         { 
-          title: "Probable Reason", id: "ac-f2", 
-          render: (id: string, obj: any) => this.renderPieChart(id, obj.dynamicData || {}) 
+          title: "Volume by Species", id: "ac-f1", 
+          render: (id: string, obj: any) => {
+            const d = obj.dynamicData || [];
+            return this.renderBarChart(id, d, COLORS.rose, []);
+          }
         },
         { 
           title: "Range-wise Felling", id: "ac-f3", 
           render: (id: string, obj: any) => {
             const d = obj.dynamicData || [];
-            // Horizontal Bar ke liye indexAxis: 'y' wala logic use karein
             return this.renderHorizontalBarChart(id, d);
           }
+        },
+        { 
+          title: "Daily Trend", id: "ac-f4", 
+          render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.rose)
         }
       ]
     },
     { 
       id: "transport", label: "Timber Transport", emoji: "🚛", color: COLORS.amber, val: 0,
-      charts: [{ title: "Transport Trend", id: "ac-t1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.amber) }]
+      charts: [
+        { title: "Transport Trend", id: "ac-t1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.amber) },
+        { title: "Range-wise Transport", id: "ac-t2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
+      ]
     },
     { 
       id: "storage", label: "Timber Storage", emoji: "📦", color: COLORS.orange, val: 0,
-      charts: [{ title: "Storage Logs", id: "ac-s1", render: (id: string, obj: any) => this.renderBarChart(id, obj.dynamicData || [], COLORS.orange, ["Depot A", "Depot B"]) }]
+      charts: [
+        { title: "Storage Trend", id: "ac-s1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.orange) },
+        { title: "Range-wise Storage", id: "ac-s2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
+      ]
     },
-    { id: "poaching", label: "Wild Animal Poaching", emoji: "🐾", color: COLORS.red, val: 0, charts: [] },
-    { id: "encroach", label: "Encroachment", emoji: "🚫", color: COLORS.pur, val: 0, charts: [] },
-    { id: "mining", label: "Illegal Mining", emoji: "⛏️", color: COLORS.sl, val: 0, charts: [] }
+    { 
+      id: "poaching", label: "Wild Animal Poaching", emoji: "🐾", color: COLORS.red, val: 0, 
+      charts: [
+        { title: "Poaching Trend", id: "ac-p1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.red) },
+        { title: "Range-wise Poaching", id: "ac-p2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
+      ]
+    },
+    { 
+      id: "encroach", label: "Encroachment", emoji: "🚫", color: COLORS.pur, val: 0, 
+      charts: [
+        { title: "Encroachment Trend", id: "ac-e1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.pur) },
+        { title: "Range-wise Encroachment", id: "ac-e2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
+      ]
+    },
+    { 
+      id: "mining", label: "Illegal Mining", emoji: "⛏️", color: COLORS.sl, val: 0, 
+      charts: [
+        { title: "Mining Trend", id: "ac-m1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.sl) },
+        { title: "Range-wise Mining", id: "ac-m2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
+      ]
+    }
   ]
 },
 // --- Updated ANA_CONFIG for Mobile App Options ---
@@ -141,41 +163,61 @@ events: {
     subs: [
       { 
         id: "jfmc", label: "JFMC / Social Forestry", emoji: "👥", color: COLORS.green, val: 0,
-        charts: [{ title: "Meeting Attendance", id: "ev-jf1", render: (id: string, obj: any) => this.renderBarChart(id, obj.dynamicData || [], COLORS.green, ["Jan", "Feb", "Mar"]) }]
+        charts: [
+          { title: "JFMC Trend", id: "ev-jf1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.green) },
+          { title: "Range-wise JFMC", id: "ev-jf2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
+        ]
       },
-      // { 
-      //   id: "animal", label: "Wild Animal Sighting", emoji: "🐾", color: COLORS.orange, val: 0,
-      //   charts: [{ title: "Sighting Trend", id: "ev-an1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.orange) }]
-      // },
-      { 
+{ 
   id: "wild_animal", 
   label: "Wild Animal Sighting", 
-  icon: "paw", // Emoji ki jagah icon use kar raha hoon stylish dikhne ke liye
-  color: "#2e7d32", // Photo wala dark green color
+  icon: "paw", 
+  color: "#2e7d32", 
   val: 0,
   charts: [
     { 
       title: "Sightings by Species", 
       sub: "Wild animal sightings per species this period",
       id: "ev-an1", 
-      render: (id: string, obj: any) => this.renderBarChart(id, obj.dynamicData || [], "#4caf50", []) 
+      render: (id: string, obj: any) => {
+        if (obj.config) {
+          return this.renderCustomChart(id, obj.config); 
+        }
+        return this.renderBarChart(id, obj.dynamicData || [], "#4caf50", []);
+      }
     },
     { 
       title: "Sighting Trend", 
       sub: "Daily sightings over selected period",
       id: "ev-an2", 
-      render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], "#4caf50") 
+      render: (id: string, obj: any) => {
+        if (obj.config) {
+          return this.renderCustomChart(id, obj.config);
+        }
+        return this.renderLineChart(id, obj.dynamicData || [], "#4caf50");
+      }
+    },
+    { 
+      title: "Range-wise Sightings", 
+      id: "ev-an3", 
+      render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || [])
     }
   ]
 },
       
       { 
         id: "water", label: "Water Source Status", emoji: "💧", color: COLORS.blue, val: 0,
-       charts: [{ title: "Water Levels", id: "ev-wa1", render: (id: string, obj: any) => this.renderBarChart(id, obj.dynamicData || [], COLORS.blue, ["Full", "Low", "Dry"]) }]
+        charts: [
+          { title: "Water Source Trend", id: "ev-wa1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.blue) },
+          { title: "Range-wise Water Sources", id: "ev-wa2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
+        ]
       },
       { 
         id: "compensation", label: "Wildlife Compensation", emoji: "💵", color: COLORS.teal, val: 0,
-        charts: [{ title: "Payout Status", id: "ev-co1", render: (id: string, obj: any) => this.renderBarChart(id, obj.dynamicData || [], COLORS.teal, ["Paid", "Pending", "Rejected"]) }]
+        charts: [
+          { title: "Compensation Trend", id: "ev-co1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.teal) },
+          { title: "Range-wise Compensation", id: "ev-co2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
+        ]
       }
     ]
   },
@@ -341,6 +383,17 @@ this.route.queryParams.subscribe((params: any) => {
   // ═══════════════════════════════════════════
   //  LOGIC & RENDERING
   // ═══════════════════════════════════════════
+
+  renderCustomChart(canvasId: string, config: any) {
+  const canvas = document.getElementById(canvasId) as HTMLCanvasElement;
+  if (!canvas) return null;
+  
+  // Purana chart delete karna zaroori hai
+  const existingChart = Chart.getChart(canvasId);
+  if (existingChart) existingChart.destroy();
+
+  return new Chart(canvas, config);
+}
 
 loadData() {
   const sub = this.getCurrentSub();
@@ -719,45 +772,28 @@ async updateUIData() {
     this.endDate
   ).subscribe({
     next: (res: any) => {
-      console.log("🚀 FINAL ANALYTICS SYNC:", res); 
-
-      // Pehle purane charts khatam karo taaki naye data ke saath scale refresh ho
+      console.log("🚀 Syncing Real Data:", res); 
       this.destroyCharts();
 
       this.displayProgList = cat.subs.map((s: any) => {
+        // Backend keys check
         const rawData = res[s.id] || res[s.id.toLowerCase()] || { val: 0 };
         const countVal = (typeof rawData === 'number') ? rawData : (rawData.val || 0);
 
         if (s.charts && Array.isArray(s.charts)) {
           s.charts.forEach((ch: any) => {
             
-  // Aapka wala block, thoda aur "safe" version:
-if (s.id === 'wild_animal' && ch.id === 'ev-an1') {
-  console.log("🔍 Backend Sachai (Raw Data):", res.sightings_by_species);
-  
-  const apiData = res.sightings_by_species || [];
-  
-  // Agar API se data nahi aaya, toh seedha empty array set karo
-  if (apiData.length === 0) {
-    ch.dynamicData = []; 
-    console.log("🚫 No data from backend, clearing chart.");
-  } else {
-    // Sirf tabhi mapping karo jab backend se data ho
-    const allMapped = this.animalSpecies.map((spName: string) => {
-      const found = apiData.find((d: any) => 
-        String(d.label).toLowerCase().trim() === String(spName).toLowerCase().trim()
-      );
-      return { label: spName, value: found ? Number(found.value) : 0 };
-    });
-
-    // Sirf 0 se bade values filter karo
-    ch.dynamicData = allMapped.filter(d => d.value > 0);
-  }
-
-  console.log("✅ Final Bars to Render:", ch.dynamicData);
-}
+            // 📊 SIGHTINGS BY SPECIES (Photo 1 Style)
+            if (s.id === 'wild_animal' && ch.id === 'ev-an1') {
+              const apiData = res.sightings_by_species || [];
+              ch.dynamicData = apiData; 
+            } 
             
-            // DEFAULT TREND LOGIC
+            // 📈 SIGHTING TREND (Line Chart)
+            else if (ch.id === 'ev-an2' || (s.id === 'wild_animal' && ch.type === 'line')) {
+              ch.dynamicData = res.trend_data || [];
+            }
+            
             else {
               ch.dynamicData = (rawData && Array.isArray(rawData.trend)) ? rawData.trend : [countVal];
             }
@@ -771,54 +807,76 @@ if (s.id === 'wild_animal' && ch.id === 'ev-an1') {
         };
       });
 
-      // UI update trigger
       this.cdr.detectChanges();
-
       const currentSub = this.displayProgList.find(sub => sub.id === this.activeSubId);
       this.currentSubCharts = currentSub?.charts || [];
-      
       this.isRefreshing = false;
-      this.cdr.detectChanges();
 
-      // subscribe ke next block mein jahan setTimeout hai:
-setTimeout(() => {
-  // 1. Data check log
-  console.log("📈 Attempting Force Render with:", this.currentSubCharts);
-  
-  // 2. Clear and Render
-  this.renderSubCharts();
-  
-  // 3. Force Angular to detect change one last time
-  this.cdr.markForCheck();
-  this.cdr.detectChanges();
-}, 1200); // Thoda aur delay taaki DOM ready ho jaye
+      // Render charts after DOM update
+      setTimeout(() => {
+        this.renderSubCharts();
+        this.cdr.detectChanges();
+      }, 500); 
     },
     error: (err) => {
-      console.error("❌ Sync Error:", err);
       this.isRefreshing = false;
       this.cdr.detectChanges();
     }
   });
 }
-
 // updateUIData ke andar jahan renderSubCharts call hota hai wahan ye check kar:
 renderSubCharts() {
-  if (!this.currentSubCharts || this.currentSubCharts.length === 0) return;
+  if (!this.currentSubCharts) return;
 
   this.currentSubCharts.forEach((ch: any) => {
-    const canvas = document.getElementById(ch.id) as HTMLCanvasElement;
-    if (canvas) {
-      // 1. Force Destroy (Bina iske Chart.js naya data nahi dikhayega)
-      const existingChart = Chart.getChart(canvas);
-      if (existingChart) existingChart.destroy();
+    // Agar wildlife ka bar chart hai (ev-an1)
+    if (ch.id === 'ev-an1') {
+      this.renderBarChart(ch.id, ch.dynamicData, '#16a34a', []); // Photo 1 Green
+    } 
+    // Agar trend chart hai (ev-an2)
+    else if (ch.id === 'ev-an2') {
+      this.renderLineChart(ch.id, ch.dynamicData, '#16a34a');
+    }
+    else if (ch.render) {
+      ch.render(ch.id, ch); 
+    }
+  });
+}
 
-      // 2. Data Check
-      console.log(`Final Render Check for ${ch.id}:`, ch.dynamicData);
+renderBarChart(id: string, data: any[], color: string, labels: string[]) {
+  const canvas = document.getElementById(id) as HTMLCanvasElement;
+  if (!canvas) return;
 
-      if (ch.render) {
-        // YAHAN DHAYAN DE: 
-        // Agar renderBarChart direct call ho raha hai, toh use data chahiye
-        ch.render(ch.id, ch); 
+  const finalLabels = data.map(d => d.label || 'Unknown');
+  const finalValues = data.map(d => Number(d.value) || 0);
+
+  this.mkChart(id, {
+    type: "bar",
+    data: {
+      labels: finalLabels,
+      datasets: [{ 
+        data: finalValues, 
+        backgroundColor: '#34A853', // Original Green color
+        borderRadius: 6,
+        barThickness: 35, // Isse bars patli nahi dikhengi
+        maxBarThickness: 40
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { 
+          beginAtZero: true,
+          suggestedMax: 10, // YE ZAROORI HAI: Taaki 1-2 value pe bars aadhi screen tak hi rahein
+          ticks: { stepSize: 2, color: '#94a3b8', font: { size: 10 } },
+          grid: { color: '#f1f5f9' }
+        },
+        x: { 
+          grid: { display: false },
+          ticks: { color: '#94a3b8', font: { size: 10 } }
+        }
       }
     }
   });
@@ -826,15 +884,103 @@ renderSubCharts() {
 
 setAnaSub(id: string) {
   this.activeSubId = id;
-  const currentSub = this.displayProgList.find(s => s.id === id);
-  this.currentSubCharts = currentSub?.charts || [];
-  
   this.destroyCharts();
+
+  // Map frontend sub IDs to database report_type values
+  const subToReportType: any = {
+    'felling': 'Illegal Felling',
+    'transport': 'Timber Transport',
+    'storage': 'Timber Storage',
+    'poaching': 'Wild Animal Poaching',
+    'encroach': 'Encroachment',
+    'mining': 'Illegal Mining',
+    'jfmc': 'JFMC',
+    'wild_animal': 'Wild Animal Sighting',
+    'water': 'Water Source',
+    'compensation': 'Wildlife Compensation',
+    'fire_incidents': 'Fire'
+  };
+
+  // Map frontend sub IDs to database category
+  const subToCategory: any = {
+    'felling': 'crimes', 'transport': 'crimes', 'storage': 'crimes',
+    'poaching': 'crimes', 'encroach': 'crimes', 'mining': 'crimes',
+    'jfmc': 'events', 'wild_animal': 'events', 'water': 'events',
+    'compensation': 'events', 'fire_incidents': 'fire'
+  };
+
+  const companyId = Number(localStorage.getItem('company_id') || '1');
+  const reportType = subToReportType[id] || id;
+  const category = subToCategory[id] || this.activeCatId;
+
+  // Call new sub-category API
+  this.isRefreshing = true;
   this.cdr.detectChanges();
 
-  setTimeout(() => {
-    this.renderSubCharts();
-  }, 400);
+  this.dataService.getSubCategoryAnalytics(
+    companyId, category, reportType,
+    this.activeDateFilter,
+    this.startDate, this.endDate
+  ).subscribe({
+    next: (res: any) => {
+      console.log(`📊 SubCategory Data [${id}]:`, res);
+
+      // Find the sub in displayProgList or fall back to config
+      const currentSub = this.displayProgList.find(s => s.id === id) 
+        || this.getCurrentCat()?.subs.find((s: any) => s.id === id);
+      
+      if (!currentSub) return;
+
+      // Update val count
+      currentSub.val = res.total_count || 0;
+
+      // Inject dynamic data into each chart
+      if (currentSub.charts && Array.isArray(currentSub.charts)) {
+        currentSub.charts.forEach((ch: any) => {
+          const chartId = ch.id || '';
+
+          // Species volume chart (felling specific: ac-f1)
+          if (chartId === 'ac-f1' && res.species_volume?.length) {
+            ch.dynamicData = res.species_volume;
+          }
+          // Range-wise distribution charts
+          else if (chartId.includes('-f3') || chartId.includes('-t2') || chartId.includes('-s2') || 
+                   chartId.includes('-p2') || chartId.includes('-e2') || chartId.includes('-m2') ||
+                   chartId.includes('-jf2') || chartId.includes('-wa2') || chartId.includes('-co2') ||
+                   chartId.includes('-an3')) {
+            ch.dynamicData = res.range_distribution || [];
+          }
+          // Sightings by species (wild_animal specific: ev-an1)
+          else if (chartId === 'ev-an1' && res.sightings_by_species?.length) {
+            ch.dynamicData = res.sightings_by_species;
+          }
+          // Trend charts (line charts)
+          else {
+            ch.dynamicData = res.trend_data || [];
+          }
+        });
+      }
+
+      this.currentSubCharts = currentSub.charts || [];
+      this.isRefreshing = false;
+      this.cdr.detectChanges();
+
+      // Render charts after DOM update
+      setTimeout(() => {
+        this.renderSubCharts();
+        this.cdr.detectChanges();
+      }, 400);
+    },
+    error: (err: any) => {
+      console.error('SubCategory API Error:', err);
+      // Fallback: just show the existing charts without dynamic data
+      const currentSub = this.displayProgList.find(s => s.id === id);
+      this.currentSubCharts = currentSub?.charts || [];
+      this.isRefreshing = false;
+      this.cdr.detectChanges();
+      setTimeout(() => this.renderSubCharts(), 400);
+    }
+  });
 }
 
 
@@ -855,86 +1001,48 @@ const companyId = Number(companyIdRaw); // Ya fir use karo: parseInt(companyIdRa
   });
 }
 
-renderBarChart(id: string, data: any[], color: string, labels: string[]) {
-  let finalData: any[] = [];
-  let finalLabels: any[] = [];
 
-  if (data && data.length > 0) {
-    if (typeof data[0] === 'object') {
-      finalLabels = data.map(d => d.label || d.species || 'Unknown');
-      finalData = data.map(d => Number(d.value) || 0);
-    } else {
-      finalData = data.map(v => Number(v));
-      finalLabels = labels.length ? labels : data.map((_, i) => `T${i+1}`);
-    }
-  }
+// --- HELPER FUNCTIONS FOR CHARTS (Add these) ---
 
-  const isSpecies = id === 'ev-an1';
+private mkG(ctx: CanvasRenderingContext2D, color: string) {
+  const g = ctx.createLinearGradient(0, 0, 0, 170);
+  g.addColorStop(0, color + '66');
+  g.addColorStop(1, color + '00');
+  return g;
+}
 
-  return this.mkChart(id, {
-    type: "bar",
+// Is version ko rakho aur doosre ko delete kar do
+renderLineChart(id: string, data: any[], color: string) {
+  const canvas = document.getElementById(id) as HTMLCanvasElement;
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  this.mkChart(id, {
+    type: 'line',
     data: {
-      labels: finalLabels,
-      datasets: [{ 
-        label: 'Sightings',
-        data: finalData, 
-        backgroundColor: isSpecies ? '#2dcb73' : (color || '#f43f5e'),
-        borderRadius: 4,
-        barThickness: 15, // Thoda patla taaki clean lage
-        minBarLength: 15   // YE ZAROORI HAI: Agar value 1 hai toh bhi 10px ki bar dikhegi
+      labels: data.map(d => d.day_label || 'Today'),
+      datasets: [{
+        data: data.map(d => d.count),
+        borderColor: '#34A853',
+        backgroundColor: ctx ? this.mkG(ctx, '#34A853') : 'rgba(52, 168, 83, 0.1)',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 4,
+        pointBackgroundColor: '#34A853',
+        borderWidth: 3
       }]
     },
     options: {
-      ...this.CDAX,
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
       scales: {
-        y: {
-          beginAtZero: true,
-          suggestedMax: 5, // Isse bars thodi "baadi" dikhengi agar data kam hai
-          ticks: { 
-            stepSize: 1, 
-            precision: 0,
-            font: { size: 10 } 
-          }
-        },
-        x: {
-          grid: { display: false },
-          ticks: { 
-            maxRotation: 45, 
-            minRotation: 45,
-            font: { size: 9 } 
-          }
-        }
-      },
-      plugins: {
-        legend: { display: false }
+        y: { suggestedMax: 10, beginAtZero: true, grid: { color: '#f1f5f9' } },
+        x: { grid: { display: false } }
       }
     }
   });
 }
-// --- HELPER FUNCTIONS FOR CHARTS (Add these) ---
-
-renderLineChart(id: string, data: any[], color: string) {
-  // Create labels based on data length
-  const labels = data.length > 1 
-    ? data.map((_, i) => `D${i + 1}`) 
-    : ['Today']; 
-
-  return this.mkChart(id, {
-    type: "line",
-    data: {
-      labels: labels,
-      datasets: [{ 
-        data: data, 
-        borderColor: color, 
-        backgroundColor: color + '1A', 
-        fill: true, 
-        tension: 0.4 
-      }]
-    },
-    options: CDAX
-  });
-}
-
 
 
 renderPieChart(id: string, dataMap: any) {
@@ -959,64 +1067,6 @@ renderPieChart(id: string, dataMap: any) {
         }
     });
 }
-
-// renderBarChart(id: string, data: any[], color: string, labels: string[]) {
-//   // Photo 3 jaisa colorful palette
-//   const colors = ['#f43f5e', '#fb923c', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#14b8a6'];
-
-//   return this.mkChart(id, {
-//     type: "bar",
-//     data: {
-//       labels: labels,
-//       datasets: [{ 
-//         data: data, 
-//         backgroundColor: labels.map((_, i) => colors[i % colors.length]), // Har bar alag color
-//         borderRadius: 6,
-//         barThickness: 25
-//       }]
-//     },
-//     options: {
-//       ...CDAX,
-//       scales: {
-//         x: { grid: { display: false } },
-//         y: { beginAtZero: true }
-//       }
-//     }
-//   });
-// }
-
-// renderPieChart(id: string, dataMap: any) {
-//   // Check if dataMap is valid, else use fallback
-//   const labels = Object.keys(dataMap).length ? Object.keys(dataMap) : ['No Data'];
-//   const values = Object.values(dataMap).length ? Object.values(dataMap) : [1];
-
-//   return this.mkChart(id, {
-//     type: 'pie',
-//     data: {
-//       labels: labels,
-//       datasets: [{
-//         data: values,
-//         backgroundColor: ['#14b8a6', '#f59e0b', '#ef4444', '#6366f1', '#8b5cf6'],
-//         borderWidth: 0
-//       }]
-//     },
-//     options: {
-//       responsive: true,
-//       maintainAspectRatio: false,
-//       plugins: {
-//         legend: { 
-//           position: 'bottom', 
-//           labels: { 
-//             usePointStyle: true, 
-//             pointStyle: 'circle',
-//             padding: 15,
-//             font: { size: 10, weight: '500' } 
-//           } 
-//         }
-//       }
-//     }
-//   });
-// }
 
 
 // 1. CDAX Definition (To fix Property 'CDAX' error)
@@ -1048,6 +1098,8 @@ CDAX = {
 //     options: this.CDAX
 //   });
 // }
+
+
 
 
 renderHorizontalBarChart(id: string, data: any[]) {
