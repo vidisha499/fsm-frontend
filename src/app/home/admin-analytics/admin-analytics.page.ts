@@ -139,10 +139,8 @@ criminal: {
     { 
       id: "poaching", label: "Wild Animal Poaching", emoji: "🐾", color: COLORS.red, val: 0, 
       charts: [
-        { title: "Poaching Trend", id: "ac-p1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.red) },
         { title: "Species v/s Incidents", id: "ac-p3", render: (id: string, obj: any) => this.renderBarChart(id, obj.poachingSpecies || [], COLORS.red, []) },
-        { title: "Incident Distribution", id: "ac-p4", render: (id: string, obj: any) => this.renderPieChart(id, obj.poachingDeathCause || []) },
-        { title: "Range-wise Poaching", id: "ac-p2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
+        { title: "Incident Distribution", id: "ac-p4", render: (id: string, obj: any) => this.renderPieChart(id, obj.poachingDeathCause || []) }
       ]
     },
     { 
