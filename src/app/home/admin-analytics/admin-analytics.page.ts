@@ -140,6 +140,8 @@ criminal: {
       id: "poaching", label: "Wild Animal Poaching", emoji: "🐾", color: COLORS.red, val: 0, 
       charts: [
         { title: "Poaching Trend", id: "ac-p1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.red) },
+        { title: "Species v/s Incidents", id: "ac-p3", render: (id: string, obj: any) => this.renderBarChart(id, obj.poachingSpecies || [], COLORS.red, []) },
+        { title: "Incident Distribution", id: "ac-p4", render: (id: string, obj: any) => this.renderPieChart(id, obj.poachingDeathCause || []) },
         { title: "Range-wise Poaching", id: "ac-p2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
       ]
     },
@@ -950,6 +952,10 @@ setAnaSub(id: string) {
             ch.topRoutes = res.top_routes;
           } else if ((chartId === 'ac-s3' || chartId === 'ac-s4') && res.storage_species) {
             ch.storageSpecies = res.storage_species;
+          } else if (chartId === 'ac-p3' && res.poaching_species) {
+            ch.poachingSpecies = res.poaching_species;
+          } else if (chartId === 'ac-p4' && res.poaching_death_cause) {
+            ch.poachingDeathCause = res.poaching_death_cause;
           }
           
           // 2. Species volume chart (felling specific: ac-f1)
