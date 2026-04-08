@@ -13,6 +13,7 @@ import { NavController, MenuController } from '@ionic/angular';
 import { Chart, registerables, ChartConfiguration } from 'chart.js';
 import { DataService } from 'src/app/data.service';
 import { AdminDataService } from 'src/app/services/admin-data';
+import { HierarchyService } from 'src/app/services/hierarchy.service';
 import { forkJoin } from 'rxjs';
 import * as L from 'leaflet';
 Chart.register(...registerables);
@@ -351,12 +352,7 @@ export class AdminPage implements OnInit, AfterViewInit {
   }
 
   // --- Data ---
-  beatCoverage = [
-    { label: 'North Division', val: 94, color: this.COLORS.p },
-    { label: 'South Valley', val: 88, color: this.COLORS.blue },
-    { label: 'East Plateau', val: 76, color: this.COLORS.amber },
-    { label: 'River Buffer', val: 82, color: this.COLORS.ind },
-  ];
+  beatCoverage: any[] = [];
 
   private _charts: { [key: string]: Chart } = {};
 
@@ -368,6 +364,7 @@ export class AdminPage implements OnInit, AfterViewInit {
     private dataService: DataService,
     private navCtrl: NavController,
     private adminService: AdminDataService,
+    private hierarchyService: HierarchyService,
     private eRef: ElementRef,
     private zone: NgZone,
   ) {}
@@ -404,18 +401,37 @@ export class AdminPage implements OnInit, AfterViewInit {
     this.loadData();
     this.loadAllKPIs('today');
 
-    // Naya fresh interval lagao
+    // Naya fresh interval lagao based on settings
+    const savedSync = localStorage.getItem('admin_sync_interval');
+    const intervalMs = savedSync ? parseInt(savedSync) * 60000 : 30000; // Default 30s if not set, else minutes to ms
+
     this.dataInterval = setInterval(() => {
       if (this.activeTab === 'home') {
         this.loadData();
       }
-    }, 30000);
+    }, intervalMs);
 
     this.loadTrendData();
+    this.loadBeatCoverage();
     this.updateTime();
     setTimeout(() => {
       this.initHomeCharts();
     }, 1000);
+  }
+
+  loadBeatCoverage() {
+    const rawData = localStorage.getItem('user_data');
+    const companyId = rawData ? JSON.parse(rawData).company_id : 1;
+
+    this.hierarchyService.getCoverageStats(companyId).subscribe({
+      next: (stats: any[]) => {
+        if (stats && stats.length > 0) {
+          this.beatCoverage = stats;
+          this.cdr.detectChanges();
+        }
+      },
+      error: (err) => console.error('Error loading beat coverage:', err),
+    });
   }
 
   // Main function jo filters ke hisab se data refresh karega
@@ -757,9 +773,7 @@ private updateMapMarkers() {
         dates.to,
       ),
       assetsTrend: this.dataService.getAssetsTrend(myCompanyId),
-      mapIncidents: this.dataService.getIncidentsForMap(myCompanyId),
-      forestReports: this.dataService.getForestMapData(myCompanyId),
-      allSightings: this.dataService.getAllMapSightings(myCompanyId), // Added this to ensure sightings load
+      forestReports: this.dataService.getForestMapData(myCompanyId, 'today'),
     }).subscribe({
       next: (res: any) => {
         // Backend se 'total_events' aa raha hai, toh wahi assign karo
@@ -899,36 +913,45 @@ console.log('%c🔍 STEP 1: API Response Received', 'color: orange; font-weight:
 
 let processedPins: any[] = [];
 
-// A. Standard Incidents & SOS Alerts (Only if they match specific types)
-const rawAlerts = [...(res.mapIncidents || []), ...(res.alerts || [])];
+// A. Alerts Mapping (Immediate display of SOS, Mining, Felling, etc.)
+const rawAlerts = res.alerts || [];
 if (rawAlerts.length > 0) {
-    const incidentPins = rawAlerts
-        .filter((inc: any) => !isNaN(parseFloat(inc.latitude)) && parseFloat(inc.latitude) !== 0)
+    const today = new Date().toISOString().split('T')[0];
+    const alertPins = rawAlerts
+        .filter((inc: any) => {
+            const hasLat = !isNaN(parseFloat(inc.latitude)) && parseFloat(inc.latitude) !== 0;
+            const incDate = (inc.created_at || '').split('T')[0];
+            return hasLat && incDate === today; // Filter for Today only
+        })
         .map((inc: any) => {
-            const dbCriteria = (inc.incidentCriteria || inc.category || '').toUpperCase();
-            const sub = (inc.subCategory || '').toLowerCase();
+            const dbCriteria = (inc.incidentCriteria || inc.category || inc.type || inc.message || '').toUpperCase();
             
             let layerId = ''; 
-            if (dbCriteria.includes('POACH')) layerId = 'animal_poaching';
-            else if (dbCriteria.includes('FIRE')) layerId = 'fire_warning';
+            if (dbCriteria.includes('SOS')) layerId = 'sos';
             else if (dbCriteria.includes('MINING')) layerId = 'illegal_mining';
-            else if (dbCriteria.includes('SOS')) layerId = 'sos';
-            else if (dbCriteria.includes('FELL')) layerId = 'illegal_felling';
+            else if (dbCriteria.includes('FELL') || dbCriteria.includes('FELLING')) layerId = 'illegal_felling';
+            else if (dbCriteria.includes('POACH')) layerId = 'animal_poaching';
+            else if (dbCriteria.includes('ENCROACH')) layerId = 'encroachment';
+            else if (dbCriteria.includes('FIRE')) layerId = 'fire_warning';
+            else if (dbCriteria.includes('SIGHTING') || dbCriteria.includes('ANIMAL')) layerId = 'animal_sighting';
+            else if (dbCriteria.includes('WATER')) layerId = 'water_status';
+            else if (dbCriteria.includes('STORAGE')) layerId = 'timber_storage';
+            else if (dbCriteria.includes('TRANSPORT')) layerId = 'timber_transport';
 
             if (!layerId) return null;
 
             return {
                 ...inc,
-                latitude: parseFloat(inc.latitude),
-                longitude: parseFloat(inc.longitude),
+                latitude: parseFloat(inc.latitude || inc.lat),
+                longitude: parseFloat(inc.longitude || inc.lng),
                 layerId: layerId,
-                displayLabel: inc.incidentCriteria || inc.category || 'Incident'
+                displayLabel: inc.type || inc.category || inc.incidentCriteria || 'Alert'
             };
-        }).filter(p => p !== null);
-    processedPins = [...processedPins, ...incidentPins];
+        }).filter((p: any) => p !== null);
+    processedPins = [...processedPins, ...alertPins];
 }
 
-// B. Forest Reports (Yahan hum Attendance ko block kar rahe hain)
+// B. Forest Reports (Today's data only)
 const forestRaw = [...(res.forestReports || []), ...(res.forest_reports || []), ...(res.forest_events || [])];
 if (forestRaw.length > 0) {
     console.log(`🌲 STEP 2: Processing Forest Data...`);
@@ -936,9 +959,12 @@ if (forestRaw.length > 0) {
         .filter((f: any) => {
             const latValid = !isNaN(parseFloat(f.latitude)) && parseFloat(f.latitude) !== 0;
             const rType = (f.report_type || f.event_type || '').toLowerCase();
-            // STRICT BLOCK: Agar 'attendance' ya 'onsite' word hai toh filter out kar do
             const isNotAttendance = !rType.includes('attendance') && !rType.includes('onsite');
-            return latValid && isNotAttendance;
+            
+            // Filter for Today locally as well
+            const today = new Date().toISOString().split('T')[0];
+            const fDate = (f.date || f.created_at || '').split('T')[0];
+            return latValid && isNotAttendance && fDate === today;
         })
         .map((f: any) => {
             const cat = (f.category || '').toLowerCase();
@@ -967,7 +993,7 @@ if (forestRaw.length > 0) {
                 displayLabel: f.report_type || f.category || 'Forest Report',
                 date: f.date || f.created_at
             };
-        }).filter(p => p !== null);
+        }).filter((p: any) => p !== null);
 
     processedPins = [...processedPins, ...forestPins];
 }
@@ -1289,113 +1315,54 @@ if (typeof this.updateVisiblePins === 'function') {
     const t = String(type).toUpperCase();
 
     const themes: any = {
-      // --- 🚨 CRITICAL GROUP ---
-      FIRE: {
-        bg: '#fff1f0',
-        color: '#ff4d4f',
-        icon: 'flame',
-        label: 'CRITICAL',
-      },
-      SOS: {
-        bg: '#fff1f2',
-        color: '#e63946',
-        icon: 'nuclear',
-        label: 'CRITICAL',
-      },
-      CRIT: {
-        bg: '#fff1f2',
-        color: '#ea5f9d',
-        icon: 'nuclear',
-        label: 'CRITICAL',
-      },
-      CRIMINAL: {
-        bg: '#f1f5f9',
-        color: '#3768b7',
-        icon: 'shield-half',
-        label: 'CRITICAL',
-      },
-      INCIDENT: {
-        bg: '#fff1f2',
-        color: '#ff4d4d',
-        icon: 'flashlight',
-        label: 'CRITICAL',
-      },
+      // --- 🚨 CRITICAL GROUP (Criminal & Fire) ---
+      FIRE: { bg: '#fff1f0', color: '#ff4d4f', icon: 'flame', label: 'CRITICAL' },
+      SOS: { bg: '#fff1f2', color: '#e63946', icon: 'nuclear', label: 'CRITICAL' },
+      CRIMINAL: { bg: '#f1f5f9', color: '#3768b7', icon: 'shield-half', label: 'CRITICAL' },
+      
+      // Detailed Criminal Types
+      ILLEGAL_MINING: { bg: '#f1f5f9', color: '#334155', icon: 'hammer', label: 'CRITICAL' },
+      ILLEGAL_FELLING: { bg: '#fef2f2', color: '#b91c1c', icon: 'leaf', label: 'CRITICAL' },
+      ILLEGAL_TIMBER_STORAGE: { bg: '#fffbeb', color: '#92400e', icon: 'construct', label: 'CRITICAL' },
+      ILLEGAL_TIMBER_TRANSPORT: { bg: '#f8fafc', color: '#1e293b', icon: 'bus', label: 'CRITICAL' },
+      ENCROACHMENT: { bg: '#f5f3ff', color: '#7c3aed', icon: 'home', label: 'CRITICAL' },
 
-      // --- ⚠️ WARNING GROUP ---
-      SIGHTING: {
-        bg: '#f0f9ff',
-        color: '#fa8c16',
-        icon: 'paw',
-        label: 'WARNING',
-      },
-      WARN: {
-        bg: '#fffbeb',
-        color: '#f39c12',
-        icon: 'warning',
-        label: 'WARNING',
-      },
+      // --- ⚠️ WARNING GROUP (Wildlife) ---
+      WILD_ANIMAL_POACHING: { bg: '#fff1f2', color: '#be123c', icon: 'skull', label: 'WARNING' },
+      WILD_ANIMAL_SIGHTING: { bg: '#f0f9ff', color: '#0369a1', icon: 'eye', label: 'WARNING' },
+      SIGHTING: { bg: '#f0f9ff', color: '#fa8c16', icon: 'paw', label: 'WARNING' },
+      WARN: { bg: '#fffbeb', color: '#f39c12', icon: 'warning', label: 'WARNING' },
 
-      // --- ℹ️ INFO GROUP ---
-      PATROL_START: {
-        bg: '#eff6ff',
-        color: '#3b82f6',
-        icon: 'rocket',
-        label: 'INFO',
-      },
-      PATROL_END: {
-        bg: '#f0fdf4',
-        color: '#10b981',
-        icon: 'flag',
-        label: 'INFO',
-      },
-      ATTENDANCE: {
-        bg: '#f5f3ff',
-        color: '#8b5cf6',
-        icon: 'finger-print',
-        label: 'INFO',
-      },
-      ONSITE_ATTENDANCE: {
-        bg: '#fffbeb',
-        color: '#d97706',
-        icon: 'navigate-circle',
-        label: 'INFO',
-      },
-
-      // --- OTHERS ---
-      SAFE: {
-        bg: '#f0fdfa',
-        color: '#0d9488',
-        icon: 'checkmark-circle',
-        label: 'CLEAR',
-      },
-      INFO: {
-        bg: '#f8fafc',
-        color: '#64748b',
-        icon: 'notifications',
-        label: 'INFO',
-      },
+      // --- ℹ️ INFO GROUP (Environmental & Patrol) ---
+      WATER_SOURCE_STATUS: { bg: '#eff6ff', color: '#2563eb', icon: 'water', label: 'INFO' },
+      PATROL_START: { bg: '#eff6ff', color: '#3b82f6', icon: 'rocket', label: 'INFO' },
+      PATROL_END: { bg: '#f0fdf4', color: '#10b981', icon: 'flag', label: 'INFO' },
+      ATTENDANCE: { bg: '#f5f3ff', color: '#8b5cf6', icon: 'finger-print', label: 'INFO' },
+      INFO: { bg: '#f8fafc', color: '#64748b', icon: 'notifications', label: 'INFO' },
     };
 
-    return themes[t] || themes['INFO'];
+    // Advanced mapping for complex strings like "ILLEGAL_MINING - Ranger"
+    const matchedKey = Object.keys(themes).find(key => t.startsWith(key));
+    return matchedKey ? themes[matchedKey] : themes['INFO'];
   }
 
   getAlertIcon(category: string): string {
-    if (!category) return 'information-circle'; // Default icon agar category na mile
-
+    if (!category) return 'information-circle';
     const cat = category.toLowerCase();
 
-    // Mapping categories to Ionic Icon Names
     const map: { [key: string]: string } = {
       fire: 'flame',
       timber: 'leaf',
       fell: 'leaf',
       animal: 'paw',
-      sighting: 'paw',
+      sighting: 'eye',
       poaching: 'skull',
+      mining: 'hammer',
+      encroach: 'home',
+      water: 'water',
       patrol: 'shield-check',
       start: 'play-circle',
       end: 'stop-circle',
-      criminal: 'warning',
       sos: 'alert-circle',
     };
 
@@ -1837,7 +1804,7 @@ updateVisiblePins() {
           },
         });
       },
-      error: (err) => console.error('Database Fetch Error:', err),
+      error: (err: any) => console.error('Database Fetch Error:', err),
     });
   }
 
@@ -1855,7 +1822,7 @@ updateVisiblePins() {
       }
     });
 
-    this.beatCoverage = this.beatCoverage.map((item) => ({
+    this.beatCoverage = this.beatCoverage.map((item: any) => ({
       ...item,
       val: Math.floor(Math.random() * (98 - 70)) + 70,
     }));
@@ -2080,7 +2047,7 @@ updateVisiblePins() {
   loadTrendData() {
     const myCompanyId = 1;
     this.dataService.getIncidentTrend(myCompanyId).subscribe({
-      next: (data) => {
+      next: (data: any) => {
         // Backend se jo naya data aayega usse yahan map karo
         this.momStatus = data.momLabel || '0% MoM';
         this.isGoodTrend = data.isImprovement; // true matlab incidents kam hue (Green)
@@ -2088,7 +2055,7 @@ updateVisiblePins() {
         // Tera existing chart logic
         this.initTrendChart(data.labels, data.values);
       },
-      error: (err) => console.error('Trend Chart Error:', err),
+      error: (err: any) => console.error('Trend Chart Error:', err),
     });
   }
   initTrendChart(labels: string[], values: number[]) {

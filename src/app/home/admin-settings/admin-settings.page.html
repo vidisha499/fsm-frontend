@@ -53,13 +53,13 @@
             <div class="sett-ico" style="background:#f0fdfa">🔄</div>
             <div class="sett-txt">
               <div class="sett-lbl">Sync Interval</div>
-              <div class="sett-desc">Every 5 minutes</div>
+              <div class="sett-desc">Every {{ syncInterval }} minutes</div>
             </div>
             <div class="chevron">›</div>
           </div>
 
-            <div class="sett-item" (click)="changeSync()">
-            <div class="sett-ico" style="background:#f0fdfa">👥</div>
+            <div class="sett-item" (click)="manageUsers()">
+            <div class="sett-ico" style="background:#f5f3ff">👥</div>
             <div class="sett-txt">
               <div class="sett-lbl">Manage users</div>
               <div class="sett-desc">roles,permissions,beats</div>

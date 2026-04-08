@@ -652,16 +652,16 @@
     bottom: 0;
     left: 0;
     right: 0;
-    z-index: 100; /* Ensure it stays above the map markers */
+    z-index: 100; 
     
-    /* 2. The Glassmorphism effect from your original SS */
+    /* 2. Original Glassmorphism effect */
     background: rgba(255, 255, 255, 0.85); 
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     
-    /* 3. Layout and Spacing */
+    /* 3. Original Layout and Spacing */
     display: flex;
-    justify-content: space-around; /* Distributes 18, 3, 7 evenly */
+    justify-content: space-around; 
     align-items: center;
     padding: 10px 14px;
     border-top: 1px solid rgba(0,0,0,0.05);
@@ -669,7 +669,7 @@
     /* 4. Individual Stat styling */
     div {
       text-align: center;
-      flex: 1; /* Makes each section take equal width */
+      flex: 1; 
       
       .map-sn {
         font-size: 15px;
@@ -688,13 +688,13 @@
     }
   }
       .map-container {
-        display: block !important; /* Ensure it's not hidden */
-        min-height: 500px;         /* Give it a base height */
+        display: block !important;
+        min-height: 520px;
         width: 100%;
         position: relative;
         animation: fadeIn 0.3s ease-in;
         padding-left: 1%;
-        padding-right: 9%; // Smooth transition
+        padding-right: 9%;
       }
 
   /* admin.page.scss */

@@ -48,7 +48,11 @@ getRangers(companyId: number): Observable<any[]> {
   return this.http.get<any[]>(finalUrl);
 }
 
-getAssignedBeat(rangerId: number): Observable<any> {
-  return this.http.get(`${this.apiUrl}/assigned-beat/${rangerId}`);
-}
+  getAssignedBeat(rangerId: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/assigned-beat/${rangerId}`);
+  }
+
+  getCoverageStats(companyId: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/coverage/${companyId}`);
+  }
 }
