@@ -132,10 +132,8 @@ criminal: {
     { 
       id: "storage", label: "Timber Storage", emoji: "📦", color: COLORS.orange, val: 0,
       charts: [
-        { title: "Storage Trend", id: "ac-s1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.orange) },
         { title: "Storage by Species", id: "ac-s3", render: (id: string, obj: any) => this.renderBarChart(id, obj.storageSpecies || [], COLORS.orange, []) },
-        { title: "Storage Proportion", id: "ac-s4", render: (id: string, obj: any) => this.renderPieChart(id, obj.storageSpecies || []) },
-        { title: "Range-wise Storage", id: "ac-s2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
+        { title: "Storage Proportion", id: "ac-s4", render: (id: string, obj: any) => this.renderPieChart(id, obj.storageSpecies || []) }
       ]
     },
     { 
