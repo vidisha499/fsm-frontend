@@ -941,7 +941,7 @@ setAnaSub(id: string) {
         currentSub.charts.forEach((ch: any) => {
           const chartId = ch.id || '';
 
-          // Special Transport Charts
+          // 1. Special Transport Charts
           if (chartId === 'ac-t1' && res.trend_30d) {
             ch.trend30d = res.trend_30d;
           } else if (chartId === 'ac-t3' && res.vehicle_analytics) {
@@ -949,23 +949,23 @@ setAnaSub(id: string) {
           } else if (chartId === 'ac-t4' && res.top_routes) {
             ch.topRoutes = res.top_routes;
           }
-          // Species volume chart (felling specific: ac-f1)
-          else if (chartId === 'ac-f1' && res.species_volume?.length) {
+          
+          // 2. Species volume chart (felling specific: ac-f1)
+          if (chartId === 'ac-f1' && res.species_volume?.length) {
             ch.dynamicData = res.species_volume;
           }
-          // ... (Rest of existing logic)
-          // Range-wise distribution charts
+          // 3. Range-wise distribution charts (Matches all subcategories)
           else if (chartId.includes('-f3') || chartId.includes('-t2') || chartId.includes('-s2') || 
                    chartId.includes('-p2') || chartId.includes('-e2') || chartId.includes('-m2') ||
                    chartId.includes('-jf2') || chartId.includes('-wa2') || chartId.includes('-co2') ||
                    chartId.includes('-an3')) {
             ch.dynamicData = res.range_distribution || [];
           }
-          // Sightings by species (wild_animal specific: ev-an1)
+          // 4. Sightings by species (wild_animal specific: ev-an1)
           else if (chartId === 'ev-an1' && res.sightings_by_species?.length) {
             ch.dynamicData = res.sightings_by_species;
           }
-          // Trend charts (line charts)
+          // 5. Default Trend charts (line charts)
           else {
             ch.dynamicData = res.trend_data || [];
           }
