@@ -40,6 +40,7 @@ const CDAX: any = {
 })
 export class AdminAnalyticsPage implements OnInit, OnDestroy {
   // State variables
+  animalSpecies: string[] = ['Sloth Bear', 'Leopard', 'Hyena', 'Jackal', 'Wild Bear', 'Spotted Deer', 'Sambar', 'Others'];
   companyId: any;
   activeTab: string = 'criminal';
   activeSubId: string = 'felling';
@@ -99,13 +100,14 @@ criminal: {
     { 
       id: "felling", label: "Illegal Felling", emoji: "🪓", color: COLORS.rose, val: 0,
       charts: [
-        { 
-          title: "Volume by Species", id: "ac-f1", 
-          render: (id: string, obj: any) => {
-            const d = obj.dynamicData || [];
-            return this.renderBarChart(id, d.map((x:any)=>x.value), COLORS.rose, d.map((x:any)=>x.label));
-          }
-        },
+  { 
+    title: "Volume by Species", id: "ac-f1", 
+    render: (id: string, obj: any) => {
+      const d = obj.dynamicData || [];
+      // Yahan check karo ki 'this' accessible hai
+      return this.renderBarChart(id, d, COLORS.rose, []);
+    }
+  },
         { 
           title: "Probable Reason", id: "ac-f2", 
           render: (id: string, obj: any) => this.renderPieChart(id, obj.dynamicData || {}) 
@@ -141,10 +143,32 @@ events: {
         id: "jfmc", label: "JFMC / Social Forestry", emoji: "👥", color: COLORS.green, val: 0,
         charts: [{ title: "Meeting Attendance", id: "ev-jf1", render: (id: string, obj: any) => this.renderBarChart(id, obj.dynamicData || [], COLORS.green, ["Jan", "Feb", "Mar"]) }]
       },
+      // { 
+      //   id: "animal", label: "Wild Animal Sighting", emoji: "🐾", color: COLORS.orange, val: 0,
+      //   charts: [{ title: "Sighting Trend", id: "ev-an1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.orange) }]
+      // },
       { 
-        id: "animal", label: "Wild Animal Sighting", emoji: "🐾", color: COLORS.orange, val: 0,
-        charts: [{ title: "Sighting Trend", id: "ev-an1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.orange) }]
-      },
+  id: "wild_animal", 
+  label: "Wild Animal Sighting", 
+  icon: "paw", // Emoji ki jagah icon use kar raha hoon stylish dikhne ke liye
+  color: "#2e7d32", // Photo wala dark green color
+  val: 0,
+  charts: [
+    { 
+      title: "Sightings by Species", 
+      sub: "Wild animal sightings per species this period",
+      id: "ev-an1", 
+      render: (id: string, obj: any) => this.renderBarChart(id, obj.dynamicData || [], "#4caf50", []) 
+    },
+    { 
+      title: "Sighting Trend", 
+      sub: "Daily sightings over selected period",
+      id: "ev-an2", 
+      render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], "#4caf50") 
+    }
+  ]
+},
+      
       { 
         id: "water", label: "Water Source Status", emoji: "💧", color: COLORS.blue, val: 0,
        charts: [{ title: "Water Levels", id: "ev-wa1", render: (id: string, obj: any) => this.renderBarChart(id, obj.dynamicData || [], COLORS.blue, ["Full", "Low", "Dry"]) }]
@@ -493,16 +517,6 @@ renderGenericChart(chartId: string, label: string, currentVal: number) {
     options: CDAX
   });
 }
-  setAnaSub(id: string) {
-    this.activeSubId = id;
-    this.destroyCharts();
-    this.updateUIData();
-    
-    this.cdr.detectChanges(); // Force view update to create canvas elements
-    setTimeout(() => {
-      this.renderSubCharts();
-    }, 150);
-  }
 
   getActivity(subId: string) {
     const map: any = {
@@ -525,50 +539,23 @@ renderGenericChart(chartId: string, label: string, currentVal: number) {
 
 private mkChart(id: string, config: any) {
   const canvas = document.getElementById(id) as HTMLCanvasElement;
-  
-  // 1. Basic checks
-  if (!canvas || !config) {
-    console.warn(`Canvas or Config missing for ID: ${id}`);
-    return null;
-  }
+  if (!canvas || !config) return null;
 
-  // 2. Clear Existing Instance (Conflict Fix)
-  // Pehle Chart.js ke global store se check karo
+  // Pehle check karo ki Chart.js ke internal store mein koi instance hai?
   const existingChart = Chart.getChart(canvas); 
   if (existingChart) {
     existingChart.destroy();
   }
 
-  // Phir apne personal map se bhi clean karo safety ke liye
-  if (this.chartInstances.has(id)) {
-    this.chartInstances.get(id)?.destroy();
-    this.chartInstances.delete(id);
-  }
-
-  // 3. Context Cleanup
-  const ctx = canvas.getContext('2d');
-  if (ctx) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-  }
-
   try {
-    // 4. Render with Data Validation
-    if (config.data && config.data.datasets && config.data.datasets.length > 0) {
-      const chart = new Chart(canvas, config);
-      
-      // Store in map for future cleanup
-      this.chartInstances.set(id, chart);
-      return chart;
-    } else {
-      console.warn(`No data found to render chart for ID: ${id}`);
-      return null;
-    }
+    const chart = new Chart(canvas, config);
+    this.chartInstances.set(id, chart);
+    return chart;
   } catch (e) {
-    console.error("Chart Render Error:", e);
+    console.error("Chart Render Error for ID:", id, e);
     return null;
   }
 }
-
 
   private destroyCharts() {
     this.chartInstances.forEach(c => c.destroy());
@@ -587,28 +574,7 @@ private mkChart(id: string, config: any) {
     }, 800);
   }
 
-renderSubCharts() {
-  const sub = this.getCurrentSub();
-  if (!sub || !sub.charts) return;
-  
-  // Pehle saare purane charts clear honge (optional but good practice)
-  this.destroyCharts();
 
-  sub.charts.forEach((ch: any) => {
-    const el = document.getElementById(ch.id);
-    
-    // Check karo ki Canvas element DOM mein aa gaya hai ya nahi
-    if (el) {
-      console.log(`Rendering Chart: ${ch.id}`, ch);
-      
-      // SIRF EK BAAR CALL KARO aur 'ch' (object) pass karo
-      // Taaki render function ko 'dynamicData' mil sake
-      ch.render(ch.id, ch);
-    } else {
-      console.warn(`Canvas element with ID ${ch.id} not found in DOM yet.`);
-    }
-  });
-}
 // admin-analytics.page.ts
 onFilterChange() {
   console.log("Applying Filters:", {
@@ -739,83 +705,137 @@ getIconColor(label: string): string {
 //   });
 // }
 async updateUIData() {
-    const cat = this.getCurrentCat();
-    if (!cat) return;
+  const cat = this.getCurrentCat();
+  if (!cat) return;
 
-    const companyId = localStorage.getItem('company_id') || '1';
-    const timeframe = this.activeDateFilter || 'today';
+  const companyId = localStorage.getItem('company_id') || '1';
+  this.isRefreshing = true;
+  this.cdr.detectChanges();
 
-    this.isRefreshing = true;
-    this.cdr.detectChanges();
+  this.dataService.getEventsAnalytics(
+    Number(companyId), 
+    this.activeDateFilter, 
+    this.startDate, 
+    this.endDate
+  ).subscribe({
+    next: (res: any) => {
+      console.log("🚀 FINAL ANALYTICS SYNC:", res); 
 
-    this.dataService.getEventsAnalytics(Number(companyId), timeframe, this.startDate, this.endDate).subscribe({
-        next: (res: any) => {
-            console.log("🚀 Data Received:", res);
+      // Pehle purane charts khatam karo taaki naye data ke saath scale refresh ho
+      this.destroyCharts();
 
-            // KPI Cards Update
-            this.criminalCount = res.criminal_count || 0;
-            this.eventsCount = res.events_count || 0;
-            this.totalEvents = res.total_events || 0;
+      this.displayProgList = cat.subs.map((s: any) => {
+        const rawData = res[s.id] || res[s.id.toLowerCase()] || { val: 0 };
+        const countVal = (typeof rawData === 'number') ? rawData : (rawData.val || 0);
 
-            // List & Chart Mapping
-            this.displayProgList = cat.subs.map((s: any) => {
-                const rawData = res[s.id] || { val: 0 };
-                const countVal = (typeof rawData === 'number') ? rawData : (rawData.val || 0);
+        if (s.charts && Array.isArray(s.charts)) {
+          s.charts.forEach((ch: any) => {
+            
+  // Aapka wala block, thoda aur "safe" version:
+if (s.id === 'wild_animal' && ch.id === 'ev-an1') {
+  console.log("🔍 Backend Sachai (Raw Data):", res.sightings_by_species);
+  
+  const apiData = res.sightings_by_species || [];
+  
+  // Agar API se data nahi aaya, toh seedha empty array set karo
+  if (apiData.length === 0) {
+    ch.dynamicData = []; 
+    console.log("🚫 No data from backend, clearing chart.");
+  } else {
+    // Sirf tabhi mapping karo jab backend se data ho
+    const allMapped = this.animalSpecies.map((spName: string) => {
+      const found = apiData.find((d: any) => 
+        String(d.label).toLowerCase().trim() === String(spName).toLowerCase().trim()
+      );
+      return { label: spName, value: found ? Number(found.value) : 0 };
+    });
 
-                if (s.charts && Array.isArray(s.charts)) {
-                    s.charts.forEach((ch: any) => {
-                        // PINK BAR CHART MAPPING
-                        if (s.id === 'felling' && ch.id === 'ac-f1') {
-                            ch.dynamicData = res.species_volume || []; 
-                        } else if (s.id === 'felling' && ch.id === 'ac-f2') {
-                            ch.dynamicData = res.reasons || {};
-                        } else {
-                            ch.dynamicData = [countVal];
-                        }
-                    });
-                }
+    // Sirf 0 se bade values filter karo
+    ch.dynamicData = allMapped.filter(d => d.value > 0);
+  }
 
-                return { ...s, val: countVal, pct: Math.min(Math.round((countVal / 50) * 100), 100) };
-            });
-
-            // Refresh UI
-            this.destroyCharts();
-            this.cdr.detectChanges();
-
-            const currentSub = this.displayProgList.find(sub => sub.id === this.activeSubId);
-            this.currentSubCharts = currentSub?.charts || [];
-            this.cdr.detectChanges();
-
-            // PHOTO 3 FIX: Canvas ready hone ka wait (800ms)
-            setTimeout(() => {
-                this.renderSubCharts();
-            }, 800); 
-        },
-        error: (err) => {
-            this.isRefreshing = false;
-            this.cdr.detectChanges();
+  console.log("✅ Final Bars to Render:", ch.dynamicData);
+}
+            
+            // DEFAULT TREND LOGIC
+            else {
+              ch.dynamicData = (rawData && Array.isArray(rawData.trend)) ? rawData.trend : [countVal];
+            }
+          });
         }
-    });
+
+        return { 
+          ...s, 
+          val: countVal, 
+          pct: Math.min(Math.round((countVal / 50) * 100), 100) 
+        };
+      });
+
+      // UI update trigger
+      this.cdr.detectChanges();
+
+      const currentSub = this.displayProgList.find(sub => sub.id === this.activeSubId);
+      this.currentSubCharts = currentSub?.charts || [];
+      
+      this.isRefreshing = false;
+      this.cdr.detectChanges();
+
+      // subscribe ke next block mein jahan setTimeout hai:
+setTimeout(() => {
+  // 1. Data check log
+  console.log("📈 Attempting Force Render with:", this.currentSubCharts);
+  
+  // 2. Clear and Render
+  this.renderSubCharts();
+  
+  // 3. Force Angular to detect change one last time
+  this.cdr.markForCheck();
+  this.cdr.detectChanges();
+}, 1200); // Thoda aur delay taaki DOM ready ho jaye
+    },
+    error: (err) => {
+      console.error("❌ Sync Error:", err);
+      this.isRefreshing = false;
+      this.cdr.detectChanges();
+    }
+  });
 }
 
-// Photo 3 Pink Style Renderer
-renderBarChart(id: string, data: any[], color: string, labels: string[]) {
-    const photo3Pink = '#f43f5e'; 
-    return this.mkChart(id, {
-        type: "bar",
-        data: {
-            labels: labels,
-            datasets: [{ 
-                data: data, 
-                backgroundColor: photo3Pink, 
-                borderRadius: 6,
-                barThickness: 25
-            }]
-        },
-        options: this.CDAX // Ensure CDAX is defined at class level
-    });
+// updateUIData ke andar jahan renderSubCharts call hota hai wahan ye check kar:
+renderSubCharts() {
+  if (!this.currentSubCharts || this.currentSubCharts.length === 0) return;
+
+  this.currentSubCharts.forEach((ch: any) => {
+    const canvas = document.getElementById(ch.id) as HTMLCanvasElement;
+    if (canvas) {
+      // 1. Force Destroy (Bina iske Chart.js naya data nahi dikhayega)
+      const existingChart = Chart.getChart(canvas);
+      if (existingChart) existingChart.destroy();
+
+      // 2. Data Check
+      console.log(`Final Render Check for ${ch.id}:`, ch.dynamicData);
+
+      if (ch.render) {
+        // YAHAN DHAYAN DE: 
+        // Agar renderBarChart direct call ho raha hai, toh use data chahiye
+        ch.render(ch.id, ch); 
+      }
+    }
+  });
 }
 
+setAnaSub(id: string) {
+  this.activeSubId = id;
+  const currentSub = this.displayProgList.find(s => s.id === id);
+  this.currentSubCharts = currentSub?.charts || [];
+  
+  this.destroyCharts();
+  this.cdr.detectChanges();
+
+  setTimeout(() => {
+    this.renderSubCharts();
+  }, 400);
+}
 
 
 // ngOnInit ya kisi refresh function mein ye call karo
@@ -835,6 +855,62 @@ const companyId = Number(companyIdRaw); // Ya fir use karo: parseInt(companyIdRa
   });
 }
 
+renderBarChart(id: string, data: any[], color: string, labels: string[]) {
+  let finalData: any[] = [];
+  let finalLabels: any[] = [];
+
+  if (data && data.length > 0) {
+    if (typeof data[0] === 'object') {
+      finalLabels = data.map(d => d.label || d.species || 'Unknown');
+      finalData = data.map(d => Number(d.value) || 0);
+    } else {
+      finalData = data.map(v => Number(v));
+      finalLabels = labels.length ? labels : data.map((_, i) => `T${i+1}`);
+    }
+  }
+
+  const isSpecies = id === 'ev-an1';
+
+  return this.mkChart(id, {
+    type: "bar",
+    data: {
+      labels: finalLabels,
+      datasets: [{ 
+        label: 'Sightings',
+        data: finalData, 
+        backgroundColor: isSpecies ? '#2dcb73' : (color || '#f43f5e'),
+        borderRadius: 4,
+        barThickness: 15, // Thoda patla taaki clean lage
+        minBarLength: 15   // YE ZAROORI HAI: Agar value 1 hai toh bhi 10px ki bar dikhegi
+      }]
+    },
+    options: {
+      ...this.CDAX,
+      scales: {
+        y: {
+          beginAtZero: true,
+          suggestedMax: 5, // Isse bars thodi "baadi" dikhengi agar data kam hai
+          ticks: { 
+            stepSize: 1, 
+            precision: 0,
+            font: { size: 10 } 
+          }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { 
+            maxRotation: 45, 
+            minRotation: 45,
+            font: { size: 9 } 
+          }
+        }
+      },
+      plugins: {
+        legend: { display: false }
+      }
+    }
+  });
+}
 // --- HELPER FUNCTIONS FOR CHARTS (Add these) ---
 
 renderLineChart(id: string, data: any[], color: string) {
@@ -857,6 +933,31 @@ renderLineChart(id: string, data: any[], color: string) {
     },
     options: CDAX
   });
+}
+
+
+
+renderPieChart(id: string, dataMap: any) {
+    const labels = Object.keys(dataMap || {});
+    const values = Object.values(dataMap || {});
+    
+    return this.mkChart(id, {
+        type: 'pie',
+        data: {
+            labels: labels.length ? labels : ['Pending'],
+            datasets: [{
+                data: values.length ? values : [1],
+                backgroundColor: ['#14b8a6', '#f59e0b', '#ef4444', '#6366f1'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            ...this.CDAX,
+            plugins: { 
+                legend: { display: true, position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } 
+            }
+        }
+    });
 }
 
 // renderBarChart(id: string, data: any[], color: string, labels: string[]) {
@@ -947,23 +1048,7 @@ CDAX = {
 //     options: this.CDAX
 //   });
 // }
-renderPieChart(id: string, dataMap: any) {
-    return this.mkChart(id, {
-        type: 'pie',
-        data: {
-            labels: Object.keys(dataMap),
-            datasets: [{
-                data: Object.values(dataMap),
-                backgroundColor: ['#14b8a6', '#f59e0b', '#ef4444', '#6366f1'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            ...this.CDAX,
-            plugins: { legend: { display: true, position: 'bottom' } }
-        }
-    });
-}
+
 
 renderHorizontalBarChart(id: string, data: any[]) {
   return this.mkChart(id, {
