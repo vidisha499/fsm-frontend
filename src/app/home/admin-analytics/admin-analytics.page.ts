@@ -133,6 +133,8 @@ criminal: {
       id: "storage", label: "Timber Storage", emoji: "📦", color: COLORS.orange, val: 0,
       charts: [
         { title: "Storage Trend", id: "ac-s1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.orange) },
+        { title: "Storage by Species", id: "ac-s3", render: (id: string, obj: any) => this.renderBarChart(id, obj.storageSpecies || [], COLORS.orange, []) },
+        { title: "Storage Proportion", id: "ac-s4", render: (id: string, obj: any) => this.renderPieChart(id, obj.storageSpecies || []) },
         { title: "Range-wise Storage", id: "ac-s2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
       ]
     },
@@ -948,6 +950,8 @@ setAnaSub(id: string) {
             ch.vehicleAnalytics = res.vehicle_analytics;
           } else if (chartId === 'ac-t4' && res.top_routes) {
             ch.topRoutes = res.top_routes;
+          } else if ((chartId === 'ac-s3' || chartId === 'ac-s4') && res.storage_species) {
+            ch.storageSpecies = res.storage_species;
           }
           
           // 2. Species volume chart (felling specific: ac-f1)
