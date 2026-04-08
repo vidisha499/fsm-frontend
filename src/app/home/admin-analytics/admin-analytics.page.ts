@@ -124,7 +124,7 @@ criminal: {
       id: "transport", label: "Timber Transport", emoji: "🚛", color: COLORS.amber, val: 0,
       charts: [
         { title: "30-Day Transport Trend", id: "ac-t1", render: (id: string, obj: any) => this.renderLineChart(id, obj.trend30d || [], COLORS.amber) },
-        { title: "Vehicle Analytics", id: "ac-t3", render: (id: string, obj: any) => this.renderBarChart(id, obj.vehicleAnalytics || [], COLORS.amber, []) },
+        { title: "Vehicle Type Analytics", id: "ac-t3", render: (id: string, obj: any) => this.renderBarChart(id, obj.vehicleAnalytics || [], COLORS.amber, []) },
         { title: "Top Smuggling Routes", id: "ac-t4", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.topRoutes || []) },
         { title: "Range-wise Transport", id: "ac-t2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
       ]
