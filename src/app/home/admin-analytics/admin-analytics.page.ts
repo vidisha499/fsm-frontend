@@ -886,19 +886,19 @@ setAnaSub(id: string) {
   this.activeSubId = id;
   this.destroyCharts();
 
-  // Map frontend sub IDs to database report_type values
+  // Map frontend sub IDs to database report_type keywords (uses wildcard MATCH on backend)
   const subToReportType: any = {
-    'felling': 'Illegal Felling',
-    'transport': 'Timber Transport',
-    'storage': 'Timber Storage',
-    'poaching': 'Wild Animal Poaching',
-    'encroach': 'Encroachment',
-    'mining': 'Illegal Mining',
-    'jfmc': 'JFMC',
-    'wild_animal': 'Wild Animal Sighting',
-    'water': 'Water Source',
-    'compensation': 'Wildlife Compensation',
-    'fire_incidents': 'Fire'
+    'felling': 'felling',
+    'transport': 'transport',
+    'storage': 'storage',
+    'poaching': 'poaching',
+    'encroach': 'encroach',
+    'mining': 'mining',
+    'jfmc': 'jfmc',
+    'wild_animal': 'animal',
+    'water': 'water',
+    'compensation': 'compensation',
+    'fire_incidents': 'fire'
   };
 
   // Map frontend sub IDs to database category
