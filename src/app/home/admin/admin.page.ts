@@ -1136,7 +1136,7 @@ if (typeof this.updateVisiblePins === 'function') {
               label: severity.toUpperCase(), // This fixes the "INFO" label on Critical items
               icon: finalIcon,
               severity: severity,
-              displayTitle: `${alert.category || baseType} - ${alert.ranger_name || 'Ranger'}`,
+              displayTitle: `${alert.type || baseType} - ${alert.ranger_name || 'Ranger'}`,
               displayDesc:
                 alert.message || alert.location_name || 'Reported activity',
               displayTime: alert.created_at

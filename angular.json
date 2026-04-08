@@ -18,7 +18,12 @@
             "main": "src/main.ts",
             "polyfills": "src/polyfills.ts",
             "tsConfig": "tsconfig.app.json",
-            "allowedCommonJsDependencies": ["leaflet"],
+            "allowedCommonJsDependencies": ["leaflet", "canvg",
+  "html2canvas",
+  "jspdf",
+  "core-js",
+  "raf",
+  "rgbcolor"],
             "inlineStyleLanguage": "scss",
             "assets": [
               {

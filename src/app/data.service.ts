@@ -440,9 +440,9 @@ getForestKPIs(category: string, timeframe: string) {
   });
 }
 
-getForestMapData(companyId: number): Observable<any[]> {
-  // Agar baaki functions bina /api ke chalte hain, toh yahan se bhi hata dein
-  return this.http.get<any[]>(`${this.baseApiUrl}/forest-events/map-data/${companyId}`);
+getForestMapData(companyId: number, range?: string): Observable<any[]> {
+  const params = range ? `?range=${range}` : '';
+  return this.http.get<any[]>(`${this.baseApiUrl}/forest-events/map-data/${companyId}${params}`);
 }
 
 }
