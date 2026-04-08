@@ -123,7 +123,9 @@ criminal: {
     { 
       id: "transport", label: "Timber Transport", emoji: "🚛", color: COLORS.amber, val: 0,
       charts: [
-        { title: "Transport Trend", id: "ac-t1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.amber) },
+        { title: "30-Day Transport Trend", id: "ac-t1", render: (id: string, obj: any) => this.renderLineChart(id, obj.trend30d || [], COLORS.amber) },
+        { title: "Quantity by Vehicle Type", id: "ac-t3", render: (id: string, obj: any) => this.renderBarChart(id, obj.vehicleAnalytics || [], COLORS.amber, []) },
+        { title: "Top Smuggling Routes", id: "ac-t4", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.topRoutes || []) },
         { title: "Range-wise Transport", id: "ac-t2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
       ]
     },
@@ -939,10 +941,19 @@ setAnaSub(id: string) {
         currentSub.charts.forEach((ch: any) => {
           const chartId = ch.id || '';
 
+          // Special Transport Charts
+          if (chartId === 'ac-t1' && res.trend_30d) {
+            ch.trend30d = res.trend_30d;
+          } else if (chartId === 'ac-t3' && res.vehicle_analytics) {
+            ch.vehicleAnalytics = res.vehicle_analytics;
+          } else if (chartId === 'ac-t4' && res.top_routes) {
+            ch.topRoutes = res.top_routes;
+          }
           // Species volume chart (felling specific: ac-f1)
-          if (chartId === 'ac-f1' && res.species_volume?.length) {
+          else if (chartId === 'ac-f1' && res.species_volume?.length) {
             ch.dynamicData = res.species_volume;
           }
+          // ... (Rest of existing logic)
           // Range-wise distribution charts
           else if (chartId.includes('-f3') || chartId.includes('-t2') || chartId.includes('-s2') || 
                    chartId.includes('-p2') || chartId.includes('-e2') || chartId.includes('-m2') ||
