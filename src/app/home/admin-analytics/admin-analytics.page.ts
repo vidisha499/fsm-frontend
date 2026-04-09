@@ -123,9 +123,14 @@ criminal: {
     { 
       id: "transport", label: "Timber Transport", emoji: "🚛", color: COLORS.amber, val: 0,
       charts: [
-        { title: "30-Day Transport Trend", id: "ac-t1", render: (id: string, obj: any) => this.renderLineChart(id, obj.trend30d || [], COLORS.amber) },
-        { title: "Vehicle Type Analytics", id: "ac-t3", render: (id: string, obj: any) => this.renderBarChart(id, obj.vehicleAnalytics || [], COLORS.amber, []) },
-        { title: "Top Smuggling Routes", id: "ac-t4", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.topRoutes || []) },
+        { 
+          title: "30-Day Transport Trend", 
+          sub: "Daily timber transport incidents over period",
+          id: "ac-t1", 
+          render: (id: string, obj: any) => this.renderTransportTrendChart(id, obj.trend30d || [])
+        },
+        //{ title: "Vehicle Type Analytics", id: "ac-t3", render: (id: string, obj: any) => this.renderBarChart(id, obj.vehicleAnalytics || [], COLORS.amber, []) },
+        //{ title: "Top Smuggling Routes", id: "ac-t4", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.topRoutes || []) },
         { title: "Range-wise Transport", id: "ac-t2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
       ]
     },
@@ -133,27 +138,27 @@ criminal: {
       id: "storage", label: "Timber Storage", emoji: "📦", color: COLORS.orange, val: 0,
       charts: [
         { title: "Storage by Species", id: "ac-s3", render: (id: string, obj: any) => this.renderBarChart(id, obj.storageSpecies || [], COLORS.orange, []) },
-        { title: "Storage Proportion", id: "ac-s4", render: (id: string, obj: any) => this.renderPieChart(id, obj.storageSpecies || []) }
+        { title: "Storage type", id: "ac-s4", render: (id: string, obj: any) => this.renderPieChart(id, obj.storageSpecies || []) }
       ]
     },
     { 
       id: "poaching", label: "Wild Animal Poaching", emoji: "🐾", color: COLORS.red, val: 0, 
       charts: [
         { title: "Species v/s Incidents", id: "ac-p3", render: (id: string, obj: any) => this.renderBarChart(id, obj.poachingSpecies || [], COLORS.red, []) },
-        { title: "Incident Distribution", id: "ac-p4", render: (id: string, obj: any) => this.renderPieChart(id, obj.poachingDeathCause || []) }
+        //{ title: "Incident Distribution", id: "ac-p4", render: (id: string, obj: any) => this.renderPieChart(id, obj.poachingDeathCause || []) }
       ]
     },
     { 
       id: "encroach", label: "Encroachment", emoji: "🚫", color: COLORS.pur, val: 0, 
       charts: [
         { title: "Encroachment Trend", id: "ac-e1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.pur) },
-        { title: "Range-wise Encroachment", id: "ac-e2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
+        { title: "Type Distribution", id: "ac-e2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
       ]
     },
     { 
       id: "mining", label: "Illegal Mining", emoji: "⛏️", color: COLORS.sl, val: 0, 
       charts: [
-        { title: "Mining Trend", id: "ac-m1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.sl) },
+       // { title: "Mining Trend", id: "ac-m1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.sl) },
         { title: "Range-wise Mining", id: "ac-m2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
       ]
     }
@@ -199,25 +204,25 @@ events: {
         return this.renderLineChart(id, obj.dynamicData || [], "#4caf50");
       }
     },
-    { 
-      title: "Range-wise Sightings", 
-      id: "ev-an3", 
-      render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || [])
-    }
+    // { 
+    //   title: "Range-wise Sightings", 
+    //   id: "ev-an3", 
+    //   render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || [])
+    // }
   ]
 },
       
       { 
         id: "water", label: "Water Source Status", emoji: "💧", color: COLORS.blue, val: 0,
         charts: [
-          { title: "Water Source Trend", id: "ev-wa1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.blue) },
-          { title: "Range-wise Water Sources", id: "ev-wa2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
+          { title: "Water Source Trend,", id: "ev-wa1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.blue) },
+          { title: "Water Sources", id: "ev-wa2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
         ]
       },
       { 
         id: "compensation", label: "Wildlife Compensation", emoji: "💵", color: COLORS.teal, val: 0,
         charts: [
-          { title: "Compensation Trend", id: "ev-co1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.teal) },
+        //  { title: "Compensation Trend", id: "ev-co1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.teal) },
           { title: "Range-wise Compensation", id: "ev-co2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
         ]
       }
@@ -361,20 +366,21 @@ private route: ActivatedRoute,) { }
 
   ngOnInit() { 
     this.companyId = localStorage.getItem('company_id') || 1;
-    this.setAnaCat('criminal'); 
     this.activeTab = 'criminal';
     this.activeCatId = 'criminal';
     this.activeDateFilter = 'today';
-    this.onFilterChange();
+    
+    // Unified Data Load
+    this.updateUIData();
+    this.fetchRealAssetData(); 
 
-this.route.queryParams.subscribe((params: any) => {
-    if (params && params.type) {
-      // Direct call setAnaCat taaki configuration load ho
-      this.setAnaCat(params.type); 
-    } else {
-      this.setAnaCat('criminal');
-    }
-  });
+    this.route.queryParams.subscribe((params: any) => {
+        if (params && params.type) {
+          this.setAnaCat(params.type); 
+        } else {
+          this.setAnaCat('criminal');
+        }
+    });
   }
 
   ngOnDestroy() { 
@@ -424,68 +430,8 @@ loadData() {
 
 
 
-// 1. Criminal Data Fetching
-fetchCriminalData() {
-  // Aapke filters (Range, Beat, Timeframe)
-  const timeframe = this.selectedTimeframe || 'today';
-  const range = this.selectedRange || 'all';
-  const beat = this.selectedBeat || 'all';
-
-  this.dataService.getCriminalAnalytics(this.companyId, timeframe, range, beat).subscribe({
-    next: (res: any) => {
-      this.criminalCount = res.total_incidents || 0;
-      this.chartData = res.graph_data || []; // Backend se graph array
-      this.updateChart(); // Graph refresh karne ke liye
-      this.cdr.detectChanges();
-    },
-    error: (err) => console.error('Criminal Fetch Error:', err)
-  });
-}
-
-// 2. Fire Data Fetching (Jo humne backend fix kiya tha)
-fetchFireData() {
-  const timeframe = this.selectedTimeframe || 'today';
-  const range = this.selectedRange || 'all';
-  const beat = this.selectedBeat || 'all';
-
-  this.dataService.getFireAnalytics(this.companyId, timeframe, range, beat).subscribe({
-    next: (res: any) => {
-      // Backend humein 'fire_incidents' key bhej raha hai
-      this.fireCount = res.fire_incidents || 0; 
-      this.chartData = res.graph_data || []; 
-      this.updateChart(); 
-      this.cdr.detectChanges();
-    },
-    error: (err) => console.error('Fire Fetch Error:', err)
-  });
-}
-
-// 1. Events & Monitoring Data
-fetchEventsData() {
-  const timeframe = this.selectedTimeframe || 'today';
-  this.dataService.getEventsAnalytics(this.companyId, timeframe).subscribe({
-    next: (res: any) => {
-      this.eventsCount = res.total_events || 0;
-      this.chartData = res.graph_data || [];
-      this.updateChart(); // Graph refresh
-      this.cdr.detectChanges();
-    },
-    error: (err) => console.error('Events Fetch Error:', err)
-  });
-}
-
-// 2. Assets Management Data
-fetchAssetsData() {
-  this.dataService.getAssetsAnalytics(this.companyId).subscribe({
-    next: (res: any) => {
-      this.assetsCount = res.total_assets || 0;
-      this.chartData = res.graph_data || []; // Agar assets ka graph hai toh
-      this.updateChart();
-      this.cdr.detectChanges();
-    },
-    error: (err) => console.error('Assets Fetch Error:', err)
-  });
-}
+  // Replaced individual fetch methods with unified updateUIData()
+  
 
 updateChart() {
   if (this.trendChart) {
@@ -623,9 +569,12 @@ private mkChart(id: string, config: any) {
 
   doRefresh() {
     this.isRefreshing = true;
+    this.updateUIData(); // Global counts naye karo
+    this.fetchRealAssetData();
+    
     setTimeout(() => { 
       this.isRefreshing = false; 
-      this.setAnaSub(this.activeSubId);
+      this.setAnaSub(this.activeSubId); // Active sub refresh karo
     }, 800);
   }
 
@@ -774,29 +723,37 @@ async updateUIData() {
     this.endDate
   ).subscribe({
     next: (res: any) => {
-      console.log("🚀 Syncing Real Data:", res); 
+      console.log("🚀 Syncing Real Data [Analytics]:", res); 
+      
+      // 1. Sync Top-Level KPIs (Visible or used in logic)
+      this.criminalCount = res.criminal_count || 0;
+      this.eventsCount = res.events_count || 0;
+      this.totalEvents = res.total_events || 0;
+      this.fireCount = res.fire?.val || res.fire?.count || 0; // Fire handled as sub or total?
+
       this.destroyCharts();
 
       this.displayProgList = cat.subs.map((s: any) => {
-        // Backend keys check
-        const rawData = res[s.id] || res[s.id.toLowerCase()] || { val: 0 };
-        const countVal = (typeof rawData === 'number') ? rawData : (rawData.val || 0);
+        // Backend keys check with fallbacks for mapping mismatches
+        let rawData = res[s.id] || res[s.id.toLowerCase()];
+        
+        // Manual Mapping fixes based on backend response structure
+        if (!rawData) {
+           if (s.id === 'compensation') rawData = res.wildlife_compensation;
+           if (s.id === 'water') rawData = res.water_source_status || res.water;
+           if (s.id === 'wild_animal') rawData = res.wild_animal || res.animal;
+           if (s.id === 'jfmc') rawData = res.jfmc || res.jfmc_social_forestry;
+        }
+
+        const countVal = (typeof rawData === 'number') ? rawData : (rawData?.val || 0);
 
         if (s.charts && Array.isArray(s.charts)) {
           s.charts.forEach((ch: any) => {
-            
-            // 📊 SIGHTINGS BY SPECIES (Photo 1 Style)
             if (s.id === 'wild_animal' && ch.id === 'ev-an1') {
-              const apiData = res.sightings_by_species || [];
-              ch.dynamicData = apiData; 
-            } 
-            
-            // 📈 SIGHTING TREND (Line Chart)
-            else if (ch.id === 'ev-an2' || (s.id === 'wild_animal' && ch.type === 'line')) {
+              ch.dynamicData = res.sightings_by_species || []; 
+            } else if (ch.id === 'ev-an2' || (s.id === 'wild_animal' && ch.type === 'line')) {
               ch.dynamicData = res.trend_data || [];
-            }
-            
-            else {
+            } else {
               ch.dynamicData = (rawData && Array.isArray(rawData.trend)) ? rawData.trend : [countVal];
             }
           });
@@ -805,9 +762,24 @@ async updateUIData() {
         return { 
           ...s, 
           val: countVal, 
-          pct: Math.min(Math.round((countVal / 50) * 100), 100) 
+          pct: 0 // Will calculate after mapping all
         };
       });
+
+      // Calculate percentage relative to a baseline of 50 (or max if higher)
+      // This ensures 1 incident looks small, but bars scale up if data grows.
+      const vals = this.displayProgList.map(item => item.val);
+      const maxInData = Math.max(...vals, 0);
+      const visualMax = Math.max(maxInData, 50); // Minimum scale is 50
+      
+      this.displayProgList.forEach(item => {
+        item.pct = Math.round((item.val / visualMax) * 100);
+      });
+
+      // REMOVED SORTING to match mock-up order (Felling, Transport, etc.)
+      
+      // Update total categories count
+      this.currentCatSubsCount = this.displayProgList.length;
 
       this.cdr.detectChanges();
       const currentSub = this.displayProgList.find(sub => sub.id === this.activeSubId);
@@ -1037,15 +1009,15 @@ renderLineChart(id: string, data: any[], color: string) {
   this.mkChart(id, {
     type: 'line',
     data: {
-      labels: data.map(d => d.day_label || 'Today'),
+      labels: data.map(d => d.day_label || d.label || 'Today'),
       datasets: [{
-        data: data.map(d => d.count),
-        borderColor: '#34A853',
-        backgroundColor: ctx ? this.mkG(ctx, '#34A853') : 'rgba(52, 168, 83, 0.1)',
+        data: data.map(d => d.count || d.value || 0),
+        borderColor: color || '#34A853',
+        backgroundColor: ctx ? this.mkG(ctx, color || '#34A853') : 'rgba(52, 168, 83, 0.1)',
         fill: true,
         tension: 0.4,
         pointRadius: 4,
-        pointBackgroundColor: '#34A853',
+        pointBackgroundColor: color || '#34A853',
         borderWidth: 3
       }]
     },
@@ -1056,6 +1028,60 @@ renderLineChart(id: string, data: any[], color: string) {
       scales: {
         y: { suggestedMax: 10, beginAtZero: true, grid: { color: '#f1f5f9' } },
         x: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+renderTransportTrendChart(id: string, data: any[]) {
+  const canvas = document.getElementById(id) as HTMLCanvasElement;
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const pinkColor = '#f43f5e'; // Pink from Mockup
+
+  this.mkChart(id, {
+    type: 'line',
+    data: {
+      labels: data.length ? data.map(d => d.label) : ['D1', 'D5', 'D10', 'D15', 'D20', 'D25', 'D30'],
+      datasets: [{
+        label: 'Quantity',
+        data: data.length ? data.map(d => d.value) : [0, 0, 0, 0, 0, 0, 0],
+        borderColor: pinkColor,
+        backgroundColor: ctx ? this.mkG(ctx, pinkColor) : 'rgba(244, 63, 94, 0.1)',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 2,
+        pointBackgroundColor: pinkColor,
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { 
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#fff',
+          titleColor: '#1e293b',
+          bodyColor: '#1e293b',
+          borderColor: '#e2e8f0',
+          borderWidth: 1,
+          padding: 10,
+          displayColors: false
+        }
+      },
+      scales: {
+        y: { 
+          title: { display: true, text: 'Timber Quantity', color: '#94a3b8', font: { size: 10 } },
+          beginAtZero: true, 
+          grid: { color: '#f1f5f9' },
+          ticks: { color: '#94a3b8', font: { size: 9 } }
+        },
+        x: { 
+          title: { display: true, text: 'Day', color: '#94a3b8', font: { size: 10 } },
+          grid: { display: false },
+          ticks: { color: '#94a3b8', font: { size: 9 } }
+        }
       }
     }
   });

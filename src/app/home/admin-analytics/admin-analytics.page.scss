@@ -25,8 +25,8 @@
 .prog-item { .prog-row { display: flex; justify-content: space-between; margin-bottom: 4px; } }
 .prog-lbl { font-size: 10px; font-weight: 600; color: var(--tx); }
 .prog-val { font-size: 10px; font-weight: 700; color: var(--tx); }
-.prog-bg { height: 6px; background: var(--bord); border-radius: 3px; overflow: hidden; }
-.prog-fill { height: 100%; border-radius: 3px; transition: width 0.8s ease-in-out; }
+.prog-bg { height: 10px; background: #f1f5f9; border-radius: 5px; overflow: hidden; }
+.prog-fill { height: 100%; border-radius: 5px; transition: width 0.8s cubic-bezier(0.17, 0.55, 0.55, 1); }
 
 /* --- ACTIVITY --- */
 .act-log { padding: 0 14px 14px; }
@@ -61,12 +61,13 @@
     .card-title { font-size: 13px; font-weight: 700; color: var(--tx); }
     .card-sub { font-size: 10px; color: var(--tx2); }
     .card-pill { 
-      background: var(--bord); 
-      padding: 4px 8px; 
-      border-radius: 12px; 
-      font-size: 9px; 
-      font-weight: 700; 
-      color: var(--tx2); 
+      background: #d1f7ee; 
+      padding: 5px 12px; 
+      border-radius: 30px; 
+      font-size: 10px; 
+      font-weight: 800; 
+      color: #0d9488; 
+      border: 1px solid #99f6e4;
     }
   }
   
