@@ -114,28 +114,17 @@
         <div class="card-sub">{{ ch.sub }}</div>
       </div>
     </div>
-    <div class="card-body">
+    <div class="card-body" style="position: relative;">
+      <div *ngIf="isRefreshing" style="position: absolute; top:0; left:0; width:100%; height:100%; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.7); z-index: 10;">
+        <ion-spinner name="crescent" color="primary"></ion-spinner>
+      </div>
       <div style="height:200px; position:relative"> 
         <canvas [id]="ch.id"></canvas>
       </div>
     </div>
   </div>
 
-  <div class="card">
-    <div class="card-hdr"><div class="card-title">Recent Activity</div></div>
-    <div class="act-log">
-      <div class="act-item" *ngFor="let a of displayActivity">
-        <div class="act-dcol">
-          <div class="act-dot" [style.background]="a.d"></div>
-          <div class="act-line"></div>
-        </div>
-        <div>
-          <div class="act-ttl">{{ a.t }}</div>
-          <div class="act-meta">{{ a.m }}</div>
-        </div>
-      </div>
-    </div>
-  </div>
+
 </div>
       </div>
     </div>

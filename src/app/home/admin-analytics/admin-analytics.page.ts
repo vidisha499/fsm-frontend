@@ -114,10 +114,10 @@ criminal: {
             return this.renderHorizontalBarChart(id, d);
           }
         },
-        { 
-          title: "Daily Trend", id: "ac-f4", 
-          render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.rose)
-        }
+        // { 
+        //   title: "Daily Trend", id: "ac-f4", 
+        //   render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.rose)
+        // }
       ]
     },
     { 
@@ -162,7 +162,12 @@ criminal: {
       id: "encroach", label: "Encroachment", emoji: "🚫", color: COLORS.pur, val: 0, 
       charts: [
         { title: "Encroachment Trend", id: "ac-e1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.pur) },
-        { title: "Type Distribution", id: "ac-e2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
+        { 
+          title: "Type Distribution", 
+          sub: "Agriculture vs Construction vs Other", 
+          id: "ac-e2", 
+          render: (id: string, obj: any) => this.renderEncroachDistributionBarChart(id, obj.dynamicData || []) 
+        }
       ]
     },
     { 
@@ -938,24 +943,27 @@ setAnaSub(id: string) {
             ch.poachingSpecies = res.poaching_species;
           } else if (chartId === 'ac-p4' && res.poaching_death_cause) {
             ch.poachingDeathCause = res.poaching_death_cause;
-          } else if (chartId === 'ac-e2' && res.encroachment_types?.length) {
-            ch.dynamicData = res.encroachment_types;
           }
+
           
-          // 2. Species volume chart (felling specific: ac-f1)
-          if (chartId === 'ac-f1' && res.species_volume?.length) {
-            ch.dynamicData = res.species_volume;
+          // 2. Species/Type mapping charts
+          if (chartId === 'ac-f1') {
+            ch.dynamicData = res.species_volume || [];
+          } else if (chartId === 'ac-e2') {
+            ch.dynamicData = res.encroachment_types || [];
+          } else if (chartId === 'ev-wa2') {
+            ch.dynamicData = res.water_types || [];
           }
-          // 3. Range-wise distribution charts (Matches all subcategories except e2)
+          // 3. Range-wise distribution charts (Matches all subcategories except e2, wa2)
           else if (chartId.includes('-f3') || chartId.includes('-t2') || chartId.includes('-s2') || 
                    chartId.includes('-p2') || chartId.includes('-m2') ||
-                   chartId.includes('-jf2') || chartId.includes('-wa2') || chartId.includes('-co2') ||
+                   chartId.includes('-jf2') || chartId.includes('-co2') ||
                    chartId.includes('-an3')) {
             ch.dynamicData = res.range_distribution || [];
           }
           // 4. Sightings by species (wild_animal specific: ev-an1)
-          else if (chartId === 'ev-an1' && res.sightings_by_species?.length) {
-            ch.dynamicData = res.sightings_by_species;
+          else if (chartId === 'ev-an1') {
+            ch.dynamicData = res.sightings_by_species || [];
           }
           // 5. Default Trend charts (line charts)
           else {
@@ -1265,6 +1273,60 @@ renderDoubleBarChart(id: string, data: any[]) {
           beginAtZero: true,
           grid: { color: '#f1f5f9' },
           ticks: { color: '#94a3b8', font: { size: 10 } }
+        }
+      }
+    }
+  });
+}
+
+renderEncroachDistributionBarChart(id: string, data: any[]) {
+  const canvas = document.getElementById(id) as HTMLCanvasElement;
+  if (!canvas) return;
+
+  const plotData = data || [];
+  
+  const colorMap: any = {
+    'Agriculture': '#14b8a6', // Teal
+    'Construction': '#8b5cf6', // Purple
+    'Other': '#64748b', // Gray
+    'Others': '#64748b', // Gray
+    'Unknown': '#f59e0b',
+  };
+
+  const datasets = plotData.map(d => ({
+    label: d.label || 'Unknown',
+    data: [d.value || 0],
+    backgroundColor: colorMap[d.label] || colorMap['Unknown'],
+    borderRadius: 6,
+    barThickness: 45,
+    maxBarThickness: 50
+  }));
+
+  return this.mkChart(id, {
+    type: 'bar',
+    data: {
+      labels: [''], // Single group axis
+      datasets: datasets.length ? datasets : [
+          { label: 'Pending', data: [0], backgroundColor: '#e2e8f0' }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'bottom',
+          labels: { usePointStyle: true, boxWidth: 10, font: { size: 10 } }
+        }
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: {
+          beginAtZero: true,
+          suggestedMax: 5,
+          ticks: { stepSize: 1, color: '#94a3b8', font: { size: 10 } },
+          grid: { color: '#f1f5f9' }
         }
       }
     }
