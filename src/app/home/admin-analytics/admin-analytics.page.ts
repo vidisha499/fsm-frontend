@@ -137,14 +137,24 @@ criminal: {
     { 
       id: "storage", label: "Timber Storage", emoji: "📦", color: COLORS.orange, val: 0,
       charts: [
-        { title: "Storage by Species", id: "ac-s3", render: (id: string, obj: any) => this.renderBarChart(id, obj.storageSpecies || [], COLORS.orange, []) },
-        { title: "Storage type", id: "ac-s4", render: (id: string, obj: any) => this.renderPieChart(id, obj.storageSpecies || []) }
+        { 
+          title: "Storage by Species", 
+          sub: "Volume stored in godowns vs open spaces",
+          id: "ac-s3", 
+          render: (id: string, obj: any) => this.renderStackedBarChart(id, obj.storageSpecies || []) 
+        },
+        { 
+          title: "Storage Proportion", 
+          sub: "Species-wise share of total seized timber",
+          id: "ac-s4", 
+          render: (id: string, obj: any) => this.renderStoragePieChart(id, obj.storageProportion || []) 
+        }
       ]
     },
     { 
       id: "poaching", label: "Wild Animal Poaching", emoji: "🐾", color: COLORS.red, val: 0, 
       charts: [
-        { title: "Species v/s Incidents", id: "ac-p3", render: (id: string, obj: any) => this.renderBarChart(id, obj.poachingSpecies || [], COLORS.red, []) },
+        { title: "Species vs Incidents", id: "ac-p3", render: (id: string, obj: any) => this.renderDoubleBarChart(id, obj.poachingSpecies || []) },
         //{ title: "Incident Distribution", id: "ac-p4", render: (id: string, obj: any) => this.renderPieChart(id, obj.poachingDeathCause || []) }
       ]
     },
@@ -168,13 +178,13 @@ criminal: {
 events: {
     label: "🐾 Events & Monitoring",
     subs: [
-      { 
-        id: "jfmc", label: "JFMC / Social Forestry", emoji: "👥", color: COLORS.green, val: 0,
-        charts: [
-          { title: "JFMC Trend", id: "ev-jf1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.green) },
-          { title: "Range-wise JFMC", id: "ev-jf2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
-        ]
-      },
+      // { 
+      //   id: "jfmc", label: "JFMC / Social Forestry", emoji: "👥", color: COLORS.green, val: 0,
+      //   charts: [
+      //     { title: "JFMC Trend", id: "ev-jf1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.green) },
+      //     { title: "Range-wise JFMC", id: "ev-jf2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
+      //   ]
+      // },
 { 
   id: "wild_animal", 
   label: "Wild Animal Sighting", 
@@ -913,28 +923,32 @@ setAnaSub(id: string) {
         currentSub.charts.forEach((ch: any) => {
           const chartId = ch.id || '';
 
-          // 1. Special Transport Charts
           if (chartId === 'ac-t1' && res.trend_30d) {
             ch.trend30d = res.trend_30d;
           } else if (chartId === 'ac-t3' && res.vehicle_analytics) {
             ch.vehicleAnalytics = res.vehicle_analytics;
           } else if (chartId === 'ac-t4' && res.top_routes) {
             ch.topRoutes = res.top_routes;
-          } else if ((chartId === 'ac-s3' || chartId === 'ac-s4') && res.storage_species) {
+          } else if (chartId === 'ac-s3' && res.storage_species) {
             ch.storageSpecies = res.storage_species;
+          } else if (chartId === 'ac-s4') {
+            if (res.storage_proportion) ch.storageProportion = res.storage_proportion;
+            else if (res.storage_species) ch.storageProportion = res.storage_species;
           } else if (chartId === 'ac-p3' && res.poaching_species) {
             ch.poachingSpecies = res.poaching_species;
           } else if (chartId === 'ac-p4' && res.poaching_death_cause) {
             ch.poachingDeathCause = res.poaching_death_cause;
+          } else if (chartId === 'ac-e2' && res.encroachment_types?.length) {
+            ch.dynamicData = res.encroachment_types;
           }
           
           // 2. Species volume chart (felling specific: ac-f1)
           if (chartId === 'ac-f1' && res.species_volume?.length) {
             ch.dynamicData = res.species_volume;
           }
-          // 3. Range-wise distribution charts (Matches all subcategories)
+          // 3. Range-wise distribution charts (Matches all subcategories except e2)
           else if (chartId.includes('-f3') || chartId.includes('-t2') || chartId.includes('-s2') || 
-                   chartId.includes('-p2') || chartId.includes('-e2') || chartId.includes('-m2') ||
+                   chartId.includes('-p2') || chartId.includes('-m2') ||
                    chartId.includes('-jf2') || chartId.includes('-wa2') || chartId.includes('-co2') ||
                    chartId.includes('-an3')) {
             ch.dynamicData = res.range_distribution || [];
@@ -1111,6 +1125,151 @@ renderPieChart(id: string, dataMap: any) {
     });
 }
 
+renderStackedBarChart(id: string, data: any[]) {
+  const canvas = document.getElementById(id) as HTMLCanvasElement;
+  if (!canvas) return;
+
+  const plotData = data || [];
+
+  const labels = plotData.map(d => d.label || d.species || 'Unknown');
+  const godownData = plotData.map(d => d.godown || 0);
+  const openSpaceData = plotData.map(d => d.openSpace || 0);
+
+  return this.mkChart(id, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Godown',
+          data: godownData,
+          backgroundColor: '#fba14d', // Godown color (amber/orange)
+          barThickness: 35,
+          maxBarThickness: 40
+        },
+        {
+          label: 'Open Space',
+          data: openSpaceData,
+          backgroundColor: '#4abaa0', // Open space color (teal)
+          barThickness: 35,
+          maxBarThickness: 40
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { 
+        legend: { 
+          display: true, 
+          position: 'bottom',
+          labels: { usePointStyle: true, boxWidth: 8, font: { size: 10 } }
+        } 
+      },
+      scales: {
+        x: { 
+          stacked: true,
+          grid: { display: false },
+          ticks: { color: '#94a3b8', font: { size: 10 } }
+        },
+        y: { 
+          stacked: true,
+          suggestedMax: 150,
+          grid: { color: '#f1f5f9' },
+          ticks: { stepSize: 50, color: '#94a3b8', font: { size: 10 } }
+        }
+      }
+    }
+  });
+}
+
+renderStoragePieChart(id: string, data: any[]) {
+  const canvas = document.getElementById(id) as HTMLCanvasElement;
+  if (!canvas) return;
+
+  const plotData = data || [];
+
+  const labels = plotData.map(d => d.label || d.species || 'Unknown');
+  const values = plotData.map(d => d.value || 0);
+
+  return this.mkChart(id, {
+    type: 'pie',
+    data: {
+      labels: labels.length ? labels : ['Pending'],
+      datasets: [{
+        data: values.length ? values : [1],
+        backgroundColor: ['#14b8a6', '#f59e0b', '#ef4444', '#3b82f6'],
+        borderWidth: 2,
+        borderColor: '#ffffff'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { 
+        legend: { 
+          display: true, 
+          position: 'bottom',
+          labels: { usePointStyle: true, boxWidth: 8, font: { size: 10 } }
+        } 
+      }
+    }
+  });
+}
+
+renderDoubleBarChart(id: string, data: any[]) {
+  const canvas = document.getElementById(id) as HTMLCanvasElement;
+  if (!canvas) return;
+
+  const plotData = data || [];
+
+  const labels = plotData.map(d => d.label || 'Unknown');
+  const incidents = plotData.map(d => d.incidents || d.value || 0);
+  const carcasses = plotData.map(d => d.carcasses || 0);
+
+  return this.mkChart(id, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Incidents',
+          data: incidents,
+          backgroundColor: '#fb4f72', // Pink
+          borderRadius: 4
+        },
+        {
+          label: 'Carcasses',
+          data: carcasses,
+          backgroundColor: '#e8868c', // Light Pink
+          borderRadius: 4
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'bottom',
+          labels: { usePointStyle: true, boxWidth: 10, font: { size: 10 } }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: '#94a3b8', font: { size: 10 } }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: '#f1f5f9' },
+          ticks: { color: '#94a3b8', font: { size: 10 } }
+        }
+      }
+    }
+  });
+}
 
 // 1. CDAX Definition (To fix Property 'CDAX' error)
 CDAX = {

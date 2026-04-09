@@ -55,7 +55,7 @@ fieldsConfig: any = {
       { label: 'Assigned Beat', type: 'text', placeholder: 'Enter Beat Name', key: 'beat' },
       { label: 'Species', type: 'select', placeholder: 'Select Species', options: this.speciesOptions, key: 'species' },
       { label: 'Quantity', type: 'number', placeholder: 'Enter quantity', key: 'qty_cmt' },
-      { label: 'Storage Type', type: 'text', placeholder: 'e.g. Godown', key: 'storage_type' },
+      { label: 'Storage Type', type: 'select', placeholder: 'Select Storage Type', options: ['Godown', 'Open Space', 'Others'], key: 'storage_type' },
       { label: 'Name of Owner', type: 'text', placeholder: 'Enter owner name', key: 'owner_name' },
       { label: 'Address of Owner', type: 'textarea', placeholder: 'Enter owner address', key: 'owner_address' },
       { label: 'Storage Photo', type: 'file', icon: 'camera-outline', key: 'photo' },
