@@ -430,15 +430,15 @@ getUserCompanyId() {
 }
 
 // data.service.ts
-getForestKPIs(category: string, timeframe: string) {
-  // Yahan 'forest-events' path add kiya gaya hai
-  return this.http.get(`${this.baseApiUrl}/forest-events/analytics/kpi`, {
-    params: {
-      category: category,
-      range: timeframe
-    }
-  });
-}
+  getForestKPIs(category: string, timeframe: string, companyId?: number) {
+    // Yahan 'forest-events' path add kiya gaya hai
+    let params: any = { category: category, range: timeframe };
+    if (companyId) params.companyId = companyId;
+
+    return this.http.get(`${this.baseApiUrl}/forest-events/analytics/kpi`, {
+      params: params
+    });
+  }
 
 getForestMapData(companyId: number, range?: string): Observable<any[]> {
   const params = range ? `?range=${range}` : '';

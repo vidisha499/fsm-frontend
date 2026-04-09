@@ -66,6 +66,16 @@ ion-content {
   --background: #f8f9fa;
 }
 
+ion-header {
+  padding-top: 25px; // Spacing for phone notification bar
+  background: #0d9488; // Match the teal/primary color exactly
+}
+
+.safe-footer {
+  padding-bottom: 25px; // Spacing for phone navigation bar
+  background: white;
+}
+
 .hierarchy-container {
   padding: 12px;
 }

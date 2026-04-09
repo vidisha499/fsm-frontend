@@ -400,7 +400,7 @@ export class AdminPage implements OnInit, AfterViewInit {
     }
 
     this.loadData();
-    this.loadAllKPIs('today');
+    // Replaced loadAllKPIs with unified loadData
 
     // Naya fresh interval lagao based on settings
     const savedSync = localStorage.getItem('admin_sync_interval');
@@ -435,40 +435,7 @@ export class AdminPage implements OnInit, AfterViewInit {
     });
   }
 
-  // Main function jo filters ke hisab se data refresh karega
-  loadAllKPIs(timeframe: string) {
-    this.selectedTimeframe = timeframe;
-    this.fetchCriminalKPI(timeframe);
-    this.fetchEventsKPI(timeframe);
-  }
-
-  // 1. Criminal Activity Function
-  fetchCriminalKPI(timeframe: string) {
-    this.dataService.getForestKPIs('criminal', timeframe).subscribe(
-      (res: any) => {
-        // Database mein category 'criminal' honi chahiye tabhi count aayega
-        this.criminalCount = res.count || 0;
-        console.log('Criminal Count:', this.criminalCount);
-      },
-      (err) => {
-        this.criminalCount = 0;
-      },
-    );
-  }
-
-  // 2. Events & Monitoring Function
-  fetchEventsKPI(timeframe: string) {
-    this.dataService.getForestKPIs('events', timeframe).subscribe(
-      (res: any) => {
-        // Database mein category 'events' honi chahiye
-        this.eventsCount = res.count || 0;
-        console.log('Events Count:', this.eventsCount);
-      },
-      (err) => {
-        this.eventsCount = 0;
-      },
-    );
-  }
+  // fetchCriminalKPI, fetchEventsKPI, and loadAllKPIs are now obsolete as centralized in loadData()
 
   // admin.page.ts mein filter change function:
 
@@ -509,13 +476,8 @@ export class AdminPage implements OnInit, AfterViewInit {
 
   segmentChanged(ev: any) {
     const val = ev.detail.value; // 'today', 'week', ya 'month'
-    this.selectedTimeframe = val;
-
-    // Dono KPIs ko refresh karein
-    this.fetchCriminalKPI(val);
-    this.fetchEventsKPI(val);
-
-    // Chart ko bhi naye data ke saath update karne ka trigger yahan dein
+    this.activeDateFilter = val;
+    this.loadData();
     this.loadTrendData();
   }
 
@@ -863,34 +825,31 @@ private updateMapMarkers() {
 
         // SIRF TABHI UPDATE KARO JAB DATA 0 SE JYADA HO
         // Taaki bad mein aane wala empty response data ko overwrite na kare
-        if (
-          res.sightings &&
-          (Number(res.sightings.criminal_count) > 0 ||
-            Number(res.sightings.events_count) > 0)
-        ) {
-          this.criminalActivityCount = Number(res.sightings.criminal_count);
-          this.sightingsCount = Number(res.sightings.events_count);
-          this.incidentsCount = Number(res.sightings.total_events);
-          console.log('✅ KPI Updated with Real Data!');
-        } else if (!this.criminalActivityCount) {
-          // Agar pehle se koi data nahi hai, tabhi 0 set karo
+        if (res.sightings) {
+          // Robust Update of all linked variables
+          this.criminalCount = Number(res.sightings.criminal_count || 0);
+          this.eventsCount = Number(res.sightings.events_count || 0);
+          
+          this.criminalActivityCount = this.criminalCount;
+          this.sightingsCount = this.eventsCount;
+          this.incidentsCount = Number(res.sightings.total_events || 0);
+          
+          console.log('📊 UNIFIED KPI REFRESH:', {
+            criminal: this.criminalCount,
+            events: this.eventsCount,
+            total: this.incidentsCount,
+            timeframe: currentTimeframe
+          });
+        } else {
+          console.warn('⚠️ No sightings data in response!');
+          this.criminalCount = 0;
+          this.eventsCount = 0;
           this.criminalActivityCount = 0;
           this.sightingsCount = 0;
         }
-        // --- 3. DASHBOARD COUNTS (OVERWRITE PROTECTION) ---
+        // --- 3. DASHBOARD COUNTS (TODAY) ---
         const stats = res.stats || {};
-
-        // FIX: Sirf tabhi overwrite karo agar sightings khali ho aur stats mein kuch real data ho
-        if (
-          (!this.criminalActivityCount || this.criminalActivityCount === 0) &&
-          stats.criminalEvents > 0
-        ) {
-          this.criminalActivityCount = stats.criminalEvents;
-        }
-
-        // Fire, Attendance aur baaki dashboard specific counts
-        this.fireAlertsCount =
-          stats.fireEvents || (res.fireCount?.count ?? res.fireCount ?? 0);
+        this.fireAlertsCount = stats.fireEvents || (res.fireCount?.count ?? res.fireCount ?? 0);
         this.attendancePercent = stats.resolvedPercentage || 0;
 
         // --- 4. PERSONNEL & RANGERS ---
@@ -1585,32 +1544,10 @@ updateVisiblePins() {
     return colors[layerId] || '#3b82f6';
   }
 
+  // Old loadKPIs removed as everything is now in loadData()
   loadKPIs() {
-    const cId = 1; // Tera Company ID
-    const today = new Date().toLocaleDateString('en-CA'); // "2024-03-22" format
-
-    // 1. Sightings KPI (Events)
-    this.adminService.getEventsAnalytics(cId, 'today').subscribe((res: any) => {
-      // Ab yahan res.total_events mein "0" aayega agar aaj entry nahi hai
-      this.sightingsCount = res.total_events || 0;
-
-      // Graph update
-      this.trends.events = [0, 0, 0, 0, this.sightingsCount];
-      this.initHomeCharts();
-      this.cdr.detectChanges();
-    });
-
-    // 2. Fire Alerts KPI
-    this.adminService.getFireAlertsCount(cId, today).subscribe((res: any) => {
-      this.fireAlertsCount = res.count || 0;
-      this.cdr.detectChanges();
-    });
-
-    // 3. On Duty KPI
-    this.adminService.getOnDutyCount(cId, today).subscribe((res: any) => {
-      this.onDutyCount = res.count || 0;
-      this.cdr.detectChanges();
-    });
+    console.log('Redundant loadKPIs called - switching to loadData');
+    this.loadData();
   }
 
   // --- UI Methods ---
@@ -1647,9 +1584,8 @@ updateVisiblePins() {
     });
     await loading.present();
     
-    // Fetch latest data from backend
+    // Fetch latest data from backend in one go
     this.loadData();
-    this.loadKPIs();
     this.loadTrendData();
     this.loadBeatCoverage();
 

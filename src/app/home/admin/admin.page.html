@@ -98,16 +98,17 @@
           (change)="doRefresh()"
         >
           <option value="all">All Ranges</option>
-          <option value="north">North Division</option>
-          <option value="south">South Valley</option>
-          <option value="east">East Plateau</option>
+          <option value="north">seminary hills range</option>
+          <!-- <option value="south">South Valley</option>
+          <option value="east">East Plateau</option> -->
         </select>
 
         <select class="fselect" [(ngModel)]="selectedBeat" (change)="doRefresh()">
           <option value="all">All Beats</option>
-          <option value="alpha">Beat Alpha</option>
-          <option value="beta">Beat Beta</option>
-          <option value="buffer">River Buffer</option>
+          <option value="alpha">ambazari beat</option>
+          <option value="beta">gorewada beat</option>
+          <option value="buffer">rajbhavan beat</option>
+           <option value="buffer">friends colony beat</option>
         </select>
 
         <button
@@ -229,7 +230,7 @@
         <div class="kpi-trend up">▲ {{ attendancePercent }}% Attendance</div>
       </div>
 
-      <div class="kpi-card" data-c="teal">
+      <!-- <div class="kpi-card" data-c="teal">
         <div class="kpi-ico" style="background:#f0fdfa">
           <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#0d9488" stroke-width="2">
             <polygon points="3 11 22 2 13 21 11 13 3 11"/>
@@ -238,7 +239,7 @@
         <div class="kpi-val">0</div>
         <div class="kpi-lbl">Patrol Beats Covered</div>
         <div class="kpi-trend up">▲ All Covered</div>
-      </div>
+      </div> -->
 
       <div class="kpi-card" data-c="rose" (click)="goAnalytics('criminal')">
         <div class="kpi-ico" style="background:#fff1f2">
