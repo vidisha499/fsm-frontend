@@ -9,7 +9,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { Router } from '@angular/router'; // 1. Added Router
-import { NavController, MenuController } from '@ionic/angular';
+import { NavController, MenuController, LoadingController } from '@ionic/angular';
 import { Chart, registerables, ChartConfiguration } from 'chart.js';
 import { DataService } from 'src/app/data.service';
 import { AdminDataService } from 'src/app/services/admin-data';
@@ -367,6 +367,7 @@ export class AdminPage implements OnInit, AfterViewInit {
     private hierarchyService: HierarchyService,
     private eRef: ElementRef,
     private zone: NgZone,
+    private loadingCtrl: LoadingController,
   ) {}
 
   @HostListener('document:click', ['$event'])
@@ -916,15 +917,20 @@ let processedPins: any[] = [];
 // A. Alerts Mapping (Immediate display of SOS, Mining, Felling, etc.)
 const rawAlerts = res.alerts || [];
 if (rawAlerts.length > 0) {
-    const today = new Date().toISOString().split('T')[0];
+    const todayStr = new Date().toDateString();
     const alertPins = rawAlerts
         .filter((inc: any) => {
             const hasLat = !isNaN(parseFloat(inc.latitude)) && parseFloat(inc.latitude) !== 0;
-            const incDate = (inc.created_at || '').split('T')[0];
-            return hasLat && incDate === today; // Filter for Today only
+            if (!hasLat) return false;
+
+            // Robust Date Check (Handles Date objects and various string formats)
+            const incDateObj = inc.created_at ? new Date(inc.created_at) : null;
+            const isToday = incDateObj && incDateObj.toDateString() === todayStr;
+            
+            return isToday; // Only Today for Map view
         })
         .map((inc: any) => {
-            const dbCriteria = (inc.incidentCriteria || inc.category || inc.type || inc.message || '').toUpperCase();
+            const dbCriteria = (inc.incidentCriteria || inc.category || inc.type || inc.message || inc.report_type || '').toUpperCase();
             
             let layerId = ''; 
             if (dbCriteria.includes('SOS')) layerId = 'sos';
@@ -955,21 +961,26 @@ if (rawAlerts.length > 0) {
 const forestRaw = [...(res.forestReports || []), ...(res.forest_reports || []), ...(res.forest_events || [])];
 if (forestRaw.length > 0) {
     console.log(`🌲 STEP 2: Processing Forest Data...`);
+    const todayStr = new Date().toDateString();
+
     const forestPins = forestRaw
         .filter((f: any) => {
             const latValid = !isNaN(parseFloat(f.latitude)) && parseFloat(f.latitude) !== 0;
+            if (!latValid) return false;
+
             const rType = (f.report_type || f.event_type || '').toLowerCase();
             const isNotAttendance = !rType.includes('attendance') && !rType.includes('onsite');
             
-            // Filter for Today locally as well
-            const today = new Date().toISOString().split('T')[0];
-            const fDate = (f.date || f.created_at || '').split('T')[0];
-            return latValid && isNotAttendance && fDate === today;
+            // Robust Date Check
+            const fDateObj = f.date || f.created_at ? new Date(f.date || f.created_at) : null;
+            const isToday = fDateObj && fDateObj.toDateString() === todayStr;
+
+            return isNotAttendance && isToday;
         })
         .map((f: any) => {
             const cat = (f.category || '').toLowerCase();
             const rType = (f.report_type || f.event_type || '').toLowerCase();
-            const fullType = `${cat} ${rType}`;
+            const fullType = `${cat} ${rType}`.toLowerCase();
 
             let layerId = ''; 
 
@@ -1258,18 +1269,24 @@ if (typeof this.updateVisiblePins === 'function') {
     if (!this.LAYERS_DATA || !this.layerStates || !this.activePinsDisplay)
       return activeStats;
 
-    const today = new Date().toISOString().split('T')[0];
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const todayStr = new Date().toDateString();
+    
+    // For "Recent" we also handle Yesterday
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterdayStr = yesterdayDate.toDateString();
 
     Object.values(this.LAYERS_DATA).forEach((category: any) => {
       category.items.forEach((item: any) => {
         if (this.layerStates[item.id]) {
           const count = this.activePinsDisplay.filter((p) => {
             const isSameLayer = p.layerId === item.id;
-            const pDate = (p.created_at || p.date || '').split('T')[0];
-            const isRecent = pDate === today || pDate === yesterdayStr;
+            
+            // Robust Date Check for Legend counts
+            const pDateObj = p.created_at || p.date ? new Date(p.created_at || p.date) : null;
+            const pDateStr = pDateObj ? pDateObj.toDateString() : '';
+            
+            const isRecent = pDateStr === todayStr || pDateStr === yesterdayStr;
             return isSameLayer && isRecent;
           }).length;
 
@@ -1460,15 +1477,13 @@ updateVisiblePins() {
     const today = new Date().toISOString().split('T')[0];
     let processedPins: any[] = [];
 
-    // --- A. Forest Events & Reports (Dono handle ho rahe hain) ---
-    // Agar backend 'forestEvents' bhej raha hai ya 'forestReports', dono merge ho jayenge
+    // --- A. Forest Events & Reports ---
     const forestData = [
       ...(res.forestReports || []),
       ...(res.forest_events || []),
     ];
 
     if (forestData.length > 0) {
-      console.log(`🌲 Processing ${forestData.length} Forest Items...`);
       const forestPins = forestData
         .filter(
           (f: any) =>
@@ -1483,6 +1498,7 @@ updateVisiblePins() {
           else if (type.includes('poaching')) layerId = 'animal_poaching';
           else if (type.includes('sighting')) layerId = 'animal_sighting';
           else if (type.includes('water')) layerId = 'water_status';
+          else if (type.includes('fire')) layerId = 'fire_warning';
 
           return {
             ...f,
@@ -1495,22 +1511,51 @@ updateVisiblePins() {
       processedPins = [...processedPins, ...forestPins];
     }
 
-    // --- B. Standard Incidents (Fixed TS7006 Error) ---
+    // --- B. SOS Alerts (CRITICAL: Added to Map) ---
+    if (res.alerts && Array.isArray(res.alerts)) {
+      const sosPins = res.alerts
+        .filter((a: any) => {
+          const isSos = (a.category === 'SOS' || (a.type && a.type.toUpperCase().includes('SOS')));
+          const hasLoc = !isNaN(parseFloat(a.latitude)) && parseFloat(a.latitude) !== 0;
+          return isSos && hasLoc;
+        })
+        .map((sos: any) => ({
+          ...sos,
+          latitude: parseFloat(sos.latitude),
+          longitude: parseFloat(sos.longitude),
+          layerId: 'sos',
+          displayLabel: 'SOS Emergency',
+          emoji: '🚨',
+          color: '#f43f5e'
+        }));
+      processedPins = [...processedPins, ...sosPins];
+    }
+
+    // --- C. Standard Incidents ---
     if (res.mapIncidents && Array.isArray(res.mapIncidents)) {
-      const standardPins = res.mapIncidents.map((inc: any) => ({
-        ...inc,
-        latitude: parseFloat(inc.latitude),
-        longitude: parseFloat(inc.longitude),
-        layerId: 'general_incident',
-        displayLabel: inc.incidentCriteria || 'Incident',
-      }));
+      const standardPins = res.mapIncidents.map((inc: any) => {
+        let layerId = 'general_incident';
+        const crit = (inc.incidentCriteria || '').toLowerCase();
+        
+        if (crit.includes('fire')) layerId = 'fire_warning';
+        else if (crit.includes('felling')) layerId = 'illegal_felling';
+        else if (crit.includes('poaching')) layerId = 'animal_poaching';
+
+        return {
+          ...inc,
+          latitude: parseFloat(inc.latitude),
+          longitude: parseFloat(inc.longitude),
+          layerId: layerId,
+          displayLabel: inc.incidentCriteria || 'Incident',
+        };
+      });
       processedPins = [...processedPins, ...standardPins];
     }
 
     this.allIncidents = processedPins;
     this.alerts = res.alerts || [];
 
-    console.log('%c✅ Data Processed. Triggering Map...', 'color: cyan');
+    console.log(`%c✅ Data Processed. Pins: ${processedPins.length}`, 'color: cyan');
     this.updateVisiblePins();
   }
 
@@ -1589,16 +1634,34 @@ updateVisiblePins() {
     this.doRefresh();
   }
 
-  doRefresh() {
+
+  async doRefresh() {
     this.isRefreshing = true;
     this.isSpinning = true;
+
+    const loading = await this.loadingCtrl.create({
+      message: 'Refreshing Dashboard...',
+      duration: 5000, // Timeout protection
+      spinner: 'crescent',
+      cssClass: 'custom-loading'
+    });
+    await loading.present();
+    
+    // Fetch latest data from backend
+    this.loadData();
+    this.loadKPIs();
+    this.loadTrendData();
+    this.loadBeatCoverage();
+
     setTimeout(() => {
       this.isRefreshing = false;
       this.isSpinning = false;
-      // this.randomizeStats();
+      loading.dismiss();
+      
       if (this.activeSegment === 'overview') this.initHomeCharts();
       if (this.activeSegment === 'officers') this.initAttChart();
-    }, 700);
+      if (this.activeSegment === 'map') this.updateMapMarkers();
+    }, 1500);
   }
 
   goAnalytics(type: string) {

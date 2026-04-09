@@ -1284,7 +1284,7 @@
         display: flex;
         justify-content: space-between;
         gap: 10px;
-        margin-bottom: 8px;
+        margin-bottom: 4px;
       }
 
       .stat-box {
@@ -1304,8 +1304,8 @@
       .off-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 10px;
-        padding: 0 14px 14px;
+        gap: 8px;
+        padding: 0 14px 10px;
       }
 
       .off-card {
@@ -1390,7 +1390,7 @@
       }
 
       .officer-chart-card {
-        margin: 16px;
+        margin: 10px 16px;
         border-radius: 16px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.05);
       }

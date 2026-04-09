@@ -409,20 +409,19 @@ async fetchLocation() {
       formattedReportData[key] = userValue || "";
     });
 
-    // 2. GPS Coordinates extraction (Dono logic ka best part)
+    // 2. GPS Coordinates extraction (PRIORITIZE NUMERIC COORDINATES)
     const gpsField = this.dynamicFields.find(f => f.id === 'gps');
     const gpsValue = gpsField?.value || ""; 
     
-    // Latitude/Longitude nikalne ke liye prioritized logic
-    let lat = "0";
-    let lng = "0";
+    // Latitude/Longitude prioritized from reportData (where numeric strings are stored)
+    let lat = this.reportData['latitude'] || "0";
+    let lng = this.reportData['longitude'] || "0";
 
-    if (gpsValue && gpsValue.includes(',')) {
-      lat = gpsValue.split(',')[0].trim();
-      lng = gpsValue.split(',')[1].trim();
-    } else if (this.reportData['latitude'] && this.reportData['longitude']) {
-      lat = this.reportData['latitude'];
-      lng = this.reportData['longitude'];
+    // Backup only: If reportData is missing lat/lng, try parsing from gpsValue
+    if ((lat === "0" || !lat) && gpsValue && gpsValue.includes(',')) {
+      const parts = gpsValue.split(',');
+      lat = parts[0].trim();
+      lng = parts[1].trim();
     }
 
     // 3. FINAL PAYLOAD (Dono versions ka merged data)

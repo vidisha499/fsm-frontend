@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { NavController } from '@ionic/angular';
 import { HierarchyService } from 'src/app/services/hierarchy.service';
+import { LoadingController } from '@ionic/angular';
 
 @Component({
   selector: 'app-forest-events',
@@ -15,11 +16,27 @@ export class ForestEventsPage {
 
   constructor(private navCtrl: NavController , 
     private route: ActivatedRoute,
-    private hierarchyService: HierarchyService) {}
+    private hierarchyService: HierarchyService,
+    private loadingCtrl: LoadingController) {}
  
 
     ngOnInit() {
     this.loadBeat();
+  }
+
+  async doRefresh() {
+    const loading = await this.loadingCtrl.create({
+      message: 'Refreshing Beat Data...',
+      duration: 2000,
+      spinner: 'circles'
+    });
+    await loading.present();
+
+    this.loadBeat();
+
+    setTimeout(() => {
+      loading.dismiss();
+    }, 1000);
   }
 
 
