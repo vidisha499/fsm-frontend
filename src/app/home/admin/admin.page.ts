@@ -111,6 +111,8 @@ export class AdminPage implements OnInit, AfterViewInit {
   };
 
   // --- UI State ---
+  chartInstance: any;
+  myCompanyId!: number;
   // YE NEECHE WAALI LINES ADD KARO
   criminalCount: number = 0;
   eventsCount: number = 0;
@@ -181,14 +183,6 @@ export class AdminPage implements OnInit, AfterViewInit {
   // trendChart: any;
 
   layerStates: { [key: string]: boolean } = {
-    // illegal_felling: true,
-    // poaching: true,
-    // illegal_mining: true,
-    // animal_sighting: true,
-    // water_status: true,
-    // fire_warning: true,
-    // patrols: true,
-    // sos: true,
     illegal_felling: true,
     animal_poaching: true, // poaching se animal_poaching kiya
     illegal_mining: true,
@@ -385,6 +379,17 @@ export class AdminPage implements OnInit, AfterViewInit {
   }
 
   ngOnInit() {
+
+    const rawData = localStorage.getItem('user_data');
+  const userData = rawData ? JSON.parse(rawData) : null;
+  
+  // Sahi key 'company_id' use karo jaisa tere storage mein hai
+  this.myCompanyId = userData ? Number(userData.company_id || userData.companyId) : 0;
+  
+  console.log("✅ Admin Page Loaded for Company ID:", this.myCompanyId);
+
+    const savedId = localStorage.getItem('companyId'); 
+  this.myCompanyId = savedId ? Number(savedId) : 0;
     this.loadActivePatrols();
 
     // Har 30 seconds mein update karein (Live Tracking feel ke liye)
@@ -435,51 +440,55 @@ export class AdminPage implements OnInit, AfterViewInit {
     });
   }
 
-  // fetchCriminalKPI, fetchEventsKPI, and loadAllKPIs are now obsolete as centralized in loadData()
-
-  // admin.page.ts mein filter change function:
-
   onRangeChange(newRange: string) {
     this.selectedRange = newRange; // 'today', 'week', ya 'month'
 
     // Dono KPIs ko dobara fetch karein
-    this.fetchKPI('criminal', newRange);
+    this.fetchKPI('crimes', newRange);
     this.fetchKPI('events', newRange);
   }
+fetchKPI(category: string, range: string) {
+  // Direct storage se uthao taaki galti na ho
+  const rawData = localStorage.getItem('user_data');
+  const cId = rawData ? JSON.parse(rawData).company_id : this.myCompanyId;
 
-  fetchKPI(category: string, range: string) {
-    this.dataService.getForestKPIs(category, range).subscribe(
-      (res: any) => {
-        console.log(`Data for ${category}:`, res); // Check karo 'count' aa raha hai ya 'criminal_count'
+  console.log(`📡 Calling API for ${category} - Range: ${range}`);
+  // fetchKPI ke andar ye log check kar
+console.log(`Sending to Service -> ID: ${cId}, Range: ${range}, Cat: ${category}`);
 
-        if (category === 'criminal') {
-          // 🔥 FIX: Agar backend 'criminal_count' bhej raha hai toh wahi likho
-          this.criminalCount =
-            res.criminal_count !== undefined
-              ? res.criminal_count
-              : res.count || 0;
-        } else {
-          // 🔥 FIX: Events ke liye bhi same check
-          this.eventsCount =
-            res.events_count !== undefined ? res.events_count : res.count || 0;
-        }
-      },
-      (err) => {
-        console.error('KPI Fetch Error:', err);
-        if (category === 'criminal') this.criminalCount = 0;
-        else this.eventsCount = 0;
-      },
-    );
-  }
-
+  this.dataService.getForestKPIs(cId, range, category).subscribe({
+    next: (res: any) => {
+      console.log(`✅ ${category} Response:`, res);
+      
+      if (category === 'crimes') {
+        // Backend 'count' bhej raha hai ya 'criminal_count', dono check karo
+        this.criminalActivityCount = Number(res.count !== undefined ? res.count : (res.criminal_count || 0));
+      } else {
+        this.sightingsCount = Number(res.count !== undefined ? res.count : (res.events_count || 0));
+      }
+      this.cdr.detectChanges(); 
+    },
+    error: (err) => console.error(`❌ KPI Error (${category}):`, err)
+  });
+}
   // admin.page.ts
+segmentChanged(event: any) {
+  const val = event.detail.value;
+  this.selectedTimeframe = val;
+  this.activeDateFilter = val;
 
-  segmentChanged(ev: any) {
-    const val = ev.detail.value; // 'today', 'week', ya 'month'
-    this.activeDateFilter = val;
+  console.log('🕒 Fetching for:', val);
+
+  // 1. Pehle Cards update karo
+  this.fetchKPI('crimes', val);
+  this.fetchKPI('events', val);
+
+  // 2. Thoda gap dekar charts aur data load karo
+  setTimeout(() => {
     this.loadData();
     this.loadTrendData();
-  }
+  }, 300); 
+}
 
   ngOnDestroy() {
     // 1. Interval band karo (Ye tere paas hai)
@@ -708,12 +717,12 @@ private updateMapMarkers() {
         dates.to,
       ),
       // sightings: this.dataService.getSightingCount(myCompanyId, dates.from || '', dates.to || ''),
-      sightings: this.dataService.getEventsAnalytics(
-        myCompanyId,
-        currentTimeframe,
-        dates.from,
-        dates.to,
-      ),
+   sightings: this.dataService.getEventsAnalytics(
+  myCompanyId, 
+  this.selectedTimeframe, // 'today', 'week', etc.
+  dates.from, 
+  dates.to
+),
 
       // Fire Alerts (Backend handle karega dates)
       // fireCount: this.adminService.getFireAlertsCount(myCompanyId, localISOTime, dates.from, dates.to),
@@ -736,7 +745,8 @@ private updateMapMarkers() {
         dates.to,
       ),
       assetsTrend: this.dataService.getAssetsTrend(myCompanyId),
-      forestReports: this.dataService.getForestMapData(myCompanyId, 'today'),
+      // forestReports: this.dataService.getForestMapData(myCompanyId, 'today'),
+      forestReports: this.dataService.getForestMapData(myCompanyId, this.selectedTimeframe),
     }).subscribe({
       next: (res: any) => {
         // Backend se 'total_events' aa raha hai, toh wahi assign karo
@@ -822,31 +832,63 @@ private updateMapMarkers() {
             }
           }, 300);
         }
+// loadData() ke andar subscribe ke next: (res: any) mein ye change kar:
+if (res.sightings) {
+  // ⚡ FIX: Sirf tabhi overwrite karo jab Today ho, varna fetchKPI wala data rehn do
+  if (this.selectedTimeframe === 'today') {
+    this.criminalActivityCount = Number(res.sightings.criminal_count || 0);
+    this.sightingsCount = Number(res.sightings.events_count || 0);
+    console.log("✅ Today KPIs synced from loadData");
+  } else {
+    console.log(`⏩ Skipping loadData overwrite for ${this.selectedTimeframe}`);
+  }
+}
 
-        // SIRF TABHI UPDATE KARO JAB DATA 0 SE JYADA HO
-        // Taaki bad mein aane wala empty response data ko overwrite na kare
-        if (res.sightings) {
-          // Robust Update of all linked variables
-          this.criminalCount = Number(res.sightings.criminal_count || 0);
-          this.eventsCount = Number(res.sightings.events_count || 0);
+//         if (res.sightings) {
+//   // 🔥 Backend se range ke hisab se count uthao
+//   // Agar Week select hai, toh res.sightings mein week ka data hona chahiye
+//   this.criminalCount = Number(res.sightings.criminal_count || 0);
+//   this.eventsCount = Number(res.sightings.events_count || 0);
+
+//   // Cards display variables ko update karo
+//   this.criminalActivityCount = this.criminalCount; 
+//   this.sightingsCount = this.eventsCount;
+//   this.incidentsCount = Number(res.sightings.total_events || (this.criminalCount + this.eventsCount));
+
+//   console.log(`✅ KPI CARDS SYNCED [${this.selectedTimeframe}]:`, {
+//     criminal: this.criminalActivityCount,
+//     events: this.sightingsCount
+//   });
+// }
+
+
+
+        
+
+        // // SIRF TABHI UPDATE KARO JAB DATA 0 SE JYADA HO
+        // // Taaki bad mein aane wala empty response data ko overwrite na kare
+        // if (res.sightings) {
+        //   // Robust Update of all linked variables
+        //   this.criminalCount = Number(res.sightings.criminal_count || 0);
+        //   this.eventsCount = Number(res.sightings.events_count || 0);
           
-          this.criminalActivityCount = this.criminalCount;
-          this.sightingsCount = this.eventsCount;
-          this.incidentsCount = Number(res.sightings.total_events || 0);
+        //   this.criminalActivityCount = this.criminalCount;
+        //   this.sightingsCount = this.eventsCount;
+        //   this.incidentsCount = Number(res.sightings.total_events || 0);
           
-          console.log('📊 UNIFIED KPI REFRESH:', {
-            criminal: this.criminalCount,
-            events: this.eventsCount,
-            total: this.incidentsCount,
-            timeframe: currentTimeframe
-          });
-        } else {
-          console.warn('⚠️ No sightings data in response!');
-          this.criminalCount = 0;
-          this.eventsCount = 0;
-          this.criminalActivityCount = 0;
-          this.sightingsCount = 0;
-        }
+        //   console.log('📊 UNIFIED KPI REFRESH:', {
+        //     criminal: this.criminalCount,
+        //     events: this.eventsCount,
+        //     total: this.incidentsCount,
+        //     timeframe: currentTimeframe
+        //   });
+        // } else {
+        //   console.warn('⚠️ No sightings data in response!');
+        //   this.criminalCount = 0;
+        //   this.eventsCount = 0;
+        //   this.criminalActivityCount = 0;
+        //   this.sightingsCount = 0;
+        // }
         // --- 3. DASHBOARD COUNTS (TODAY) ---
         const stats = res.stats || {};
         this.fireAlertsCount = stats.fireEvents || (res.fireCount?.count ?? res.fireCount ?? 0);
@@ -974,84 +1016,7 @@ this.alerts = res.alerts || [];
 if (typeof this.updateVisiblePins === 'function') {
     this.updateVisiblePins();
 }
-        // const today = new Date().toISOString().split('T')[0];
-
-        // let processedPins: any[] = [];
-
-        // // A. Standard Incidents (Filter for Today)
-        // if (res.mapIncidents && Array.isArray(res.mapIncidents)) {
-        //   const incidentPins = res.mapIncidents
-        //     .filter((inc: any) => {
-        //       // Sirf aaj ke incidents rakhein
-        //       const incDate = inc.created_at ? inc.created_at.split('T')[0] : '';
-        //       return incDate === today;
-        //     })
-        //     .map((inc: any) => {
-        //       const dbCriteria = (inc.incidentCriteria || '').toUpperCase();
-        //       const rawSubCat = inc.subCategory || '';
-        //       const normalizedSub = rawSubCat.toLowerCase().trim().replace(/\s+/g, '_');
-
-        //       let finalLayerId = 'general_incident';
-        //       if (dbCriteria.includes('POACH') || normalizedSub.includes('poach')) finalLayerId = 'animal_poaching';
-        //       else if (dbCriteria.includes('FIRE') || normalizedSub.includes('fire')) finalLayerId = 'fire_warning';
-        //       else if (dbCriteria.includes('FELL') || normalizedSub.includes('felling')) finalLayerId = 'illegal_felling';
-        //       else if (dbCriteria.includes('MINING') || normalizedSub.includes('mining')) finalLayerId = 'illegal_mining';
-
-        //       return {
-        //         ...inc,
-        //         layerId: finalLayerId,
-        //         displayLabel: dbCriteria.includes('FIRE') ? 'Fire Warning' : (rawSubCat || inc.incidentCriteria || 'Incident')
-        //       };
-        //     });
-        //   processedPins = [...incidentPins];
-        // }
-
-        // // B. SOS Alerts (Filter for Today)
-        // if (res.alerts && Array.isArray(res.alerts)) {
-        //   const sosPins = res.alerts
-        //     .filter((a: any) => {
-        //       const isSos = (a.category === 'SOS' || (a.type && a.type.toUpperCase().includes('SOS')));
-        //       const isToday = a.created_at ? a.created_at.split('T')[0] === today : false;
-        //       return isSos && isToday;
-        //     })
-        //     .map((sos: any) => ({
-        //       ...sos,
-        //       layerId: 'sos',
-        //       displayLabel: 'SOS Emergency',
-        //       emoji: '🚨',
-        //       color: '#f43f5e'
-        //     }));
-        //   processedPins = [...processedPins, ...sosPins];
-        // }
-
-        // // C. Sightings (Filter for Today)
-        // if (res.allSightings && Array.isArray(res.allSightings)) {
-        //   const sightingPins = res.allSightings
-        //     .filter((s: any) => {
-        //       const sDate = s.created_at ? s.created_at.split('T')[0] : '';
-        //       return sDate === today;
-        //     })
-        //     .map((s: any) => {
-        //       const isWater = (s.category || '').toLowerCase().includes('water') || (s.species || '').toLowerCase().includes('water');
-        //       const type = isWater ? 'water' : 'animal';
-        //       return {
-        //         ...s,
-        //         layerId: type,
-        //         displayLabel: isWater ? 'Water Status' : 'Animal Sighting',
-        //         emoji: isWater ? '💧' : '🐾',
-        //         color: isWater ? '#0ea5e9' : '#e11d48'
-        //       };
-        //     });
-        //   processedPins = [...processedPins, ...sightingPins];
-        // }
-
-        // // Store and Update Map
-        // this.allIncidents = processedPins;
-        // this.alerts = res.alerts || [];
-
-        // if (typeof (this as any).updateVisiblePins === 'function') {
-        //   (this as any).updateVisiblePins();
-        // }
+   
 
         //alerts sections here
         console.log('--- 🕵️ ALERTS PROCESSING START ---');
@@ -2060,6 +2025,11 @@ updateVisiblePins() {
   initTrendChart(labels: string[], values: number[]) {
     const canvas = document.getElementById('c-trend') as HTMLCanvasElement;
     if (!canvas) return;
+
+    // 🔥 Purane chart ko khatam karo naya banane se pehle
+  if (this.chartInstance) {
+    this.chartInstance.destroy();
+  }
 
     // Purana chart destroy karo (Canvas reuse error fix)
     if (this.trendChart) {

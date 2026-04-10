@@ -183,13 +183,15 @@ criminal: {
 events: {
     label: "🐾 Events & Monitoring",
     subs: [
-      // { 
-      //   id: "jfmc", label: "JFMC / Social Forestry", emoji: "👥", color: COLORS.green, val: 0,
-      //   charts: [
-      //     { title: "JFMC Trend", id: "ev-jf1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.green) },
-      //     { title: "Range-wise JFMC", id: "ev-jf2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
-      //   ]
-      // },
+      { 
+        id: "jfmc", label: "JFMC / Social Forestry", emoji: "👥", color: COLORS.green, val: 0,
+        charts: [
+          { title: "JFMC Trend", id: "ev-jf1", render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.green) },
+          { title: "Range-wise JFMC", id: "ev-jf2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
+        ]
+      },
+
+
 { 
   id: "wild_animal", 
   label: "Wild Animal Sighting", 
@@ -201,6 +203,7 @@ events: {
       title: "Sightings by Species", 
       sub: "Wild animal sightings per species this period",
       id: "ev-an1", 
+
       render: (id: string, obj: any) => {
         if (obj.config) {
           return this.renderCustomChart(id, obj.config); 
@@ -218,12 +221,8 @@ events: {
         }
         return this.renderLineChart(id, obj.dynamicData || [], "#4caf50");
       }
-    },
-    // { 
-    //   title: "Range-wise Sightings", 
-    //   id: "ev-an3", 
-    //   render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || [])
-    // }
+
+    }
   ]
 },
       

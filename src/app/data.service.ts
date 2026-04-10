@@ -426,19 +426,22 @@ submitForestEvent(payload: any) {
 getUserCompanyId() {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   // Agar user object mein company_id hai toh wo return karo, nahi toh null
-  return user.company_id || null; 
+  return user.company_id || user.companyId || null;
 }
 
 // data.service.ts
-  getForestKPIs(category: string, timeframe: string, companyId?: number) {
-    // Yahan 'forest-events' path add kiya gaya hai
-    let params: any = { category: category, range: timeframe };
-    if (companyId) params.companyId = companyId;
+// data.service.ts
+getForestKPIs(companyId: number, timeframe: string, category: string) {
+  // Dono keys bhej do taaki backend jo bhi dhoond raha ho use mil jaye
+  let params = { 
+    companyId: companyId,
+    timeframe: timeframe, 
+    range: timeframe,    // Kuch backend 'range' mangte hain
+    category: category 
+  };
 
-    return this.http.get(`${this.baseApiUrl}/forest-events/analytics/kpi`, {
-      params: params
-    });
-  }
+  return this.http.get(`${this.baseApiUrl}/forest-events/analytics/kpi`, { params });
+}
 
 getForestMapData(companyId: number, range?: string): Observable<any[]> {
   const params = range ? `?range=${range}` : '';

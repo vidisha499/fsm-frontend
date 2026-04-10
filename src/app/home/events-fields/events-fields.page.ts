@@ -13,6 +13,7 @@ import { HierarchyService } from 'src/app/services/hierarchy.service';
   standalone: false,
 })
 export class EventsFieldsPage implements OnInit {
+  
   reportData: any = {};
   eventTitle: string = 'Logs';
   currentCategory: string = 'General'; // <--- YE LINE ADD KARO
@@ -409,6 +410,10 @@ async fetchLocation() {
       formattedReportData[key] = userValue || "";
     });
 
+    // 🔥 YE LOGIC YAHAN HONA CHAHIYE (Function ke andar)
+    const indiaTime = new Date().toLocaleString("en-US", {timeZone: "Asia/Kolkata"});
+    const now = new Date(indiaTime);
+
     // 2. GPS Coordinates extraction (PRIORITIZE NUMERIC COORDINATES)
     const gpsField = this.dynamicFields.find(f => f.id === 'gps');
     const gpsValue = gpsField?.value || ""; 
@@ -423,13 +428,21 @@ async fetchLocation() {
       lat = parts[0].trim();
       lng = parts[1].trim();
     }
+    console.log("LocalStorage Data:", localStorage.getItem('user_data'));
+console.log("Company ID from Service:", this.dataService.getUserCompanyId());
+
+const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+  const cId = userData.company_id || userData.companyId || 0;
+  const clientId = userData.client_id || userData.clientId || null;
+  const dynamicRangeName = userData.range_name || this.reportData['range'] ||null;
 
     // 3. FINAL PAYLOAD (Dono versions ka merged data)
     const payload = {
       report_id: 'FOR-' + Date.now(),
-      user_id: Number(this.dataService.getRangerId()) || 1,
-      company_id: Number(this.dataService.getUserCompanyId()) || 1,
-      
+      user_id: Number(this.dataService.getRangerId()),
+     company_id: Number(cId),
+     client_id: clientId,
+      range: null,
       // Category Mapping Logic
       category: (this.currentCategory?.toLowerCase().includes('criminal') || 
                 this.currentCategory?.toLowerCase().includes('crimes')) ? 'crimes' : 'events',
@@ -437,11 +450,7 @@ async fetchLocation() {
       // Type Mapping
       report_type: this.eventTitle ? this.eventTitle.toLowerCase().trim().replace(/\s/g, '_') : 'general_report',
       
-      // Timing Data
-      date_time: new Date().toISOString(),
-      date: new Date().toISOString().split('T')[0],
-      time: new Date().toLocaleTimeString(),
-      
+    
       // Location Data
       latitude: lat,
       longitude: lng,
