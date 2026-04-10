@@ -379,6 +379,7 @@ export class AdminPage implements OnInit, AfterViewInit {
   }
 
   ngOnInit() {
+    this.selectedTimeframe = 'today';
 
     const rawData = localStorage.getItem('user_data');
   const userData = rawData ? JSON.parse(rawData) : null;
@@ -447,30 +448,30 @@ export class AdminPage implements OnInit, AfterViewInit {
     this.fetchKPI('crimes', newRange);
     this.fetchKPI('events', newRange);
   }
-fetchKPI(category: string, range: string) {
-  // Direct storage se uthao taaki galti na ho
+
+  
+
+  fetchKPI(category: string, range: string) {
   const rawData = localStorage.getItem('user_data');
   const cId = rawData ? JSON.parse(rawData).company_id : this.myCompanyId;
 
-  console.log(`📡 Calling API for ${category} - Range: ${range}`);
-  // fetchKPI ke andar ye log check kar
-console.log(`Sending to Service -> ID: ${cId}, Range: ${range}, Cat: ${category}`);
-
   this.dataService.getForestKPIs(cId, range, category).subscribe({
     next: (res: any) => {
-      console.log(`✅ ${category} Response:`, res);
+      // ⚡ Backend se res.count aa raha hai
+      const count = res && res.count !== undefined ? res.count : 0;
       
-      if (category === 'crimes') {
-        // Backend 'count' bhej raha hai ya 'criminal_count', dono check karo
-        this.criminalActivityCount = Number(res.count !== undefined ? res.count : (res.criminal_count || 0));
+      if (category === 'crimes' ) {
+        this.criminalCount = count;
       } else {
-        this.sightingsCount = Number(res.count !== undefined ? res.count : (res.events_count || 0));
+        this.eventsCount = count;
       }
-      this.cdr.detectChanges(); 
+      this.cdr.detectChanges(); // UI refresh
     },
-    error: (err) => console.error(`❌ KPI Error (${category}):`, err)
+    error: (err) => console.error("KPI Error:", err)
   });
 }
+
+
   // admin.page.ts
 segmentChanged(event: any) {
   const val = event.detail.value;
@@ -687,6 +688,19 @@ private updateMapMarkers() {
     });
 }
 
+changeTimeframe(newTimeframe: string) {
+  this.selectedTimeframe = newTimeframe; // 🔥 Ye update hona zaroori hai
+  this.activeDateFilter = newTimeframe;
+  
+  // Chart destroy karo taaki "Canvas already in use" error na aaye
+  if (this.trendChart) {
+    this.trendChart.destroy();
+  }
+
+  this.loadData(); // Fir se data fetch karo naye filter ke saath
+}
+
+
   loadData() {
     console.log('DEBUG: DataService Object ->', this.dataService);
     if (this.isFetching) return;
@@ -719,7 +733,8 @@ private updateMapMarkers() {
       // sightings: this.dataService.getSightingCount(myCompanyId, dates.from || '', dates.to || ''),
    sightings: this.dataService.getEventsAnalytics(
   myCompanyId, 
-  this.selectedTimeframe, // 'today', 'week', etc.
+  // this.selectedTimeframe, // 'today', 'week', etc.
+  this.selectedTimeframe || 'today',
   dates.from, 
   dates.to
 ),
@@ -747,14 +762,30 @@ private updateMapMarkers() {
       assetsTrend: this.dataService.getAssetsTrend(myCompanyId),
       // forestReports: this.dataService.getForestMapData(myCompanyId, 'today'),
       forestReports: this.dataService.getForestMapData(myCompanyId, this.selectedTimeframe),
-    }).subscribe({
+   }).subscribe({
       next: (res: any) => {
-        // Backend se 'total_events' aa raha hai, toh wahi assign karo
+        console.log("📊 STEP 1: Full Dashboard Response:", res);
+
+        // --- 1. SIGHTINGS & CRIMINAL DATA (THE "7" AND "4" FIX) ---
         if (res.sightings) {
-          this.sightingsCount = res.sightings.total_events ?? 0;
-        } else {
-          this.sightingsCount = 0;
+          const s = res.sightings;
+          // Console ke mutabiq keys yahi hain
+          this.criminalCount = Number(s.criminal_count || 0);
+          this.eventsCount = Number(s.events_count || 0);
+          
+          // Backup variables (agar cards in par chal rahe hon)
+          this.criminalActivityCount = this.criminalCount;
+          this.sightingsCount = this.eventsCount;
+          this.incidentsCount = Number(s.total_events || 0);
+
+          console.log("✅ Cards Updated:", {
+            criminal: this.criminalCount,
+            events: this.eventsCount
+          });
         }
+
+
+
         // --- 1. ASSETS DATA ---
         if (res.assetsStats) {
           this.totalAssetsCount = res.assetsStats.totalAssets || 0;
@@ -832,38 +863,6 @@ private updateMapMarkers() {
             }
           }, 300);
         }
-// loadData() ke andar subscribe ke next: (res: any) mein ye change kar:
-if (res.sightings) {
-  // ⚡ FIX: Sirf tabhi overwrite karo jab Today ho, varna fetchKPI wala data rehn do
-  if (this.selectedTimeframe === 'today') {
-    this.criminalActivityCount = Number(res.sightings.criminal_count || 0);
-    this.sightingsCount = Number(res.sightings.events_count || 0);
-    console.log("✅ Today KPIs synced from loadData");
-  } else {
-    console.log(`⏩ Skipping loadData overwrite for ${this.selectedTimeframe}`);
-  }
-}
-
-//         if (res.sightings) {
-//   // 🔥 Backend se range ke hisab se count uthao
-//   // Agar Week select hai, toh res.sightings mein week ka data hona chahiye
-//   this.criminalCount = Number(res.sightings.criminal_count || 0);
-//   this.eventsCount = Number(res.sightings.events_count || 0);
-
-//   // Cards display variables ko update karo
-//   this.criminalActivityCount = this.criminalCount; 
-//   this.sightingsCount = this.eventsCount;
-//   this.incidentsCount = Number(res.sightings.total_events || (this.criminalCount + this.eventsCount));
-
-//   console.log(`✅ KPI CARDS SYNCED [${this.selectedTimeframe}]:`, {
-//     criminal: this.criminalActivityCount,
-//     events: this.sightingsCount
-//   });
-// }
-
-
-
-        
 
         // // SIRF TABHI UPDATE KARO JAB DATA 0 SE JYADA HO
         // // Taaki bad mein aane wala empty response data ko overwrite na kare
@@ -907,8 +906,6 @@ if (res.sightings) {
           this.filteredRangers = [...this.rangers];
           this.allRangers = this.rangers.length;
         }
-
-        // --- 5. MAP DATA PROCESSING (INCIDENTS + SOS + SIGHTINGS + FOREST REPORTS) --
 
       // --- 5. MAP DATA PROCESSING (STRICTLY FOREST REPORTS & NO ATTENDANCE) ---
 console.log('%c🔍 STEP 1: API Response Received', 'color: orange; font-weight: bold', res);
