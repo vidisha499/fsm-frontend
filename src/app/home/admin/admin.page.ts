@@ -144,10 +144,17 @@ export class AdminPage implements OnInit, AfterViewInit {
   public incidentsCount: number = 0;
   public fireAlertsCount: number = 0;
   criminalActivityCount: number = 0;
+  criminalTrendData: number[] = [];
+  eventsTrendData: number[] = [];
+  fireTrendData: number[] = [];
   currentTime: string = '';
   activeTab: string = 'home';
   activeSegment: string = 'overview';
   activeDateFilter: string = 'today';
+
+  // Caching Trend Data to prevent it from disappearing
+  private lastTrendLabels: string[] = [];
+  private lastTrendValues: number[] = [];
   isFilterCollapsed: boolean = true;
   isRefreshing: boolean = false;
   isSpinning: boolean = false;
@@ -710,6 +717,7 @@ changeTimeframe(newTimeframe: string) {
 
     const user = JSON.parse(storageData);
     const myCompanyId = Number(user.company_id || user.companyId);
+    this.myCompanyId = myCompanyId; // Assign to class prop
 
     // Validation Check
     if (!myCompanyId || isNaN(myCompanyId)) {
@@ -769,19 +777,30 @@ changeTimeframe(newTimeframe: string) {
         // --- 1. SIGHTINGS & CRIMINAL DATA (THE "7" AND "4" FIX) ---
         if (res.sightings) {
           const s = res.sightings;
-          // Console ke mutabiq keys yahi hain
           this.criminalCount = Number(s.criminal_count || 0);
           this.eventsCount = Number(s.events_count || 0);
           
-          // Backup variables (agar cards in par chal rahe hon)
           this.criminalActivityCount = this.criminalCount;
           this.sightingsCount = this.eventsCount;
           this.incidentsCount = Number(s.total_events || 0);
 
-          console.log("✅ Cards Updated:", {
+          // Update trend data
+          this.criminalTrendData = (s.criminal_trend || []).map((t: any) => Number(t.count || 0));
+          this.eventsTrendData = (s.monitoring_trend || []).map((t: any) => Number(t.count || 0));
+          this.fireTrendData = (s.fire_trend || []).map((t: any) => Number(t.count || 0));
+
+          console.log("✅ Cards & Trends Updated:", {
             criminal: this.criminalCount,
-            events: this.eventsCount
+            events: this.eventsCount,
+            criminalTrend: this.criminalTrendData,
+            eventsTrend: this.eventsTrendData,
+            fireTrend: this.fireTrendData
           });
+
+          // TRIGGER CHART RE-RENDERING
+          setTimeout(() => {
+            this.initHomeCharts();
+          }, 100);
         }
 
 
@@ -851,18 +870,8 @@ changeTimeframe(newTimeframe: string) {
         //       }
 
         // --- 2. TREND CHART ---
-        if (res.assetsTrend) {
-          this.momStatus = res.assetsTrend.momLabel || '0% MoM';
-          this.isGoodTrend = res.assetsTrend.isImprovement;
-          setTimeout(() => {
-            if (typeof (this as any).initTrendChart === 'function') {
-              (this as any).initTrendChart(
-                res.assetsTrend.labels,
-                res.assetsTrend.values,
-              );
-            }
-          }, 300);
-        }
+        // (Removing redundant assetsTrend logic that conflicts with main Incident Trend)
+
 
         // // SIRF TABHI UPDATE KARO JAB DATA 0 SE JYADA HO
         // // Taaki bad mein aane wala empty response data ko overwrite na kare
@@ -1452,7 +1461,8 @@ updateVisiblePins() {
       processedPins = [...processedPins, ...sosPins];
     }
 
-    // --- C. Standard Incidents ---
+    // --- C. Standard Incidents (DISABLED: using forest_reports only) ---
+    /*
     if (res.mapIncidents && Array.isArray(res.mapIncidents)) {
       const standardPins = res.mapIncidents.map((inc: any) => {
         let layerId = 'general_incident';
@@ -1472,6 +1482,7 @@ updateVisiblePins() {
       });
       processedPins = [...processedPins, ...standardPins];
     }
+    */
 
     this.allIncidents = processedPins;
     this.alerts = res.alerts || [];
@@ -1548,7 +1559,6 @@ updateVisiblePins() {
     
     // Fetch latest data from backend in one go
     this.loadData();
-    this.loadTrendData();
     this.loadBeatCoverage();
 
     setTimeout(() => {
@@ -1556,7 +1566,11 @@ updateVisiblePins() {
       this.isSpinning = false;
       loading.dismiss();
       
-      if (this.activeSegment === 'overview') this.initHomeCharts();
+      // After loading is dismissed, canvas is visible again — render charts
+      if (this.activeSegment === 'overview') {
+        this.initHomeCharts(); // renders mini-charts
+        this.loadTrendData(); // fetches fresh trend and renders it
+      }
       if (this.activeSegment === 'officers') this.initAttChart();
       if (this.activeSegment === 'map') this.updateMapMarkers();
     }, 1500);
@@ -1599,56 +1613,12 @@ updateVisiblePins() {
 
   initHomeCharts() {
     // --- 1. MAIN INCIDENT TREND CHART ---
-    const tCanvas = document.getElementById('c-trend') as HTMLCanvasElement;
-    if (tCanvas) {
-      const tCtx = tCanvas.getContext('2d');
-      if (tCtx) {
-        // Purana chart destroy karo taaki error na aaye
-        const existingTrend = Chart.getChart('c-trend');
-        if (existingTrend) existingTrend.destroy();
-
-        this.mkChart('c-trend', {
-          type: 'line',
-          data: {
-            labels: Array.from({ length: 30 }, (_, i) => `D${i + 1}`),
-            datasets: [
-              {
-                data: this.rnd(30, 60, 15), // Isme tu real historical data bhi daal sakta hai
-                borderColor: this.COLORS.p,
-                backgroundColor: this.mkG(tCtx, this.COLORS.p),
-                fill: true,
-                tension: 0.4,
-                pointRadius: 0,
-                borderWidth: 2,
-                label: 'Incidents',
-              },
-            ],
-          },
-          options: {
-            ...this.CDAX,
-            plugins: { ...this.CDAX.plugins, legend: { display: false } },
-            scales: {
-              x: {
-                display: true,
-                grid: { display: false },
-                border: { display: false },
-                ticks: { color: '#94a3b8', font: { size: 8 } },
-              },
-              y: {
-                display: true,
-                beginAtZero: true,
-                grid: { color: 'rgba(226, 232, 240, 0.3)', drawBorder: false },
-                border: { display: false },
-                ticks: {
-                  color: '#94a3b8',
-                  font: { size: 8 },
-                  maxTicksLimit: 5,
-                },
-              },
-            },
-          },
-        });
-      }
+    // We re-render from cache if data exists to prevent it from disappearing during refreshes
+    if (this.lastTrendLabels.length > 0) {
+      this.initTrendChart(this.lastTrendLabels, this.lastTrendValues);
+    } else {
+      // If no data yet, we can trigger a load
+      this.loadTrendData();
     }
 
     // --- 2. CATEGORY SNAPSHOTS (MINI CHARTS) ---
@@ -1658,9 +1628,9 @@ updateVisiblePins() {
 
     const pairs: [string, number[], string, string?][] = [
       // Mapping to YOUR specific variables:
-      ['mc-crim', getTrend(this.criminalActivityCount), this.COLORS.rose],
-      ['mc-events', getTrend(this.sightingsCount), this.COLORS.amber],
-      ['mc-fire', getTrend(this.fireAlertsCount), this.COLORS.orange, 'bar'],
+      ['mc-crim', this.criminalTrendData.length > 0 ? this.criminalTrendData : getTrend(this.criminalActivityCount), this.COLORS.rose],
+      ['mc-events', this.eventsTrendData.length > 0 ? this.eventsTrendData : getTrend(this.sightingsCount), this.COLORS.amber],
+      ['mc-fire', this.fireTrendData.length > 0 ? this.fireTrendData : getTrend(this.fireAlertsCount), this.COLORS.orange],
       ['mc-assets', getTrend(this.totalAssetsCount), this.COLORS.p],
       ['mc-duty', getTrend(this.onDutyCount), this.COLORS.blue, 'bar'],
     ];
@@ -2006,15 +1976,17 @@ updateVisiblePins() {
   }
 
   loadTrendData() {
-    const myCompanyId = 1;
+    const myCompanyId = this.myCompanyId || Number(localStorage.getItem('company_id')) || 1;
     this.dataService.getIncidentTrend(myCompanyId).subscribe({
       next: (data: any) => {
-        // Backend se jo naya data aayega usse yahan map karo
         this.momStatus = data.momLabel || '0% MoM';
-        this.isGoodTrend = data.isImprovement; // true matlab incidents kam hue (Green)
+        this.isGoodTrend = data.isImprovement; 
 
-        // Tera existing chart logic
-        this.initTrendChart(data.labels, data.values);
+        // Cache for re-initialization (prevents disappearing)
+        this.lastTrendLabels = data.labels || [];
+        this.lastTrendValues = data.values || [];
+
+        this.initTrendChart(this.lastTrendLabels, this.lastTrendValues);
       },
       error: (err: any) => console.error('Trend Chart Error:', err),
     });
@@ -2023,64 +1995,46 @@ updateVisiblePins() {
     const canvas = document.getElementById('c-trend') as HTMLCanvasElement;
     if (!canvas) return;
 
-    // 🔥 Purane chart ko khatam karo naya banane se pehle
-  if (this.chartInstance) {
-    this.chartInstance.destroy();
-  }
-
-    // Purana chart destroy karo (Canvas reuse error fix)
-    if (this.trendChart) {
-      this.trendChart.destroy();
-      this.trendChart = null;
+    if (this._charts['c-trend']) {
+      this._charts['c-trend'].destroy();
     }
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Fresh Gradient
-    const gradient = ctx.createLinearGradient(0, 0, 0, 140);
-    gradient.addColorStop(0, 'rgba(0, 137, 123, 0.2)');
-    gradient.addColorStop(1, 'rgba(0, 137, 123, 0)');
-
-    this.trendChart = new Chart(ctx, {
+    this.trendChart = this.mkChart('c-trend', {
       type: 'line',
       data: {
-        labels: labels, // Yahan 'labels' pass ho rahe hain
+        labels: labels,
         datasets: [
           {
-            label: 'Trend',
+            label: 'Incidents Trend',
             data: values,
-            borderColor: '#00897b',
-            backgroundColor: gradient,
+            borderColor: this.COLORS.p,
+            backgroundColor: this.mkG(ctx, this.COLORS.p),
             fill: true,
             tension: 0.4,
             borderWidth: 2,
-            pointRadius: 2, // Thoda sa point dikhega toh timeline samajh aayegi
-            pointBackgroundColor: '#00897b',
+            pointRadius: 0,
           },
         ],
       },
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        ...this.CDAX,
+        plugins: { ...this.CDAX.plugins, legend: { display: false } },
         scales: {
           x: {
-            display: true, // <--- ISSE TRUE KAR DIYA
-            grid: { display: false }, // Vertical lines hide kar di
-            ticks: {
-              font: { size: 9 },
-              color: '#9ca3af', // Gray color for clean look
-              maxRotation: 0,
-              autoSkip: true,
-              maxTicksLimit: 7, // Zyada labels mesh nahi honge
-            },
+            display: true,
+            grid: { display: false },
+            border: { display: false },
+            ticks: { color: '#94a3b8', font: { size: 8 }, autoSkip: true, maxTicksLimit: 10 },
           },
           y: {
             display: true,
             beginAtZero: true,
-            grid: { color: 'rgba(0,0,0,0.03)', drawTicks: false },
-            ticks: { font: { size: 9 }, stepSize: 20 },
+            grid: { color: 'rgba(226, 232, 240, 0.3)', drawBorder: false },
+            border: { display: false },
+            ticks: { color: '#94a3b8', font: { size: 8 }, maxTicksLimit: 5 },
           },
         },
       },

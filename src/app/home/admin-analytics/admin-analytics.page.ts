@@ -484,18 +484,19 @@ setAnaCat(id: string) {
     const companyId = localStorage.getItem('company_id') || 1;
     // Database se categories fetch karo (Resorts/Safari ke liye)
     this.dataService.get(`assets/categories/${companyId}`).subscribe((categories: any) => {
-      this.ANA_CONFIG.assets.subs = categories.map((cat: any) => ({
+      this.ANA_CONFIG.assets.subs = categories.map((cat: any, idx: number) => ({
         id: cat.name.toLowerCase().replace(/\s/g, '_'),
         label: cat.name,
         emoji: "🛡️", 
         icon: cat.icon_name || 'shield-checkmark-outline',
+        color: PALETTE[idx % PALETTE.length] || COLORS.p, // Assign color from palette
         val: 0,
         charts: [{ 
           id: "ch-" + cat.id, 
           title: cat.name + " Status", 
-          render: (chartId: string) => {
+          render: (chartId: string, ch: any) => {
             const current = this.displayProgList.find(s => s.label === cat.name);
-            return this.renderGenericChart(chartId, cat.name, current?.val || 0);
+            return this.renderGenericChart(chartId, cat.name, current?.val || 0, ch);
           }
         }]
       }));
@@ -516,11 +517,34 @@ setAnaCat(id: string) {
   this.cdr.detectChanges();
 }
 
-renderGenericChart(chartId: string, label: string, currentVal: number) {
-  // Logic: Agar value hai toh 15% maintenance dikhao, varna default 2
+renderGenericChart(chartId: string, label: string, currentVal: number, chData?: any) {
+  // 1. Use Real Status Data if available from backend
+  if (chData && chData.statusDistribution && chData.statusDistribution.length > 0) {
+    const labels = chData.statusDistribution.map((d: any) => d.label);
+    const data = chData.statusDistribution.map((d: any) => d.value);
+    
+    return this.mkChart(chartId, {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{ 
+          data: data, 
+          backgroundColor: [COLORS.teal, COLORS.amber, COLORS.rose, COLORS.blue, COLORS.ind] 
+        }]
+      },
+      options: {
+        ...CDAX,
+        plugins: {
+          legend: { display: true, position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
+        }
+      }
+    });
+  }
+
+  // 2. Fallback Logic (Mock status)
   const maintenance = currentVal > 0 ? Math.ceil(currentVal * 0.15) : 2; 
 
-  this.mkChart(chartId, {
+  return this.mkChart(chartId, {
     type: 'doughnut',
     data: {
       labels: ['Operational', 'Maintenance'],
@@ -938,10 +962,13 @@ setAnaSub(id: string) {
           } else if (chartId === 'ac-s4') {
             if (res.storage_proportion) ch.storageProportion = res.storage_proportion;
             else if (res.storage_species) ch.storageProportion = res.storage_species;
-          } else if (chartId === 'ac-p3' && res.poaching_species) {
-            ch.poachingSpecies = res.poaching_species;
           } else if (chartId === 'ac-p4' && res.poaching_death_cause) {
             ch.poachingDeathCause = res.poaching_death_cause;
+          }
+          
+          // Map asset status distribution if available
+          if (res.status_distribution) {
+            ch.statusDistribution = res.status_distribution;
           }
 
           
@@ -1000,13 +1027,24 @@ fetchRealAssetData() {
 const companyId = Number(companyIdRaw); // Ya fir use karo: parseInt(companyIdRaw, 10)
 
   this.dataService.getAssetStats(companyId).subscribe((res: any) => {
-    // Backend se aane wale counts ko variables mein assign karo
+    console.log("🛠️ Real Asset Data:", res);
+    
+    // 1. Update individual counts for standard categories
     this.realNurseryCount = res.nursery || 0;
     this.realPlantationCount = res.plantations || 0;
     this.realOfficeCount = res.offices || 0;
     this.realEcoCount = res.ecoSites || 0;
 
-    // Data aane ke baad UI refresh karne ke liye config update karo
+    // 2. Dynamically update ALL sub-category values in ANA_CONFIG
+    if (this.ANA_CONFIG.assets && this.ANA_CONFIG.assets.subs) {
+      this.ANA_CONFIG.assets.subs.forEach((s: any) => {
+        // Match by ID (nursery, plantations, etc.) or by sanitized category name
+        const count = res[s.id] || res[s.id.toLowerCase()] || 0;
+        s.val = count;
+      });
+    }
+
+    // 3. Refresh display list
     this.setAnaCat('assets'); 
   });
 }
