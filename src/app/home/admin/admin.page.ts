@@ -147,6 +147,8 @@ export class AdminPage implements OnInit, AfterViewInit {
   criminalTrendData: number[] = [];
   eventsTrendData: number[] = [];
   fireTrendData: number[] = [];
+  assetsTrendData: number[] = [];
+  onDutyTrendData: number[] = [];
   currentTime: string = '';
   activeTab: string = 'home';
   activeSegment: string = 'overview';
@@ -774,7 +776,7 @@ changeTimeframe(newTimeframe: string) {
       next: (res: any) => {
         console.log("📊 STEP 1: Full Dashboard Response:", res);
 
-        // --- 1. SIGHTINGS & CRIMINAL DATA (THE "7" AND "4" FIX) ---
+        // --- 1. SIGHTINGS, CRIMINAL & PERSONNEL DATA ---
         if (res.sightings) {
           const s = res.sightings;
           this.criminalCount = Number(s.criminal_count || 0);
@@ -784,17 +786,32 @@ changeTimeframe(newTimeframe: string) {
           this.sightingsCount = this.eventsCount;
           this.incidentsCount = Number(s.total_events || 0);
 
-          // Update trend data
+          // Update trend data from sightings object (where they are merged in backend)
           this.criminalTrendData = (s.criminal_trend || []).map((t: any) => Number(t.count || 0));
           this.eventsTrendData = (s.monitoring_trend || []).map((t: any) => Number(t.count || 0));
           this.fireTrendData = (s.fire_trend || []).map((t: any) => Number(t.count || 0));
+          this.onDutyTrendData = (s.on_duty_trend || []).map((t: any) => Number(t.count || 0));
+          this.assetsTrendData = (s.assets_trend || []).map((t: any) => Number(t.count || 0));
+
+          // UPDATE BIG NUMBERS (totalAssets)
+          if (s.totalAssets !== undefined && s.totalAssets !== null) {
+             this.totalAssetsCount = Number(s.totalAssets);
+          }
+          
+          // UPDATE BIG NUMBERS (onDuty)
+          if (s.onDutyCount !== undefined) {
+             this.onDutyCount = Number(s.onDutyCount);
+          } else if (res.onDuty && res.onDuty.count !== undefined) {
+             this.onDutyCount = Number(res.onDuty.count);
+          }
+
 
           console.log("✅ Cards & Trends Updated:", {
             criminal: this.criminalCount,
             events: this.eventsCount,
             criminalTrend: this.criminalTrendData,
-            eventsTrend: this.eventsTrendData,
-            fireTrend: this.fireTrendData
+            onDutyTrend: this.onDutyTrendData,
+            assetsTrend: this.assetsTrendData
           });
 
           // TRIGGER CHART RE-RENDERING
@@ -803,22 +820,24 @@ changeTimeframe(newTimeframe: string) {
           }, 100);
         }
 
+        // --- 2. PERSONNEL & ASSETS OVERWRITE (IF SEPARATE) ---
+        if (res.onDuty) {
+          this.onDutyCount = res.onDuty.count || 0;
+        }
 
-
-        // --- 1. ASSETS DATA ---
         if (res.assetsStats) {
-          this.totalAssetsCount = res.assetsStats.totalAssets || 0;
+          if (this.totalAssetsCount === 0) {
+            this.totalAssetsCount = res.assetsStats.totalAssets || 0;
+          }
           this.operationalRate = res.assetsStats.operationalRate || '0%';
           (this as any).realNurseryCount = res.assetsStats.nursery || 0;
           (this as any).realPlantationCount = res.assetsStats.plantations || 0;
           (this as any).realOfficeCount = res.assetsStats.offices || 0;
           (this as any).realEcoCount = res.assetsStats.ecoSites || 0;
 
-          if (
-            (this as any).activeTab === 'assets' &&
-            typeof (this as any).setAnaCat === 'function'
-          ) {
-            (this as any).setAnaCat('assets');
+          // Only overwrite if sightings didn't have it
+          if (this.assetsTrendData.length === 0 && res.assetsStats.assets_trend) {
+            this.assetsTrendData = res.assetsStats.assets_trend.map((t: any) => Number(t.count || 0));
           }
         }
 
@@ -1630,9 +1649,9 @@ updateVisiblePins() {
       // Mapping to YOUR specific variables:
       ['mc-crim', this.criminalTrendData.length > 0 ? this.criminalTrendData : getTrend(this.criminalActivityCount), this.COLORS.rose],
       ['mc-events', this.eventsTrendData.length > 0 ? this.eventsTrendData : getTrend(this.sightingsCount), this.COLORS.amber],
-      ['mc-fire', this.fireTrendData.length > 0 ? this.fireTrendData : getTrend(this.fireAlertsCount), this.COLORS.orange],
-      ['mc-assets', getTrend(this.totalAssetsCount), this.COLORS.p],
-      ['mc-duty', getTrend(this.onDutyCount), this.COLORS.blue, 'bar'],
+      ['mc-fire', this.fireTrendData.length > 0 ? this.fireTrendData : getTrend(this.fireAlertsCount), this.COLORS.orange, 'bar'],
+      ['mc-assets', this.assetsTrendData.length > 0 ? this.assetsTrendData : getTrend(this.totalAssetsCount), this.COLORS.p],
+      ['mc-duty', this.onDutyTrendData.length > 0 ? this.onDutyTrendData : getTrend(this.onDutyCount), this.COLORS.blue, 'bar'],
     ];
 
     pairs.forEach(([id, data, color, type = 'line']) => {
@@ -1667,15 +1686,30 @@ updateVisiblePins() {
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: { enabled: false } },
+          plugins: { 
+            legend: { display: false }, 
+            tooltip: { 
+              enabled: true,
+              backgroundColor: '#1e293b',
+              titleColor: '#fff',
+              bodyColor: '#fff',
+              displayColors: false,
+              padding: 10,
+              cornerRadius: 8,
+              callbacks: {
+                label: (ctx: any) => `Value: ${ctx.raw}`
+              }
+            } 
+          },
           scales: {
             x: { display: false },
             y: {
               display: false,
               beginAtZero: true,
-              // Isse graph area poora use hoga aur data ke hisaab se height adjust hogi
               suggestedMax:
-                Math.max(...data) > 0 ? Math.max(...data) * 1.2 : 10,
+                Math.max(...data) > 0 ? Math.max(...data) * 1.3 : 5,
+              // Isse ye ensure hota hai ki bar/line graph canvas ke ekdum top se na chipke
+              grace: '15%'
             },
           },
         },

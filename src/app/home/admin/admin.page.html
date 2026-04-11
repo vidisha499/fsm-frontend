@@ -345,9 +345,16 @@
 
     <div class="mini-card" data-cat="assets">
       <div class="mini-lbl">🛡️ Assets & Tools</div>
-      <div class="mini-val" style="color:var(--p)" id="ms-assets">{{ operationalRate || '0%' }}</div>
+      <div class="mini-val" style="color:var(--p)" id="ms-assets">{{ totalAssetsCount || 0 }}</div>
       <div class="mini-ch"><canvas id="mc-assets"></canvas></div>
-      <div class="mini-meta">Y: Util. % · X: Last 15 Days</div>
+      <div class="mini-meta">Y: Count - X: Last 15 Days</div>
+    </div>
+
+    <div class="mini-card" data-cat="duty">
+      <div class="mini-lbl">👮 Officers On Duty</div>
+      <div class="mini-val" style="color:var(--blue)" id="ms-duty">{{ onDutyCount }}</div>
+      <div class="mini-ch"><canvas id="mc-duty"></canvas></div>
+      <div class="mini-meta">Y: Count - X: 7 days</div>
     </div>
   </div>
   
