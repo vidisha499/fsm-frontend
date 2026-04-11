@@ -647,46 +647,53 @@
      
 
       .map-foot {
-    /* 1. This keeps it floating inside the map */
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 100; 
-    
-    /* 2. Original Glassmorphism effect */
-    background: rgba(255, 255, 255, 0.85); 
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    
-    /* 3. Original Layout and Spacing */
-    display: flex;
-    justify-content: space-around; 
-    align-items: center;
-    padding: 10px 14px;
-    border-top: 1px solid rgba(0,0,0,0.05);
-    
-    /* 4. Individual Stat styling */
-    div {
-      text-align: center;
-      flex: 1; 
-      
-      .map-sn {
-        font-size: 15px;
-        font-weight: 800;
-        line-height: 1;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        
+        /* 2 Rows of 5 items */
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 6px 2px;
+        padding: 8px 4px;
+        border-top: 1px solid rgba(0,0,0,0.05);
+        text-align: center;
+
+        .map-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-start;
+          min-width: 0;
+        }
+
+        .map-sn {
+          font-size: 13px;
+          font-weight: 900;
+          line-height: 1;
+          margin-bottom: 2px;
+        }
+
+        .map-sl {
+          font-size: 7.5px;
+          font-weight: 700;
+          color: var(--tx3);
+          text-transform: uppercase;
+          letter-spacing: 0.1px;
+          line-height: 1.1;
+          word-spacing: 100vw; /* Force wrap on every space */
+          white-space: normal;
+          max-width: 60px;
+          display: block;
+          overflow: visible;
+          text-align: center;
+        }
       }
-      
-      .map-sl {
-        font-size: 10px;
-        font-weight: 600;
-        color: var(--tx3);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-top: 2px;
-      }
-    }
-  }
       .map-container {
         display: block !important;
         min-height: 520px;
@@ -1018,8 +1025,13 @@
       }
 
       .legend-section {
-        padding: 16px 20px;
+        margin: 16px auto;
+        width: calc(100% - 20px); /* Increased width (smaller side gaps) */
         background: #ffffff;
+        border-radius: 16px;
+        border: 1.5px solid var(--bord);
+        padding: 16px 12px; /* Reduced internal side padding to give columns more room */
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
       }
 
       .legend-header {
@@ -1027,6 +1039,7 @@
         justify-content: space-between;
         align-items: center;
         margin-bottom: 12px;
+        padding: 0 8px;
 
         .legend-title {
           font-size: 13px;
@@ -1046,18 +1059,18 @@
 
       .legend-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr; // This creates the 2-column look
-        gap: 10px 16px;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px 8px; /* Reduced column gap */
       }
 
       .legend-item {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px; /* Slightly tighter icon gap */
 
         .legend-dot {
-          width: 6px;
-          height: 6px;
+          width: 5px;
+          height: 5px;
           border-radius: 50%;
         }
 
@@ -1066,12 +1079,11 @@
         }
 
         .legend-label {
-          font-size: 11px;
+          font-size: 10.5px; /* Slightly smaller font for better fit */
           color: #64748b;
           font-weight: 500;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          white-space: normal; /* Allow multi-line if word is very long */
+          line-height: 1.2;
         }
       }
 
