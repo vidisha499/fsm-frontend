@@ -96,6 +96,15 @@
   </div>
 </a>
 
+<a class="menu-item" (click)="goToPage('reports')" [class.active]="router.url.includes('reports')">
+  <div class="icon-box blue-tint">
+    <i class="fas fa-file-contract"></i>
+  </div>
+  <div class="item-text">
+    <span>Reports</span>
+  </div>
+</a>
+
       <a class="menu-item" (click)="goToPage('updates')" [class.active]="router.url.includes('updates')">
         <div class="icon-box purple"><i class="fas fa-newspaper"></i></div>
         <div class="item-text"><span>{{ 'MENU.DAILY_UPDATES' | translate }}</span></div>

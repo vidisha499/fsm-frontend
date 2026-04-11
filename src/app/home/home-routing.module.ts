@@ -123,6 +123,10 @@ loadChildren:() => import('./admin/admin.module').then( m => m.AdminPageModule)
     path: 'events-fields',
     loadChildren: () => import('./events-fields/events-fields.module').then( m => m.EventsFieldsPageModule)
   },
+  {
+    path: 'reports',
+    loadChildren: () => import('./reports/reports.module').then( m => m.ReportsPageModule)
+  },
 
 
  

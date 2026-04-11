@@ -117,6 +117,7 @@ ion-menu {
       .item-text span { font-size: 14px; font-weight: 800; color: #334155; }
     }
 
+
     .logout-btn {
       margin-top: 30px;
       background: #fff1f2;
@@ -141,6 +142,11 @@ ion-menu {
     background: #ecfdf5 !important;
     color: #059669 !important;
   }
+  
+  &.blue-tint {
+  background: rgba(59, 130, 246, 0.1 )!important; /* Light blue background */
+  color: #3b82f6 !important; /* Blue icon color */
+}
 }
 
 /* Active state handle karne ke liye (Emerald theme) */

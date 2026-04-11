@@ -448,5 +448,12 @@ getForestMapData(companyId: number, range?: string): Observable<any[]> {
   return this.http.get<any[]>(`${this.baseApiUrl}/forest-events/map-data/${companyId}${params}`);
 }
 
+downloadReport(payload: any) {
+    return this.http.post(`${this.baseApiUrl}/reports/generate`, payload, {
+      responseType: 'blob', // Important: File ke liye blob chahiye
+      observe: 'response'   // Response headers check karne ke liye
+    });
+  }
+
 }
 
