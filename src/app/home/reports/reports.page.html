@@ -1,0 +1,126 @@
+<ion-content [fullscreen]="true">
+  <div class="premium-wrapper">
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <div class="hero-header">
+      <div class="header-overlay"></div>
+      <div class="header-content">
+        <div class="nav-bar">
+          <div class="left-section">
+            <ion-back-button defaultHref="/home" color="light"></ion-back-button>
+            <h1>Forest Reports</h1>
+          </div>
+          <div class="right-section">
+            <div class="auth-badge">
+              <i class="fas fa-file-export"></i> EXPORT READY
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-container">
+  
+  <div class="incident-row-compact" (click)="openFilterModal('attendance')">
+    <div class="mini-thumb">
+      <div class="priority-indicator" style="background: #3b82f6;"></div>
+      <i class="fas fa-user-check placeholder-icon" style="color: #3b82f6;"></i>
+    </div>
+    <div class="row-content">
+      <div class="top-line">
+        <span class="type-text" style="color: #3b82f6;">Personnel</span>
+      </div>
+      <h3 class="priority-title">Attendance Report</h3>
+      <p class="reporter-line">Staff duty cycles & patrol hours</p>
+    </div>
+    <div class="row-actions">
+      <i class="fas fa-caret-right chevron"></i>
+    </div>
+  </div>
+
+  <div class="incident-row-compact" *ngIf="userRole === 'admin' || userRole === '2'" (click)="openFilterModal('incidence')">
+    <div class="mini-thumb">
+      <div class="priority-indicator" style="background: #0d9488;"></div>
+      <i class="fas fa-shield-alt placeholder-icon" style="color: #0d9488;"></i>
+    </div>
+    <div class="row-content">
+      <div class="top-line">
+        <span class="type-text" style="color: #0d9488;">Operational</span>
+      </div>
+      <h3 class="priority-title">Incidence Report</h3>
+      <p class="reporter-line">Mining, Poaching & Felling logs</p>
+    </div>
+    <div class="row-actions">
+      <i class="fas fa-caret-right chevron"></i>
+    </div>
+  </div>
+
+</div>
+
+ <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false" class="custom-bottom-card">
+  <ng-template>
+    <div class="modal-card-content">
+      <div class="modal-header">
+        <div class="title-row">
+          <h3>Filter Report</h3>
+          <ion-icon name="options-outline"></ion-icon>
+        </div>
+        <p class="subtitle">Set parameters for {{activeReport}}</p>
+      </div>
+
+      <div class="filter-body">
+        <div class="data-row-premium" *ngIf="userRole === 'admin' || userRole === '2'">
+          <span class="label">CLIENT / RANGE</span>
+          <ion-select interface="popover" placeholder="Select" [(ngModel)]="selectedClient" class="compact-select">
+            <ion-select-option value="all">All Rangers</ion-select-option>
+            <ion-select-option value="range_a">seminary hills range</ion-select-option>
+            <ion-select-option value="range_b">hingna range</ion-select-option>
+          </ion-select>
+        </div>
+
+        <div class="data-row-premium">
+          <span class="label">START DATE</span>
+          <ion-datetime-button datetime="start"></ion-datetime-button>
+        </div>
+        
+        <div class="data-row-premium">
+          <span class="label">END DATE</span>
+          <ion-datetime-button datetime="end"></ion-datetime-button>
+        </div>
+
+        <ion-popover [keepContentsMounted]="true">
+          <ng-template>
+            <ion-datetime id="start" presentation="date" [(ngModel)]="startDate" [max]="maxDate"></ion-datetime>
+          </ng-template>
+        </ion-popover>
+
+        <ion-popover [keepContentsMounted]="true">
+          <ng-template>
+            <ion-datetime id="end" presentation="date" [(ngModel)]="endDate" [max]="maxDate"></ion-datetime>
+          </ng-template>
+        </ion-popover>
+      </div>
+
+      <div class="modal-footer-dual-row">
+        <div class="button-grid">
+          <button class="export-btn-mini pdf" (click)="generateReport('pdf')">
+            <i class="fas fa-file-pdf"></i> PDF
+          </button>
+          <button class="export-btn-mini excel" (click)="generateReport('excel')">
+            <i class="fas fa-file-excel"></i> EXCEL
+          </button>
+        </div>
+        
+        <div class="footer-actions-text">
+          <button class="reset-btn-text" (click)="resetFilters()">Reset Filters</button>
+          <span class="divider">|</span>
+          <button class="clear-btn-text" (click)="isModalOpen = false">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </ng-template>
+</ion-modal>
+
+  </div>
+</ion-content>

@@ -87,6 +87,11 @@ const routes: Routes = [
 path:'admin',
 loadChildren:() => import('./home/admin/admin.module').then( m => m.AdminPageModule)
 },
+{
+path:'reports',
+loadChildren:() => import('./home/reports/reports.module').then( m => m.ReportsPageModule)
+},
+
 
 {
     path: 'attendance-requests',

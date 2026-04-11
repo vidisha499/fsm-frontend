@@ -1421,72 +1421,86 @@ updateVisiblePins() {
     this.cdr.detectChanges();
 }
 
-  // 2. API RESPONSE LOGIC (Isko API call ke subscribe ke andar paste karein)
-  handleApiResponse(res: any) {
-    const today = new Date().toISOString().split('T')[0];
-    let processedPins: any[] = [];
 
-    // --- A. Forest Events & Reports ---
-    const forestData = [
-      ...(res.forestReports || []),
-      ...(res.forest_events || []),
-    ];
+handleApiResponse(res: any) {
+  // 1. Aaj ki date string format mein (Comparison ke liye)
+  const todayStr = new Date().toDateString();
+  let processedPins: any[] = [];
 
-    if (forestData.length > 0) {
-      const forestPins = forestData
-        .filter(
-          (f: any) =>
-            !isNaN(parseFloat(f.latitude)) && parseFloat(f.latitude) !== 0,
-        )
-        .map((f: any) => {
-          const type = (f.report_type || f.event_type || '').toLowerCase();
-          let layerId = 'general_incident';
+  // --- A. Forest Events & Reports (With Date Filter) ---
+  const forestData = [
+    ...(res.forestReports || []),
+    ...(res.forest_events || []),
+  ];
 
-          if (type.includes('mining')) layerId = 'illegal_mining';
-          else if (type.includes('felling')) layerId = 'illegal_felling';
-          else if (type.includes('poaching')) layerId = 'animal_poaching';
-          else if (type.includes('sighting')) layerId = 'animal_sighting';
-          else if (type.includes('water')) layerId = 'water_status';
-          else if (type.includes('fire')) layerId = 'fire_warning';
+  const forestPins = forestData
+    .filter((f: any) => {
+      const latValid = !isNaN(parseFloat(f.latitude)) && parseFloat(f.latitude) !== 0;
+      
+      // 🔥 DATE FILTER: Agar 'today' selected hai toh sirf aaj ka data lo
+      if (this.activeDateFilter === 'today') {
+        const fDate = new Date(f.date || f.created_at).toDateString();
+        return latValid && fDate === todayStr;
+      }
+      return latValid;
+    })
+    .map((f: any) => {
+      const type = (f.report_type || f.event_type || '').toLowerCase();
+      let layerId = 'general_incident';
 
-          return {
-            ...f,
-            latitude: parseFloat(f.latitude),
-            longitude: parseFloat(f.longitude),
-            layerId: layerId,
-            displayLabel: f.report_type || f.event_type || 'Forest Event',
-          };
-        });
-      processedPins = [...processedPins, ...forestPins];
-    }
+      if (type.includes('mining')) layerId = 'illegal_mining';
+      else if (type.includes('felling')) layerId = 'illegal_felling';
+      else if (type.includes('poaching')) layerId = 'animal_poaching';
+      else if (type.includes('sighting')) layerId = 'animal_sighting';
+      else if (type.includes('water')) layerId = 'water_status';
+      else if (type.includes('fire')) layerId = 'fire_warning';
 
-    // --- B. SOS Alerts (CRITICAL: Added to Map) ---
-    if (res.alerts && Array.isArray(res.alerts)) {
-      const sosPins = res.alerts
-        .filter((a: any) => {
-          const isSos = (a.category === 'SOS' || (a.type && a.type.toUpperCase().includes('SOS')));
-          const hasLoc = !isNaN(parseFloat(a.latitude)) && parseFloat(a.latitude) !== 0;
-          return isSos && hasLoc;
-        })
-        .map((sos: any) => ({
-          ...sos,
-          latitude: parseFloat(sos.latitude),
-          longitude: parseFloat(sos.longitude),
-          layerId: 'sos',
-          displayLabel: 'SOS Emergency',
-          emoji: '🚨',
-          color: '#f43f5e'
-        }));
-      processedPins = [...processedPins, ...sosPins];
-    }
+      return {
+        ...f,
+        latitude: parseFloat(f.latitude),
+        longitude: parseFloat(f.longitude),
+        layerId: layerId,
+        displayLabel: f.report_type || f.category || 'Forest Event',
+      };
+    });
+  processedPins = [...processedPins, ...forestPins];
 
-    // --- C. Standard Incidents (DISABLED: using forest_reports only) ---
-    /*
-    if (res.mapIncidents && Array.isArray(res.mapIncidents)) {
-      const standardPins = res.mapIncidents.map((inc: any) => {
+  // --- B. SOS Alerts (Filter by Date if needed) ---
+  if (res.alerts && Array.isArray(res.alerts)) {
+    const sosPins = res.alerts
+      .filter((a: any) => {
+        const isSos = (a.category === 'SOS' || (a.type && a.type.toUpperCase().includes('SOS')));
+        const hasLoc = !isNaN(parseFloat(a.latitude)) && parseFloat(a.latitude) !== 0;
+        
+        if (this.activeDateFilter === 'today') {
+          const aDate = new Date(a.created_at).toDateString();
+          return isSos && hasLoc && aDate === todayStr;
+        }
+        return isSos && hasLoc;
+      })
+      .map((sos: any) => ({
+        ...sos,
+        latitude: parseFloat(sos.latitude),
+        longitude: parseFloat(sos.longitude),
+        layerId: 'sos',
+        displayLabel: 'SOS Emergency',
+      }));
+    processedPins = [...processedPins, ...sosPins];
+  }
+
+  // --- C. Standard Incidents (Filter by Date) ---
+  if (res.mapIncidents && Array.isArray(res.mapIncidents)) {
+    const standardPins = res.mapIncidents
+      .filter((inc: any) => {
+        if (this.activeDateFilter === 'today') {
+          const iDate = new Date(inc.incidentDate || inc.created_at).toDateString();
+          return iDate === todayStr;
+        }
+        return true;
+      })
+      .map((inc: any) => {
         let layerId = 'general_incident';
         const crit = (inc.incidentCriteria || '').toLowerCase();
-        
         if (crit.includes('fire')) layerId = 'fire_warning';
         else if (crit.includes('felling')) layerId = 'illegal_felling';
         else if (crit.includes('poaching')) layerId = 'animal_poaching';
@@ -1499,16 +1513,116 @@ updateVisiblePins() {
           displayLabel: inc.incidentCriteria || 'Incident',
         };
       });
-      processedPins = [...processedPins, ...standardPins];
-    }
-    */
-
-    this.allIncidents = processedPins;
-    this.alerts = res.alerts || [];
-
-    console.log(`%c✅ Data Processed. Pins: ${processedPins.length}`, 'color: cyan');
-    this.updateVisiblePins();
+    processedPins = [...processedPins, ...standardPins];
   }
+
+  // --- 4. FINAL ASSIGNMENT & KPI SYNC ---
+  this.allIncidents = processedPins;
+  this.alerts = res.alerts || [];
+
+  // Update KPI Counts based on filtered pins
+  this.incidentsCount = this.allIncidents.length;
+  
+  this.criminalCount = this.allIncidents.filter(p => 
+    ['illegal_mining', 'illegal_felling', 'animal_poaching'].includes(p.layerId)
+  ).length;
+
+  this.eventsCount= this.allIncidents.filter(p => 
+    p.layerId === 'animal_sighting'
+  ).length;
+
+  console.log(`%c✅ Filtered Pins for ${this.activeDateFilter}: ${processedPins.length}`, 'color: cyan');
+  
+  this.updateVisiblePins();
+  this.cdr.detectChanges();
+}
+
+  // // 2. API RESPONSE LOGIC (Isko API call ke subscribe ke andar paste karein)
+  // handleApiResponse(res: any) {
+  //   const today = new Date().toISOString().split('T')[0];
+  //   let processedPins: any[] = [];
+
+  //   // --- A. Forest Events & Reports ---
+  //   const forestData = [
+  //     ...(res.forestReports || []),
+  //     ...(res.forest_events || []),
+  //   ];
+
+  //   if (forestData.length > 0) {
+  //     const forestPins = forestData
+  //       .filter(
+  //         (f: any) =>
+  //           !isNaN(parseFloat(f.latitude)) && parseFloat(f.latitude) !== 0,
+  //       )
+  //       .map((f: any) => {
+  //         const type = (f.report_type || f.event_type || '').toLowerCase();
+  //         let layerId = 'general_incident';
+
+  //         if (type.includes('mining')) layerId = 'illegal_mining';
+  //         else if (type.includes('felling')) layerId = 'illegal_felling';
+  //         else if (type.includes('poaching')) layerId = 'animal_poaching';
+  //         else if (type.includes('sighting')) layerId = 'animal_sighting';
+  //         else if (type.includes('water')) layerId = 'water_status';
+  //         else if (type.includes('fire')) layerId = 'fire_warning';
+
+  //         return {
+  //           ...f,
+  //           latitude: parseFloat(f.latitude),
+  //           longitude: parseFloat(f.longitude),
+  //           layerId: layerId,
+  //           displayLabel: f.report_type || f.event_type || 'Forest Event',
+  //         };
+  //       });
+  //     processedPins = [...processedPins, ...forestPins];
+  //   }
+
+  //   // --- B. SOS Alerts (CRITICAL: Added to Map) ---
+  //   if (res.alerts && Array.isArray(res.alerts)) {
+  //     const sosPins = res.alerts
+  //       .filter((a: any) => {
+  //         const isSos = (a.category === 'SOS' || (a.type && a.type.toUpperCase().includes('SOS')));
+  //         const hasLoc = !isNaN(parseFloat(a.latitude)) && parseFloat(a.latitude) !== 0;
+  //         return isSos && hasLoc;
+  //       })
+  //       .map((sos: any) => ({
+  //         ...sos,
+  //         latitude: parseFloat(sos.latitude),
+  //         longitude: parseFloat(sos.longitude),
+  //         layerId: 'sos',
+  //         displayLabel: 'SOS Emergency',
+  //         emoji: '🚨',
+  //         color: '#f43f5e'
+  //       }));
+  //     processedPins = [...processedPins, ...sosPins];
+  //   }
+
+  //   // --- C. Standard Incidents ---
+  //   if (res.mapIncidents && Array.isArray(res.mapIncidents)) {
+  //     const standardPins = res.mapIncidents.map((inc: any) => {
+  //       let layerId = 'general_incident';
+  //       const crit = (inc.incidentCriteria || '').toLowerCase();
+        
+  //       if (crit.includes('fire')) layerId = 'fire_warning';
+  //       else if (crit.includes('felling')) layerId = 'illegal_felling';
+  //       else if (crit.includes('poaching')) layerId = 'animal_poaching';
+
+  //       return {
+  //         ...inc,
+  //         latitude: parseFloat(inc.latitude),
+  //         longitude: parseFloat(inc.longitude),
+  //         layerId: layerId,
+  //         displayLabel: inc.incidentCriteria || 'Incident',
+  //       };
+  //     });
+  //     processedPins = [...processedPins, ...standardPins];
+  //   }
+
+  //   this.allIncidents = processedPins;
+  //   this.alerts = res.alerts || [];
+
+  //   console.log(`%c✅ Data Processed. Pins: ${processedPins.length}`, 'color: cyan');
+  //   this.updateVisiblePins();
+  // }
 
   getMarkerEmoji(id: string) {
     if (id.includes('fire')) return '🔥';

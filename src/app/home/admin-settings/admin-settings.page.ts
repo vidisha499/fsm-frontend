@@ -18,7 +18,8 @@ export class AdminSettingsPage implements OnInit {
     role: 'Admin',
     ranges: 'All Ranges',
     initials: '??',
-    company_id: 1
+    // company_id: 1
+    company_id: Number(localStorage.getItem('user_data') ? JSON.parse(localStorage.getItem('user_data')!).company_id : 1)
   };
 
   syncInterval: number = 5; // Default 5 minutes
@@ -88,30 +89,30 @@ export class AdminSettingsPage implements OnInit {
 
 
 
-   async openExport() {
-    const dateAlert = await this.alertCtrl.create({
-      header: 'Export Reports',
-      subHeader: 'Select date range',
-      inputs: [
-        { name: 'from', type: 'date', label: 'From', value: new Date().toISOString().split('T')[0] },
-        { name: 'to', type: 'date', label: 'To', value: new Date().toISOString().split('T')[0] }
-      ],
-      buttons: [
-        { text: 'Cancel', role: 'cancel' },
-        {
-          text: 'Next',
-          handler: (data) => {
-            if (data.from && data.to) {
-              this.chooseFormat(data.from, data.to);
-            } else {
-              this.showToast('Please select both dates', 'warning');
-            }
-          }
-        }
-      ]
-    });
-    await dateAlert.present();
-  }
+  //  async openExport() {
+  //   const dateAlert = await this.alertCtrl.create({
+  //     header: 'Export Reports',
+  //     subHeader: 'Select date range',
+  //     inputs: [
+  //       { name: 'from', type: 'date', label: 'From', value: new Date().toISOString().split('T')[0] },
+  //       { name: 'to', type: 'date', label: 'To', value: new Date().toISOString().split('T')[0] }
+  //     ],
+  //     buttons: [
+  //       { text: 'Cancel', role: 'cancel' },
+  //       {
+  //         text: 'Next',
+  //         handler: (data) => {
+  //           if (data.from && data.to) {
+  //             this.chooseFormat(data.from, data.to);
+  //           } else {
+  //             this.showToast('Please select both dates', 'warning');
+  //           }
+  //         }
+  //       }
+  //     ]
+  //   });
+  //   await dateAlert.present();
+  // }
 
   async chooseFormat(from: string, to: string) {
     const alert = await this.alertCtrl.create({
@@ -235,6 +236,11 @@ export class AdminSettingsPage implements OnInit {
   private async showToast(msg: string, color: string) {
     const t = await this.toast.create({ message: msg, duration: 2000, color, position: 'top' });
     await t.present();
+  }
+
+  goToReports() {
+    // Ye 'reports' wahi naam hona chahiye jo tune app-routing.module.ts mein rakha hai
+    this.navCtrl.navigateForward('/reports');
   }
 
 
