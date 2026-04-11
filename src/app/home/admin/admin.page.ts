@@ -1709,10 +1709,6 @@ handleApiResponse(res: any) {
     }, 1500);
   }
 
-  goAnalytics(type: string) {
-    console.log('Redirecting to analytics for:', type);
-    this.activeTab = 'analytics';
-  }
 
   private mkG(ctx: CanvasRenderingContext2D, color: string, h: number = 130) {
     const g = ctx.createLinearGradient(0, 0, 0, h);
@@ -2224,16 +2220,13 @@ handleApiResponse(res: any) {
     }
   }
 
-  gotoAnalytics(category?: string) {
-    // Navigation ke liye router ka use karein
+  goAnalytics(category?: string) {
     this.router.navigate(['/home/admin-analytics'], {
-      queryParams: { cat: category || 'all' },
+      queryParams: { type: category || 'criminal' },
     });
   }
 
-  goToAnalytics(category: string) {
-    this.router.navigate(['/home/admin-analytics'], {
-      queryParams: { type: category },
-    });
-  }
+  // Aliases for template consistency
+  gotoAnalytics(category?: string) { this.goAnalytics(category); }
+  goToAnalytics(category?: string) { this.goAnalytics(category); }
 }

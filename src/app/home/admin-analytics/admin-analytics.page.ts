@@ -1045,7 +1045,8 @@ const companyId = Number(companyIdRaw); // Ya fir use karo: parseInt(companyIdRa
     }
 
     // 3. Refresh display list
-    this.setAnaCat('assets'); 
+    // this.setAnaCat('assets'); // REMOVED: This was forcing the tab switch incorrectly
+    this.cdr.detectChanges(); 
   });
 }
 
