@@ -253,26 +253,96 @@ events: {
       val: 0, // Hardcoded 12 hata diya
       charts: [
         { 
+          title: "Fire Cause Distribution", 
+          sub: "What caused the fire — natural, negligence, intent",
+          id: "ac-fc1", 
+          render: (id: string, obj: any) => {
+            const dataArr = obj?.dynamicData || [];
+            
+            const getVal = (labelMatch: string) => {
+              const found = dataArr.find((d: any) => (d.label || '').toLowerCase().includes(labelMatch));
+              return found ? found.count : 0;
+            };
+
+            const vals = [
+              getVal('natural'),
+              getVal('negligence'),
+              getVal('intentional'),
+              dataArr.filter((d: any) => !['natural', 'negligence', 'intentional'].some(x => (d.label || '').toLowerCase().includes(x)))
+                .reduce((acc: number, val: any) => acc + val.count, 0)
+            ];
+
+            // Show placeholder if no data yet
+            const hasData = vals.some(v => v > 0);
+            return this.mkChart(id, { 
+              type: "doughnut", 
+              data: { 
+                labels: ["Natural", "Negligence", "Intentional", "Unknown"],
+                datasets: [{ 
+                  data: hasData ? vals : [1, 1, 1, 1],
+                  backgroundColor: ['#16a34a', '#f59e0b', '#ef4444', '#64748b'],
+                  borderWidth: 2,
+                  borderColor: '#ffffff'
+                }] 
+              }, 
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: { usePointStyle: true, boxWidth: 10, font: { size: 10 } }
+                  }
+                }
+              }
+            });
+          }
+        },
+        { 
           title: "30-Day Fire Trend", 
+          sub: "Daily fire alerts over the selected period",
           id: "ac-fi1", 
           render: (id: string, obj: any) => {
-            // Backend se aane wala dynamic data lo
+            // Check if backend provided fire_trend at top level OR in dynamicData
             const data = obj?.dynamicData || [];
+            const labels = (obj?.dynamicLabels && obj.dynamicLabels.length > 0) ? obj.dynamicLabels : ['D1', 'D2', 'D3', 'D4'];
             
+            const hasData = data.some((v: any) => v > 0);
             return this.mkChart(id, { 
               type: "line", 
               data: { 
-                labels: ['W1', 'W2', 'W3', 'W4'], // Ye labels backend ke hisab se bhi badal sakte ho
+                labels: labels,
                 datasets: [{ 
-                  label: "Fire Counts",
-                  data: data, // Ab backend data dikhega
+                  label: "Fire Alerts",
+                  data: hasData ? data : Array(labels.length).fill(0),
                   borderColor: COLORS.orange,
-                  backgroundColor: COLORS.orange + '33', // Light fill for line chart
+                  backgroundColor: COLORS.orange + '33',
                   fill: true,
-                  tension: 0.4 
+                  tension: 0.4,
+                  pointRadius: 4,
+                  pointBackgroundColor: COLORS.orange,
+                  borderWidth: 2
                 }] 
               }, 
-              options: CDAX 
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    title: { display: true, text: 'No. of Fire Alerts', font: { size: 10 }, color: '#94a3b8' },
+                    grid: { color: '#f1f5f9' },
+                    ticks: { font: { size: 9 }, color: '#94a3b8' }
+                  },
+                  x: {
+                    title: { display: true, text: 'Day', font: { size: 10 }, color: '#94a3b8' },
+                    grid: { display: false },
+                    ticks: { font: { size: 9 }, color: '#94a3b8' }
+                  }
+                }
+              }
             });
           }
         }
@@ -510,6 +580,10 @@ setAnaCat(id: string) {
       this.activeSubId = cat.subs[0]?.id; 
       this.loadData(); 
       this.updateUIData();
+      // Also trigger sub-category data fetch so charts render with real data
+      setTimeout(() => {
+        this.setAnaSub(this.activeSubId);
+      }, 600);
     }
   }
   // --------------------------------------------
@@ -767,7 +841,7 @@ async updateUIData() {
       this.criminalCount = res.criminal_count || 0;
       this.eventsCount = res.events_count || 0;
       this.totalEvents = res.total_events || 0;
-      this.fireCount = res.fire?.val || res.fire?.count || 0; // Fire handled as sub or total?
+      this.fireCount = res.fire_incidents?.val || res.fire?.val || 0;
 
       this.destroyCharts();
 
@@ -781,6 +855,7 @@ async updateUIData() {
            if (s.id === 'water') rawData = res.water_source_status || res.water;
            if (s.id === 'wild_animal') rawData = res.wild_animal || res.animal;
            if (s.id === 'jfmc') rawData = res.jfmc || res.jfmc_social_forestry;
+           if (s.id === 'fire_incidents') rawData = res.fire_incidents;
         }
 
         const countVal = (typeof rawData === 'number') ? rawData : (rawData?.val || 0);
@@ -791,6 +866,14 @@ async updateUIData() {
               ch.dynamicData = res.sightings_by_species || []; 
             } else if (ch.id === 'ev-an2' || (s.id === 'wild_animal' && ch.type === 'line')) {
               ch.dynamicData = res.trend_data || [];
+            } else if (s.id === 'fire_incidents') {
+              if (ch.id === 'ac-fi1') {
+                const trendArr = res.fire_trend || res.trend_data || [];
+                ch.dynamicData = trendArr.map((t: any) => typeof t.count !== 'undefined' ? t.count : t.value);
+                ch.dynamicLabels = trendArr.map((t: any) => typeof t.day_label !== 'undefined' ? t.day_label : t.label);
+              } else if (ch.id === 'ac-fc1') {
+                ch.dynamicData = res.fire_causes || [];
+              }
             } else {
               ch.dynamicData = (rawData && Array.isArray(rawData.trend)) ? rawData.trend : [countVal];
             }
@@ -991,9 +1074,17 @@ setAnaSub(id: string) {
           else if (chartId === 'ev-an1') {
             ch.dynamicData = res.sightings_by_species || [];
           }
+          // 4.5 Fire causes (ac-fc1)
+          else if (chartId === 'ac-fc1') {
+            ch.dynamicData = res.fire_causes || [];
+          }
           // 5. Default Trend charts (line charts)
           else {
             ch.dynamicData = res.trend_data || [];
+            if (chartId === 'ac-fi1') {
+              ch.dynamicLabels = (res.trend_data || []).map((t: any) => typeof t.day_label !== 'undefined' ? t.day_label : t.label);
+              ch.dynamicData = (res.trend_data || []).map((t: any) => typeof t.count !== 'undefined' ? t.count : t.value);
+            }
           }
         });
       }

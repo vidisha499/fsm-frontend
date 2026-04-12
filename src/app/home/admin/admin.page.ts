@@ -197,7 +197,7 @@ export class AdminPage implements OnInit, AfterViewInit {
     illegal_mining: true,
     animal_sighting: true,
     water_status: true,
-    fire_warning: true,
+    fire_alerts: true,
     sos: true,
     timber_storage: true, // Naya add kiya
     timber_transport: true, // Naya add kiya
@@ -278,7 +278,7 @@ export class AdminPage implements OnInit, AfterViewInit {
       emoji: '🔥',
       items: [
         {
-          id: 'fire_warning', // Matches incidentCriteria "Fire Warning" in your NestJS service
+          id: 'fire_alerts', // Matches fire_alerts from forest_reports
           label: 'Fire Alerts',
           emoji: '🔥',
           color: '#ea580c',
@@ -785,6 +785,9 @@ changeTimeframe(newTimeframe: string) {
           this.criminalActivityCount = this.criminalCount;
           this.sightingsCount = this.eventsCount;
           this.incidentsCount = Number(s.total_events || 0);
+          
+          // 🔥 SYNC FIRE DIRECTLY FROM SIGHTINGS SO THE DATA MATCHES ANALYTICS
+          this.fireAlertsCount = Number(s.fire_incidents?.val || 0);
 
           // Update trend data from sightings object (where they are merged in backend)
           this.criminalTrendData = (s.criminal_trend || []).map((t: any) => Number(t.count || 0));
@@ -918,7 +921,8 @@ changeTimeframe(newTimeframe: string) {
         // }
         // --- 3. DASHBOARD COUNTS (TODAY) ---
         const stats = res.stats || {};
-        this.fireAlertsCount = stats.fireEvents || (res.fireCount?.count ?? res.fireCount ?? 0);
+        // Fallback for fireAlertsCount if not already set from sightings
+        this.fireAlertsCount = this.fireAlertsCount || stats.fireEvents || (res.fireCount?.count ?? res.fireCount ?? 0);
         this.attendancePercent = stats.resolvedPercentage || 0;
 
         // --- 4. PERSONNEL & RANGERS ---
@@ -1018,7 +1022,7 @@ if (forestRaw.length > 0) {
             else if (fullType.includes('water')) layerId = 'water_status';
             else if (fullType.includes('storage')) layerId = 'timber_storage';
             else if (fullType.includes('transport')) layerId = 'timber_transport';
-            else if (fullType.includes('fire')) layerId = 'fire_warning';
+            else if (fullType.includes('fire')) layerId = 'fire_alerts';
 
             if (!layerId) return null;
 
@@ -1453,7 +1457,7 @@ handleApiResponse(res: any) {
       else if (type.includes('poaching')) layerId = 'animal_poaching';
       else if (type.includes('sighting')) layerId = 'animal_sighting';
       else if (type.includes('water')) layerId = 'water_status';
-      else if (type.includes('fire')) layerId = 'fire_warning';
+      else if (type.includes('fire')) layerId = 'fire_alerts';
 
       return {
         ...f,

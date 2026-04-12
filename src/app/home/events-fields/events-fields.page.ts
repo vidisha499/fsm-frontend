@@ -130,6 +130,26 @@ fieldsConfig: any = {
       { label: 'Remarks', type: 'textarea', key: 'notes' }
     ],
 
+    // Is code ko fieldsConfig object ke andar add karein:
+
+'Fire Alerts': [
+  { label: 'GPS Status', type: 'text', value: 'Fetching Address...', readonly: true, icon: 'location-outline', id: 'gps' },
+  { label: 'Assigned Beat', type: 'text', placeholder: 'Enter Beat Name', key: 'beat' },
+  //{ label: 'Beat Name', type: 'text', placeholder: 'Enter specific beat name', key: 'beat_name' },
+  { label: 'Fire Cause', type: 'select', options: ['Natural', 'Negligence', 'Intentional', 'Unknown'], key: 'fire_cause' },
+  { label: 'Damage Type', type: 'select', options: ['Forest Area', 'Grassland', 'Wildlife Habitat', 'Plantation', 'Human Property', 'Mixed'], key: 'damage_type' },
+  { label: 'Area Burnt (Hectares)', type: 'number', placeholder: '0.00', key: 'area_burnt' },
+  { label: 'No. of Personnel Deployed', type: 'number', placeholder: '0', key: 'personnel_count' },
+  { label: 'Response Time (Minutes)', type: 'number', placeholder: '0', key: 'response_time' },
+  { label: 'Fire Status', type: 'select', options: ['Active', 'Controlled', 'Extinguished'], key: 'fire_status' },
+  { label: 'Detected By', type: 'select', options: ['Patrol', 'Satellite', 'Villager', 'Sensor', 'Other'], key: 'detected_by' },
+  { label: 'Estimated Loss', type: 'text', placeholder: 'Value in ₹ or description', key: 'estimated_loss' },
+  { label: 'Reported By', type: 'text', placeholder: 'Name / Designation', key: 'reported_by' },
+  { label: 'Action Taken', type: 'textarea', placeholder: 'Describe steps taken', key: 'action_taken' },
+  { label: 'Remarks', type: 'textarea', placeholder: 'Additional notes', key: 'remarks' },
+  { label: 'Upload Photo', type: 'file', icon: 'camera-outline', key: 'photo' }
+],
+
     'Wildlife Compensation': [
       { label: 'GPS Status', type: 'text', value: 'Fetching Address...', readonly: true, icon: 'location-outline', id: 'gps' },
       { label: 'Assigned Beat', type: 'text', placeholder: 'Enter Beat Name', key: 'beat' },
@@ -284,115 +304,7 @@ async fetchLocation() {
   }
 
 
-  // --- SUBMIT LOGIC (Backend Connection) ---
-// --- events-fields.page.ts (COMPLETE FUNCTION) ---
-
-  // async submitReport() {
-  //   const loading = await this.loadingCtrl.create({
-  //     message: 'Saving Report...',
-  //     spinner: 'circles'
-  //   });
-  //   await loading.present();
-
-  //   try {
-  //     const formattedReportData: any = {};
-      
-  //     // 1. Dynamic fields se data nikalna
-  //     this.dynamicFields.forEach(field => {
-  //       const userValue = this.reportData[field.label];
-  //       if (field.key) {
-  //         formattedReportData[field.key] = userValue || "";
-  //       } else {
-  //         formattedReportData[field.label] = userValue || "";
-  //       }
-  //     });
-  //   const gpsField = this.dynamicFields.find(f => f.id === 'gps');
-    
-  //   // Backend Payload (NestJS DTO ke hisaab se)
-  //   const payload = {
-  //     report_id: 'FOR-' + Date.now(),
-  //     user_id: Number(this.dataService.getRangerId()) || 1, // Storage se Ranger ID uthayega
-  //     // company_id: 1, // Default or fetch from profile
-  //     company_id: Number(this.dataService.getUserCompanyId()) || 1,
-  //     // category: 'Forest Event',
-  //     category: this.currentCategory,
-  //     report_type: this.eventTitle,
-  //     date_time: new Date().toISOString(),
-  //     date: new Date().toISOString().split('T')[0],
-  //     time: new Date().toLocaleTimeString(),
-  //     // latitude: gpsField?.value?.split(',')[0]?.trim() || "0",
-  //     // longitude: gpsField?.value?.split(',')[1]?.trim() || "0",
-  //     latitude: this.reportData['latitude'] || "0", 
-  // longitude: this.reportData['longitude'] || "0",
-  //     beat: this.reportData['Assigned Beat'] || 'General',
-  //     report_data: this.reportData, // Pura dynamic object (Illegal Mining/Felling details)
-  //     photo: this.capturedPhoto || '',
-  //     status: 'Pending'
-  //   };
-
-  //     const gpsField = this.dynamicFields.find(f => f.id === 'gps');
-  //     const gpsValue = gpsField?.value || ""; // Fetching from the field value directly
-
-  //     // 2. FINAL PAYLOAD (Table Structure ke hisaab se)
-  //     const payload = {
-  //       report_id: 'FOR-' + Date.now(),
-  //       user_id: Number(this.dataService.getRangerId()) || 1,
-  //       company_id: Number(this.dataService.getUserCompanyId()) || 1,
-        
-  //       // 🔥 Category Fix: Table expect kar rahi hai 'crimes' ya 'events'
-  //       category: this.currentCategory.toLowerCase().includes('criminal') || 
-  //                 this.currentCategory.toLowerCase().includes('crimes') ? 'crimes' : 'events',
-        
-  //       report_type: this.eventTitle.toLowerCase().trim().replace(/\s/g, '_'),
-        
-  //       // Saara form data JSON mein jayega
-  //       report_data: formattedReportData, 
-        
-  //       // 🔥 Direct Columns Mapping (Jo aapne table list bheji uske hisaab se)
-  //       latitude: gpsValue.includes(',') ? gpsValue.split(',')[0].trim() : "0",
-  //       longitude: gpsValue.includes(',') ? gpsValue.split(',')[1].trim() : "0",
-  //       photo: this.capturedPhoto || '',
-  //       beat: this.reportData['Assigned Beat'] || 'General',
-  //       status: 'Pending',
-        
-  //       // Frontend se hi date bhej rahe hain for safety
-  //       date: new Date().toISOString().split('T')[0]
-  //     };
-
-  //     console.log("🚀 Final Payload sending to DB:", payload);
-
-  //     // 3. SERVICE CALL
-  //     this.dataService.submitForestEvent(payload).subscribe({
-  //       next: async (res) => {
-  //         await loading.dismiss();
-  //         const toast = await this.toastCtrl.create({
-  //           message: 'Report Submitted Successfully! ✅',
-  //           duration: 2000,
-  //           color: 'success',
-  //           position: 'top'
-  //         });
-  //         await toast.present();
-  //         this.navCtrl.back();
-  //       },
-  //       error: async (err) => {
-  //         await loading.dismiss();
-  //         console.error("❌ Submission Error Log:", err);
-          
-  //         const toast = await this.toastCtrl.create({
-  //           message: 'Error: ' + (err.error?.message || 'Server connection failed'),
-  //           duration: 3000,
-  //           color: 'danger',
-  //           position: 'top'
-  //         });
-  //         await toast.present();
-  //       }
-  //     });
-
-  //   } catch (err) {
-  //     await loading.dismiss();
-  //     console.error("Fatal Script Error:", err);
-  //   }
-  // }
+ 
   async submitReport() {
   const loading = await this.loadingCtrl.create({
     message: 'Saving Report...',
