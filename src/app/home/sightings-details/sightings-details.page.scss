@@ -66,95 +66,179 @@
   // --- CHANGED SECTION ---
   .card-container {
     padding: 0 20px 30px; 
-    margin-top: -90px; // This pulls the card UP over the header
+    margin-top: -90px; 
     position: relative;
-    z-index: 10; // Ensures it stays on top of the hero-header
+    z-index: 10;
 
-    .main-card {
-      background: white;
-      border-radius: 40px;
-      padding: 30px 20px;
-      box-shadow: 0 15px 35px rgba(0,0,0,0.1); // Slightly deeper shadow for depth
+    .category-banner {
+      display: flex;
+      align-items: center;
+      padding: 20px;
+      border-radius: 30px 30px 0 0;
+      margin-bottom: -1px;
+      z-index: 11;
+      position: relative;
+      box-shadow: 0 -10px 20px rgba(0,0,0,0.05);
 
-      .category-title-section {
+      .banner-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 15px;
         display: flex;
-        flex-direction: column;
         align-items: center;
-        margin-bottom: 30px;
+        justify-content: center;
+        font-size: 22px;
+        margin-right: 15px;
+        background: rgba(255,255,255,0.25);
+        color: white;
+        backdrop-filter: blur(5px);
+      }
 
-        .icon-circle {
-          width: 60px;
-          height: 60px;
-          border-radius: 50%;
+      .banner-text {
+        h2 { 
+          color: white; 
+          margin: 0; 
+          font-size: 20px; 
+          font-weight: 700;
+          letter-spacing: 0.5px;
+        }
+        .location-tag {
+          color: rgba(255,255,255,0.9);
+          font-size: 13px;
+          font-weight: 500;
+          display: block;
+          font-weight: 600;
           display: flex;
           align-items: center;
-          justify-content: center;
-          font-size: 24px;
-          margin-bottom: 10px;
-          
-          &.animal { background: #fef9c3; color: #ca8a04; }
-          &.water { background: #e0f2fe; color: #0284c7; }
-          &.impact { background: #ffedd5; color: #ea580c; }
-        }
-
-        h2 {
-          color: #061a13;
-          font-weight: 800;
-          margin: 0;
+          margin-top: 4px;
+          i { margin-right: 6px; font-size: 12px; }
         }
       }
 
-      .stats-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-        border-top: 1px solid #f0f0f0;
-        padding-top: 25px;
+      // Dynamic colors (Premium Gradients)
+      &.felling { background: linear-gradient(135deg, #059669, #064e3b); }
+      &.poaching { background: linear-gradient(135deg, #dc2626, #7f1d1d); }
+      &.encroachment { background: linear-gradient(135deg, #f97316, #9a3412); }
+      &.mining { background: linear-gradient(135deg, #6366f1, #3730a3); }
+      &.storage { background: linear-gradient(135deg, #06b6d4, #164e63); }
+      &.transport { background: linear-gradient(135deg, #8b5cf6, #4c1d95); }
+      &.animal { background: linear-gradient(135deg, #eab308, #854d0e); }
+      &.water { background: linear-gradient(135deg, #0ea5e9, #0c4a6e); }
+      &.fire { background: linear-gradient(135deg, #ef4444, #991b1b); }
+      &.compensation { background: linear-gradient(135deg, #10b981, #065f46); }
+      &.forestry { background: linear-gradient(135deg, #3b82f6, #1e3a8a); }
+      &.other { background: linear-gradient(135deg, #64748b, #334155); }
+    }
 
-        .stat-item {
+    .main-card.premium-card {
+      background: white;
+      border-radius: 35px; // All corners rounded now
+      padding: 30px 20px 40px;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.08);
+
+      .section-label {
+        font-size: 12px;
+        font-weight: 800;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        margin: 10px 0 18px; // Reduced top margin
+        padding-left: 10px;
+        border-left: 4px solid #0d9488;
+        display: block;
+
+        &:first-child { margin-top: 0; }
+      }
+
+      .details-grid {
+        display: grid;
+        grid-template-columns: 1fr; // Single column for better organization
+        gap: 12px;
+
+        .detail-item {
           display: flex;
-          flex-direction: column;
+          justify-content: space-between;
           align-items: center;
+          background: #f8fafc;
+          padding: 16px 20px;
+          border-radius: 20px;
+          border: 1px solid #f1f5f9;
+          transition: all 0.3s ease;
+
+          &:active {
+            transform: scale(0.98);
+            background: #f1f5f9;
+          }
 
           label {
             font-size: 11px;
             font-weight: 700;
             color: #94a3b8;
-            letter-spacing: 1px;
-            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0;
+            flex-shrink: 0;
           }
 
-          .val {
-            font-size: 18px;
-            font-weight: 800;
-            color: #0f172a;
+          .value {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1e293b;
+            text-align: right;
+            word-break: break-word;
+            padding-left: 15px;
           }
         }
       }
 
       .evidence-section {
-        margin-top: 30px;
-        h3 { font-size: 14px; font-weight: 700; color: #0d9488; margin-bottom: 15px; }
-
         .photo-grid {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 10px;
-          
+          grid-template-columns: repeat(2, 1fr);
+          gap: 12px;
+          margin-top: 10px;
+
           .evidence-img {
             width: 100%;
-            height: 100px;
-            border-radius: 15px;
+            height: 140px;
+            border-radius: 20px;
             object-fit: cover;
+            border: 3px solid #fff;
           }
         }
       }
-      
+
       .notes-section {
-        margin-top: 20px;
-        h3 { font-size: 14px; font-weight: 700; color: #0d9488; margin-bottom: 10px; }
-        p { color: #475569; line-height: 1.5; margin: 0; }
+        background: #f0f9ff;
+        padding: 15px;
+        border-radius: 18px;
+        border-left: 5px solid #0ea5e9;
+
+        .premium-text {
+          font-size: 14px;
+          color: #0c4a6e;
+          line-height: 1.6;
+          margin: 0;
+          font-weight: 500;
+        }
       }
     }
   }
-}
+
+  .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 100px 50px;
+      color: #64748b;
+      
+      ion-spinner {
+          --color: #0d9488;
+          width: 50px;
+          height: 50px;
+          margin-bottom: 15px;
+      }
+      p { font-weight: 600; font-size: 16px; }
+  }
+}

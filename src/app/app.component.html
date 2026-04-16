@@ -74,6 +74,7 @@
   </div>
 </a>
 
+<<<<<<< Updated upstream
 <a class="menu-item" (click)="goToPage('geofences')" [class.active]="router.url.includes('geofences')">
   <div class="icon-box orange">
     <i class="fas fa-draw-polygon"></i>
@@ -89,6 +90,23 @@
   </div>
   <div class="item-text">
     <span>Task Management</span>
+=======
+<a class="menu-item" (click)="goToPage('dynamic-forms')" [class.active]="router.url.includes('dynamic-forms')">
+  <div class="icon-box indigo">
+    <i class="fas fa-edit"></i>
+  </div>
+  <div class="item-text">
+    <span>Change Forms</span>
+  </div>
+</a>
+
+<a class="menu-item" (click)="goToPage('dynamic-labels')" [class.active]="router.url.includes('dynamic-labels')">
+  <div class="icon-box azure">
+    <i class="fas fa-font"></i>
+  </div>
+  <div class="item-text">
+    <span>{{ 'label_dynamic' | dynamicLabel }}</span>
+>>>>>>> Stashed changes
   </div>
 </a>
 
@@ -119,7 +137,7 @@
     <i class="fas fa-file-contract"></i>
   </div>
   <div class="item-text">
-    <span>Reports</span>
+    <span>{{ 'label_report' | dynamicLabel }}</span>
   </div>
 </a>
 
@@ -135,7 +153,7 @@
 
       <a class="menu-item" (click)="goToPage('client-visits')" [class.active]="router.url.includes('client-visits')">
         <div class="icon-box indigo"><i class="fas fa-briefcase"></i></div>
-        <div class="item-text"><span>{{ 'MENU.CLIENT_VISITS' | translate }}</span></div>
+        <div class="item-text"><span>{{ 'label_client' | dynamicLabel }} Visits</span></div>
       </a>
 
       <a class="menu-item" (click)="goToPage('location')" [class.active]="router.url.includes('location')">

@@ -1,7 +1,8 @@
 import { Component, Renderer2, QueryList, ViewChildren, OnInit, ChangeDetectorRef } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { Platform, IonRouterOutlet, ActionSheetController, ModalController, MenuController, NavController, ToastController ,LoadingController} from '@ionic/angular';
+import { Platform, IonRouterOutlet, ActionSheetController, ModalController, MenuController, NavController, ToastController, LoadingController } from '@ionic/angular';
 import { Router } from '@angular/router';
+import { LabelService } from './services/label.service';
 
 @Component({
   selector: 'app-root',
@@ -12,7 +13,7 @@ import { Router } from '@angular/router';
 export class AppComponent implements OnInit {
   @ViewChildren(IonRouterOutlet) routerOutlets!: QueryList<IonRouterOutlet>;
 
-  // --- MENU & PROFILE DATA ---
+  // ... (rest of members)
   rangerName: string = 'Ranger';
   rangerDivision: string = 'Washim Division 4.2';
   rangerPhone: string = '';
@@ -20,7 +21,6 @@ export class AppComponent implements OnInit {
   profileImage: string | null = null;
   userRole: string = '';
 
-  // --- UI STATE VARIABLES ---
   showLanguageModal: boolean = false;
   selectedLanguage: string = 'English';
   currentPage: string = 'home'; 
@@ -31,7 +31,6 @@ export class AppComponent implements OnInit {
   currentPassword: string = '';
   rangerPassword: string = '';
 
-  // --- SLIDER STATE VARIABLES ---
   isSubmitting: boolean = false;
   currentTranslateX: number = 0;
   textOpacity: number = 1;
@@ -48,10 +47,11 @@ export class AppComponent implements OnInit {
     private modalCtrl: ModalController,
     private menu: MenuController,
     private navCtrl: NavController,
-    private cdr: ChangeDetectorRef, // For Slider & UI updates
-    private toastController: ToastController, // For success messages
+    private cdr: ChangeDetectorRef, 
+    private toastController: ToastController, 
     public router: Router ,
-     private loadingCtrl: LoadingController,
+    private loadingCtrl: LoadingController,
+    private labelService: LabelService
   ) {
     this.renderer.removeClass(document.body, 'dark');
     this.renderer.addClass(document.body, 'light');
@@ -62,6 +62,11 @@ export class AppComponent implements OnInit {
 
   ngOnInit() {
     this.loadUserData();
+
+    // 🔥 SYNC FIX: Listen for label updates and force UI refresh
+    this.labelService.labelUpdated$.subscribe(() => {
+        this.cdr.detectChanges(); 
+    });
   }
 
   // --- DATA LOADING LOGIC ---

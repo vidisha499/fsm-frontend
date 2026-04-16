@@ -66,77 +66,6 @@ export class PatrolDetailsPage implements OnInit {
   }
 
 
-//   initMap() {
-//   const mapElement = document.getElementById('detailsMap');
-//   if (!mapElement || !this.patrol) return;
-
-//   // 1. Setup Map Instance
-//   if (this.map) { this.map.remove(); }
-//   this.map = L.map('detailsMap', { zoomControl: false });
-
-//   L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { 
-//     subdomains: ['mt0','mt1','mt2','mt3'] 
-//   }).addTo(this.map);
-
-//   // 2. Initialize Bounds
-//   const bounds = L.latLngBounds([]);
-
-//   // 3. Handle Route Polyline
-//   const routeCoords: L.LatLngTuple[] = (this.patrol.route || []).map((p: any) => [p.lat, p.lng] as L.LatLngTuple);
-//   if (routeCoords.length > 0) {
-//     const polyline = L.polyline(routeCoords, { color: '#059669', weight: 5, opacity: 0.8 }).addTo(this.map);
-//     routeCoords.forEach(coord => bounds.extend(coord));
-//   }
-
-//   // 4. Handle Sighting Markers
-//   // const sightings = this.patrol.observationData?.Details || [];
-//   // 4. Handle Sighting Markers
-// const sightings = this.patrol.observationData || [];  
-//   sightings.forEach((obs: any) => {
-//     // Note: Backend uses 'latitude'/'longitude', Frontend HTML used 'lat'/'lng'
-//     // Let's check both to be safe
-//     const lat = obs.latitude || obs.lat;
-//     const lng = obs.longitude || obs.lng;
-
-//     if (lat && lng) {
-//       const sightingCoord: L.LatLngTuple = [lat, lng];
-//       const icon = this.createSightingMarkerIcon(obs.category);
-      
-//       L.marker(sightingCoord, { icon })
-//         .addTo(this.map)
-//         .bindPopup(`<b>${obs.category}</b><br>${obs.species || ''}`);
-      
-//       bounds.extend(sightingCoord);
-//     }
-//   });
-  
-//   // sightings.forEach((obs: any) => {
-//   //   if (obs.lat && obs.lng) {
-//   //     const sightingCoord: L.LatLngTuple = [obs.lat, obs.lng];
-//   //     const icon = this.createSightingMarkerIcon(obs.category);
-      
-//   //     L.marker(sightingCoord, { icon })
-//   //       .addTo(this.map)
-//   //       .bindPopup(`<b>${obs.category}</b><br>${obs.species || ''}`);
-      
-//   //     // Extend bounds to include this sighting
-//   //     bounds.extend(sightingCoord);
-//   //   }
-//   // });
-
-//   // 5. Final Auto-Zoom Logic
-//   if (bounds.isValid()) {
-//     // fitBounds makes sure EVERYTHING is visible
-//     this.map.fitBounds(bounds, { padding: [40, 40] });
-//   } else {
-//     // Fallback if no data exists
-//     this.map.setView([19.95, 79.12], 13);
-//   }
-
-//   this.mapLoading = false;
-//   this.cdr.detectChanges();
-// }
-
 initMap() {
     const mapElement = document.getElementById('detailsMap');
     if (!mapElement || !this.patrol) return;
@@ -191,18 +120,27 @@ initMap() {
 
       if (lat !== undefined && lng !== undefined) {
         const sightingCoord: L.LatLngTuple = [Number(lat), Number(lng)];
-        const icon = this.createSightingMarkerIcon(obs.category);
+        
+        // 🛡️ Enhanced Icon Mapping
+        const iconInfo = this.getIconAndColor(obs.report_type || obs.category);
+        const icon = L.divIcon({
+          className: 'custom-details-marker',
+          html: `<div style="background-color: ${iconInfo.color}; width: 14px; height: 14px; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 5px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; color: white; font-size: 8px;">
+                  <i class="fas ${iconInfo.icon}"></i>
+                </div>`,
+          iconSize: [18, 18],
+          iconAnchor: [9, 9]
+        });
         
         L.marker(sightingCoord, { icon })
           .addTo(this.map)
           .bindPopup(`
-            <div style="font-family: sans-serif;">
-              <b style="text-transform: capitalize;">${obs.category || 'Sighting'}</b><br>
-              <span>${obs.species || ''}</span>
+            <div style="font-family: sans-serif; padding: 5px;">
+              <b style="text-transform: capitalize; color: #111827;">${this.formatTitle(obs.report_type || obs.category)}</b><br>
+              <span style="color: #6b7280; font-size: 11px;">${obs.source === 'report' ? 'Field Report' : (obs.species || 'Sighting')}</span>
             </div>
           `);
         
-        // Extend bounds so this marker is visible on the map
         bounds.extend(sightingCoord);
       }
     });
@@ -220,8 +158,10 @@ initMap() {
     this.cdr.detectChanges();
   }
 
-private createSightingMarkerIcon(category: string) {
-  const cat = category?.toLowerCase() || 'other';
+private getIconAndColor(category: string): { icon: string, color: string } {
+  const cat = category?.toLowerCase().trim() || '';
+  
+  // Color palette synchronized with PatrolActivePage
   const colors: any = {
     animal: '#ca8a04',
     water: '#0284c7',
@@ -230,25 +170,43 @@ private createSightingMarkerIcon(category: string) {
     felling: '#16a34a',
     other: '#64748b'
   };
-  const color = colors[cat] || colors['other'];
 
-  return L.divIcon({
-    className: 'custom-details-marker',
-    html: `<div style="background-color: ${color}; width: 12px; height: 12px; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 5px rgba(0,0,0,0.3);"></div>`,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8]
-  });
+  if (cat.includes('felling')) return { icon: 'fa-tree', color: colors.felling };
+  if (cat.includes('encroachment')) return { icon: 'fa-map-location-dot', color: colors.water };
+  if (cat.includes('timber transport')) return { icon: 'fa-truck', color: colors.impact };
+  if (cat.includes('timber storage')) return { icon: 'fa-warehouse', color: colors.other };
+  if (cat.includes('poaching')) return { icon: 'fa-bullseye', color: colors.death };
+  if (cat.includes('mining')) return { icon: 'fa-mountain', color: colors.animal };
+  
+  if (cat.includes('jfmc')) return { icon: 'fa-users', color: colors.impact };
+  if (cat.includes('animal') || cat.includes('species')) return { icon: 'fa-paw', color: colors.animal };
+  if (cat.includes('water')) return { icon: 'fa-droplet', color: colors.water };
+  if (cat.includes('fire')) return { icon: 'fa-fire', color: colors.felling };
+  
+  return { icon: 'fa-circle-plus', color: colors.other };
 }
 
-  getCategoryIcon(category: string): string {
-    const cat = category?.toLowerCase() || '';
-    if (cat.includes('animal')) return 'fas fa-paw';
-    if (cat.includes('water')) return 'fas fa-tint';
-    if (cat.includes('impact')) return 'fas fa-person-hiking';
-    if (cat.includes('felling')) return 'fas fa-tree';
-    if (cat.includes('death')) return 'fas fa-skull';
-    return 'fas fa-eye';
-  }
+formatTitle(str: string): string {
+  if (!str) return 'Other';
+  return str.replace(/_/g, ' ')
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+}
+
+getCategoryIcon(category: string): string {
+  return this.getIconAndColor(category).icon;
+}
+
+getCategoryColor(category: string): string {
+  const cat = category?.toLowerCase() || '';
+  if (cat.includes('felling')) return 'felling';
+  if (cat.includes('water') || cat.includes('encroachment')) return 'water';
+  if (cat.includes('impact') || cat.includes('transport') || cat.includes('jfmc')) return 'impact';
+  if (cat.includes('death') || cat.includes('poaching')) return 'death';
+  if (cat.includes('animal') || cat.includes('mining')) return 'animal';
+  return 'other';
+}
 
   goBack() { this.navCtrl.back(); }
  
@@ -264,9 +222,13 @@ closeZoom() {
 }
 
 viewSightingDetails(obs: any) {
- 
-  this.navCtrl.navigateForward(['/sightings-details', 'view'], {
-    state: { data: obs }
+  const sightingId = obs.id || `temp-${Date.now()}`;
+  this.navCtrl.navigateForward(['/sightings-details', sightingId], {
+    state: { 
+      data: obs,
+      source: obs.source || 'report',
+      id: obs.id
+    }
   });
 }
 }

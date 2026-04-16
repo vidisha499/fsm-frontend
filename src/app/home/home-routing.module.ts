@@ -115,7 +115,8 @@ loadChildren:() => import('./admin/admin.module').then( m => m.AdminPageModule)
   {
     path: 'assets-details',
     loadChildren: () => import('./assets-details/assets-details.module').then( m => m.AssetDetailsPageModule)
-  },  {
+  },
+  {
     path: 'forest-events',
     loadChildren: () => import('./forest-events/forest-events.module').then( m => m.ForestEventsPageModule)
   },
@@ -128,20 +129,12 @@ loadChildren:() => import('./admin/admin.module').then( m => m.AdminPageModule)
     loadChildren: () => import('./reports/reports.module').then( m => m.ReportsPageModule)
   },
   {
-    path: 'daily-updates',
-    loadChildren: () => import('./daily-updates/daily-updates.module').then( m => m.DailyUpdatesPageModule)
+    path: 'dynamic-forms',
+    loadChildren: () => import('./dynamic-forms/dynamic-forms.module').then( m => m.DynamicFormsPageModule)
   },
   {
-    path: 'client-visits',
-    loadChildren: () => import('./client-visits/client-visits.module').then( m => m.ClientVisitsPageModule)
-  },
-  {
-    path: 'geofences',
-    loadChildren: () => import('./geofences/geofences.module').then( m => m.GeofencesPageModule)
-  },
-  {
-    path: 'tasks',
-    loadChildren: () => import('./tasks/tasks.module').then( m => m.TasksPageModule)
+    path: 'dynamic-labels',
+    loadChildren: () => import('./dynamic-labels/dynamic-labels.module').then( m => m.DynamicLabelsPageModule)
   },
 
 

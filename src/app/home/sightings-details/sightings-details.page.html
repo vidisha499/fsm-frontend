@@ -9,53 +9,63 @@
         <button (click)="goBack()" class="glass-btn">
           <i class="fas fa-arrow-left"></i>
         </button>
-        <h1>Sighting Details</h1>
-        <div class="active-badge">Active</div>
+        <h1>{{ getDisplayTitle() }}</h1>
+        <div class="active-badge">{{ sighting?.beat || 'Forest Area' }}</div>
       </div>
     </div>
   </div> 
 
-  <div class="card-container">
-    <div class="main-card" *ngIf="sighting">
+  <div class="card-container" *ngIf="sighting && !isLoading">
+    <!-- Main Details Card -->
+    <div class="main-card premium-card">
+      <div class="section-label">Field Observations</div>
       
-      <div class="category-title-section">
-        <div class="icon-circle" [ngClass]="sighting.category?.toLowerCase()">
-          <i class="fas" [ngClass]="getIcon(sighting.category)"></i>
+      <div class="details-grid">
+        <div class="detail-item" *ngFor="let field of reportDataFields">
+          <label>{{ field.label }}</label>
+          <span class="value">{{ field.value }}</span>
         </div>
-        <h2>{{ sighting.category }}</h2>
+        
+        <!-- Fallback if no reportDataFields but has basic ones -->
+        <ng-container *ngIf="reportDataFields.length === 0">
+            <div class="detail-item" *ngIf="sighting.species">
+                <label>Species</label>
+                <span class="value">{{ sighting.species }}</span>
+            </div>
+            <div class="detail-item" *ngIf="sighting.count">
+                <label>Count</label>
+                <span class="value">{{ sighting.count }}</span>
+            </div>
+        </ng-container>
+
+        <div class="detail-item">
+          <label>Report Time</label>
+          <span class="value">{{ (sighting.created_at || sighting.timestamp) | date:'medium' }}</span>
+        </div>
       </div>
 
-      <div class="stats-grid">
-        <div class="stat-item">
-          <label>SPECIES</label>
-          <span class="val">{{ sighting.species || 'None' }}</span>
-        </div>
-        <div class="stat-item">
-          <label>COUNT</label>
-          <span class="val">{{ sighting.count }}</span>
-        </div>
-        <div class="stat-item">
-          <label>TYPE</label>
-          <span class="val">{{ sighting.sighting_type || 'Direct' }}</span>
-        </div>
-        <div class="stat-item">
-          <label>TIME</label>
-          <span class="val">{{ sighting.timestamp | date:'shortTime' }}</span>
-        </div>
-      </div>
-
-      <div class="evidence-section" *ngIf="sighting.photos?.length > 0">
-        <h3>Captured Evidence</h3>
+      <!-- Evidence Section -->
+      <div class="evidence-section" *ngIf="sighting.photos?.length > 0 || sighting.photo">
+        <div class="section-label">Media Evidence</div>
         <div class="photo-grid">
-          <img *ngFor="let p of sighting.photos" [src]="p" class="evidence-img">
+          <img *ngIf="sighting.photo" [src]="sighting.photo" class="evidence-img premium-shadow">
+          <ng-container *ngFor="let p of sighting.photos">
+               <img [src]="p" class="evidence-img premium-shadow">
+          </ng-container>
         </div>
       </div>
 
-      <div class="notes-section" *ngIf="sighting.notes">
-        <h3>Field Notes</h3>
-        <p>{{ sighting.notes }}</p>
+      <!-- Notes Section -->
+      <div class="notes-section" *ngIf="sighting.notes || sighting.remarks || sighting.overall_remarks">
+        <div class="section-label">Additional Remarks</div>
+        <p class="premium-text">{{ sighting.notes || sighting.remarks || sighting.overall_remarks }}</p>
       </div>
-
     </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="isLoading">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Loading details...</p>
   </div>
 </ion-content>

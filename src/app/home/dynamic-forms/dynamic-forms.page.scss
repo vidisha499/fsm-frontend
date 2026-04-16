@@ -1,0 +1,374 @@
+/* ==========================================================================
+   DYNAMIC FORM BUILDER - PREMIUM UI SCSS
+   ========================================================================== */
+
+.premium-wrapper {
+  --primary-teal: #0d9488;
+  --dark-slate: #0f172a;
+  --accent-gold: #fbbf24;
+  --bg-light: #f8fafc;
+  
+  min-height: 100vh;
+  background: var(--bg-light);
+  position: relative;
+  overflow-x: hidden;
+
+  /* Ambient Glow Background Effects */
+  .ambient-glow {
+    position: absolute; 
+    border-radius: 50%; 
+    filter: blur(70px); 
+    opacity: 0.15; 
+    z-index: 0;
+
+    &.glow-1 { 
+      width: 300px; height: 300px; 
+      background: var(--primary-teal); 
+      top: -100px; right: -50px; 
+    }
+    &.glow-2 { 
+      width: 250px; height: 250px; 
+      background: var(--accent-gold); 
+      bottom: 15% ; left: -100px; 
+    }
+  }
+
+  /* Hero Header Section */
+  .hero-header {
+    position: relative;
+    height: 180px;
+    background: url('https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&q=80&w=800') center/cover;
+    border-radius: 0 0 45px 45px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+
+    .header-overlay {
+      position: absolute; 
+      inset: 0;
+      background: linear-gradient(135deg, rgba(13, 148, 136, 0.95) 0%, rgba(15, 23, 42, 0.8) 100%);
+      border-radius: 0 0 45px 45px;
+    }
+
+    .header-content {
+      position: relative; 
+      z-index: 2; 
+      padding: 15px 18px 5px; // Reduced from 25px top to move everything up
+
+      .nav-bar {
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center;
+        margin-top: 25px;
+
+        .left-section {
+          display: flex; 
+          align-items: center; 
+          gap: 15px; 
+
+          .header-title { 
+            color: white; 
+            font-size: 18px; 
+            font-size: 17px; 
+            font-weight: 800; 
+            margin: 0; 
+            line-height: 1.2;
+            max-width: 140px;
+            margin-top: 5%;
+          }
+           .glass-btn { 
+            background: rgba(255, 255, 255, 0.1); 
+            border: 1px solid rgba(255, 255, 255, 0.15); 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 42px; 
+            height: 42px; 
+            border-radius: 12px; 
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(8px);
+            transition: all 0.3s ease;
+          }
+        }
+        
+        .toggle-group.glass-toggles {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 3px;
+            border-radius: 10px;
+            display: flex;
+            gap: 2px;
+            transform: scale(0.82) translateY(-5px);
+            transform-origin: right;
+
+            button {
+                background: transparent;
+                border: none;
+                color: rgba(255, 255, 255, 0.8);
+                padding: 6px 14px;
+                border-radius: 8px;
+                font-size: 10px;
+                font-weight: 900;
+                transition: all 0.3s ease;
+                text-transform: uppercase;
+
+                &.active {
+                    background: #ffffff;
+                    color: var(--primary-teal);
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+                }
+            }
+        }
+      }
+    }
+  }
+
+  /* Main Workspace Logic */
+  .main-container {
+    margin-top: -30px; 
+    padding: 0 18px 60px; 
+    position: relative; 
+    z-index: 3;
+
+    .section-label {
+        font-size: 11px; font-weight: 900; color: #64748b; 
+        letter-spacing: 0.8px; padding-left: 5px; margin-bottom: 8px;
+    }
+
+    .section-label-row {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-top: 25px; margin-bottom: 12px;
+        ion-badge { border-radius: 20px; padding: 5px 12px; font-size: 10px; font-weight: 900; }
+    }
+
+    .premium-card {
+        margin: 0; border-radius: 25px; background: #ffffff; 
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.05); border: 1px solid #f1f5f9;
+        
+        .card-body { padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+    }
+}
+
+/* Base Form Styling */
+.form-item {
+    label { display: block; font-size: 11px; font-weight: 800; color: #0f172a; opacity: 0.6; margin-bottom: 6px; }
+    
+    .custom-select-box {
+        background: #f8fafc; border-radius: 15px; border: 1.5px solid #f1f5f9;
+        ion-select { width: 100%; font-weight: 800; font-size: 14px; color: #0f172a; --padding-start: 15px; }
+    }
+
+    &.toggle-item {
+        background: #f8fafc; padding: 12px 18px; border-radius: 15px; border: 1.5px solid #f1f5f9;
+        
+        .toggle-row-content {
+            display: flex; justify-content: space-between; align-items: center;
+            
+            .toggle-label-text { font-size: 10px; font-weight: 900; color: #64748b; }
+            ion-toggle {
+                --handle-border-radius: 6px; --height: 30px; --track-background-checked: var(--primary-teal);
+            }
+        }
+    }
+}
+
+/* Palette Trigger Spacing Fix */
+.palette-trigger {
+    margin-top: 35px !important; // Dur karo isse (Screenshot Fix)
+    --border-radius: 15px; --border-width: 1.5px; font-weight: 800; font-size: 13px; height: 50px;
+}
+
+.palette-tray {
+    margin: 10px 0 0; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    border: 1px solid #f1f5f9;
+    
+    ion-item { 
+        --padding-start: 15px; font-size: 14px; font-weight: 700; color: #334155;
+        ion-icon[slot="start"] { font-size: 18px; }
+    }
+}
+
+/* Workspace Nodes - Reorder Enabled */
+.field-node {
+    background: white; border-radius: 20px; overflow: hidden; border: 1.5px solid #f1f5f9;
+    margin-bottom: 12px; transition: all 0.3s ease;
+
+    &.active { border-color: var(--primary-teal); box-shadow: 0 10px 25px rgba(13, 148, 136, 0.1); }
+
+    .node-header {
+        padding: 15px; display: flex; justify-content: space-between; align-items: center;
+
+        .node-left {
+            display: flex; align-items: center; gap: 12px; cursor: pointer; flex: 1;
+            .node-index { 
+                width: 26px; height: 26px; background: #334155; color: white; 
+                border-radius: 8px; display: flex; align-items: center; justify-content: center;
+                font-size: 11px; font-weight: 900;
+            }
+            .type-icon { font-size: 20px; color: var(--primary-teal); }
+            .node-label { font-size: 14px; font-weight: 800; color: #0f172a; }
+        }
+
+        .node-right {
+            display: flex; gap: 4px; align-items: center;
+            .reorder-icon { font-size: 18px; color: #94a3b8; margin: 0 5px; }
+            .node-btn {
+                background: transparent; border: none; padding: 6px; color: #94a3b8; font-size: 18px;
+                &.delete { color: #f43f5e; opacity: 0.6; }
+            }
+        }
+    }
+
+    .node-settings {
+        background: #f8fafc; border-top: 1.5px solid #f1f5f9; padding: 15px;
+        
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .setting-item {
+            margin-bottom: 15px;
+            label { display: block; font-size: 10px; font-weight: 900; color: #94a3b8; margin-bottom: 5px; }
+            ion-input { 
+                --padding-start: 12px; background: white; border: 1px solid #e2e8f0; border-radius: 10px;
+                font-size: 13px; font-weight: 700; min-height: 42px;
+            }
+        }
+
+        .options-manager {
+            background: white; border: 1px solid #e2e8f0; padding: 15px; border-radius: 12px;
+            margin-bottom: 12px;
+            
+            .opt-header {
+                display: flex; justify-content: space-between; align-items: center;
+                margin-bottom: 12px;
+                label { font-size: 10px; font-weight: 900; color: #94a3b8; margin: 0; }
+                .add-opt-btn {
+                    background: #f1f5f9; border: none; color: var(--primary-teal);
+                    font-size: 10px; font-weight: 900; padding: 4px 10px; border-radius: 6px;
+                    display: flex; align-items: center; gap: 4px;
+                }
+            }
+            
+            .option-pill {
+                display: flex; align-items: center; background: #f8fafc; padding: 4px 10px;
+                border-radius: 10px; margin-bottom: 8px; border: 1px solid #f1f5f9;
+                transition: transform 0.2s ease;
+                
+                .opt-drag-icon { font-size: 16px; color: #cbd5e1; margin-right: 8px; cursor: move; }
+                ion-input { --padding-start: 0; font-size: 12px; font-weight: 700; min-height: 32px; }
+                .remove-opt { color: #f43f5e; font-size: 18px; margin-left: 8px; cursor: pointer; opacity: 0.6; }
+                
+                &:active { background: #f1f5f9; }
+            }
+        }
+
+        .mandatory-toggle {
+            ion-toggle { font-size: 12px; font-weight: 900; --handle-border-radius: 4px; }
+        }
+    }
+}
+
+/* Visualization Preview Mode */
+.preview-area {
+    .mock-form {
+        margin: 0; border-radius: 25px; padding: 25px 20px; background: white;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+        display: flex; flex-direction: column; gap: 20px;
+    }
+
+    .field-mock {
+        .mock-label { display: block; font-size: 12px; font-weight: 800; color: #334155; margin-bottom: 8px; opacity: 0.8; }
+        .req { color: #f43f5e; margin-left: 2px; }
+
+        .mock-input {
+            width: 100%; min-height: 52px; background: #f8fafc; border: 1.5px solid #f1f5f9;
+            border-radius: 15px; display: flex; align-items: center; padding: 0 15px;
+            gap: 12px; font-size: 14px; font-weight: 600; color: #94a3b8;
+
+            ion-icon { font-size: 18px; color: var(--primary-teal); opacity: 0.8; }
+            &.area { align-items: flex-start; padding-top: 15px; min-height: 80px; }
+            &.select, &.date { justify-content: space-between; }
+        }
+
+        .mock-choices {
+            display: flex; flex-wrap: wrap; gap: 15px;
+            .choice-item {
+                display: flex; align-items: center; gap: 8px;
+                .dot { width: 18px; height: 18px; border: 2px solid #cbd5e1; border-radius: 50%; &.square { border-radius: 4px; } }
+                span { font-size: 13px; font-weight: 700; color: #475569; }
+            }
+        }
+
+        .mock-photo {
+            width: 100%; border: 2px dashed #cbd5e1; border-radius: 15px; padding: 25px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 8px; color: #94a3b8; font-weight: 800; font-size: 12px; background: #f8fafc;
+            ion-icon { font-size: 28px; color: #cbd5e1; }
+        }
+    }
+}
+
+/* SCREENSHOT-PERFECT INLINE SAVE BUTTON */
+.inline-swipe-btn {
+  margin-top: 40px;
+  padding: 0 10px;
+
+  .swipe-container {
+    height: 70px; 
+    background: #10b981; // Perfectly matched Emerald
+    border-radius: 40px; // Pill shape (Screenshot Fix)
+    position: relative; 
+    overflow: hidden;
+    box-shadow: 0 15px 35px rgba(16, 185, 129, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .swipe-track {
+      position: absolute; 
+      inset: 0; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center;
+      z-index: 5;
+      
+      .swipe-text {
+        font-size: 14px; 
+        font-weight: 900; 
+        color: white; 
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        margin-left: 50px; // Offset for the handle
+      }
+
+      .swipe-progress {
+        position: absolute; 
+        left: 0; 
+        top: 0; 
+        bottom: 0; 
+        background: rgba(255, 255, 255, 0.15); 
+        width: calc(var(--progress, 0) * 100%); 
+        transition: 0.1s linear;
+        z-index: -1;
+      }
+    }
+
+    .swipe-handle {
+      position: absolute; 
+      left: 10px; 
+      top: 10px; 
+      bottom: 10px; 
+      width: 50px;
+      background: white; 
+      border-radius: 50%; // Perfect white circle (Screenshot Fix)
+      display: flex; 
+      align-items: center; 
+      justify-content: center;
+      box-shadow: 0 8px 15px rgba(0,0,0,0.1); 
+      color: #10b981; // Green arrow
+      font-size: 24px; 
+      z-index: 10;
+    }
+  }
+}
+
+}

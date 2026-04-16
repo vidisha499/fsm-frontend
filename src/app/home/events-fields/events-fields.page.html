@@ -19,7 +19,9 @@
     <div class="form-card animate-up">
       
       <div *ngFor="let field of dynamicFields" class="input-wrapper">
-        <ion-label class="field-label">{{ field.label }}</ion-label>
+        <ion-label class="field-label">
+          {{ field.label }} <span class="required-star">*</span>
+        </ion-label>
 
         <!-- Text aur Number Inputs -->
         <ion-item lines="none" class="custom-input" *ngIf="field.type === 'text' || field.type === 'number'">
@@ -28,40 +30,83 @@
             [type]="field.type" 
             [placeholder]="field.placeholder" 
             [(ngModel)]="reportData[field.label]"
+            (ngModelChange)="checkFormValidity()"
             [readonly]="field.readonly">
           </ion-input>
         </ion-item>
 
         <!-- Select Dropdowns -->
         <ion-item lines="none" class="custom-input" *ngIf="field.type === 'select'">
-          <ion-select [placeholder]="field.placeholder" [(ngModel)]="reportData[field.label]" interface="action-sheet" mode="md">
+          <ion-select [placeholder]="field.placeholder" [(ngModel)]="reportData[field.label]" (ionChange)="checkFormValidity()" interface="action-sheet" mode="md">
             <ion-select-option *ngFor="let opt of field.options" [value]="opt">
               {{ opt }}
             </ion-select-option>
           </ion-select>
         </ion-item>
 
-        <!-- Textarea -->
-        <ion-item lines="none" class="custom-input area-item" *ngIf="field.type === 'textarea'">
-          <ion-textarea [placeholder]="field.placeholder" [(ngModel)]="reportData[field.label]" rows="3" auto-grow="true"></ion-textarea>
+        <!-- Radio Buttons -->
+        <div class="radio-group" *ngIf="field.type === 'radio'">
+          <ion-radio-group [(ngModel)]="reportData[field.label]" (ionChange)="checkFormValidity()">
+            <ion-item lines="none" *ngFor="let opt of field.options" class="check-radio-item">
+              <ion-radio [value]="opt" slot="start"></ion-radio>
+              <ion-label>{{ opt }}</ion-label>
+            </ion-item>
+          </ion-radio-group>
+        </div>
+
+        <!-- Checkboxes -->
+        <div class="checkbox-group" *ngIf="field.type === 'checkbox'">
+          <ion-item lines="none" *ngFor="let opt of field.options" class="check-radio-item">
+            <ion-checkbox slot="start" (ionChange)="updateCheckboxValue(field.label, opt, $event)"></ion-checkbox>
+            <ion-label>{{ opt }}</ion-label>
+          </ion-item>
+        </div>
+
+        <!-- Date Picker -->
+        <ion-item lines="none" class="custom-input" *ngIf="field.type === 'date'">
+          <ion-icon name="calendar-outline" slot="start" class="field-icon"></ion-icon>
+          <ion-datetime-button datetime="datetime"></ion-datetime-button>
+          <ion-modal [keepContentsMounted]="true">
+            <ng-template>
+              <ion-datetime id="datetime" presentation="date" [(ngModel)]="reportData[field.label]" (ionChange)="checkFormValidity()"></ion-datetime>
+            </ng-template>
+          </ion-modal>
         </ion-item>
 
-        <!-- Photo Section -->
-        <div class="photo-upload-box" *ngIf="field.type === 'file'">
-          <div class="image-preview" *ngIf="capturedPhoto">
-            <img [src]="capturedPhoto" />
+        <!-- Textarea -->
+        <ion-item lines="none" class="custom-input area-item" *ngIf="field.type === 'textarea'">
+          <ion-textarea [placeholder]="field.placeholder" [(ngModel)]="reportData[field.label]" (ngModelChange)="checkFormValidity()" rows="3" auto-grow="true"></ion-textarea>
+        </ion-item>
+
+        <!-- Photo Section (Multi-photo) -->
+        <div class="photo-section" *ngIf="field.type === 'file'">
+          <div class="photos-grid" *ngIf="capturedPhotos.length > 0">
+            <div class="photo-item animate-scale" *ngFor="let photo of capturedPhotos; let i = index">
+              <img [src]="photo" />
+              <div class="remove-btn" (click)="removePhoto(i)">
+                <ion-icon name="close-circle"></ion-icon>
+              </div>
+            </div>
           </div>
-          <ion-button fill="outline" class="upload-btn" (click)="selectImageSource()">
-            <ion-icon slot="start" [name]="capturedPhoto ? 'checkmark-circle' : 'camera-outline'"></ion-icon>
-            {{ capturedPhoto ? 'Change Photo' : 'Capture Photo' }}
-          </ion-button>
+          
+          <div class="upload-placeholder" (click)="selectImageSource()" *ngIf="capturedPhotos.length < 5">
+            <ion-icon name="camera-outline"></ion-icon>
+            <span>Add Photo ({{ capturedPhotos.length }}/5)</span>
+          </div>
         </div>
       </div>
 
-      <!-- Submit Button -->
-      <ion-button expand="block" class="submit-btn" (click)="submitReport()">
-        Submit Report
-      </ion-button>
+      <!-- Swipe to Submit Button -->
+      <div class="swipe-container" [class.valid-form]="isFormValid">
+        <div class="swipe-track">
+          <span class="swipe-text" *ngIf="!swipeCompleted">SLIDE TO SUBMIT REPORT</span>
+          <span class="swipe-text success" *ngIf="swipeCompleted">SUBMITTING...</span>
+          <div class="swipe-progress"></div>
+        </div>
+        <div class="swipe-handle">
+          <ion-icon [name]="swipeCompleted ? 'checkmark-outline' : 'chevron-forward-outline'"></ion-icon>
+        </div>
+      </div>
     </div>
   </div>
 </ion-content>

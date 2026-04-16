@@ -1,0 +1,212 @@
+<ion-content [fullscreen]="true" #scrollContent [scrollEvents]="true">
+  <div class="premium-wrapper">
+    <!-- Ambient Glow Background -->
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <!-- Hero Header -->
+    <div class="hero-header">
+      <div class="header-overlay"></div>
+      <div class="header-content">
+        <div class="nav-bar">
+          <div class="left-section">
+            <button (click)="goBack()" class="glass-btn">
+              <ion-icon name="arrow-back-outline"></ion-icon>
+            </button>
+            <h1 class="header-title">Report Configuration Builder</h1>
+          </div>
+          <div class="right-section">
+             <div class="toggle-group glass-toggles">
+               <button (click)="isPreviewMode = false" [class.active]="!isPreviewMode">Builder</button>
+               <button (click)="isPreviewMode = true" [class.active]="isPreviewMode">Preview</button>
+             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+      
+      <!-- 1. BASE INFORMATION (Builder Mode Only) -->
+      <div class="builder-section" *ngIf="!isPreviewMode">
+        <ion-card class="premium-card">
+          <div class="card-body">
+            
+            <div class="form-item">
+              <label>Forest Category</label>
+              <div class="custom-select-box">
+                <ion-select [(ngModel)]="selectedCategory" (ionChange)="onCategoryChange()" interface="popover">
+                  <ion-select-option *ngFor="let opt of categoryOptions" [value]="opt">{{ opt }}</ion-select-option>
+                </ion-select>
+              </div>
+            </div>
+
+            <div class="form-item">
+                <label>Report Type</label>
+                <div class="custom-select-box">
+                  <ion-select [(ngModel)]="reportType" (ionChange)="onReportTypeChange()" interface="popover" [placeholder]="reportTypeOptions.length ? 'Select Type' : 'Select Category First'">
+                    <ion-select-option *ngFor="let type of reportTypeOptions" [value]="type">{{ type }}</ion-select-option>
+                  </ion-select>
+                </div>
+            </div>
+
+            <div class="form-item toggle-item">
+                <label>Load Saved Template</label>
+                <div class="toggle-row-content">
+                    <span class="toggle-label-text">{{ loadSavedTemplate ? 'YES' : 'NO' }}</span>
+                    <ion-toggle [(ngModel)]="loadSavedTemplate" (ionChange)="onReportTypeChange()" color="success"></ion-toggle>
+                </div>
+            </div>
+
+          </div>
+        </ion-card>
+      </div>
+
+      <!-- 2. FORM ELEMENTS PALETTE TRIGGER -->
+      <div class="builder-section mt-15" *ngIf="!isPreviewMode">
+          <ion-button expand="block" fill="outline" color="primary" class="palette-trigger" (click)="isPaletteOpen = !isPaletteOpen">
+              <ion-icon [name]="isPaletteOpen ? 'close-outline' : 'add-circle-outline'" slot="start"></ion-icon>
+              {{ isPaletteOpen ? 'Close Elements Tray' : 'Add Form Element' }}
+          </ion-button>
+
+          <ion-card class="palette-tray animate__animated animate__fadeIn" *ngIf="isPaletteOpen">
+            <ion-list lines="full">
+                <ion-item *ngFor="let el of availableElements" button (click)="addField(el)" detail="false">
+                    <ion-icon [name]="el.icon" slot="start" color="primary"></ion-icon>
+                    <ion-label>{{ el.label }}</ion-label>
+                    <ion-icon name="add-outline" slot="end" color="medium" size="small"></ion-icon>
+                </ion-item>
+            </ion-list>
+          </ion-card>
+      </div>
+
+      <!-- 3. MAIN WORKSPACE -->
+      <div class="builder-section mt-15">
+        <div class="section-label-row">
+            <div class="section-label">{{ isPreviewMode ? 'FORM PREVIEW' : 'FORM LAYOUT' }}</div>
+            <ion-badge color="primary">{{ canvasFields.length }} FEILDS</ion-badge>
+        </div>
+
+        <!-- BUILDER VIEW WITH DRAG-AND-DROP -->
+        <div class="workspace-area" *ngIf="!isPreviewMode">
+          <ion-reorder-group (ionItemReorder)="handleReorder($event)" [disabled]="false">
+            <div *ngFor="let field of canvasFields; let i = index" class="field-node" [class.active]="field.isExpanded">
+              <div class="node-header">
+                <div class="node-left" (click)="toggleExpand(i)">
+                  <div class="node-index">{{ i + 1 }}</div>
+                  <ion-icon [name]="field.icon" class="type-icon"></ion-icon>
+                  <span class="node-label">{{ field.label }}</span>
+                </div>
+                <div class="node-right">
+                    <ion-reorder slot="end">
+                       <ion-icon name="menu-outline" class="reorder-icon"></ion-icon>
+                    </ion-reorder>
+                    <button class="node-btn delete" (click)="deleteField(i)" *ngIf="!field.readonly">
+                      <ion-icon name="trash-outline"></ion-icon>
+                    </button>
+                </div>
+              </div>
+
+              <!-- Settings -->
+              <div class="node-settings" *ngIf="field.isExpanded">
+                <div class="settings-grid">
+                  <div class="setting-item">
+                    <label>Label</label>
+                    <ion-input [(ngModel)]="field.label"></ion-input>
+                  </div>
+                  <div class="setting-item">
+                    <label>Unique Key</label>
+                    <ion-input [(ngModel)]="field.key" [readonly]="field.readonly"></ion-input>
+                  </div>
+                </div>
+
+                <!-- NESTED OPTIONS REORDERING -->
+                <div class="options-manager" *ngIf="field.options">
+                    <div class="opt-header">
+                        <label>Options List (Drag to reorder)</label>
+                        <button class="add-opt-btn" (click)="addOption(i)">
+                            <ion-icon name="add-circle-outline"></ion-icon> Add
+                        </button>
+                    </div>
+                    
+                    <ion-reorder-group (ionItemReorder)="handleOptionReorder(i, $event)" [disabled]="false">
+                        <div class="option-pill" *ngFor="let opt of field.options; let optIdx = index">
+                            <ion-reorder slot="start">
+                                <ion-icon name="grid-outline" class="opt-drag-icon"></ion-icon>
+                            </ion-reorder>
+                            <ion-input [(ngModel)]="field.options[optIdx]"></ion-input>
+                            <ion-icon name="close-circle" class="remove-opt" (click)="removeOption(i, optIdx)"></ion-icon>
+                        </div>
+                    </ion-reorder-group>
+                </div>
+
+                <div class="mandatory-toggle">
+                    <ion-toggle [(ngModel)]="field.required" color="success">Mandatory Field</ion-toggle>
+                </div>
+              </div>
+            </div>
+          </ion-reorder-group>
+        </div>
+
+        <!-- PREVIEW VIEW -->
+        <div class="preview-area animate__animated animate__fadeIn" *ngIf="isPreviewMode">
+            <ion-card class="mock-form">
+                <div class="field-mock" *ngFor="let f of canvasFields">
+                    <label class="mock-label">{{ f.label }} <span class="req" *ngIf="f.required">*</span></label>
+                    
+                    <div class="mock-input" *ngIf="f.type === 'text' || f.type === 'number'">
+                        <ion-icon [name]="f.icon" *ngIf="f.icon"></ion-icon>
+                        <span>{{ f.label }}</span>
+                    </div>
+
+                    <div class="mock-input area" *ngIf="f.type === 'textarea'">
+                        <span>Type something...</span>
+                    </div>
+
+                    <div class="mock-input select" *ngIf="f.type === 'select'">
+                        <span>Select Option</span>
+                        <ion-icon name="chevron-down-outline"></ion-icon>
+                    </div>
+
+                    <div class="mock-choices" *ngIf="f.type === 'radio' || f.type === 'checkbox'">
+                        <div class="choice-item" *ngFor="let o of f.options">
+                            <div class="dot" [class.square]="f.type === 'checkbox'"></div>
+                            <span>{{ o }}</span>
+                        </div>
+                    </div>
+
+                    <div class="mock-photo" *ngIf="f.type === 'file'">
+                        <ion-icon name="camera-outline"></ion-icon>
+                        <span>Tap to Capture Photo</span>
+                    </div>
+
+                    <div class="mock-input date" *ngIf="f.type === 'date'">
+                        <span>Select Date</span>
+                        <ion-icon name="calendar-outline"></ion-icon>
+                    </div>
+                </div>
+            </ion-card>
+        </div>
+
+      </div>
+
+      <!-- INLINE SWIPE BUTTON -->
+      <div class="inline-swipe-btn" *ngIf="!isPreviewMode">
+        <div class="swipe-container" [class.valid-ready]="reportType">
+          <div class="swipe-track">
+            <span class="swipe-text" *ngIf="!swipeCompleted">SLIDE TO SAVE CONFIGURATION</span>
+            <span class="swipe-text success" *ngIf="swipeCompleted">SAVING...</span>
+            <div class="swipe-progress"></div>
+          </div>
+          <div class="swipe-handle">
+            <ion-icon [name]="swipeCompleted ? 'checkmark-outline' : 'chevron-forward'"></ion-icon>
+          </div>
+        </div>
+      </div>
+
+      <div style="height: 50px;"></div>
+
+    </div>
+  </div>
+</ion-content>

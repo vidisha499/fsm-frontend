@@ -54,36 +54,36 @@
       
       <!-- <div *ngIf="patrol.observationData?.Details?.length > 0; else noObsTemplate"> -->
         <div *ngIf="patrol.observationData?.length > 0; else noObsTemplate">
-       
-          
-          <!-- <div *ngFor="let obs of patrol.observationData.Details" class="obs-card clickable-card" (click)="viewSightingDetails(obs)"> -->
-            <div *ngFor="let obs of patrol.observationData" class="obs-card clickable-card" (click)="viewSightingDetails(obs)">     
-          <div class="obs-card-header">
-            <div class="obs-badge">
-              <i [class]="getCategoryIcon(obs.category)"></i>
-              <span>{{ 'PATROL.CAT_' + obs.category.toUpperCase() | translate }}</span>
+          <div *ngFor="let obs of patrol.observationData" class="obs-card clickable-card" (click)="viewSightingDetails(obs)">     
+            <div class="obs-card-header">
+              <div class="obs-badge" [ngClass]="getCategoryColor(obs.report_type || obs.category)">
+                <i [class]="'fas ' + getCategoryIcon(obs.report_type || obs.category)"></i>
+                <span>{{ formatTitle(obs.report_type || obs.category) }}</span>
+              </div>
+              <span class="obs-time">{{ obs.timestamp | date:'h:mm a' }}</span>
             </div>
-            <span class="obs-time">{{ obs.timestamp | date:'h:mm a' }}</span>
-          </div>
-          
-          <div class="obs-body">
-            <div class="obs-text-content">
-              <h4>{{ obs.species || ('DETAILS.UNSPECIFIED' | translate) }}</h4>
-              <p>{{ obs.count }} {{ 'DETAILS.SPOTTED' | translate }} • {{ obs.sighting_type }}</p>
-              <p class="obs-notes" *ngIf="obs.notes">"{{ obs.notes }}"</p>
-            </div>
-          </div>
-
-          <div class="obs-gallery" *ngIf="obs.photos?.length > 0">
-            <div class="obs-scroll">
-              <div class="obs-photo-item" *ngFor="let p of obs.photos">
-                <img [src]="p" (click)="openZoom(p)" />
+            
+            <div class="obs-body">
+              <div class="obs-text-content">
+                <h4 *ngIf="obs.source === 'sighting'">{{ obs.species || ('DETAILS.UNSPECIFIED' | translate) }}</h4>
+                <p *ngIf="obs.source === 'sighting'">{{ obs.count }} {{ 'DETAILS.SPOTTED' | translate }} • {{ obs.sighting_type }}</p>
+                <p class="field-report-tag" *ngIf="obs.source === 'report'">Field Report</p>
+                <p class="obs-notes" *ngIf="obs.notes">"{{ obs.notes }}"</p>
               </div>
             </div>
-          </div>
 
+            <div class="obs-gallery" *ngIf="(obs.photos?.length > 0) || obs.photo">
+              <div class="obs-scroll">
+                <div class="obs-photo-item" *ngIf="obs.photo">
+                  <img [src]="obs.photo" (click)="openZoom(obs.photo); $event.stopPropagation()" />
+                </div>
+                <div class="obs-photo-item" *ngFor="let p of obs.photos">
+                  <img [src]="p" (click)="openZoom(p); $event.stopPropagation()" />
+                </div>
+              </div>
+            </div>
+          </div> 
         </div> 
-      </div> 
     </div> 
   </div>
 

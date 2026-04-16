@@ -1,0 +1,86 @@
+<ion-content [fullscreen]="true">
+  <div class="premium-wrapper">
+    <!-- Ambient Glow Background -->
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <!-- Hero Header -->
+    <div class="hero-header">
+      <div class="header-overlay"></div>
+      <div class="header-content">
+        <div class="nav-bar">
+          <div class="left-section">
+            <button (click)="goBack()" class="glass-btn">
+              <ion-icon name="arrow-back-outline"></ion-icon>
+            </button>
+            <div class="title-meta">
+              <span class="sub-heading">CUSTOMIZING OVERRIDES</span>
+              <h1 class="header-title">Dynamic Label Builder</h1>
+            </div>
+          </div>
+          <div class="right-section">
+             <button class="save-sync-btn" (click)="saveAndSync()">
+               <ion-icon name="sync-outline"></ion-icon>
+               <span>Save & Sync</span>
+             </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+      
+      <!-- Selection & Actions Row -->
+      <div class="controls-row">
+        <div class="section-badge">Active Overrides</div>
+        
+        <div class="picker-group">
+            <div class="custom-select-wrapper">
+                <ion-select [(ngModel)]="selectedMasterKey" placeholder="-- Select Master Key to Override --" interface="popover">
+                    <ion-select-option *ngFor="let key of masterKeys" [value]="key">
+                        {{ key | dynamicLabel }} ({{ key }})
+                    </ion-select-option>
+                </ion-select>
+            </div>
+            <button class="add-btn" (click)="addOverride()">
+                Add Override
+            </button>
+        </div>
+      </div>
+
+      <!-- Overrides Grid -->
+      <div class="overrides-grid">
+        <div class="override-card animate__animated animate__fadeInUp" *ngFor="let item of activeOverrides; let i = index">
+            <div class="card-header">
+                <span class="key-name">{{ item.key }}</span>
+                <div class="header-btns">
+                    <div class="default-badge">Default: {{ item.defaultValue }}</div>
+                    <button class="remove-btn" (click)="removeOverride(i)">
+                        <ion-icon name="close-outline"></ion-icon>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="label-row">
+                    <label>COMPANY-SPECIFIC LABEL</label>
+                    <button class="reset-link" (click)="resetToDefault(i)">Reset to Default</button>
+                </div>
+                <div class="input-wrapper">
+                    <ion-input [(ngModel)]="item.customValue" placeholder="Enter custom name..."></ion-input>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" *ngIf="activeOverrides.length === 0">
+            <ion-icon name="file-tray-full-outline"></ion-icon>
+            <p>No active overrides. Select a master key to get started.</p>
+        </div>
+      </div>
+
+      <div style="height: 50px;"></div>
+
+    </div>
+  </div>
+</ion-content>

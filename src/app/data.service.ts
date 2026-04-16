@@ -836,6 +836,7 @@ export class DataService {
   updateIncidenceSubType(payload: any) { return this.http.post(`${this.baseApiUrl}/updateIncidenceSubType`, payload); }
   deleteIncidenceSubType(payload: any) { return this.http.post(`${this.baseApiUrl}/deleteIncidenceSubType`, payload); }
 
+<<<<<<< Updated upstream
   // --- 19. TASK MANAGEMENT ---
   addTask(payload: any) { return this.http.post(`${this.baseApiUrl}/addTask`, payload); }
   getTasks(payload: any) { return this.http.post(`${this.baseApiUrl}/getTasks`, payload); }
@@ -852,5 +853,44 @@ export class DataService {
   getForestTaskReminders(payload: any) { return this.http.post(`${this.baseApiUrl}/forest-tasks/reminders`, payload); }
   bulkDeleteForestTasks(payload: any) { return this.http.post(`${this.baseApiUrl}/forest-tasks/bulk-delete`, payload); }
   getAssignableUsers(payload: any) { return this.http.post(`${this.baseApiUrl}/assignable-users`, payload); }
+=======
+  return this.http.get(`${this.baseApiUrl}/forest-events/analytics/kpi`, { params });
+}
 
+getForestMapData(companyId: number, range?: string): Observable<any[]> {
+  const params = range ? `?range=${range}` : '';
+  return this.http.get<any[]>(`${this.baseApiUrl}/forest-events/map-data/${companyId}${params}`);
+}
+
+downloadReport(payload: any) {
+  return this.http.post(`${this.baseApiUrl}/reports/generate`, payload, {
+    responseType: 'blob', // Important: File ke liye blob chahiye
+    observe: 'response'   // Response headers check karne ke liye
+  });
+}
+
+getForestEventById(id: number): Observable<any> {
+  return this.http.get(`${this.baseApiUrl}/forest-events/${id}`);
+}
+
+  // --- DYNAMIC FORM CONFIGURATION ---
+
+  saveFormConfig(config: any) {
+    return this.http.post(`${this.baseApiUrl}/forest-events/configs`, config);
+  }
+
+  getFormConfig(category: string, type: string) {
+    const companyId = this.getUserCompanyId() || 0;
+    return this.http.get(`${this.baseApiUrl}/forest-events/configs/fetch`, {
+      params: { category, type, companyId: companyId.toString() }
+    });
+  }
+>>>>>>> Stashed changes
+
+  getAllConfigs() {
+    const companyId = this.getUserCompanyId() || 0;
+    return this.http.get(`${this.baseApiUrl}/forest-events/configs/all`, {
+      params: { companyId: companyId.toString() }
+    });
+  }
 }

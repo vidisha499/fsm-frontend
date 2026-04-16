@@ -1,6 +1,6 @@
 import { Component, OnInit,ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { NavController, ActionSheetController , ToastController, LoadingController} from '@ionic/angular';
+import { NavController, ActionSheetController, ToastController, LoadingController, GestureController } from '@ionic/angular';
 import { Geolocation } from '@capacitor/geolocation';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { DataService } from 'src/app/data.service';
@@ -18,8 +18,12 @@ export class EventsFieldsPage implements OnInit {
   eventTitle: string = 'Logs';
   currentCategory: string = 'General'; // <--- YE LINE ADD KARO
  dynamicFields: any[] = [];
-  capturedPhoto: string | undefined;
+  capturedPhotos: string[] = [];
+  isFormValid: boolean = false;
+  swipeThreshold = 0.8;
+  swipeCompleted = false;
   assignedBeat: string = 'Loading...';
+  patrolId: string | null = null;
   speciesOptions: string[] = ['Sal', 'Saja', 'Sagaon', 'Beeja', 'Haldu', 'Dhawda', 'Safed Siris', 'Kala Siris', 'Jamun', 'Aam', 'Semal', 'Mahua', 'Tendu', 'Nilgiri', 'Others'];
   animalSpecies: string[] = ['Sloth Bear', 'Leopard', 'Hyena', 'Jackal', 'Wild Bear', 'Spotted Deer', 'Sambar', 'Others'];
 
@@ -166,37 +170,102 @@ fieldsConfig: any = {
     private route: ActivatedRoute, 
     private navCtrl: NavController,
     private actionSheetCtrl: ActionSheetController,
-    private dataService: DataService, // DataService yahan inject kiya
+    private dataService: DataService,
     private toastCtrl: ToastController,
     private loadingCtrl: LoadingController,
     private hierarchyService: HierarchyService,
     private cdr: ChangeDetectorRef,
+    private gestureCtrl: GestureController,
   ) {}
 
   ngOnInit() {
-  // 1. URL se title lein aur use decode karein
-  let title = this.route.snapshot.paramMap.get('title');
-  
-  // 2. URL se category lein (Jo humne dashboard se bheji hai)
-  const category = this.route.snapshot.paramMap.get('category');
-  if (category) {
-    this.currentCategory = category;
-  }
+    // 1. URL parameters extraction
+    let title = this.route.snapshot.paramMap.get('title');
+    const category = this.route.snapshot.paramMap.get('category');
+    
+    // 2. Query parameters extraction (Patrol Linking)
+    this.route.queryParams.subscribe(params => {
+      // 🛡️ PRIMARY: URL Parameters (passed from PatrolActivePage)
+      let pid = params['patrolId'] || params['activeId'] || null;
+      
+      // 🛡️ SECONDARY: Local Storage (Set by PatrolActivePage)
+      if (!pid || pid === 'null' || pid === 'undefined') {
+        pid = localStorage.getItem('active_patrol_id');
+        console.log("💾 [FALLBACK] Recovered ID from storage:", pid);
+      }
+ 
+      this.patrolId = pid;
+      console.log("🚀 [STRICT SYNC] EventsFields Patrol ID locked to:", this.patrolId);
+    });
 
-  if (title) {
-    title = decodeURIComponent(title);
-    this.eventTitle = title;
+    if (category) {
+      this.currentCategory = category;
+    }
 
-    if (this.fieldsConfig[this.eventTitle]) {
-      this.dynamicFields = this.fieldsConfig[this.eventTitle];
-      this.fetchLocation();
-      this.loadDefaultBeat();
-    } else {
-      console.error("No config found for title:", this.eventTitle);
+    if (title) {
+      title = decodeURIComponent(title);
+      this.eventTitle = title;
+
+      // 🔥 DYNAMIC CONFIG SYNC: Fetch custom form from DB
+      this.loadCustomConfiguration();
     }
   }
-}
 
+  async loadCustomConfiguration() {
+    const loading = await this.loadingCtrl.create({
+      message: 'Loading form...',
+      spinner: 'crescent',
+      duration: 2000 // Safety timeout
+    });
+    await loading.present();
+
+    // 🔥 SYNC FIX: Map UI Category to Database Key (match the builder)
+    const dbCategory = (this.currentCategory === 'Criminal Activity') ? 'crimes' : 'events';
+
+    console.log(`📡 Fetching Template for: [${dbCategory} | ${this.eventTitle}]`);
+
+    this.dataService.getFormConfig(dbCategory, this.eventTitle).subscribe({
+      next: (config: any) => {
+        if (config && config.fields && config.fields.length > 0) {
+          console.log("🛠️ Using Custom Form Configuration from DB");
+          this.dynamicFields = config.fields;
+        } else {
+          console.log("📦 Using Hardcoded Default Form Configuration");
+          this.dynamicFields = this.fieldsConfig[this.eventTitle] || [];
+        }
+        
+        this.fetchLocation();
+        this.loadDefaultBeat();
+        setTimeout(() => this.initSwipeGesture(), 500);
+        loading.dismiss();
+      },
+      error: (err) => {
+        console.warn("⚠️ Config fetch failed, falling back to defaults:", err);
+        this.dynamicFields = this.fieldsConfig[this.eventTitle] || [];
+        this.fetchLocation();
+        this.loadDefaultBeat();
+        setTimeout(() => this.initSwipeGesture(), 500);
+        loading.dismiss();
+      }
+    });
+  }
+
+  updateCheckboxValue(label: string, option: string, event: any) {
+    if (!this.reportData[label]) {
+      this.reportData[label] = [];
+    }
+    if (typeof this.reportData[label] === 'string') {
+        this.reportData[label] = this.reportData[label].split(',').map((s: string) => s.trim());
+    }
+    if (event.detail.checked) {
+      if (!this.reportData[label].includes(option)) {
+        this.reportData[label].push(option);
+      }
+    } else {
+      this.reportData[label] = this.reportData[label].filter((o: string) => o !== option);
+    }
+    this.checkFormValidity();
+  }
 
 async loadDefaultBeat() {
   const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
@@ -225,7 +294,11 @@ async loadDefaultBeat() {
 
 async fetchLocation() {
   try {
-    const coordinates = await Geolocation.getCurrentPosition();
+    const coordinates = await Geolocation.getCurrentPosition({
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 3000
+    });
     const lat = coordinates.coords.latitude;
     const lon = coordinates.coords.longitude;
 
@@ -290,20 +363,130 @@ async fetchLocation() {
   }
 
   async takePhoto(source: CameraSource) {
+    if (this.capturedPhotos.length >= 5) {
+      const toast = await this.toastCtrl.create({ message: 'Maximum 5 photos allowed!', duration: 2000, color: 'warning' });
+      await toast.present();
+      return;
+    }
+
     try {
       const image = await Camera.getPhoto({
         quality: 60, // Reduced quality slightly for stability
         allowEditing: false,
+<<<<<<< Updated upstream
         resultType: CameraResultType.Base64, // Changed from Uri to Base64
         source: source
       });
       if (image.base64String) {
         this.capturedPhoto = `data:image/jpeg;base64,${image.base64String}`;
+=======
+        resultType: CameraResultType.DataUrl,
+        source: source
+      });
+      if (image.dataUrl) {
+        this.capturedPhotos.push(image.dataUrl);
+        this.checkFormValidity();
+>>>>>>> Stashed changes
         this.cdr.detectChanges();
       }
     } catch (error) {
       console.log('User cancelled or camera failed', error);
     }
+  }
+
+  removePhoto(index: number) {
+    this.capturedPhotos.splice(index, 1);
+    this.checkFormValidity();
+    this.cdr.detectChanges();
+  }
+
+  checkFormValidity() {
+    let isValid = true;
+    for (const field of this.dynamicFields) {
+      if (field.id === 'gps') continue; // Always filled by fetchLocation
+
+      const userValue = this.reportData[field.label];
+      if (field.type === 'file') {
+        if (this.capturedPhotos.length === 0) {
+          isValid = false;
+          break;
+        }
+      } else if (!userValue || userValue.toString().trim() === '') {
+        isValid = false;
+        break;
+      }
+    }
+    this.isFormValid = isValid;
+    return isValid;
+  }
+
+  // Swipe Gesture logic
+  initSwipeGesture() {
+    const track = document.querySelector('.swipe-track') as HTMLElement;
+    const thumb = document.querySelector('.swipe-handle') as HTMLElement;
+    if (!track || !thumb) return;
+
+    const trackWidth = track.clientWidth - thumb.clientWidth - 8;
+
+    const gesture = this.gestureCtrl.create({
+      el: thumb,
+      threshold: 0,
+      gestureName: 'swipe-to-submit',
+      onMove: ev => {
+        if (this.swipeCompleted) return;
+        let x = ev.deltaX;
+        if (x < 0) x = 0;
+        if (x > trackWidth) x = trackWidth;
+        thumb.style.transform = `translateX(${x}px)`;
+        
+        // Progress percentage for background color or opacity if needed
+        const progress = x / trackWidth;
+        track.style.setProperty('--progress', `${progress}`);
+      },
+      onEnd: ev => {
+        if (this.swipeCompleted) return;
+        const x = ev.deltaX;
+        if (x >= trackWidth * this.swipeThreshold) {
+          // Success Swipe
+          if (this.checkFormValidity()) {
+            this.swipeCompleted = true;
+            thumb.style.transform = `translateX(${trackWidth}px)`;
+            this.submitReport();
+          } else {
+            // Snap back if invalid
+            this.showValidationError();
+            this.resetSwipe();
+          }
+        } else {
+          // Snap back
+          this.resetSwipe();
+        }
+      }
+    });
+
+    gesture.enable(true);
+  }
+
+  async showValidationError() {
+    const toast = await this.toastCtrl.create({
+      message: 'Please fill all mandatory fields and capture photos! ⚠️',
+      duration: 3000,
+      color: 'danger',
+      position: 'bottom',
+      cssClass: 'custom-toast'
+    });
+    await toast.present();
+  }
+
+  resetSwipe() {
+    const thumb = document.querySelector('.swipe-handle') as HTMLElement;
+    if (thumb) {
+      thumb.style.transition = 'transform 0.3s ease-out';
+      thumb.style.transform = 'translateX(0px)';
+      setTimeout(() => thumb.style.transition = '', 300);
+    }
+    const track = document.querySelector('.swipe-track') as HTMLElement;
+    if (track) track.style.setProperty('--progress', '0');
   }
 
 
@@ -325,8 +508,8 @@ async fetchLocation() {
       formattedReportData[key] = userValue || "";
     });
 
-    // 🔥 YE LOGIC YAHAN HONA CHAHIYE (Function ke andar)
-    const indiaTime = new Date().toLocaleString("en-US", {timeZone: "Asia/Kolkata"});
+    // 🔥 UTC ISO FIX: Store arrival time in unambiguous UTC format
+    const indiaTime = new Date().toISOString();
     const now = new Date(indiaTime);
 
     // 2. GPS Coordinates extraction (PRIORITIZE NUMERIC COORDINATES)
@@ -346,14 +529,16 @@ async fetchLocation() {
     console.log("LocalStorage Data:", localStorage.getItem('user_data'));
 console.log("Company ID from Service:", this.dataService.getUserCompanyId());
 
-const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+  const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
   const cId = userData.company_id || userData.companyId || 0;
   const clientId = userData.client_id || userData.clientId || null;
+  const uName = userData.name || userData.userName || 'Forest Ranger';
   const dynamicRangeName = userData.range_name || this.reportData['range'] ||null;
 
     // 3. FINAL PAYLOAD (Dono versions ka merged data)
     const payload = {
       report_id: 'FOR-' + Date.now(),
+<<<<<<< Updated upstream
       user_id: Number(this.dataService.getRangerId()),
       company_id: Number(cId),
       client_id: Number(clientId || 0),
@@ -368,13 +553,46 @@ const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
       report_data: JSON.stringify(formattedReportData), 
       photo: this.capturedPhoto || '',
       status: 'Pending'
+=======
+       user_id: Number(this.dataService.getRangerId()),
+       user_name: uName,
+      company_id: Number(cId),
+     client_id: clientId,
+      range: null,
+      // Category Mapping Logic
+      category: (this.currentCategory?.toLowerCase().includes('criminal') || 
+                this.currentCategory?.toLowerCase().includes('crimes')) ? 'crimes' : 'events',
+      
+      // Type Mapping
+      report_type: this.eventTitle ? this.eventTitle.toLowerCase().trim().replace(/\s/g, '_') : 'general_report',
+      
+    
+      // 🛡️ Standardized ISO Timestamp
+      date_time: new Date().toISOString(),
+      date: new Date().toISOString().split('T')[0],
+      time: new Date().toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true }),
+      
+      // Location Data
+      latitude: lat,
+      longitude: lng,
+      beat: this.reportData['Assigned Beat'] || this.reportData['beat'] || 'General',
+      
+      // Merged Data Fields
+      report_data: formattedReportData, // Form data as JSON
+      photo: this.capturedPhotos[0] || '', // Primary photo
+      additional_photos: JSON.stringify(this.capturedPhotos.slice(1)), // Extra photos
+      status: 'Pending',
+      patrol_id: this.patrolId ? Number(this.patrolId) : null 
+>>>>>>> Stashed changes
     };
 
-    console.log("🚀 Final Merged Payload sending to DB:", payload);
+    console.log("🚀 [DEBUG] Resolving Patrol ID for Payload:", this.patrolId);
+    console.log("🚀 [DEBUG] FULL PAYLOAD OBJECT:", payload);
 
     // 4. SERVICE CALL
     this.dataService.submitForestEvent(payload).subscribe({
       next: async (res) => {
+        this.swipeCompleted = false; // Reset for potential next use or error case handling in better UX
         await loading.dismiss();
         const toast = await this.toastCtrl.create({
           message: 'Report Submitted Successfully! ✅',
@@ -386,6 +604,8 @@ const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
         this.navCtrl.back();
       },
       error: async (err) => {
+        this.swipeCompleted = false;
+        this.resetSwipe();
         await loading.dismiss();
         console.error("❌ Submission Error Log:", err);
         

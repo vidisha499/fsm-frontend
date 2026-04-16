@@ -63,13 +63,28 @@
         </div>
       </div>
 
+      <!-- Category Switcher (Glass Styled) -->
+      <div class="category-tabs-glass">
+        <div class="tab-btn" [class.active]="activeReportCategory === 'criminal'" (click)="setCategoryGroup('criminal')">
+          <i class="fas fa-shield-alt"></i>
+          <span>Criminal</span>
+        </div>
+        <div class="tab-btn" [class.active]="activeReportCategory === 'events'" (click)="setCategoryGroup('events')">
+          <i class="fas fa-eye"></i>
+          <span>Events</span>
+        </div>
+      </div>
+
+      <!-- Dynamic Action Grid -->
       <div class="grid-layout">
-        <div class="grid-item-glass" (click)="goToSightings('Animal')"><div class="icon-box animal"><i class="fas fa-paw"></i></div><span>{{ 'PATROL.CAT_ANIMAL' | translate }}</span></div>
-        <div class="grid-item-glass" (click)="goToSightings('Water')"><div class="icon-box water"><i class="fas fa-droplet"></i></div><span>{{ 'PATROL.CAT_WATER' | translate }}</span></div>
-        <div class="grid-item-glass" (click)="goToSightings('Impact')"><div class="icon-box impact"><i class="fas fa-person-hiking"></i></div><span>{{ 'PATROL.CAT_IMPACT' | translate }}</span></div>
-        <div class="grid-item-glass" (click)="goToSightings('Death')"><div class="icon-box death"><i class="fas fa-skull"></i></div><span>{{ 'PATROL.CAT_DEATH' | translate }}</span></div>
-        <div class="grid-item-glass" (click)="goToSightings('Felling')"><div class="icon-box felling"><i class="fas fa-hammer"></i></div><span>{{ 'PATROL.CAT_FELLING' | translate }}</span></div>
-        <div class="grid-item-glass" (click)="goToSightings('Other')"><div class="icon-box other"><i class="fas fa-circle-plus"></i></div><span>{{ 'PATROL.CAT_OTHER' | translate }}</span></div>
+        <div class="grid-item-glass" 
+             *ngFor="let action of (activeReportCategory === 'criminal' ? criminalActions : eventActions)"
+             (click)="openQuickReport(action)">
+          <div class="icon-box" [ngClass]="action.class">
+            <i class="fas" [ngClass]="action.icon"></i>
+          </div>
+          <span>{{ action.title }}</span>
+        </div>
       </div>
 
       <div class="slider-wrapper">
@@ -117,39 +132,33 @@
               <div class="log-time">{{log.timestamp | date:'HH:mm'}}</div>
             </div>
           </div> -->
-          <div class="log-card" *ngFor="let log of recentSightings.slice().reverse(); let i = index" (click)="viewSightingDetails(log, i)">
-  <div class="log-icon" [ngClass]="log.category?.toLowerCase() || 'other'">
-    <i class="fas" [ngClass]="{
-      'fa-paw': log.category === 'Animal',
-      'fa-droplet': log.category === 'Water',
-      'fa-person-hiking': log.category === 'Impact',
-      'fa-skull': log.category === 'Death',
-      'fa-hammer': log.category === 'Felling',
-      'fa-circle-plus': log.category === 'Other'
-    }"></i>
-  </div>
-  
-  <div class="log-info">
-    <div class="log-main">
-      <!-- <span class="log-type">{{ 'PATROL.CAT_' + log.category.toUpperCase() | translate }}</span> -->
-       <span class="log-type">{{ 'PATROL.CAT_' + (log.category || 'OTHER').toUpperCase() | translate }}</span>
-      <span class="log-species" *ngIf="log.species">• {{log.species}}</span>
-    </div>
-    <span class="log-meta">{{log.sighting_type || 'Direct'}} ({{log.count || 1}})</span>
-    <div class="log-thumbnails" *ngIf="log.photos?.length > 0">
-      <img *ngFor="let p of log.photos" [src]="p" class="mini-thumb" (click)="openZoom(p); $event.stopPropagation()">
-    </div>
-  </div>
+          <div class="log-card" *ngFor="let log of recentSightings; let i = index" (click)="viewSightingDetails(log, i)">
+            <div class="log-icon" [ngClass]="log.colorClass || 'other'">
+              <i class="fas" [ngClass]="log.icon"></i>
+            </div>
+            
+            <div class="log-info">
+              <div class="log-main">
+                <span class="log-type">{{ log.displayTitle }}</span>
+              </div>
+              <span class="log-meta" *ngIf="log.source === 'patrol'">{{log.sighting_type || 'Direct'}} ({{log.count || 1}})</span>
+              <span class="log-meta" *ngIf="log.source === 'report'">Field Report</span>
+              
+              <div class="log-thumbnails" *ngIf="log.photos?.length > 0 || log.photo">
+                <img *ngIf="log.photo" [src]="log.photo" class="mini-thumb" (click)="openZoom(log.photo); $event.stopPropagation()">
+                <img *ngFor="let p of log.photos" [src]="p" class="mini-thumb" (click)="openZoom(p); $event.stopPropagation()">
+              </div>
+            </div>
 
-  <div class="log-right">
-    <div class="log-time">{{log.timestamp | date:'HH:mm'}}</div>
-    <button class="delete-log-btn" (click)="confirmDeleteLog(recentSightings.length - 1 - i, $event)">
-      <i class="fas fa-trash-alt"></i>
-    </button>
-  </div>
-</div>
+            <div class="log-right">
+              <div class="log-time">{{log.timestamp | date:'dd MMM, HH:mm'}}</div>
+              <button class="delete-log-btn" (click)="confirmDeleteLog(i, $event)">
+                <i class="fas fa-trash-alt"></i>
+              </button>
+            </div>
         </div>
       </div>
+    </div>
     </div>
   </div> 
 </ion-content>

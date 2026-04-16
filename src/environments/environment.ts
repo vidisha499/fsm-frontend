@@ -3,9 +3,8 @@
 // The list of file replacements can be found in `angular.json`.
 export const environment = {
   production: false,
-//  apiUrl: 'https://forest-backend-pi.vercel.app/api' 
-  //apiUrl: 'http://localhost:3000/api'
-  apiUrl: 'https://fms.pugarch.in/public/api'
+ //apiUrl: 'https://forest-backend-pi.vercel.app/api' 
+  apiUrl: 'http://localhost:3000/api'
  
 };
 /*
