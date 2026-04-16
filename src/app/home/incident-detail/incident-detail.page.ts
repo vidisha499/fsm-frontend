@@ -24,7 +24,6 @@ export class IncidentDetailPage implements OnInit, OnDestroy {
   currentRanger: string = 'Ranger';
   isSubmitting: boolean = false;
   selectedZoomImage: string | null = null;
-  private apiUrl: string = `${environment.apiUrl}/incidents`;
 
   constructor(
     private dataService: DataService,
@@ -98,7 +97,7 @@ export class IncidentDetailPage implements OnInit, OnDestroy {
   // }
 
 fetchIncidentFromBackend(id: string) {
-  this.http.get(`${this.apiUrl}/${id}`).subscribe({
+  this.http.get(`${environment.apiUrl}/incidents/${id}`).subscribe({
     next: (data: any) => {
       console.log('Backend Se Raw Data Aaya:', data); // Debugging ke liye
 
@@ -191,12 +190,26 @@ getTranslationKey(value: string | undefined | null): string {
     if (this.isSubmitting) return;
     this.isSubmitting = true;
 
-    setTimeout(async () => {
-      this.isSubmitting = false;
-      const msg = await this.translate.get('INCIDENT.SUCCESS_RESOLVED').toPromise();
-      this.presentToast(msg, 'success');
-      this.navCtrl.back();
-    }, 2000);
+    const payload = {
+      api_token: localStorage.getItem('api_token') || '',
+      id: this.incident.id,
+      status: 'Resolved',
+      remark: 'Status updated to resolved by ' + this.currentRanger
+    };
+
+    this.dataService.actionTakenOnIncidence(payload).subscribe({
+      next: async (res: any) => {
+        this.isSubmitting = false;
+        const msg = await this.translate.get('INCIDENT.SUCCESS_RESOLVED').toPromise();
+        this.presentToast(msg, 'success');
+        this.navCtrl.back();
+      },
+      error: async (err) => {
+        this.isSubmitting = false;
+        const msg = await this.translate.get('Try again. Action failed.').toPromise() || 'Action failed.';
+        this.presentToast(msg, 'danger');
+      }
+    });
   }
 
   openZoom(photo: string) { this.selectedZoomImage = photo; }

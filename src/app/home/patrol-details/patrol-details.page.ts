@@ -3,6 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { NavController } from '@ionic/angular';
 import { TranslateService } from '@ngx-translate/core';
+import { DataService } from '../../data.service';
 import * as L from 'leaflet';
 
 @Component({
@@ -18,14 +19,14 @@ export class PatrolDetailsPage implements OnInit {
   mapLoading = true;
   selectedZoomImage: string | null = null;
   
-  private apiUrl: string = 'https://forest-backend-pi.vercel.app/api/patrols';
 
   constructor(
     private route: ActivatedRoute,
     private http: HttpClient,
     private navCtrl: NavController,
     private cdr: ChangeDetectorRef,
-    private translate: TranslateService // Added
+    private translate: TranslateService, // Added
+    private dataService: DataService
   ) {}
 
   ngOnInit() {
@@ -37,15 +38,30 @@ export class PatrolDetailsPage implements OnInit {
   }
 
   loadPatrolDetails() {
-    this.http.get(`${this.apiUrl}/logs/${this.patrolId}`).subscribe({
+    this.dataService.getPatrolById(String(this.patrolId)).subscribe({
       next: (data: any) => { 
         this.patrol = {
           ...data,
           patrolPhotos: data.patrol_photos || data.patrolPhotos || []
         };
+
+        // If no photos found in main details, try fetching separately as per Postman collection
+        if (!this.patrol.patrolPhotos.length && this.patrolId) {
+          this.dataService.getPatrolPhotos(this.patrolId).subscribe({
+            next: (photoRes: any) => {
+              if (photoRes) {
+                const photos = Array.isArray(photoRes) ? photoRes : (photoRes.data || []);
+                this.patrol.patrolPhotos = photos;
+                this.patrol.photos = photos; // Compatibility with template
+                this.cdr.detectChanges();
+              }
+            }
+          });
+        }
+
         setTimeout(() => this.initMap(), 500);
       },
-      error: (err) => console.error("Load failed", err)
+      error: (err: any) => console.error("Load failed", err)
     });
   }
 

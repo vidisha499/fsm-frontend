@@ -1,0 +1,154 @@
+<ion-content [fullscreen]="true">
+  <div class="premium-wrapper">
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <div class="hero-header">
+      <div class="header-overlay"></div>
+      <div class="header-content">
+        <div class="nav-bar">
+          <div class="left-section">
+            <ion-back-button defaultHref="/home" color="light"></ion-back-button>
+            <h1>Client Visits</h1>
+          </div>
+          <div class="right-section">
+            <div class="auth-badge">
+              <i class="fas fa-briefcase"></i> FIELD VISITS
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-container">
+
+      <!-- TAB SWITCHER -->
+      <div class="tab-bar">
+        <button [class.active]="activeTab === 'visits'" (click)="switchTab('visits')">
+          <i class="fas fa-briefcase"></i> Visits
+        </button>
+        <button [class.active]="activeTab === 'followups'" (click)="switchTab('followups')">
+          <i class="fas fa-clipboard-check"></i> Follow-ups
+        </button>
+      </div>
+
+      <!-- ADD NEW BUTTON -->
+      <button class="add-new-btn" (click)="toggleForm()">
+        <i class="fas" [class.fa-plus]="!showForm" [class.fa-times]="showForm"></i>
+        {{ showForm ? 'Cancel' : 'New Visit' }}
+      </button>
+
+      <!-- NEW VISIT FORM -->
+      <div *ngIf="showForm" class="visit-form-card">
+        <div class="form-header">
+          <div class="form-icon"><i class="fas fa-user-plus"></i></div>
+          <div>
+            <h3>Add Client Visit</h3>
+            <p>Record a new field visit</p>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label>Client Name</label>
+          <input type="text" [(ngModel)]="newVisit.client_name" placeholder="Enter client name" />
+        </div>
+        <div class="form-field">
+          <label>Location</label>
+          <input type="text" [(ngModel)]="newVisit.location" placeholder="Visit location" />
+        </div>
+        <div class="form-field">
+          <label>Purpose</label>
+          <input type="text" [(ngModel)]="newVisit.purpose" placeholder="Purpose of visit" />
+        </div>
+        <div class="form-field">
+          <label>Notes</label>
+          <textarea [(ngModel)]="newVisit.notes" placeholder="Additional notes..." rows="3"></textarea>
+        </div>
+
+        <button class="submit-btn" (click)="submitVisit()" [disabled]="!newVisit.client_name?.trim() || isSubmitting">
+          <i class="fas" [class.fa-check]="!isSubmitting" [class.fa-spinner]="isSubmitting" [class.fa-spin]="isSubmitting"></i>
+          {{ isSubmitting ? 'Submitting...' : 'Submit Visit' }}
+        </button>
+      </div>
+
+      <!-- LOADING -->
+      <div *ngIf="isFetching" class="loading-state">
+        <ion-spinner name="crescent" color="primary"></ion-spinner>
+        <p>Loading {{ activeTab === 'visits' ? 'visits' : 'follow-ups' }}...</p>
+      </div>
+
+      <!-- ERROR STATE -->
+      <div *ngIf="errorMessage" class="error-card">
+        <div class="error-icon"><i class="fas fa-exclamation-triangle"></i></div>
+        <h3>Connection Issue</h3>
+        <p>{{ errorMessage }}</p>
+        <button class="retry-btn" (click)="activeTab === 'visits' ? loadVisits() : loadFollowUps()">
+          <i class="fas fa-sync-alt"></i> Retry
+        </button>
+      </div>
+
+      <!-- VISITS TAB -->
+      <ng-container *ngIf="activeTab === 'visits' && !isFetching && !errorMessage">
+        <div *ngIf="visits.length === 0" class="empty-state">
+          <div class="empty-icon"><i class="fas fa-briefcase"></i></div>
+          <h3>No Visits Recorded</h3>
+          <p>Add your first client visit</p>
+        </div>
+
+        <div *ngFor="let visit of visits" class="visit-card">
+          <div class="visit-left">
+            <div class="mini-thumb">
+              <div class="priority-indicator" style="background: #0d9488;"></div>
+              <i class="fas fa-user-tie placeholder-icon" style="color: #0d9488;"></i>
+            </div>
+          </div>
+          <div class="visit-content">
+            <div class="top-line">
+              <span class="type-text">CLIENT VISIT</span>
+              <span class="visit-date">{{ visit.created_at | date:'mediumDate' }}</span>
+            </div>
+            <h3 class="priority-title">{{ visit.client_name || visit.name || 'Client' }}</h3>
+            <p class="reporter-line">
+              <i class="fas fa-map-marker-alt"></i> {{ visit.location || 'Location not set' }}
+            </p>
+            <p class="reporter-line" *ngIf="visit.purpose">
+              <i class="fas fa-bullseye"></i> {{ visit.purpose }}
+            </p>
+          </div>
+          <div class="visit-actions">
+            <button class="delete-btn" (click)="confirmDelete(visit); $event.stopPropagation()">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- FOLLOW-UPS TAB -->
+      <ng-container *ngIf="activeTab === 'followups' && !isFetching && !errorMessage">
+        <div *ngIf="followUps.length === 0" class="empty-state">
+          <div class="empty-icon"><i class="fas fa-clipboard-check"></i></div>
+          <h3>No Follow-ups</h3>
+          <p>Follow-up records will appear here</p>
+        </div>
+
+        <div *ngFor="let fu of followUps" class="visit-card">
+          <div class="visit-left">
+            <div class="mini-thumb">
+              <div class="priority-indicator" style="background: #f59e0b;"></div>
+              <i class="fas fa-clipboard-check placeholder-icon" style="color: #f59e0b;"></i>
+            </div>
+          </div>
+          <div class="visit-content">
+            <div class="top-line">
+              <span class="type-text" style="color: #f59e0b;">FOLLOW-UP</span>
+              <span class="visit-date">{{ fu.created_at | date:'mediumDate' }}</span>
+            </div>
+            <h3 class="priority-title">{{ fu.client_name || fu.name || 'Follow-up' }}</h3>
+            <p class="reporter-line">{{ fu.notes || fu.description || 'No details' }}</p>
+          </div>
+        </div>
+      </ng-container>
+
+    </div>
+  </div>
+</ion-content>

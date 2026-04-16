@@ -1,5 +1,5 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
-import { NavController, MenuController, IonModal, LoadingController, ToastController } from '@ionic/angular';
+import { NavController, MenuController, IonModal, LoadingController, ToastController, AlertController } from '@ionic/angular';
 import { DataService } from 'src/app/data.service';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -30,7 +30,8 @@ export class AssetsListPage implements OnInit {
     private menuCtrl: MenuController,
     private dataService: DataService,
     private loadingCtrl: LoadingController,
-    private toastCtrl: ToastController
+    private toastCtrl: ToastController,
+    private alertCtrl: AlertController
   ) { }
 
   ngOnInit() {
@@ -73,7 +74,8 @@ openAssetDetails(asset: any) {
   // DataService mein hum userId bhi bhejenge
   this.dataService.getMyAssets(companyId, userId).subscribe({
     next: (data: any) => {
-      this.allAssets = data;
+      const list = Array.isArray(data) ? data : (data.data || []);
+      this.allAssets = list;
       this.assets = [...this.allAssets];
       loading.dismiss();
     },
@@ -151,42 +153,96 @@ openAssetDetails(asset: any) {
     });
   }
 
-  // --- 1. GENERATE PDF ---
-  exportToPDF() {
-    const doc = new jsPDF();
-    const tableColumn = ["Name", "Category", "Condition", "Year", "Date"];
-    const tableRows: any[] = [];
 
-    this.assets.forEach(asset => {
-      const assetData = [
-        asset.name,
-        asset.category,
-        asset.condition_status || asset.condition,
-        asset.year,
-        new Date(asset.created_at || asset.date).toLocaleDateString()
-      ];
-      tableRows.push(assetData);
-    });
+  // --- 1. SERVER-SIDE REPORTING ---
+  async exportReport(format: 'pdf' | 'excel') {
+    const loading = await this.loadingCtrl.create({ message: `Generating ${format.toUpperCase()}...` });
+    await loading.present();
 
-    // Styling the PDF
-    doc.text("PugArch Assets Report", 14, 15);
-    autoTable(doc, {
-      head: [tableColumn],
-      body: tableRows,
-      startY: 20,
+    const payload = {
+      company_id: this.companyId,
+      format: format,
+      category: this.filters.category,
+      from: this.filters.fromDate.split('T')[0],
+      to: this.filters.toDate.split('T')[0]
+    };
+
+    this.dataService.downloadAssetReport(payload).subscribe({
+      next: (response: any) => {
+        const contentType = response.headers.get('content-type');
+
+        // Check for JSON error (same as Reports page)
+        if (contentType && contentType.includes('application/json')) {
+          const reader = new FileReader();
+          reader.onload = () => {
+             try {
+                const resObj = JSON.parse(reader.result as string);
+                if (resObj.status === 'SUCCESS' && resObj.fileurl) {
+                  window.open(resObj.fileurl, '_blank');
+                } else {
+                  this.presentToast('Server Error: ' + (resObj.message || 'Error generating report'));
+                }
+             } catch (e) {
+                this.presentToast('Invalid server response');
+             }
+          };
+          reader.readAsText(response.body);
+          loading.dismiss();
+          return;
+        }
+
+        // Handle direct blob
+        const blob = new Blob([response.body], { type: contentType });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Asset_Report_${Date.now()}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        loading.dismiss();
+      },
+      error: (err) => {
+        loading.dismiss();
+        this.presentToast('Error downloading report');
+      }
     });
-    
-    doc.save(`Assets_Report_${new Date().getTime()}.pdf`);
   }
 
-  // --- 2. GENERATE EXCEL ---
-  exportToExcel() {
-    const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet(this.assets);
-    const wb: XLSX.WorkBook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Assets');
-
-    /* save to file */
-    XLSX.writeFile(wb, `Assets_Data_${new Date().getTime()}.xlsx`);
+  // --- 2. ASSET DELETION ---
+  async confirmDelete(event: Event, asset: any) {
+    event.stopPropagation(); // Card click na trigger ho
+    const alert = await this.alertCtrl.create({
+      header: 'Delete Asset?',
+      message: `Are you sure you want to delete ${asset.name}?`,
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Delete',
+          cssClass: 'delete-btn-alert',
+          handler: () => { this.deleteAsset(asset.id); }
+        }
+      ]
+    });
+    await alert.present();
   }
 
+  async deleteAsset(id: string | number) {
+    const loading = await this.loadingCtrl.create({ message: 'Deleting asset...' });
+    await loading.present();
+
+    this.dataService.deleteAsset(id).subscribe({
+      next: (res: any) => {
+        loading.dismiss();
+        this.presentToast('Asset deleted successfully');
+        this.loadAssets(); // Refresh list
+      },
+      error: (err) => {
+        loading.dismiss();
+        console.error('Delete Error:', err);
+        this.presentToast('Failed to delete asset');
+      }
+    });
+  }
 }

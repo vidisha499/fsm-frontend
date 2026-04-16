@@ -733,481 +733,101 @@ changeTimeframe(newTimeframe: string) {
 
     this.isFetching = true;
 
-    // FECHING ALL DATA SOURCES
+    // FECHING ALL DATA SOURCES (Primary source is Sir's Unified API)
     forkJoin({
-      stats: this.dataService.getDashboardStats(
-        myCompanyId,
-        dates.from,
-        dates.to,
-      ),
-      // sightings: this.dataService.getSightingCount(myCompanyId, dates.from || '', dates.to || ''),
-   sightings: this.dataService.getEventsAnalytics(
-  myCompanyId, 
-  // this.selectedTimeframe, // 'today', 'week', etc.
-  this.selectedTimeframe || 'today',
-  dates.from, 
-  dates.to
-),
-
-      // Fire Alerts (Backend handle karega dates)
-      // fireCount: this.adminService.getFireAlertsCount(myCompanyId, localISOTime, dates.from, dates.to),
-      fireCount: this.adminService.getFireAlertsCount(
-        myCompanyId,
-        localISOTime,
-        dates.from,
-        dates.to,
-      ),
-      // fireCount: this.adminService.getFireAlertsCount(myCompanyId, localISOTime),
-      onDuty: this.adminService.getOnDutyCount(myCompanyId, localISOTime),
-      onLeave: this.adminService.getOnLeaveCount(myCompanyId),
-      inactive: this.adminService.getInactiveCount(myCompanyId, localISOTime),
+      stats: this.dataService.getDashboardStats(myCompanyId, dates.from, dates.to),
       users: this.dataService.getUsersByCompany(myCompanyId),
-      alerts: this.dataService.getLatestAlerts(myCompanyId), // Contains SOS
-      assetsStats: this.dataService.getAdminStats(
-        myCompanyId,
-        this.activeDateFilter,
-        dates.from,
-        dates.to,
-      ),
-      assetsTrend: this.dataService.getAssetsTrend(myCompanyId),
-      // forestReports: this.dataService.getForestMapData(myCompanyId, 'today'),
+      alerts: this.dataService.getLatestAlerts(myCompanyId), // SOS Alerts
       forestReports: this.dataService.getForestMapData(myCompanyId, this.selectedTimeframe),
-   }).subscribe({
+    }).subscribe({
       next: (res: any) => {
-        console.log("📊 STEP 1: Full Dashboard Response:", res);
+        console.log("📊 Unified Admin Dashboard Response:", res);
 
-        // --- 1. SIGHTINGS, CRIMINAL & PERSONNEL DATA ---
-        if (res.sightings) {
-          const s = res.sightings;
-          this.criminalCount = Number(s.criminal_count || 0);
-          this.eventsCount = Number(s.events_count || 0);
-          
-          this.criminalActivityCount = this.criminalCount;
-          this.sightingsCount = this.eventsCount;
-          this.incidentsCount = Number(s.total_events || 0);
-          
-          // 🔥 SYNC FIRE DIRECTLY FROM SIGHTINGS SO THE DATA MATCHES ANALYTICS
-          this.fireAlertsCount = Number(s.fire_incidents?.val || 0);
+        // --- 1. UNIFIED STATS MAPPING ---
+        const stats = res.stats?.data || res.stats || {};
+        
+        // Incident Counts
+        this.criminalActivityCount = Number(stats.criminal_count || stats.criminalEvents || 0);
+        this.sightingsCount = Number(stats.monitoring_count || stats.monitoringEvents || 0);
+        this.fireAlertsCount = Number(stats.fire_count || stats.fireEvents || 0);
+        this.incidentsCount = Number(stats.total_incidents || stats.total_events || 0);
 
-          // Update trend data from sightings object (where they are merged in backend)
-          this.criminalTrendData = (s.criminal_trend || []).map((t: any) => Number(t.count || 0));
-          this.eventsTrendData = (s.monitoring_trend || []).map((t: any) => Number(t.count || 0));
-          this.fireTrendData = (s.fire_trend || []).map((t: any) => Number(t.count || 0));
-          this.onDutyTrendData = (s.on_duty_trend || []).map((t: any) => Number(t.count || 0));
-          this.assetsTrendData = (s.assets_trend || []).map((t: any) => Number(t.count || 0));
+        // Personnel Stats (Sir's Unified API)
+        this.onDutyCount = Number(stats.on_duty_count || stats.on_duty || 0);
+        this.onLeaveCount = Number(stats.on_leave_count || stats.on_leave || 0);
+        this.inactiveCount = Number(stats.inactive_count || stats.inactive || 0);
+        
+        // Trends & Graphs
+        this.criminalTrendData = (stats.criminal_trend || []).map((t: any) => Number(t.count || 0));
+        this.eventsTrendData = (stats.monitoring_trend || []).map((t: any) => Number(t.count || 0));
+        this.fireTrendData = (stats.fire_trend || []).map((t: any) => Number(t.count || 0));
 
-          // UPDATE BIG NUMBERS (totalAssets)
-          if (s.totalAssets !== undefined && s.totalAssets !== null) {
-             this.totalAssetsCount = Number(s.totalAssets);
-          }
-          
-          // UPDATE BIG NUMBERS (onDuty)
-          if (s.onDutyCount !== undefined) {
-             this.onDutyCount = Number(s.onDutyCount);
-          } else if (res.onDuty && res.onDuty.count !== undefined) {
-             this.onDutyCount = Number(res.onDuty.count);
-          }
-
-
-          console.log("✅ Cards & Trends Updated:", {
-            criminal: this.criminalCount,
-            events: this.eventsCount,
-            criminalTrend: this.criminalTrendData,
-            onDutyTrend: this.onDutyTrendData,
-            assetsTrend: this.assetsTrendData
-          });
-
-          // TRIGGER CHART RE-RENDERING
-          setTimeout(() => {
-            this.initHomeCharts();
-          }, 100);
-        }
-
-        // --- 2. PERSONNEL & ASSETS OVERWRITE (IF SEPARATE) ---
-        if (res.onDuty) {
-          this.onDutyCount = res.onDuty.count || 0;
-        }
-
-        if (res.assetsStats) {
-          if (this.totalAssetsCount === 0) {
-            this.totalAssetsCount = res.assetsStats.totalAssets || 0;
-          }
-          this.operationalRate = res.assetsStats.operationalRate || '0%';
-          (this as any).realNurseryCount = res.assetsStats.nursery || 0;
-          (this as any).realPlantationCount = res.assetsStats.plantations || 0;
-          (this as any).realOfficeCount = res.assetsStats.offices || 0;
-          (this as any).realEcoCount = res.assetsStats.ecoSites || 0;
-
-          // Only overwrite if sightings didn't have it
-          if (this.assetsTrendData.length === 0 && res.assetsStats.assets_trend) {
-            this.assetsTrendData = res.assetsStats.assets_trend.map((t: any) => Number(t.count || 0));
-          }
-        }
-
-        //       // --- 2. TREND CHART ---
-        //       if (res.assetsTrend) {
-        //         this.momStatus = res.assetsTrend.momLabel || '0% MoM';
-        //         this.isGoodTrend = res.assetsTrend.isImprovement;
-        //         setTimeout(() => {
-        //           if (typeof (this as any).initTrendChart === 'function') {
-        //             (this as any).initTrendChart(res.assetsTrend.labels, res.assetsTrend.values);
-        //           }
-        //         }, 300);
-        //       }
-
-        //       // --- 1. FOREST REPORTS (CRIMINAL & EVENTS) - PRIORITY DATA ---
-        //     // Yahan se '2' aur '4' counts uthaye ja rahe hain
-        //     if (res.sightings) {
-        //       // Red Icon Card: Criminal Activity
-        //       this.criminalActivityCount = Number(res.sightings.criminal_count || 0);
-
-        //       // Green Icon Card: Events & Monitoring
-        //       this.sightingsCount = Number(res.sightings.events_count || 0);
-
-        //       // Total Dashboard incidents
-        //       this.incidentsCount = Number(res.sightings.total_events || 0);
-        //     }
-        // -
-
-        // // --- 3. DASHBOARD COUNTS (OVERWRITE SE BACHEIN) ---
-        //   const stats = res.stats || {};
-        // if (stats.criminalEvents !== undefined && stats.criminalEvents > 0) {
-        //     this.criminalActivityCount = stats.criminalEvents;
-        // }
-        //       this.fireAlertsCount = stats.fireEvents || (res.fireCount?.count ?? res.fireCount ?? 0);
-        //       this.attendancePercent = stats.resolvedPercentage || 0;
-
-        //       // --- 4. PERSONNEL & RANGERS ---
-        //       // this.sightingsCount = typeof res.sightings === 'object' ? (res.sightings.count ?? 0) : (res.sightings ?? 0);
-
-        //       this.onDutyCount = res.onDuty?.count ?? res.onDuty ?? 0;
-        //       this.onLeaveCount = res.onLeave?.count ?? res.onLeave ?? 0;
-        //       this.inactiveCount = res.inactive?.count ?? res.inactive ?? 0;
-
-        //       const allUsers = res.users?.data || res.users || [];
-        //       if (Array.isArray(allUsers)) {
-        //         this.rangers = allUsers.filter((u: any) => Number(u.role_id || u.roleId) === 4);
-        //         this.filteredRangers = [...this.rangers];
-        //         this.allRangers = this.rangers.length;
-        //       }
-
-        // --- 2. TREND CHART ---
-        // (Removing redundant assetsTrend logic that conflicts with main Incident Trend)
-
-
-        // // SIRF TABHI UPDATE KARO JAB DATA 0 SE JYADA HO
-        // // Taaki bad mein aane wala empty response data ko overwrite na kare
-        // if (res.sightings) {
-        //   // Robust Update of all linked variables
-        //   this.criminalCount = Number(res.sightings.criminal_count || 0);
-        //   this.eventsCount = Number(res.sightings.events_count || 0);
-          
-        //   this.criminalActivityCount = this.criminalCount;
-        //   this.sightingsCount = this.eventsCount;
-        //   this.incidentsCount = Number(res.sightings.total_events || 0);
-          
-        //   console.log('📊 UNIFIED KPI REFRESH:', {
-        //     criminal: this.criminalCount,
-        //     events: this.eventsCount,
-        //     total: this.incidentsCount,
-        //     timeframe: currentTimeframe
-        //   });
-        // } else {
-        //   console.warn('⚠️ No sightings data in response!');
-        //   this.criminalCount = 0;
-        //   this.eventsCount = 0;
-        //   this.criminalActivityCount = 0;
-        //   this.sightingsCount = 0;
-        // }
-        // --- 3. DASHBOARD COUNTS (TODAY) ---
-        const stats = res.stats || {};
-        // Fallback for fireAlertsCount if not already set from sightings
-        this.fireAlertsCount = this.fireAlertsCount || stats.fireEvents || (res.fireCount?.count ?? res.fireCount ?? 0);
-        this.attendancePercent = stats.resolvedPercentage || 0;
-
-        // --- 4. PERSONNEL & RANGERS ---
-        this.onDutyCount = res.onDuty?.count ?? res.onDuty ?? 0;
-        this.onLeaveCount = res.onLeave?.count ?? res.onLeave ?? 0;
-        this.inactiveCount = res.inactive?.count ?? res.inactive ?? 0;
-
-        const allUsers = res.users?.data || res.users || [];
-        if (Array.isArray(allUsers)) {
-          this.rangers = allUsers.filter(
-            (u: any) => Number(u.role_id || u.roleId) === 4,
-          );
-          this.filteredRangers = [...this.rangers];
-          this.allRangers = this.rangers.length;
-        }
-
-      // --- 5. MAP DATA PROCESSING (STRICTLY FOREST REPORTS & NO ATTENDANCE) ---
-console.log('%c🔍 STEP 1: API Response Received', 'color: orange; font-weight: bold', res);
-
-let processedPins: any[] = [];
-
-// A. Alerts Mapping (Immediate display of SOS, Mining, Felling, etc.)
-const rawAlerts = res.alerts || [];
-if (rawAlerts.length > 0) {
-    const todayStr = new Date().toDateString();
-    const alertPins = rawAlerts
-        .filter((inc: any) => {
-            const hasLat = !isNaN(parseFloat(inc.latitude)) && parseFloat(inc.latitude) !== 0;
-            if (!hasLat) return false;
-
-            // Robust Date Check (Handles Date objects and various string formats)
-            const incDateObj = inc.created_at ? new Date(inc.created_at) : null;
-            const isToday = incDateObj && incDateObj.toDateString() === todayStr;
-            
-            return isToday; // Only Today for Map view
-        })
-        .map((inc: any) => {
-            const dbCriteria = (inc.incidentCriteria || inc.category || inc.type || inc.message || inc.report_type || '').toUpperCase();
-            
-            let layerId = ''; 
-            if (dbCriteria.includes('SOS')) layerId = 'sos';
-            else if (dbCriteria.includes('MINING')) layerId = 'illegal_mining';
-            else if (dbCriteria.includes('FELL') || dbCriteria.includes('FELLING')) layerId = 'illegal_felling';
-            else if (dbCriteria.includes('POACH')) layerId = 'animal_poaching';
-            else if (dbCriteria.includes('ENCROACH')) layerId = 'encroachment';
-            else if (dbCriteria.includes('FIRE')) layerId = 'fire_warning';
-            else if (dbCriteria.includes('SIGHTING') || dbCriteria.includes('ANIMAL')) layerId = 'animal_sighting';
-            else if (dbCriteria.includes('WATER')) layerId = 'water_status';
-            else if (dbCriteria.includes('STORAGE')) layerId = 'timber_storage';
-            else if (dbCriteria.includes('TRANSPORT')) layerId = 'timber_transport';
-
-            if (!layerId) return null;
-
-            return {
-                ...inc,
-                latitude: parseFloat(inc.latitude || inc.lat),
-                longitude: parseFloat(inc.longitude || inc.lng),
-                layerId: layerId,
-                displayLabel: inc.type || inc.category || inc.incidentCriteria || 'Alert'
-            };
-        }).filter((p: any) => p !== null);
-    processedPins = [...processedPins, ...alertPins];
-}
-
-// B. Forest Reports (Today's data only)
-const forestRaw = [...(res.forestReports || []), ...(res.forest_reports || []), ...(res.forest_events || [])];
-if (forestRaw.length > 0) {
-    console.log(`🌲 STEP 2: Processing Forest Data...`);
-    const todayStr = new Date().toDateString();
-
-    const forestPins = forestRaw
-        .filter((f: any) => {
-            const latValid = !isNaN(parseFloat(f.latitude)) && parseFloat(f.latitude) !== 0;
-            if (!latValid) return false;
-
-            const rType = (f.report_type || f.event_type || '').toLowerCase();
-            const isNotAttendance = !rType.includes('attendance') && !rType.includes('onsite');
-            
-            // Robust Date Check
-            const fDateObj = f.date || f.created_at ? new Date(f.date || f.created_at) : null;
-            const isToday = fDateObj && fDateObj.toDateString() === todayStr;
-
-            return isNotAttendance && isToday;
-        })
-        .map((f: any) => {
-            const cat = (f.category || '').toLowerCase();
-            const rType = (f.report_type || f.event_type || '').toLowerCase();
-            const fullType = `${cat} ${rType}`.toLowerCase();
-
-            let layerId = ''; 
-
-            if (fullType.includes('poach')) layerId = 'animal_poaching';
-            else if (fullType.includes('encroach')) layerId = 'encroachment';
-            else if (fullType.includes('mining')) layerId = 'illegal_mining';
-            else if (fullType.includes('fell')) layerId = 'illegal_felling';
-            else if (fullType.includes('sight')) layerId = 'animal_sighting';
-            else if (fullType.includes('water')) layerId = 'water_status';
-            else if (fullType.includes('storage')) layerId = 'timber_storage';
-            else if (fullType.includes('transport')) layerId = 'timber_transport';
-            else if (fullType.includes('fire')) layerId = 'fire_alerts';
-
-            if (!layerId) return null;
-
-            return {
+        // --- 2. DETAILED MARKER PROCESSING ---
+        let processedPins: any[] = [];
+        const forestRaw = [...(res.forestReports || []), ...(res.forest_reports || []), ...(res.forest_events || [])];
+        if (forestRaw.length > 0) {
+          const todayStr = new Date().toDateString();
+          processedPins = forestRaw
+            .filter((f: any) => {
+              const latValid = !isNaN(parseFloat(f.latitude)) && parseFloat(f.latitude) !== 0;
+              const fDateObj = f.date || f.created_at ? new Date(f.date || f.created_at) : null;
+              const isToday = fDateObj && fDateObj.toDateString() === todayStr;
+              return latValid && isToday;
+            })
+            .map((f: any) => {
+              const cat = (f.category || '').toLowerCase();
+              const rType = (f.report_type || f.event_type || '').toLowerCase();
+              const fullType = `${cat} ${rType}`.toLowerCase();
+              let layerId = ''; 
+              if (fullType.includes('poach')) layerId = 'animal_poaching';
+              else if (fullType.includes('encroach')) layerId = 'encroachment';
+              else if (fullType.includes('mining')) layerId = 'illegal_mining';
+              else if (fullType.includes('fell')) layerId = 'illegal_felling';
+              else if (fullType.includes('sight')) layerId = 'animal_sighting';
+              else if (fullType.includes('water')) layerId = 'water_status';
+              else if (fullType.includes('fire')) layerId = 'fire_alerts';
+              if (!layerId) return null;
+              return {
                 ...f,
                 latitude: parseFloat(f.latitude),
                 longitude: parseFloat(f.longitude),
                 layerId: layerId,
-                displayLabel: f.report_type || f.category || 'Forest Report',
-                date: f.date || f.created_at
-            };
-        }).filter((p: any) => p !== null);
-
-    processedPins = [...processedPins, ...forestPins];
-}
-
-this.allIncidents = processedPins;
-this.alerts = res.alerts || [];
-
-if (typeof this.updateVisiblePins === 'function') {
-    this.updateVisiblePins();
-}
-   
-
-        //alerts sections here
-        console.log('--- 🕵️ ALERTS PROCESSING START ---');
-        if (res.alerts && Array.isArray(res.alerts)) {
-          const savedPrefs = localStorage.getItem(
-            'admin_notification_settings',
-          );
-          const prefs = savedPrefs ? JSON.parse(savedPrefs) : null;
-
-          const processedAlerts = res.alerts.map((alert: any) => {
-            const rawType = (alert.type || 'INFO').toUpperCase();
-            const baseType = rawType.includes(' - ')
-              ? rawType.split(' - ')[0].trim()
-              : rawType;
-            const searchKey =
-              `${alert.category || ''} ${alert.type || ''} ${alert.message || ''}`.toLowerCase();
-
-            // --- 1. Identify Severity Based on Your Rules ---
-            let severity: 'critical' | 'warning' | 'info' = 'info';
-            if (
-              searchKey.includes('fire') ||
-              searchKey.includes('sos') ||
-              searchKey.includes('criminal') ||
-              baseType === 'CRIT' ||
-              baseType === 'INCIDENT' ||
-              baseType === 'FIRE' ||
-              baseType === 'SOS' ||
-              baseType === 'CRIMINAL'
-            ) {
-              severity = 'critical';
-            } else if (
-              searchKey.includes('sighting') ||
-              searchKey.includes('animal') ||
-              searchKey.includes('poach')
-            ) {
-              severity = 'warning';
-            } else if (
-              searchKey.includes('patrol') ||
-              searchKey.includes('attendance') ||
-              searchKey.includes('onsite')
-            ) {
-              severity = 'info';
-            }
-
-            // --- 2. Get Base Theme ---
-            let theme = this.getAlertTheme(baseType);
-
-            // --- 3. Final Overrides (Colors, Icons, Backgrounds) ---
-            let finalIcon = theme.icon;
-            let finalColor = theme.color;
-            let finalBg = theme.bg;
-
-            // Special Criminal Override
-            if (searchKey.includes('criminal') || baseType === 'CRIMINAL') {
-              finalColor = '#3768b7'; // Requested Blue
-              finalIcon = 'shield-half';
-              finalBg = '#f1f5f9';
-            }
-            // Fire & SOS Overrides (for safety)
-            else if (searchKey.includes('fire')) {
-              finalIcon = 'flame';
-              finalColor = '#ff4d4f';
-              finalBg = '#fff1f0';
-            } else if (
-              searchKey.includes('sos') ||
-              searchKey.includes('emergency')
-            ) {
-              finalIcon = 'nuclear';
-              finalColor = '#e63946';
-              finalBg = '#fff1f2';
-            }
-
-            return {
-              ...alert,
-              normalizedType: baseType,
-              bg: finalBg || '#f8fafc',
-              color: finalColor,
-              label: severity.toUpperCase(), // This fixes the "INFO" label on Critical items
-              icon: finalIcon,
-              severity: severity,
-              displayTitle: `${alert.type || baseType} - ${alert.ranger_name || 'Ranger'}`,
-              displayDesc:
-                alert.message || alert.location_name || 'Reported activity',
-              displayTime: alert.created_at
-                ? new Date(alert.created_at).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })
-                : 'Just Now',
-            };
-          });
-
-          // --- 4. FILTERING LOGIC ---
-          const companyFiltered = processedAlerts.filter((alert: any) => {
-            const alertCoId = alert.company_id || alert.companyId;
-            return (
-              alertCoId == 0 ||
-              alertCoId == null ||
-              Number(alertCoId) === myCompanyId
-            );
-          });
-
-          this.alertsData = companyFiltered
-            .filter((alert: any) => {
-              if (!prefs || !Array.isArray(prefs)) return true;
-              const cat = (alert.category || alert.type || '').toUpperCase();
-              const isEnabled = (label: string) => {
-                const p = prefs.find(
-                  (x: any) => x.label.toLowerCase() === label.toLowerCase(),
-                );
-                return p ? p.enabled : true;
+                displayLabel: f.report_type || f.category || 'Forest Report'
               };
-
-              if (cat.includes('FIRE') && !isEnabled('Fire Alerts'))
-                return false;
-              if (cat.includes('FELL') && !isEnabled('Illegal Felling'))
-                return false;
-              if (
-                (cat.includes('POACH') || cat.includes('ANIMAL')) &&
-                !isEnabled('Animal Poaching')
-              )
-                return false;
-              if (cat.includes('CRIMINAL') && !isEnabled('Criminal Activity'))
-                return false;
-
-              return true;
-            })
-            .slice(0, 15);
-
-          // Update counts based on filtered data
-          this.critCount = this.alertsData.filter(
-            (a) => a.severity === 'critical',
-          ).length;
-          this.warnCount = this.alertsData.filter(
-            (a) => a.severity === 'warning',
-          ).length;
-          this.infoCount = this.alertsData.filter(
-            (a) => a.severity === 'info',
-          ).length;
+            }).filter(p => p !== null);
         }
-        console.log('--- 🕵️ ALERTS PROCESSING END ---');
+        this.allIncidents = processedPins;
+        this.updateVisiblePins();
 
-        if (res.assetsStats) {
-          this.totalAssetsCount = res.assetsStats.totalAssets || 0;
-          this.operationalRate = res.assetsStats.operationalRate || '0%';
+        // --- 3. ALERTS & SOS PROCESSING ---
+        this.alertsData = res.alerts || [];
+        if (this.alertsData.length > 0) {
+          this.critCount = this.alertsData.filter(a => a.severity === 'critical').length;
+          this.warnCount = this.alertsData.filter(a => a.severity === 'warning').length;
+          this.infoCount = this.alertsData.filter(a => a.severity === 'info').length;
+        }
+        this.filteredAlerts = [...this.alertsData];
+
+        const allUsers = res.users?.data || res.users || [];
+        if (Array.isArray(allUsers)) {
+          this.rangers = allUsers.filter((u: any) => Number(u.role_id || u.roleId) === 4);
+          this.filteredRangers = [...this.rangers];
+          this.allRangers = this.rangers.length;
         }
 
-        this.cdr.markForCheck();
-        this.cdr.detectChanges();
-      },
-      error: (err: any) => {
-        console.error('Master Data Fetch Error:', err);
+        // TRIGGER CHART RE-RENDERING
+        setTimeout(() => {
+          this.initHomeCharts();
+        }, 400);
+
         this.isFetching = false;
         this.cdr.detectChanges();
       },
-      complete: () => {
+      error: (err) => {
+        console.error("Dashboard Load Error:", err);
         this.isFetching = false;
-        if (typeof (this as any).updateFilteredAlerts === 'function') {
-          (this as any).updateFilteredAlerts();
-        }
         this.cdr.detectChanges();
-      },
+      }
     });
   }
 
@@ -1682,36 +1302,77 @@ handleApiResponse(res: any) {
   }
 
 
-  async doRefresh() {
-    this.isRefreshing = true;
-    this.isSpinning = true;
+  // async doRefresh() {
+  //   this.isRefreshing = true;
+  //   this.isSpinning = true;
 
-    const loading = await this.loadingCtrl.create({
-      message: 'Refreshing Dashboard...',
-      duration: 5000, // Timeout protection
-      spinner: 'crescent',
-      cssClass: 'custom-loading'
-    });
-    await loading.present();
+  //   const loading = await this.loadingCtrl.create({
+  //     message: 'Refreshing Dashboard...',
+  //     duration: 5000, // Timeout protection
+  //     spinner: 'crescent',
+  //     cssClass: 'custom-loading'
+  //   });
+  //   await loading.present();
     
-    // Fetch latest data from backend in one go
-    this.loadData();
-    this.loadBeatCoverage();
+  //   // Fetch latest data from backend in one go
+  //   this.loadData();
+  //   this.loadBeatCoverage();
 
+  //   setTimeout(() => {
+  //     this.isRefreshing = false;
+  //     this.isSpinning = false;
+  //     loading.dismiss();
+      
+  //     // After loading is dismissed, canvas is visible again — render charts
+  //     if (this.activeSegment === 'overview') {
+  //       this.initHomeCharts(); // renders mini-charts
+  //       this.loadTrendData(); // fetches fresh trend and renders it
+  //     }
+  //     if (this.activeSegment === 'officers') this.initAttChart();
+  //     if (this.activeSegment === 'map') this.updateMapMarkers();
+  //   }, 1500);
+  // }
+
+  async doRefresh() {
+  this.isRefreshing = true;
+  this.isSpinning = true;
+
+  const loading = await this.loadingCtrl.create({
+    message: 'Refreshing Dashboard...',
+    spinner: 'crescent',
+    cssClass: 'custom-loading'
+  });
+  await loading.present();
+
+  try {
+    // Promise.all use karne se saare calls ek saath parallel mein honge
+    await Promise.all([
+      this.loadData(),
+      this.loadBeatCoverage(),
+      this.loadTrendData() // Refresh par trend data bhi update hona chahiye
+    ]);
+
+    console.log('Data fetched successfully!');
+  } catch (error) {
+    console.error('Refresh error:', error);
+  } finally {
+    // 1.5 second ka delay takki animation smooth lage
     setTimeout(() => {
       this.isRefreshing = false;
       this.isSpinning = false;
       loading.dismiss();
-      
-      // After loading is dismissed, canvas is visible again — render charts
+
+      // Charts ko re-initialize karna logic ke hisaab se
       if (this.activeSegment === 'overview') {
-        this.initHomeCharts(); // renders mini-charts
-        this.loadTrendData(); // fetches fresh trend and renders it
+        this.initHomeCharts();
+      } else if (this.activeSegment === 'officers') {
+        this.initAttChart();
+      } else if (this.activeSegment === 'map') {
+        this.updateMapMarkers();
       }
-      if (this.activeSegment === 'officers') this.initAttChart();
-      if (this.activeSegment === 'map') this.updateMapMarkers();
-    }, 1500);
+    }, 1000);
   }
+}
 
 
   private mkG(ctx: CanvasRenderingContext2D, color: string, h: number = 130) {

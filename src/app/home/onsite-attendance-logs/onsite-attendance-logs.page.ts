@@ -26,7 +26,6 @@ filteredLogs: any[] = [];   // Data displayed after filtering // Data shown in U
     toDate: new Date().toISOString()    // Default to today
   };
 
-  private apiUrl = `${environment.apiUrl}/onsite-attendance`;
 
   constructor(
     private navCtrl: NavController,
@@ -139,7 +138,7 @@ async deleteLog(id: number, event: Event) {
         text: 'Delete',
         role: 'destructive',
         handler: () => {
-          this.http.delete(`${this.apiUrl}/${id}`).subscribe({
+          this.http.delete(`${environment.apiUrl}/onsite-attendance/${id}`).subscribe({
             next: () => {
               // 1. Remove from the master list
               this.attendanceLogs = this.attendanceLogs.filter(log => log.id !== id);

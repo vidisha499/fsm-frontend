@@ -127,6 +127,22 @@ loadChildren:() => import('./admin/admin.module').then( m => m.AdminPageModule)
     path: 'reports',
     loadChildren: () => import('./reports/reports.module').then( m => m.ReportsPageModule)
   },
+  {
+    path: 'daily-updates',
+    loadChildren: () => import('./daily-updates/daily-updates.module').then( m => m.DailyUpdatesPageModule)
+  },
+  {
+    path: 'client-visits',
+    loadChildren: () => import('./client-visits/client-visits.module').then( m => m.ClientVisitsPageModule)
+  },
+  {
+    path: 'geofences',
+    loadChildren: () => import('./geofences/geofences.module').then( m => m.GeofencesPageModule)
+  },
+  {
+    path: 'tasks',
+    loadChildren: () => import('./tasks/tasks.module').then( m => m.TasksPageModule)
+  },
 
 
  

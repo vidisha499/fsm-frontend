@@ -1,0 +1,100 @@
+<ion-content [fullscreen]="true">
+  <div class="premium-wrapper">
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <div class="hero-header">
+      <div class="header-overlay"></div>
+      <div class="header-content">
+        <div class="nav-bar">
+          <div class="left-section">
+            <ion-back-button *ngIf="!activeChat" defaultHref="/home" color="light"></ion-back-button>
+            <div *ngIf="activeChat" (click)="closeChat()" class="glass-back-btn">
+              <i class="fas fa-chevron-left"></i>
+            </div>
+            <h1>{{ activeChat ? (activeChat.name || 'Chat') : 'Communication' }}</h1>
+          </div>
+          <div class="right-section">
+            <div class="auth-badge">
+              <i class="fas fa-comments"></i> MESSAGES
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-container">
+
+      <!-- LOADING STATE -->
+      <div *ngIf="isFetching" class="loading-state">
+        <ion-spinner name="crescent" color="primary"></ion-spinner>
+        <p>Loading conversations...</p>
+      </div>
+
+      <!-- INBOX VIEW -->
+      <div *ngIf="!isFetching && !activeChat">
+
+        <!-- Error State -->
+        <div *ngIf="errorMessage" class="error-card">
+          <div class="error-icon"><i class="fas fa-exclamation-triangle"></i></div>
+          <h3>Connection Issue</h3>
+          <p>{{ errorMessage }}</p>
+          <button class="retry-btn" (click)="loadConversations()">
+            <i class="fas fa-sync-alt"></i> Retry
+          </button>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="!errorMessage && conversations.length === 0" class="empty-state">
+          <div class="empty-icon"><i class="fas fa-comments"></i></div>
+          <h3>No Conversations</h3>
+          <p>Your messages will appear here</p>
+        </div>
+
+        <!-- Conversation List -->
+        <div *ngFor="let chat of conversations" class="chat-row" (click)="openChat(chat)">
+          <div class="chat-avatar">
+            <img [src]="chat.avatar || 'https://ui-avatars.com/api/?name=' + (chat.name || 'U') + '&background=0d9488&color=fff&bold=true'" />
+            <div class="online-dot" *ngIf="chat.is_online"></div>
+          </div>
+          <div class="chat-info">
+            <div class="chat-top-line">
+              <span class="chat-name">{{ chat.name || 'Unknown' }}</span>
+              <span class="chat-time">{{ chat.updated_at | date:'shortTime' }}</span>
+            </div>
+            <p class="chat-preview">{{ chat.last_message || 'Tap to view' }}</p>
+          </div>
+          <div class="chat-badge" *ngIf="chat.unread_count">{{ chat.unread_count }}</div>
+        </div>
+      </div>
+
+      <!-- ACTIVE CHAT VIEW -->
+      <div *ngIf="activeChat" class="chat-active-view">
+        <div class="messages-area">
+          <div *ngFor="let msg of messages" 
+               class="msg-bubble" 
+               [class.sent]="msg.sender_id === currentUserId"
+               [class.received]="msg.sender_id !== currentUserId">
+            <div class="bubble-content">{{ msg.message }}</div>
+            <div class="bubble-time">{{ msg.created_at | date:'shortTime' }}</div>
+          </div>
+
+          <div *ngIf="messages.length === 0" class="empty-state" style="margin-top: 30px;">
+            <div class="empty-icon"><i class="fas fa-paper-plane"></i></div>
+            <p>No messages yet. Start the conversation!</p>
+          </div>
+        </div>
+
+        <!-- Input Bar -->
+        <div class="chat-input-bar">
+          <button class="attach-btn"><i class="fas fa-paperclip"></i></button>
+          <input type="text" [(ngModel)]="newMessage" placeholder="Type a message..." (keyup.enter)="sendMessage()" />
+          <button class="send-btn" (click)="sendMessage()" [disabled]="!newMessage.trim()">
+            <i class="fas fa-paper-plane"></i>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</ion-content>

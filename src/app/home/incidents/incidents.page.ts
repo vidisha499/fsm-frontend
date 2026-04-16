@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { DataService } from '../../data.service';
 import { TranslateService } from '@ngx-translate/core'; // Added
 import { IonModal } from '@ionic/angular';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-incident',
@@ -33,10 +34,6 @@ allIncidents: any[] = []; // Isme hamesha original poora data rahega
   isModalOpen: boolean = false; // Modal toggle error fix
   today: string = new Date().toISOString(); 
 
-  
-  private vercelUrl: string = 'https://forest-backend-pi.vercel.app/api/incidents';
-  private apiUrl: string = '';
-
   constructor(
     private navCtrl: NavController,
     private http: HttpClient,
@@ -50,7 +47,6 @@ allIncidents: any[] = []; // Isme hamesha original poora data rahega
   ) {
     this.startDate = new Date().toISOString();
     this.endDate = new Date().toISOString();
-    this.apiUrl = this.vercelUrl;
   }
 
   ionViewWillEnter() {
@@ -60,8 +56,8 @@ allIncidents: any[] = []; // Isme hamesha original poora data rahega
 
 
 async loadIncidents() {
-  const rangerId = localStorage.getItem('ranger_id');
-  if (!rangerId) return;
+  const companyId = localStorage.getItem('company_id');
+  if (!companyId) return;
 
   const msg = await this.translate.get('INCIDENTS.FETCHING').toPromise();
   const loader = await this.loadingCtrl.create({
@@ -71,12 +67,12 @@ async loadIncidents() {
   });
   await loader.present();
 
-  this.http.get(`${this.apiUrl}/my-reports/${rangerId}`)
+  this.dataService.getIncidentsByCompany(companyId)
     .subscribe({
-      next: (data: any) => { 
+      next: (res: any) => { 
+        const incidentsList = Array.isArray(res) ? res : (res.data || []);
         const IST_OFFSET = 5.5 * 60 * 60 * 1000;
-
-        const mappedData = data.map((incident: any) => {
+        const mappedData = incidentsList.map((incident: any) => {
           const utcDate = new Date(incident.createdAt);
           const localTimeAdjusted = new Date(utcDate.getTime() - IST_OFFSET);
           
@@ -150,7 +146,7 @@ getTranslationKey(val: string) {
     });
     await loader.present();
 
-    this.http.delete(`${this.apiUrl}/${id}`).subscribe({
+    this.http.delete(`${environment.apiUrl}/reportIncidence/${id}`).subscribe({
       next: async () => {
         await loader.dismiss();
         this.incidents = this.incidents.filter(item => item.id !== id);

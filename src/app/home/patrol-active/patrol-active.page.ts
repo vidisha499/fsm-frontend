@@ -10,6 +10,7 @@
     import { environment } from 'src/environments/environment';
     import * as L from 'leaflet';
     import { ActivatedRoute } from '@angular/router';
+    import { DataService } from '../../data.service';
 
     @Component({
       selector: 'app-patrol-active',
@@ -46,8 +47,7 @@
       routePoints: { lat: number; lng: number }[] = [];
       startTime: string = new Date().toISOString();
 
-      private apiUrl: string = `${environment.apiUrl}/patrols`;
-
+    
       private locationIcon = L.divIcon({
         className: 'user-location-marker',
         html: '<div class="blue-dot"></div>',
@@ -65,7 +65,8 @@
         private domCtrl: DomController,
         private translate: TranslateService,
         private cdr: ChangeDetectorRef,
-        private route: ActivatedRoute
+        private route: ActivatedRoute,
+        private dataService: DataService
       ) { }
 
     ngOnInit() {
@@ -151,18 +152,19 @@
       refreshRecentSightings() {
         if (!this.activePatrolId) return;
 
-        this.http.get(`${this.apiUrl}/active`).subscribe({
-          next: (data: any) => {
-            const active = Array.isArray(data)
-              ? data.find((p: any) => p.id.toString() === this.activePatrolId)
-              : data;
+        this.dataService.getOngoingPatrols().subscribe({
+          next: (res: any) => {
+            // Support both direct array and { data: [] } formats
+            const allPatrols = Array.isArray(res) ? res : (res.data || []);
+            
+            const active = allPatrols.find((p: any) => p.id.toString() === this.activePatrolId);
             
             if (active) {
               // FIX: Map through the sightings and provide a fallback for category
               const rawSightings = active.obs_details || active.obsDetails || [];
               this.recentSightings = rawSightings.map((s: any) => ({
                 ...s,
-                category: s.category || 'Other' // This prevents the 'undefined' error
+                category: s.category || 'Other' 
               }));
               
               this.updateSightingMarkers();
@@ -213,8 +215,7 @@
             text: 'Delete',
             role: 'destructive',
             handler: () => {
-              // Use /patrols/sightings/ not /patrols/logs/
-              this.http.delete(`${environment.apiUrl}/patrols/sightings/${sighting.id}`).subscribe({
+              this.dataService.deletePatrolLog(sighting.id).subscribe({
                 next: () => {
                   this.recentSightings.splice(index, 1);
                   this.updateSightingMarkers();
@@ -314,7 +315,7 @@
 
       syncLocation(lat: number, lng: number) {
         if (this.activePatrolId) {
-          this.http.patch(`${this.apiUrl}/active/${this.activePatrolId}/route`, { lat, lng }).subscribe();
+          this.http.patch(`${environment.apiUrl}/patrols/active/${this.activePatrolId}/route`, { lat, lng }).subscribe();
         }
       }
 
@@ -346,29 +347,38 @@ async handleEndTrip(isManual: boolean = false) {
   await loader.present();
 
   // 5. Construct the Payload
-  // Note: We send 'ranger_name' as your controller/service expects
-  const logPayload = {
-    rangerId: parseInt(rId),
-    companyId: parseInt(cId),
-    ranger_name: rName,
-    patrolName: this.patrolName || 'Standard Patrol',
-    startTime: this.startTime,
-    endTime: new Date().toISOString(),
-    distanceKm: parseFloat(this.totalDistanceKm.toFixed(2)),
-    duration: this.timerDisplay,
+  // 5. Construct the FMS Payload
+  let eLat = this.lastLatLng ? this.lastLatLng.lat : 0;
+  let eLng = this.lastLatLng ? this.lastLatLng.lng : 0;
+  
+  const fmsPayload = {
+    end_lat: String(eLat),
+    end_lng: String(eLng),
     status: 'COMPLETED',
-    photos: this.capturedPhotos || [], 
-    route: this.routePoints || [],
-    // This provides a snapshot, but the backend 'createLog' 
-    // will re-parent the actual database records.
-    observationData: { Details: this.recentSightings }
+    coords: this.routePoints.map(p => [p.lng, p.lat])
   };
 
+  // Upload photos if any before ending trip? Actually Postman has separate `/patrol/{sessionId}/photos` 
+  // but we can send it or omit it for now since the mapping asks for `updatePatrolStats` for the end call.
+  
   // 6. Execute the Request
-  // Using 'this.apiUrl' which points to `${environment.apiUrl}/patrols`
-  this.http.post(`${this.apiUrl}/logs`, logPayload).subscribe({
+  if (!this.activePatrolId) {
+    this.showToast("No active patrol ID found", "danger");
+    return;
+  }
+  
+  this.dataService.updatePatrolStats(this.activePatrolId, fmsPayload).subscribe({
     next: async (response: any) => {
       console.log("Patrol Sync Success:", response);
+      
+      // If there are photos, we can upload them sequentially
+      for (const photo of this.capturedPhotos) {
+        try {
+           await firstValueFrom(this.dataService.uploadPatrolPhoto(this.activePatrolId as string, { photo: photo }));
+        } catch(e) {
+           console.log("Photo upload issue", e);
+        }
+      }
       
       await loader.dismiss();
       

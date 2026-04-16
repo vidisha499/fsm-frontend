@@ -118,6 +118,22 @@
         </div>
       </div>
 
+      <div class="module-section animate-up" style="animation-delay: 0.3s;">
+        <div class="ops-tag" style="background: #e0f2fe; color: #0284c7;">
+          <i class="fas fa-file-alt"></i>
+          <span>FOREST REPORTS</span>
+        </div>
+        <h2 class="section-title">Reports & Logs</h2>
+        <p class="section-sub">Detailed environmental and operational reports</p>
+
+        <div class="grid-layout">
+          <div class="cat-card blue-variant" (click)="openEventsFields('Plantation', 'Forest Reports')">
+            <div class="icon-wrap"><i class="fas fa-tree"></i></div>
+            <p>Plantation</p>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <button class="fab-refresh" (click)="doRefresh()">

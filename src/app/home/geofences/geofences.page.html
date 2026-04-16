@@ -1,0 +1,105 @@
+<ion-content [fullscreen]="true">
+  <div class="premium-wrapper">
+    <!-- Ambient Glow Effects -->
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <!-- Hero Header -->
+    <div class="hero-header">
+      <div class="header-overlay"></div>
+      <div class="header-content">
+        <div class="nav-bar">
+          <div class="left-section">
+            <button (click)="goBack()" class="glass-btn">
+              <ion-icon name="arrow-back-outline"></ion-icon>
+            </button>
+            <h1>Geofences & Sites</h1>
+          </div>
+          <div class="right-section">
+            <button class="filter-toggle-btn" (click)="loadSites()">
+              <ion-icon name="refresh-outline" *ngIf="!isLoading"></ion-icon>
+              <ion-spinner name="crescent" color="light" *ngIf="isLoading"></ion-spinner>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+      <!-- Status Tabs -->
+      <div class="status-tabs-wrapper">
+        <div class="status-tabs">
+          <div class="tab" [class.active]="statusFilter === 'sites'" (click)="statusFilter = 'sites'">
+            SITES
+          </div>
+          <div class="tab" [class.active]="statusFilter === 'geofences'" (click)="statusFilter = 'geofences'">
+            GEOFENCES
+          </div>
+        </div>
+      </div>
+
+      <!-- Sites List -->
+      <div class="content-list" *ngIf="statusFilter === 'sites'">
+        <div class="item-row animate__animated animate__fadeInUp" 
+             *ngFor="let site of sites; let i = index"
+             [style.animation-delay]="(i * 0.1) + 's'">
+
+          <div class="mini-thumb">
+            <div class="icon-box">
+              <i class="fas fa-map-marked-alt"></i>
+            </div>
+          </div>
+
+          <div class="row-content">
+            <div class="top-line">
+              <span class="type-text">STATION</span>
+              <span class="log-date">{{ site.created_at ? (site.created_at | date:'shortDate') : 'Active' }}</span>
+            </div>
+            <h2 class="item-title">{{ site.site_name || 'Forest Site' }}</h2>
+            <div class="meta-line">
+              <ion-icon name="location-outline"></ion-icon>
+              <span>{{ site.address || 'Location assigned' }}</span>
+            </div>
+          </div>
+
+          <div class="row-actions">
+            <ion-icon name="chevron-forward" class="chevron"></ion-icon>
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" *ngIf="sites.length === 0 && !isLoading">
+          <i class="fas fa-draw-polygon"></i>
+          <p>No sites registered yet</p>
+        </div>
+      </div>
+
+      <!-- Geofences List -->
+      <div class="content-list" *ngIf="statusFilter === 'geofences'">
+        <div class="empty-state">
+          <i class="fas fa-satellite-dish"></i>
+          <p>Geofence boundaries loading...</p>
+        </div>
+      </div>
+
+      <!-- Skeleton Loader -->
+      <div *ngIf="isLoading" style="padding: 10px 0;">
+        <div class="item-row" *ngFor="let s of [1,2,3,4]">
+          <ion-skeleton-text animated style="width: 50px; height: 50px; border-radius: 12px;"></ion-skeleton-text>
+          <div style="flex: 1;">
+            <ion-skeleton-text animated style="width: 40%; height: 12px; margin-bottom: 8px;"></ion-skeleton-text>
+            <ion-skeleton-text animated style="width: 80%; height: 16px; margin-bottom: 8px;"></ion-skeleton-text>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAB for Adding New -->
+    <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+      <ion-fab-button class="premium-fab">
+        <ion-icon name="add"></ion-icon>
+      </ion-fab-button>
+    </ion-fab>
+  </div>
+</ion-content>

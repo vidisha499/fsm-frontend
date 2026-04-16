@@ -14,7 +14,6 @@ import * as L from 'leaflet';
 export class OnsiteAttendanceDetailsPage implements OnInit {
   private map!: L.Map;
   public attendanceData: any;
-  private apiUrl = `${environment.apiUrl}/onsite-attendance`;
 
   constructor(
     private navCtrl: NavController,
@@ -42,7 +41,7 @@ ionViewDidEnter() {
 
 // 2. Update loadDetails to trigger the map if the page is already active
 loadDetails(id: string) {
-  this.http.get(`${this.apiUrl}/${id}`).subscribe({
+  this.http.get(`${environment.apiUrl}/onsite-attendance/${id}`).subscribe({
     next: (data: any) => {
       this.attendanceData = data;
       

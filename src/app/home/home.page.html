@@ -62,10 +62,10 @@
                         <p [innerHTML]="'DASHBOARD.PATROL_MISSIONS' | translate"></p>
                         <i class="fas fa-paw watermark"></i>
                     </div>
-                    <div class="module-card card-red" (click)="goToPage('incidents')">
-                        <div class="icon-bg"><i class="fas fa-radiation"></i></div>
+                    <div class="module-card card-red" (click)="goToPage('forest-events')">
+                        <div class="icon-bg"><i class="fas fa-calendar-alt"></i></div>
                         <p [innerHTML]="'DASHBOARD.ALERT_INCIDENT' | translate"></p>
-                        <i class="fas fa-fire watermark"></i>
+                        <i class="fas fa-paw watermark"></i>
                     </div>
                 </div>
             </div>
@@ -223,7 +223,7 @@
         <span>{{ 'NAV.SOS' | translate }}</span>
     </div>
 </div>
-        <div class="nav-tab" (click)="goToPage('incidents')"><i class="fas fa-binoculars"></i><span>{{ 'NAV.ALERTS' | translate }}</span></div>
+        <div class="nav-tab" (click)="goToPage('incidents')"><i class="fas fa-bell"></i><span>{{ 'NAV.ALERTS' | translate }}</span></div>
         <div class="nav-tab" (click)="goToPage('settings')"><i class="fas fa-user-shield"></i><span>{{ 'NAV.RANGER' | translate }}</span></div>
     </div>
 </div>

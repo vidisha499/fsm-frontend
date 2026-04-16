@@ -5,6 +5,7 @@ import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { TranslateService } from '@ngx-translate/core';
 import * as L from 'leaflet';
 import { Geolocation } from '@capacitor/geolocation';
+import { DataService } from '../../data.service';
 
 @Component({
   selector: 'app-new-incident',
@@ -47,9 +48,6 @@ public incidentData = {
   geofence: '',
   
 };
-
-  private apiUrl: string = 'https://forest-backend-pi.vercel.app/api/incidents';
-
   constructor(
     private navCtrl: NavController,
     private toastCtrl: ToastController,
@@ -57,7 +55,8 @@ public incidentData = {
     private loadingCtrl: LoadingController,
     private actionSheetCtrl: ActionSheetController,
     private cdr: ChangeDetectorRef,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private dataService: DataService
   ) { }
 
  ngOnInit() { 
@@ -220,40 +219,26 @@ async submitReport() {
   const finalPhotos = this.capturedPhotos.map(p => p.includes(',') ? p.split(',')[1] : p);
   const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
 
+// Format payload for FMS Backend
 const payload = {
-  userId: userData.id,     // Ye hai teri main ID link karne ke liye
-  company_id: Number(rawCompanyId),
-  rangerId: Number(rawRangerId), 
-  photos: finalPhotos,
-  responsePriority: this.incidentData.priority,
-  incidentCriteria: this.incidentData.criteria,
-  
-  // Ensure these match your Entity @Column names exactly
-
-  subCategory: this.incidentData.subCategory,
-  rootCause: this.incidentData.cause,
-  fieldObservation: this.incidentData.observation,
-  incidentReason: this.incidentData.reason, 
-  species: this.incidentData.species,
-  vehicleType: this.incidentData.vehicleType,
-  transportRoute: this.incidentData.route,
-  storageArea: this.incidentData.storageArea,
-  fireStage: this.incidentData.fireStage,
-  assetInventory: this.incidentData.assetInventory, 
-  vehicleInfo: this.incidentData.vehicleInfo,    
-  checkpost: this.incidentData.checkpost,
-  rangerName: this.incidentData.rangerName,
-  geofence: this.incidentData.geofence, // This is the address string
-
-  // GPS Coordinates
+  // Old keys for backward compatibility
+  incidence_type: this.incidentData.subCategory || this.incidentData.criteria || 'General',
   latitude: Number(this.lat), 
   longitude: Number(this.lng),
-  status: 'Pending'
+  remarks: this.incidentData.observation || this.incidentData.reason || this.incidentData.geofence,
+  photo: finalPhotos.length > 0 ? `data:image/jpeg;base64,${finalPhotos[0]}` : '',
+
+  // New keys for Sir's Incidence API
+  type: this.incidentData.subCategory || this.incidentData.criteria || 'General',
+  remark: this.incidentData.observation || this.incidentData.reason || this.incidentData.geofence,
+  priority: this.incidentData.priority || 'High',
+  location: `${this.lat},${this.lng}`,
+  photos: JSON.stringify(finalPhotos.length > 0 ? finalPhotos.map(p => `data:image/jpeg;base64,${p}`) : [])
 };
 
   console.log('FINAL PAYLOAD:', payload);
 
-  this.http.post(this.apiUrl, payload).subscribe({
+  this.dataService.reportNewIncident(payload).subscribe({
     next: async (response) => {
       const successMsg = 'Incident reported successfully!';
       this.presentToast(successMsg, 'success');

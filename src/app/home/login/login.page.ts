@@ -49,6 +49,82 @@ export class LoginPage implements OnInit, OnDestroy {
   }
 
 
+// async login() {
+//   if (!this.loginData.phone || !this.loginData.password) {
+//     this.presentToast('Please enter both contact and password', 'warning');
+//     return;
+//   }
+
+//   const loading = await this.loadingCtrl.create({ 
+//     message: 'Authenticating...', 
+//     mode: 'ios',
+//     spinner: 'crescent'
+//   });
+//   await loading.present();
+
+//   const payload = { 
+//     // identifier: this.loginData.phone.trim(), 
+//     // pass: this.loginData.password 
+//     mobile: this.loginData.phone.trim(), // 'identifier' ko 'mobile' kar
+//   password: this.loginData.password
+//   };
+
+//   this.loginSub = this.dataService.login(payload).subscribe({
+//     next: async (res: any) => {
+//       if (res.api_token) {
+//   localStorage.setItem('api_token', res.api_token);
+// }
+//       await loading.dismiss();
+
+//       // Backend se aane wala data (res.user ya res)
+//       const userData = res.user || res;
+//       const userRole = parseInt(res.role_id || userData.role_id);
+//       const actualCompanyId = res.company_id || userData.company_id;
+
+//       if (userData && userData.id) {
+//         // --- 1. SABSE IMPORTANT: USER_DATA OBJECT BANANA ---
+//         const userInfo = {
+//           id: userData.id,
+//           name: userData.name,
+//           role_id: userRole,
+//           company_id: actualCompanyId, // Dashboard isi ID ko dhundega
+//           // division: userData.division || 'Washim Division'
+//         };
+
+//         // --- 2. STORAGE MEIN SAVE KARNA ---
+//         localStorage.setItem('user_data', JSON.stringify(userInfo));
+        
+//         // Extra security ke liye purani keys bhi rakh lo
+//         localStorage.setItem('ranger_id', userData.id.toString());
+//         localStorage.setItem('user_role', userRole.toString());
+//         localStorage.setItem('company_id', (actualCompanyId || 0).toString());
+
+//         // --- 3. NAVIGATION ---
+//         const currentLang = localStorage.getItem('app_language_code') || 'en';
+//         this.translate.use(currentLang).subscribe({
+//           next: () => {
+//             this.presentToast(`Welcome, ${userData.name}!`, 'success');
+//             // Role based navigation
+//             if (userRole === 2) {
+//               this.navCtrl.navigateRoot('/admin'); 
+//             } else {
+//               this.navCtrl.navigateRoot('/home');
+//             }
+//           }
+//         });
+//       } else {
+//         this.presentToast('User data not found', 'danger');
+//       }
+//     },
+//     error: async (err) => {
+//       await loading.dismiss();
+//       this.presentToast(err.error?.message || 'Invalid Credentials', 'danger');
+//     }
+//   });
+// }
+
+
+
 async login() {
   if (!this.loginData.phone || !this.loginData.password) {
     this.presentToast('Please enter both contact and password', 'warning');
@@ -63,57 +139,69 @@ async login() {
   await loading.present();
 
   const payload = { 
-    identifier: this.loginData.phone.trim(), 
-    pass: this.loginData.password 
+    email: this.loginData.phone.trim(), // As per Postman, use email key
+    mobile: this.loginData.phone.trim(), // Keeping mobile for compatibility
+    password: this.loginData.password,
+    imei: '123456789012345', // Placeholder or Capacitor Device Info
+    fcm_token: 'fcm_mock_token_123' // Placeholder or Capacitor Push Info
   };
 
   this.loginSub = this.dataService.login(payload).subscribe({
     next: async (res: any) => {
       await loading.dismiss();
 
-      // Backend se aane wala data (res.user ya res)
-      const userData = res.user || res;
-      const userRole = parseInt(res.role_id || userData.role_id);
-      const actualCompanyId = res.company_id || userData.company_id;
+      // Backend response check: Status 'SUCCESS' aur data hona chahiye
+      if (res.status === "SUCCESS" && res.data) {
+        const userData = res.data;
+        
+        // Role ID ko number mein convert karlo (Aapka Role ID 3 hai)
+        const userRole = parseInt(res.role_id);
 
-      if (userData && userData.id) {
-        // --- 1. SABSE IMPORTANT: USER_DATA OBJECT BANANA ---
         const userInfo = {
           id: userData.id,
           name: userData.name,
+          phone: userData.contact || userData.mobile || userData.phone || '',
           role_id: userRole,
-          company_id: actualCompanyId, // Dashboard isi ID ko dhundega
-          // division: userData.division || 'Washim Division'
+          company_id: userData.company_id,
+          api_token: userData.api_token
         };
 
-        // --- 2. STORAGE MEIN SAVE KARNA ---
+        // --- DATA STORAGE ---
         localStorage.setItem('user_data', JSON.stringify(userInfo));
-        
-        // Extra security ke liye purani keys bhi rakh lo
+        localStorage.setItem('api_token', userData.api_token);
+        localStorage.setItem('company_id', userData.company_id.toString());
         localStorage.setItem('ranger_id', userData.id.toString());
-        localStorage.setItem('user_role', userRole.toString());
-        localStorage.setItem('company_id', (actualCompanyId || 0).toString());
+        
+        // Explicit keys for sidebar (AppComponent)
+        localStorage.setItem('ranger_username', userData.name);
+        localStorage.setItem('ranger_phone', userInfo.phone);
 
-        // --- 3. NAVIGATION ---
-        const currentLang = localStorage.getItem('app_language_code') || 'en';
-        this.translate.use(currentLang).subscribe({
-          next: () => {
-            this.presentToast(`Welcome, ${userData.name}!`, 'success');
-            // Role based navigation
-            if (userRole === 2) {
-              this.navCtrl.navigateRoot('/admin'); 
-            } else {
-              this.navCtrl.navigateRoot('/home');
-            }
-          }
-        });
+        this.presentToast(`Welcome, ${userData.name}!`, 'success');
+        
+        // --- NAVIGATION LOGIC ---
+        // Role 3 = Supervisor, Role 4 = Ranger
+        if (userRole === 3 || userRole === 4) { 
+          // Dono ko home dashboard par bhejo
+          this.navCtrl.navigateRoot('/home'); 
+        } else if (userRole === 1 || userRole === 2) {
+          // Admins ke liye alag route
+          this.navCtrl.navigateRoot('/admin');
+        } else {
+          // Default fallback
+          this.navCtrl.navigateRoot('/home');
+        }
+
       } else {
-        this.presentToast('User data not found', 'danger');
+        // Agar status SUCCESS nahi hai toh backend ka message dikhao
+        this.presentToast(res.message || 'Invalid Response from Server', 'danger');
       }
     },
     error: async (err) => {
       await loading.dismiss();
-      this.presentToast(err.error?.message || 'Invalid Credentials', 'danger');
+      console.error('Login Error:', err);
+      // Agar backend se error message aata hai (jaise 401 Unauthorized)
+      const errorMsg = err.error?.message || 'Invalid Credentials or Server Error';
+      this.presentToast(errorMsg, 'danger');
     }
   });
 }

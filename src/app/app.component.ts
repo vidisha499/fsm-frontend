@@ -80,23 +80,32 @@ export class AppComponent implements OnInit {
 
 loadUserData() {
   this.userRole = localStorage.getItem('user_role') || '4';
-  this.rangerName = localStorage.getItem('ranger_username') || 'User';
+  
+  // Try implicit keys first, then fallback to user_data object
+  this.rangerName = localStorage.getItem('ranger_username') || '';
+  this.rangerPhone = localStorage.getItem('ranger_phone') || '';
+  
+  if (!this.rangerName || !this.rangerPhone) {
+    const data = localStorage.getItem('user_data');
+    if (data) {
+      const user = JSON.parse(data);
+      this.rangerName = this.rangerName || user.name || 'User';
+      this.rangerPhone = this.rangerPhone || user.phone || user.contact || '';
+    }
+  }
+
+  // Final fallback
+  this.rangerName = this.rangerName || 'User';
+
   this.userPhoto = localStorage.getItem('user_photo') || ''; 
   this.rangerDivision = localStorage.getItem('ranger_division') || 'Washim Division 4.2';
 
-  // Database se aane wala value (jo abhi khali hai)
+  // Database se aane wala value 
   const dbDivision = localStorage.getItem('ranger_division');
-
   if (dbDivision && dbDivision !== 'undefined') {
-    // Agar future mein DB mein column daaloge, toh ye chalega
     this.rangerDivision = dbDivision;
   } else {
-    // Abhi ke liye fallback logic
-    if (this.userRole === '2') {
-      this.rangerDivision = 'COMPANY ADMIN';
-    } else {
-      this.rangerDivision = 'RANGER UNIT';
-    }
+    this.rangerDivision = this.userRole === '2' ? 'COMPANY ADMIN' : 'RANGER UNIT';
   }
 
   this.cdr.detectChanges();

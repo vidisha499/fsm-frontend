@@ -80,6 +80,31 @@
   }
 }
 
+.floating-submenu {
+  position: absolute;
+  top: 60px;          // Card ke header ke theek niche se
+  right: 0;           // Card ke right edge se align
+  width: 260px;       // Thoda wide rakho taaki text na kate
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); // Heavy shadow for floating look
+  z-index: 1000;      // Isse ye "Incidence Report" ke upar tairne lagega
+  border: 1px solid #e2e8f0;
+  padding: 5px 0;
+
+  .submenu-item {
+    padding: 12px 18px;
+    border-bottom: 1px solid #f1f5f9;
+    
+    span {
+      font-size: 13px;
+      color: #1e293b;
+      font-weight: 500;
+    }
+
+    &:last-child { border-bottom: none; }
+  }
+}
 /* ==========================================================================
    UPDATED MODAL STYLES (Reset Filter + Side-by-Side Buttons)
    ========================================================================== */

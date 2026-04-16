@@ -34,7 +34,6 @@ filterLocation: string = ''; // Location input ke liye
   isModalOpen: boolean = false; // Modal toggle error fix
   today: string = new Date().toISOString(); // [max]="today" error fix
   // isFiltered: boolean = false;
-  private apiUrl: string = `${environment.apiUrl}/attendance/beat-attendance`;
 
   constructor(
     private navCtrl: NavController,
@@ -47,8 +46,7 @@ filterLocation: string = ''; // Location input ke liye
   ) {}
 
   ngOnInit() {
-this.attendance = this.dataService.getSelectedAttendance();
-    
+    this.attendance = this.dataService.getSelectedAttendance();
   }
 
   // async loadTodayOnly() {
@@ -68,8 +66,8 @@ this.attendance = this.dataService.getSelectedAttendance();
 }
 
 async fetchAndFilter() {
-  const rangerId = localStorage.getItem('ranger_id');
-  if (!rangerId) return;
+  const companyId = localStorage.getItem('company_id');
+  if (!companyId) return;
 
   const loader = await this.loadingCtrl.create({
     message: 'Fetching Logs...',
@@ -78,19 +76,26 @@ async fetchAndFilter() {
   await loader.present();
 
   // 📍 Sabse safe tarika: Saara data mangwao (dates params mat bhejo)
-  // Backend ab updated hai, toh wo saara data bhej dega
-  let url = `${this.apiUrl}/ranger/${rangerId}`;
+  this.dataService.getAttendanceLogsByRanger(companyId).subscribe({
+    next: (res: any) => {
+      const logsArray = res.attendance || res.data || res;
+      if (!Array.isArray(logsArray)) {
+        console.error('Expected array but got:', logsArray);
+        loader.dismiss();
+        return;
+      }
+      
+      console.log("Raw Array Data (first item):", logsArray[0]);
 
-  this.http.get(url).subscribe({
-    next: (data: any) => {
- // fetchAndFilter aur loadAttendanceLogs dono mein ye change kar:
-this.allLogs = data.map((log: any) => {
-  const rawDate = log.created_at || log.createdAt; 
-  return {
-    ...log,
-    // Sirf raw date string pass karo, manipulation mat karo
-    createdAt: rawDate 
-  };
+      this.allLogs = logsArray.map((log: any) => {
+        // Backend now returns timestamp or entryDateTime
+        const rawDate = log.timestamp || log.entryDateTime || log.created_at || log.createdAt || ''; 
+        return {
+          ...log,
+          createdAt: rawDate,
+          geofence: log.geo_name,
+          rangerName: log.name
+        };
       });
 
       // Default logic: Sirf aaj ka dikhao
@@ -107,7 +112,7 @@ this.allLogs = data.map((log: any) => {
 applyFrontendLogic() {
   if (!this.startDate || !this.endDate) {
     const today = new Date().toISOString().split('T')[0];
-    this.attendanceLogs = this.allLogs.filter(log => log.createdAt.startsWith(today));
+    this.attendanceLogs = this.allLogs.filter(log => log.createdAt && log.createdAt.startsWith(today));
     return;
   }
 
@@ -151,8 +156,8 @@ applyFrontendLogic() {
 
 
 async loadAttendanceLogs() {
-  const rangerId = localStorage.getItem('ranger_id');
-  if (!rangerId) return;
+  const companyId = localStorage.getItem('company_id');
+  if (!companyId) return;
 
   const loader = await this.loadingCtrl.create({
     message: 'Fetching Logs...',
@@ -160,22 +165,28 @@ async loadAttendanceLogs() {
   });
   await loader.present();
 
-  this.http.get(`${this.apiUrl}/ranger/${rangerId}`).subscribe({
-    next: (data: any) => {
-      // 1. Saara data format karke backup mein rakhein
-  // fetchAndFilter aur loadAttendanceLogs dono mein ye change kar:
-this.allLogs = data.map((log: any) => {
-  const rawDate = log.created_at || log.createdAt; 
-  return {
-    ...log,
-    // Sirf raw date string pass karo, manipulation mat karo
-    createdAt: rawDate 
-  };
+  this.dataService.getAttendanceLogsByRanger(companyId).subscribe({
+    next: (res: any) => {
+      const logsArray = res.attendance || res.data || res;
+      if (!Array.isArray(logsArray)) {
+        console.error('Expected array but got:', logsArray);
+        loader.dismiss();
+        return;
+      }
+      this.allLogs = logsArray.map((log: any) => {
+        // Backend now returns timestamp or entryDateTime
+        const rawDate = log.timestamp || log.entryDateTime || log.created_at || log.createdAt || ''; 
+        return {
+          ...log,
+          createdAt: rawDate,
+          geofence: log.geo_name,
+          rangerName: log.name
+        };
       });
 
       // 2. Sirf AAJ ka data dikhayein (Starts with YYYY-MM-DD)
       const today = new Date().toISOString().split('T')[0];
-      this.attendanceLogs = this.allLogs.filter(log => log.createdAt.startsWith(today));
+      this.attendanceLogs = this.allLogs.filter(log => log.createdAt && log.createdAt.startsWith(today));
       
       loader.dismiss();
     },
@@ -208,7 +219,7 @@ this.allLogs = data.map((log: any) => {
   }
 
   deleteLog(id: number) {
-    this.http.delete(`${this.apiUrl}/${id}`).subscribe({ 
+    this.http.delete(`${environment.apiUrl}/attendance/beat-attendance/${id}`).subscribe({ 
       next: () => {
         this.attendanceLogs = this.attendanceLogs.filter(log => log.id !== id);
       },
@@ -288,6 +299,8 @@ async applyFilters() {
 
   // 2. Filter logic with Logging
   this.attendanceLogs = this.allLogs.filter(log => {
+      if (!log.createdAt) return false;
+      
     const logDate = log.createdAt.split('T')[0]; // IST adjusted date
     const isWithin = logDate >= start && logDate <= end;
     

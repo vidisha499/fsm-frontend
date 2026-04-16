@@ -1,0 +1,90 @@
+<ion-content [fullscreen]="true">
+  <div class="premium-wrapper">
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <div class="hero-header">
+      <div class="header-overlay"></div>
+      <div class="header-content">
+        <div class="nav-bar">
+          <div class="left-section">
+            <ion-back-button defaultHref="/home" color="light"></ion-back-button>
+            <h1>Daily Updates</h1>
+          </div>
+          <div class="right-section">
+            <div class="auth-badge">
+              <i class="fas fa-clipboard-list"></i> UPDATES
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-container">
+
+      <!-- POST NEW UPDATE -->
+      <div class="update-form-card">
+        <div class="form-header">
+          <div class="form-icon"><i class="fas fa-edit"></i></div>
+          <div>
+            <h3>Post an Update</h3>
+            <p>Share your daily activity report</p>
+          </div>
+        </div>
+        <textarea [(ngModel)]="newUpdate" placeholder="What happened today? Write your update..." rows="4"></textarea>
+        <button class="submit-btn" (click)="submitUpdate()" [disabled]="!newUpdate.trim() || isSubmitting">
+          <i class="fas" [class.fa-paper-plane]="!isSubmitting" [class.fa-spinner]="isSubmitting" [class.fa-spin]="isSubmitting"></i>
+          {{ isSubmitting ? 'Posting...' : 'Post Update' }}
+        </button>
+      </div>
+
+      <!-- SECTION TITLE -->
+      <div class="section-header">
+        <h2>Recent Updates</h2>
+        <button class="refresh-btn" (click)="loadUpdates()">
+          <i class="fas fa-sync-alt"></i>
+        </button>
+      </div>
+
+      <!-- LOADING -->
+      <div *ngIf="isFetching" class="loading-state">
+        <ion-spinner name="crescent" color="primary"></ion-spinner>
+        <p>Loading updates...</p>
+      </div>
+
+      <!-- ERROR STATE -->
+      <div *ngIf="errorMessage" class="error-card">
+        <div class="error-icon"><i class="fas fa-exclamation-triangle"></i></div>
+        <h3>Connection Issue</h3>
+        <p>{{ errorMessage }}</p>
+        <button class="retry-btn" (click)="loadUpdates()">
+          <i class="fas fa-sync-alt"></i> Retry
+        </button>
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div *ngIf="!isFetching && !errorMessage && updates.length === 0" class="empty-state">
+        <div class="empty-icon"><i class="fas fa-clipboard-list"></i></div>
+        <h3>No Updates Yet</h3>
+        <p>Be the first to post a daily update</p>
+      </div>
+
+      <!-- UPDATES FEED -->
+      <div *ngFor="let update of updates" class="update-card">
+        <div class="update-header">
+          <div class="update-avatar">
+            <img [src]="'https://ui-avatars.com/api/?name=' + (update.user_name || 'U') + '&background=0d9488&color=fff&bold=true'" />
+          </div>
+          <div class="update-meta">
+            <span class="update-author">{{ update.user_name || 'Ranger' }}</span>
+            <span class="update-date">{{ update.created_at | date:'medium' }}</span>
+          </div>
+        </div>
+        <div class="update-body">
+          <p>{{ update.message || update.update || update.description }}</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</ion-content>

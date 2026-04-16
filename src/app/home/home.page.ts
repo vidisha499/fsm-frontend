@@ -41,6 +41,7 @@ isSubmitting: boolean = false;
   rangerPhone: string = '';
   rangerPassword: string = '';
   currentPassword: string = '';
+  dashboardStats: any = {};
  
   // Navigation Logic
   
@@ -55,7 +56,9 @@ passwordType: string = 'password';
   
   // 1. Vercel Configuration
   // private vercelBaseUrl: string = 'https://fsm-backend-ica4fcwv2-vidishas-projects-1763fd56.vercel.app/api';
-  private vercelBaseUrl: string = 'https://forest-backend-pi.vercel.app/api';
+  // private vercelBaseUrl: string = 'https://forest-backend-pi.vercel.app/api';
+    vercelBaseUrl: string = 'https://fms.pugarch.in/public/api';
+
 
   private languageMap: { [key: string]: string } = {
     'English': 'en',
@@ -82,8 +85,40 @@ passwordType: string = 'password';
   ngOnInit() {
     this.loadRangerData();
     this.initLanguage();
-    this.loadRangerBeat();    
+    this.loadRangerBeat();  
+// this.loadDashboardStats(); // Removed dashboard call as it doesn't exist in backend
   }
+
+  loadRangerData() {
+  // localStorage se 'user_data' nikalna safe hai
+  const data = localStorage.getItem('user_data');
+  if (data) {
+    const user = JSON.parse(data);
+    this.rangerName = user.name || 'Supervisor';
+    this.rangerId = user.id.toString();
+    this.rangerPhone = user.phone || user.contact || ''; 
+    this.cdr.detectChanges();
+  }
+}
+
+// home.page.ts line 109 fix
+/*
+loadDashboardStats(companyId?: any) {
+  const cId = companyId || localStorage.getItem('company_id');
+  if (cId) {
+    // 'getDashboardData' ko badal kar 'getDashboardStats' kar do
+    this.dataService.getDashboardStats(Number(cId)).subscribe({
+      next: (res: any) => {
+        if (res.status === 'SUCCESS') {
+          this.dashboardStats = res.data;
+          this.cdr.detectChanges();
+        }
+      },
+      error: (err) => console.error("Dashboard Stats Error:", err)
+    });
+  }
+}
+*/
 
   private initLanguage() {
     const savedLangCode = localStorage.getItem('app_language_code') || 'en';
@@ -120,23 +155,30 @@ passwordType: string = 'password';
   await actionSheet.present();
 }
 
-loadRangerBeat() {
-  const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
-  const rangerId = userData.id; // User ID nikalna
+  loadRangerBeat() {
+    const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+    const rangerId = userData.id;
 
-  if (rangerId) {
-    this.hierarchyService.getAssignedBeat(rangerId).subscribe({
-      next: (data) => {
-        if (data) {
-          this.assignedBeatName = data.beatName; // Table se beat_name mil jayega
-        } else {
-          this.assignedBeatName = 'NO BEAT ASSIGNED';
+    if (rangerId) {
+      this.hierarchyService.getAssignedBeat(rangerId).subscribe({
+        next: (res: any) => {
+          const data = res.data || res;
+          if (data && (data.beat_name || data.beatName || data.name)) {
+            this.assignedBeatName = data.beat_name || data.beatName || data.name;
+          } else {
+            this.assignedBeatName = 'General';
+          }
+          // Cache for quick access
+          localStorage.setItem('assigned_beat_name', this.assignedBeatName);
+        },
+        error: () => {
+          // Fallback to cached value or default
+          const cached = localStorage.getItem('assigned_beat_name');
+          this.assignedBeatName = cached || 'NOT ASSIGNED';
         }
-      },
-      error: () => this.assignedBeatName = 'ERROR LOADING'
-    });
+      });
+    }
   }
-}
 
 async captureProfileImage(source: CameraSource) {
     try {
@@ -233,24 +275,41 @@ toggleEdit() {
   }
 
 
-ionViewWillEnter() {
-  this.menuCtrl.enable(true, 'start');
-  const currentRangerId = this.dataService.getRangerId();
-  if (currentRangerId) {
-    this.dataService.getRangerProfile(currentRangerId).subscribe({
-      next: (profile: any) => {
-        // ✅ DB Column 'name' -> Frontend 'rangerName'
-        this.rangerName = profile.name || 'Ranger'; 
+  ionViewWillEnter() {
+    this.menuCtrl.enable(true, 'start');
+    
+    // Instead of getRangerProfile(id) which returns 404, use verifyUser()
+    this.dataService.verifyUser().subscribe({
+      next: (res: any) => {
+        const profile = res.data || res;
         
-        // ✅ DB Column 'contact' -> Frontend 'rangerPhone'
-        this.rangerPhone = profile.contact || ''; 
+        // Map backend fields to frontend properties - ONLY if they exist
+        if (profile.name || profile.username || profile.ranger_name) {
+          this.rangerName = profile.name || profile.username || profile.ranger_name;
+          localStorage.setItem('ranger_username', this.rangerName);
+        }
         
-        this.rangerId = profile.id;
-        this.rangerDivision = profile.address || 'Washim Division';
+        if (profile.contact || profile.mobile || profile.phone) {
+          this.rangerPhone = profile.contact || profile.mobile || profile.phone;
+          localStorage.setItem('ranger_phone', this.rangerPhone);
+        }
 
-        // LocalStorage update zaroori hai taaki reload pe data na ude
+        this.rangerId = profile.id || this.rangerId;
+        this.rangerDivision = profile.address || profile.division || this.rangerDivision;
+        
+        // If beat info is returned in verifyUser, use it and cache it
+        if (profile.beat_name || profile.beatName) {
+           this.assignedBeatName = profile.beat_name || profile.beatName;
+           localStorage.setItem('assigned_beat_name', this.assignedBeatName);
+        } else {
+           this.loadRangerBeat(); // Fallback to cached localStorage data
+        }
+
+        // Save to localStorage to persist state
         localStorage.setItem('ranger_username', this.rangerName);
         localStorage.setItem('ranger_phone', this.rangerPhone);
+        
+        this.cdr.detectChanges();
         
         if (profile.profile_pic) {
           this.profileImage = profile.profile_pic.includes('data:image') 
@@ -258,10 +317,12 @@ ionViewWillEnter() {
             : `data:image/jpeg;base64,${profile.profile_pic}`;
         }
         this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Verify User Error:', err);
       }
     });
   }
-}
 
   // loadRangerData() {
   //   this.rangerId = localStorage.getItem('ranger_id') || '';
@@ -272,12 +333,12 @@ ionViewWillEnter() {
   //   if (storedPhone) this.rangerPhone = storedPhone;
   // }
 
-  loadRangerData() {
-  this.rangerId = localStorage.getItem('ranger_id') || '';
-  // Ensure these keys match what you set in Login
-  this.rangerName = localStorage.getItem('ranger_username') || 'Ranger';
-  this.rangerPhone = localStorage.getItem('ranger_phone') || '';
-}
+//   loadRangerData() {
+//   this.rangerId = localStorage.getItem('ranger_id') || '';
+//   // Ensure these keys match what you set in Login
+//   this.rangerName = localStorage.getItem('ranger_username') || 'Ranger';
+//   this.rangerPhone = localStorage.getItem('ranger_phone') || '';
+// }
 
   toggleSOSModal(status: boolean) {
     this.showSOSModal = status;

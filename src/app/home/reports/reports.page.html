@@ -22,7 +22,7 @@
 
     <div class="main-container">
   
-  <div class="incident-row-compact" (click)="openFilterModal('attendance')">
+  <!-- <div class="incident-row-compact" (click)="openFilterModal('attendance')">
     <div class="mini-thumb">
       <div class="priority-indicator" style="background: #3b82f6;"></div>
       <i class="fas fa-user-check placeholder-icon" style="color: #3b82f6;"></i>
@@ -37,8 +37,125 @@
     <div class="row-actions">
       <i class="fas fa-caret-right chevron"></i>
     </div>
+  </div> -->
+<div style="position: relative;">
+  <div class="incident-row-compact" (click)="toggleSection('attendance')">
+  <div class="mini-thumb">
+    <div class="priority-indicator" style="background: #3b82f6;"></div>
+    <i class="fas fa-user-check placeholder-icon" style="color: #3b82f6;"></i>
+  </div>
+  <div class="row-content">
+    <div class="top-line">
+      <span class="type-text" style="color: #3b82f6;">Personnel</span>
+    </div>
+    <h3 class="priority-title">Attendance Report</h3>
+    <p class="reporter-line">Staff duty cycles & patrol hours</p>
+  </div>
+  <div class="row-actions">
+    <i class="fas" [ngClass]="isAttendanceOpen ? 'fa-caret-down' : 'fa-caret-right'"></i>
+  </div>
+</div>
+
+<div class="floating-submenu" *ngIf="isAttendanceOpen">
+  
+  <div class="submenu-item" (click)="openFilterModal('Employee Attendance')">
+    <span>Employee Attendance</span>
+    <i class="fas fa-chevron-right"></i>
   </div>
 
+  <div class="submenu-item" (click)="openFilterModal('Employee Attendance with Site/Beat')">
+    <span>Site/Beat Attendance</span>
+    <i class="fas fa-chevron-right"></i>
+  </div>
+
+  <div class="submenu-item" (click)="openFilterModal('Absent Report')">
+    <span>Absent Report</span>
+    <i class="fas fa-chevron-right"></i>
+  </div>
+
+  <div class="submenu-item" (click)="openFilterModal('Performance Report')">
+    <span>Performance Report</span>
+    <i class="fas fa-chevron-right"></i>
+  </div>
+
+  <div class="submenu-item" (click)="openFilterModal('Forgot to Exit')">
+    <span>Forgot to Exit</span>
+    <i class="fas fa-chevron-right"></i>
+  </div>
+
+  <div class="submenu-item" (click)="openFilterModal('Emergency Attendance')">
+    <span>Emergency Attendance</span>
+    <i class="fas fa-chevron-right"></i>
+  </div>
+</div>
+
+<!-- Tour Reports -->
+<div class="incident-row-compact" (click)="toggleSection('tour')">
+  <div class="mini-thumb">
+    <div class="priority-indicator" style="background: #ef4444;"></div>
+    <i class="fas fa-map-marked-alt placeholder-icon" style="color: #ef4444;"></i>
+  </div>
+  <div class="row-content">
+    <div class="top-line">
+      <span class="type-text" style="color: #ef4444;">Field Work</span>
+    </div>
+    <h3 class="priority-title">Tour & Patrol Reports</h3>
+    <p class="reporter-line">Daily tours and field diary logs</p>
+  </div>
+  <div class="row-actions">
+    <i class="fas" [ngClass]="isTourOpen ? 'fa-caret-down' : 'fa-caret-right'"></i>
+  </div>
+</div>
+
+<div class="floating-submenu" *ngIf="isTourOpen">
+  <div class="submenu-item" (click)="openFilterModal('Daily Tour Report')">
+    <span>Daily Tour Report</span>
+    <i class="fas fa-chevron-right"></i>
+  </div>
+  <div class="submenu-item" (click)="openFilterModal('User Tour Report')">
+    <span>User Tour Report</span>
+    <i class="fas fa-chevron-right"></i>
+  </div>
+  <div class="submenu-item" (click)="openFilterModal('Tour Summary Report')">
+    <span>Tour Summary Report</span>
+    <i class="fas fa-chevron-right"></i>
+  </div>
+  <div class="submenu-item" (click)="openFilterModal('Tour Diary')">
+    <span>Tour Diary</span>
+    <i class="fas fa-chevron-right"></i>
+  </div>
+</div>
+
+<!-- Visitor Reports -->
+<div class="incident-row-compact" (click)="toggleSection('visitor')">
+  <div class="mini-thumb">
+    <div class="priority-indicator" style="background: #f59e0b;"></div>
+    <i class="fas fa-users placeholder-icon" style="color: #f59e0b;"></i>
+  </div>
+  <div class="row-content">
+    <div class="top-line">
+      <span class="type-text" style="color: #f59e0b;">Public</span>
+    </div>
+    <h3 class="priority-title">Visitor Reports</h3>
+    <p class="reporter-line">Daily & Summary visitor logs</p>
+  </div>
+  <div class="row-actions">
+    <i class="fas" [ngClass]="isVisitorOpen ? 'fa-caret-down' : 'fa-caret-right'"></i>
+  </div>
+</div>
+
+<div class="floating-submenu" *ngIf="isVisitorOpen">
+  <div class="submenu-item" (click)="openFilterModal('Visitor Daily Report')">
+    <span>Visitor Daily Report</span>
+    <i class="fas fa-chevron-right"></i>
+  </div>
+  <div class="submenu-item" (click)="openFilterModal('Visitor Summary Report')">
+    <span>Visitor Summary Report</span>
+    <i class="fas fa-chevron-right"></i>
+  </div>
+</div>
+
+<!-- 
   <div class="incident-row-compact" *ngIf="userRole === 'admin' || userRole === '2'" (click)="openFilterModal('incidence')">
     <div class="mini-thumb">
       <div class="priority-indicator" style="background: #0d9488;"></div>
@@ -54,9 +171,82 @@
     <div class="row-actions">
       <i class="fas fa-caret-right chevron"></i>
     </div>
+  </div> -->
+
+  <div class="incident-row-compact" *ngIf="userRole === 'admin'" (click)="toggleSection('incidence')">
+  <div class="mini-thumb">
+    <div class="priority-indicator" style="background: #0d9488;"></div>
+    <i class="fas fa-shield-alt placeholder-icon" style="color: #0d9488;"></i>
   </div>
+  <div class="row-content">
+    <div class="top-line">
+      <span class="type-text" style="color: #0d9488;">Operational</span>
+    </div>
+    <h3 class="priority-title">Incidence Report</h3>
+    <p class="reporter-line">Mining, Poaching & Felling logs</p>
+  </div>
+  <div class="row-actions">
+    <i class="fas" [ngClass]="isIncidenceOpen ? 'fa-caret-down' : 'fa-caret-right'"></i>
+  </div>
+</div>
+
+<div class="floating-submenu" *ngIf="isIncidenceOpen">
+  <div class="submenu-item" (click)="openFilterModal('incidence_report')">
+    <span>Incidence Report</span>
+    <i class="fas fa-chevron-right"></i>
+  </div>
+  <div class="submenu-item" (click)="openFilterModal('incidence_summary')">
+    <span>Incidence Summary</span>
+    <i class="fas fa-chevron-right"></i>
+  </div>
+  <div class="submenu-item" (click)="openFilterModal('Patrol Report')">
+    <span>Patrol Report</span>
+    <i class="fas fa-chevron-right"></i>
+  </div>
+  <div class="submenu-item" (click)="openFilterModal('Field Visit Report')">
+    <span>Field Visit Report</span>
+    <i class="fas fa-chevron-right"></i>
+  </div>
+</div>
+<!-- Admin/Guard Reports -->
+<div class="incident-row-compact" *ngIf="userRole === 'admin'" (click)="toggleSection('admin')">
+  <div class="mini-thumb">
+    <div class="priority-indicator" style="background: #8b5cf6;"></div>
+    <i class="fas fa-user-shield placeholder-icon" style="color: #8b5cf6;"></i>
+  </div>
+  <div class="row-content">
+    <div class="top-line">
+      <span class="type-text" style="color: #8b5cf6;">Management</span>
+    </div>
+    <h3 class="priority-title">System Performance</h3>
+    <p class="reporter-line">Guard, Site & Supervisor metrics</p>
+  </div>
+  <div class="row-actions">
+    <i class="fas" [ngClass]="isAdminOpen ? 'fa-caret-down' : 'fa-caret-right'"></i>
+  </div>
+</div>
+
+<div class="floating-submenu" *ngIf="isAdminOpen">
+  <div class="submenu-item" (click)="openFilterModal('Company Performance')">
+    <span>Company Performance</span>
+    <i class="fas fa-chevron-right"></i>
+  </div>
+  <div class="submenu-item" (click)="openFilterModal('Site Performance')">
+    <span>Site Performance</span>
+    <i class="fas fa-chevron-right"></i>
+  </div>
+  <div class="submenu-item" (click)="openFilterModal('Supervisor Performance')">
+    <span>Supervisor Performance</span>
+    <i class="fas fa-chevron-right"></i>
+  </div>
+  <div class="submenu-item" (click)="openFilterModal('Jal Shakti Report')">
+    <span>Jal Shakti Report</span>
+    <i class="fas fa-chevron-right"></i>
+  </div>
+</div>
 
 </div>
+    </div>
 
  <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false" class="custom-bottom-card">
   <ng-template>

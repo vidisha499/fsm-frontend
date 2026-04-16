@@ -7,9 +7,9 @@ import { Router } from '@angular/router';
 import { ModalController } from '@ionic/angular';
 // Ensure this path matches where you created the new page
 
-import { EventsTriggeredAdminPage } from '../events-triggered-admin/events-triggered-admin.page';
-import { ViewAttendanceAdminPage } from '../view-attendance-admin/view-attendance-admin.page';
-import { TodaysPatrolsAdminPage } from '../todays-patrols-admin/todays-patrols-admin.page';
+// import { EventsTriggeredAdminPage } from '../events-triggered-admin/events-triggered-admin.page';
+// import { ViewAttendanceAdminPage } from '../view-attendance-admin/view-attendance-admin.page';
+// import { TodaysPatrolsAdminPage } from '../todays-patrols-admin/todays-patrols-admin.page';
 
 @Component({
   selector: 'app-super-admin',
@@ -57,27 +57,29 @@ export class SuperAdminPage implements OnInit {
   }
 
   async openAttendance() {
-    const modal = await this.modalCtrl.create({
-      component: ViewAttendanceAdminPage,
-      cssClass: 'attendance-modal' 
-    });
-    
-    return await modal.present();
+    // const modal = await this.modalCtrl.create({
+    //   component: ViewAttendanceAdminPage,
+    //   cssClass: 'attendance-modal' 
+    // });
+    // return await modal.present();
+    console.warn('ViewAttendanceAdminPage is missing');
   }
 
- async openEvents() {
-    const modal = await this.modalCtrl.create({
-      component: EventsTriggeredAdminPage,
-      cssClass: 'custom-modal-canvas'
-    });
-    return await modal.present();
+  async openEvents() {
+    // const modal = await this.modalCtrl.create({
+    //   component: EventsTriggeredAdminPage,
+    //   cssClass: 'custom-modal-canvas'
+    // });
+    // return await modal.present();
+    console.warn('EventsTriggeredAdminPage is missing');
   }
 
   async openPatrols() {
-    const modal = await this.modalCtrl.create({
-      component: TodaysPatrolsAdminPage,
-      cssClass: 'custom-modal-canvas' 
-    });
-    return await modal.present();
+    // const modal = await this.modalCtrl.create({
+    //   component: TodaysPatrolsAdminPage,
+    //   cssClass: 'custom-modal-canvas' 
+    // });
+    // return await modal.present();
+    console.warn('TodaysPatrolsAdminPage is missing');
   }
 }

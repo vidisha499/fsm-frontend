@@ -9,6 +9,8 @@ import { HttpClient } from '@angular/common/http';
 import * as L from 'leaflet';
 import { environment } from 'src/environments/environment';
 
+import { DataService } from '../../data.service';
+
 @Component({
   selector: 'app-location',
   templateUrl: './location.page.html',
@@ -21,6 +23,8 @@ export class LocationPage implements OnInit, OnDestroy {
   lat: any;
   lng: any;
   isMapLoading: boolean = true;
+  isTracking: boolean = false;
+  private trackingInterval: any;
   private rangerId = localStorage.getItem('ranger_id');
 
   // --- LAYER GROUPS ---
@@ -31,19 +35,15 @@ export class LocationPage implements OnInit, OnDestroy {
   private sightingsLayer = L.featureGroup();
   private patrolStartLayer = L.featureGroup();
 
-  // private apiUrl: string = `${environment.apiUrl}/attendance/beat-attendance`;
 
-  private apiUrl: string = `${environment.apiUrl}/attendance/beat-attendance`;
-  private onsiteApiUrl: string = `${environment.apiUrl}/onsite-attendance`;
-  private patrolApiUrl: string = `${environment.apiUrl}/patrols/logs`;
-  private incidentApiUrl: string = `${environment.apiUrl}/incidents`;
 
 
 
   constructor(
     private navCtrl: NavController,
     private translate: TranslateService,
-    private http: HttpClient
+    private http: HttpClient,
+    private dataService: DataService
   ) {}
 
   ngOnInit() {
@@ -99,18 +99,132 @@ L.control.layers(undefined, overlays, { collapsed: false }).addTo(this.map);
       });
       this.marker = L.marker([this.lat, this.lng], { icon: customIcon }).addTo(this.map);
 
-      // Load Data
-      this.loadAttendanceMarkers();
-      this.loadOnsiteMarkers();
-      this.loadPatrolPaths();
-      this.loadSightingMarkers();
-      this.loadIncidentMarkers();
-
+      // Load Data (PRODUCTION MIGRATION)
+      // Legacy routes removed to fix 404 errors:
+      // this.loadAttendanceMarkers();
+      // this.loadOnsiteMarkers();
+      // this.loadPatrolPaths();
+      // this.loadSightingMarkers();
+      // this.loadIncidentMarkers();
+      
+      this.loadProductionMarkers(); // Live Guards
+      this.loadProductionIncidents(); // Last 24 Hours Sightings
+      this.loadProductionPatrols(); // Historical Tracking
+      
       this.isMapLoading = false;
     } catch (error) {
       console.error('Error getting location', error);
       this.isMapLoading = false;
     }
+  }
+
+  loadProductionPatrols() {
+    // We fetch recent locations for patrolling paths
+    const apiToken = localStorage.getItem('api_token') || '';
+    
+    // Sir's production API for location history
+    this.dataService.getLocations({ api_token: apiToken }).subscribe({
+      next: (res: any) => {
+        const locations = res.data || res;
+        if (Array.isArray(locations)) {
+          // Group by guard_id to draw separate paths
+          const guardPaths: { [key: number]: any[] } = {};
+          locations.forEach(loc => {
+            if (loc.guard_id && loc.latitude && loc.longitude) {
+              if (!guardPaths[loc.guard_id]) guardPaths[loc.guard_id] = [];
+              guardPaths[loc.guard_id].push([loc.latitude, loc.longitude]);
+            }
+          });
+
+          // Draw polyline for each guard's path
+          Object.keys(guardPaths).forEach(guardId => {
+            const points = guardPaths[parseInt(guardId)];
+            if (points.length > 1) {
+              L.polyline(points, {
+                color: '#3b82f6',
+                weight: 3,
+                opacity: 0.6,
+                dashArray: '5, 10'
+              }).addTo(this.patrolLayer);
+              
+              // Add a start marker for the path
+              const startIcon = L.divIcon({
+                className: 'patrol-start-marker',
+                html: `<div style="background-color: #3b82f6; width: 8px; height: 8px; border: 1px solid white; border-radius: 50%;"></div>`,
+                iconSize: [10, 10],
+                iconAnchor: [5, 5]
+              });
+              L.marker(points[0], { icon: startIcon }).addTo(this.patrolLayer);
+            }
+          });
+        }
+      },
+      error: (err) => console.error('Production Patrols Error:', err)
+    });
+  }
+
+  loadProductionIncidents() {
+    // Calculate timestamp for 24 hours ago
+    const oneDayAgo = new Date();
+    oneDayAgo.setHours(oneDayAgo.getHours() - 24);
+    
+    // We fetch incidents by company - the DataService handles the Token
+    const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+    const companyId = userData.company_id || 1;
+
+    // Use getIncidence with company filtering
+    this.dataService.getIncidence({ company_id: companyId }).subscribe({
+      next: (res: any) => {
+        const incidents = res.data || res;
+        if (Array.isArray(incidents)) {
+          incidents.forEach(incident => {
+            const incDate = new Date(incident.created_at || incident.date);
+            
+            // Filter: Only last 24 hours
+            if (incDate > oneDayAgo && incident.latitude && incident.longitude) {
+              this.addSightingMarker({
+                lat: incident.latitude,
+                lng: incident.longitude,
+                sighting_type: incident.type_name || incident.incident_type || 'Incident',
+                species: incident.species || 'N/A',
+                count: incident.count || 1
+              });
+            }
+          });
+        }
+      },
+      error: (err) => console.error('Production Incidents Error:', err)
+    });
+  }
+
+  loadProductionMarkers() {
+    const apiToken = localStorage.getItem('api_token') || '';
+    this.dataService.getAllGuardLiveLocation({ api_token: apiToken }).subscribe({
+      next: (res: any) => {
+        const locations = res.data || res;
+        if (Array.isArray(locations)) {
+          locations.forEach(loc => {
+            if (loc.latitude && loc.longitude) {
+              this.addGuardMarker(loc);
+            }
+          });
+        }
+      },
+      error: (err) => console.error('Production Markers Error:', err)
+    });
+  }
+
+  addGuardMarker(loc: any) {
+    const guardIcon = L.divIcon({
+      className: 'guard-marker',
+      html: `<div style="background-color: #0d9488; width: 12px; height: 12px; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 8px rgba(13, 148, 136, 0.6);"></div>`,
+      iconSize: [16, 16],
+      iconAnchor: [8, 8]
+    });
+
+    L.marker([loc.latitude, loc.longitude], { icon: guardIcon })
+      .addTo(this.onsiteLayer) // Using existing layer for guards
+      .bindPopup(`<b>${loc.name || 'Guard'}</b><br>ID: ${loc.id}`);
   }
 
 // loadSightingMarkers() {
@@ -135,7 +249,7 @@ L.control.layers(undefined, overlays, { collapsed: false }).addTo(this.map);
 // }
 
 loadSightingMarkers() {
-  const url = `${this.patrolApiUrl}?rangerId=${this.rangerId}`; // Filter added
+  const url = `${environment.apiUrl}/patrols/logs?rangerId=${this.rangerId}`; // Filter added
   this.http.get<any[]>(url).subscribe({
     next: (logs) => {
       logs.forEach(log => {
@@ -193,7 +307,7 @@ loadSightingMarkers() {
 // }
 
 loadPatrolPaths() {
-  const url = `${this.patrolApiUrl}?rangerId=${this.rangerId}`; // Filter added
+  const url = `${environment.apiUrl}/patrols/logs?rangerId=${this.rangerId}`; // Filter added
   this.http.get<any[]>(url).subscribe({
     next: (logs) => {
       logs.forEach(log => {
@@ -285,7 +399,7 @@ addStartMarker(log: any) {
 
   loadAttendanceMarkers() {
   // Iska backend filter humne pehle set kiya tha
-  const url = `${this.apiUrl}?rangerId=${this.rangerId}`; 
+  const url = `${environment.apiUrl}/attendance/beat-attendance?rangerId=${this.rangerId}`; 
   this.http.get<any[]>(url).subscribe({
     next: (attendances) => {
       attendances.forEach(record => {
@@ -329,7 +443,7 @@ addStartMarker(log: any) {
 
   loadOnsiteMarkers() {
   // Onsite backend mein bhi rangerId parameter bhej rahe hain
-  const url = `${this.onsiteApiUrl}/ranger/${this.rangerId}`;
+  const url = `${environment.apiUrl}/onsite-attendance/ranger/${this.rangerId}`;
   this.http.get<any[]>(url).subscribe({
     next: (records) => {
       records.forEach(record => {
@@ -368,7 +482,7 @@ addStartMarker(log: any) {
 
   loadIncidentMarkers() {
   // Incident API mein bhi filter add karein
-  const url = `${this.incidentApiUrl}?rangerId=${this.rangerId}`;
+  const url = `${environment.apiUrl}/incidents?rangerId=${this.rangerId}`;
   this.http.get<any[]>(url).subscribe({
     next: (incidents) => {
       incidents.forEach(incident => {
@@ -421,7 +535,60 @@ addStartMarker(log: any) {
     }
   }
 
+  toggleTracking() {
+    this.isTracking = !this.isTracking;
+    if (this.isTracking) {
+      this.startTracking();
+    } else {
+      this.stopTracking();
+    }
+  }
+
+  private startTracking() {
+    // Initial sync
+    this.syncLocation();
+    // Sync every 30 seconds
+    this.trackingInterval = setInterval(() => {
+      this.syncLocation();
+    }, 30000);
+  }
+
+  private stopTracking() {
+    if (this.trackingInterval) {
+      clearInterval(this.trackingInterval);
+    }
+  }
+
+  private async syncLocation() {
+    try {
+      const coordinates = await Geolocation.getCurrentPosition();
+      const lat = coordinates.coords.latitude;
+      const lng = coordinates.coords.longitude;
+      const apiToken = localStorage.getItem('api_token') || '';
+
+      const payload = {
+        api_token: apiToken,
+        latitude: lat,
+        longitude: lng,
+        timestamp: new Date().toISOString()
+      };
+
+      this.dataService.storeLocation(payload).subscribe({
+        next: (res) => console.log('Location synced to server:', res),
+        error: (err) => console.error('Failed to sync location:', err)
+      });
+      
+      // Update UI marker
+      if (this.marker) {
+        this.marker.setLatLng([lat, lng]);
+      }
+    } catch (e) {
+      console.error('GPS sync error:', e);
+    }
+  }
+
   ngOnDestroy() {
+    this.stopTracking();
     if (this.map) this.map.remove();
   }
 }

@@ -1,6 +1,69 @@
 {
-  "CHOOSE_LANGUAGE": "Choose Language",
-  "GREETING": "Hello!",
-  "HOME": "Home",
-  "PROFILE": "Profile"
+  "DASHBOARD": {
+    "TRACKING_ACTIVE": "Tracking Active",
+    "MISSION_MODULES": "Mission Modules",
+    "BEAT_ATTENDANCE": "Beat<br>Attendance",
+    "ONSITE_LOG": "Onsite<br>Log",
+    "PATROL_MISSIONS": "Patrol<br>Missions",
+    "ALERT_INCIDENT": "Forest<br>Events"
+  },
+  "SETTINGS": {
+    "TITLE": "Account Settings",
+    "TAB_ACCOUNT": "Account",
+    "TAB_SECURITY": "Security",
+    "LABEL_NAME": "Full Name",
+    "LABEL_DIVISION": "Assigned Division",
+    "LABEL_COMM": "Communication Method",
+    "LABEL_CURR_PASS": "Current Pin",
+    "LABEL_NEW_KEY": "New Encryption Key",
+    "PH_NEW_KEY": "Enter New Key"
+  },
+  "NAV": {
+    "HOME": "HOME",
+    "PATROL": "PATROL",
+    "SOS": "SOS",
+    "ALERTS": "ALERTS",
+    "RANGER": "RANGER"
+  },
+  "MENU": {
+    "DUTY_ASSIGNMENT": "Duty Assignment",
+    "DASHBOARD": "Dashboard",
+    "ATTENDANCE_REQ": "Attendance Requests",
+    "ASSETS": "Assets Inventory",
+    "DAILY_UPDATES": "Daily Updates",
+    "CLIENT_VISITS": "Client Visits",
+    "CURRENT_LOCATION": "Current Location",
+    "ACCOUNT_SETTINGS": "Account Settings",
+    "CHANGE_LANGUAGE": "Change Language",
+    "LOGOUT": "Sign Out"
+  },
+  "COMMON": {
+    "CANCEL": "Cancel",
+    "CONFIRM": "Confirm",
+    "SYSTEM_TAG": "Forest Management System"
+  },
+  "LANGUAGE": {
+    "CHOOSE_TITLE": "Choose Language"
+  },
+  "ATTENDANCE": {
+    "TITLE": "Beat Attendance",
+    "LIVE": "LIVE",
+    "CAPTURE_ID": "Capture Ranger Photo",
+    "VERIFIED": "Photo Verified",
+    "SCAN_INSTRUCTION": "Please Capture Photo to Proceed",
+    "LIVE_TRACKING": "Live Location Tracking",
+    "RANGER": "Ranger Name",
+    "REGION": "Assigned Region",
+    "DETECTED_GEOFENCE": "Detected Geofence",
+    "DETECTING": "Detecting...",
+    "TIME_LABEL": "Attendance Time",
+    "MARKING": "Marking...",
+    "MARK_BUTTON": "Slide to Mark Attendance"
+  },
+  "INCIDENTS": {
+    "TITLE": "Incident Logs",
+    "STATUS_PENDING": "Pending",
+    "STATUS_RESOLVED": "Resolved",
+    "EMPTY_STATE": "No Incidents Logged yet."
+  }
 }

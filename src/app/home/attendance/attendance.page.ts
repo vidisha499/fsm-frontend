@@ -6,7 +6,8 @@ import { Geolocation } from '@capacitor/geolocation';
 import { firstValueFrom } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import * as L from 'leaflet';
-import { TranslateService } from '@ngx-translate/core'; // 👈 Import TranslateService
+import { TranslateService } from '@ngx-translate/core'; 
+import { DataService } from '../../data.service';
 
 @Component({
   selector: 'app-attendance',
@@ -45,7 +46,6 @@ export class AttendancePage implements OnInit, OnDestroy {
   private gpsWatchId: any = null;
 
   private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw';
-  private apiUrl: string = `${environment.apiUrl}/attendance/beat-attendance`;
 
   constructor(
     private navCtrl: NavController,
@@ -54,7 +54,8 @@ export class AttendancePage implements OnInit, OnDestroy {
     private http: HttpClient,
     private platform: Platform,
     private cdr: ChangeDetectorRef,
-    private translate: TranslateService // 👈 Inject TranslateService
+    private translate: TranslateService, // 👈 Inject TranslateService
+    private dataService: DataService
   ) {}
 
   ngOnInit() {
@@ -277,27 +278,37 @@ async submitAttendance() {
   this.isSubmitting = true;
   this.cdr.detectChanges(); 
 
-  // 4. Payload Preparation (Ensuring Data Types match Backend DTO)
-  const payload = {
-    ranger_id: Number(rangerId),
-    company_id: Number(companyId),
-    type: this.isEntry ? 'ENTRY' : 'EXIT',
+  // 4. Payload Preparation matching Postman mapping
+  const payloadEntry = {
+    geo_id: String(companyId),
+    geo_name: this.currentAddress || 'Unknown Geofence',
+    site_id: '1', // Hardcoded as per Postman example, ideally comes from list
+    site_name: this.rangerRegion,
     photo: this.capturedPhoto,
-    latitude: Number(this.currentLat),  // Explicitly convert to Number for DTO validation
-    longitude: Number(this.currentLng), // Explicitly convert to Number for DTO validation
-    geofence: this.currentAddress,      // Maps to location_name in Backend Service
-    rangerName: this.rangerName,        // Matches camelCase in Backend DTO
-    region: this.rangerRegion
+    location: `${this.currentLat},${this.currentLng}`
   };
 
-  // 5. Debug Logs (Check these in your Browser Inspect -> Console)
+  const payloadExit = {
+    geo_id: String(companyId),
+    geo_name: this.currentAddress || 'Unknown Geofence',
+    site_id: '1', // Sync with Entry
+    site_name: this.rangerRegion,
+    photo: this.capturedPhoto,
+    location: `${this.currentLat},${this.currentLng}` // Sync with Entry
+  };
+
+  // 5. Debug Logs
   console.log('--- ATTENDANCE SUBMISSION START ---');
-  console.log('Target API:', this.apiUrl);
-  console.log('Payload Data:', payload);
+  console.log('Type:', this.isEntry ? 'Entry' : 'Exit');
+  console.log('Payload Data:', this.isEntry ? payloadEntry : payloadExit);
   console.log('-----------------------------------');
 
-  // 6. API Call
-  this.http.post(this.apiUrl, payload).subscribe({
+  // 6. API Call through DataService
+  const req = this.isEntry 
+      ? this.dataService.markAttendance(payloadEntry) 
+      : this.dataService.markAttendanceExit(payloadExit);
+
+  req.subscribe({
     next: async () => {
       const msg = await this.translate.get('ATTENDANCE.SUCCESS').toPromise();
       this.presentToast(msg, 'success');

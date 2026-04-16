@@ -5,7 +5,7 @@ import { NgModule, APP_INITIALIZER } from '@angular/core'; // 1. Added APP_INITI
 import { BrowserModule } from '@angular/platform-browser';
 import { RouteReuseStrategy } from '@angular/router';
 import { IonicModule, IonicRouteStrategy } from '@ionic/angular';
-import { HttpClient, provideHttpClient, HttpClientModule } from '@angular/common/http';
+import { HttpClient, provideHttpClient, HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 import { TranslateModule, TranslateLoader, TranslateService } from '@ngx-translate/core';
 import { FormsModule } from '@angular/forms'; 
@@ -13,12 +13,20 @@ import { FormsModule } from '@angular/forms';
 import { AppComponent } from './app.component';
 import { AppRoutingModule } from './app-routing.module';
 import { environment } from '../environments/environment';
+import { AuthInterceptor } from './auth.interceptor';
 
+
+// export function HttpLoaderFactory(http: HttpClient) {
+//   // Use environment.apiUrl but add the specific route for translations
+//   return new TranslateHttpLoader(http, `${environment.apiUrl}/translations/`, '.json');
+//   // return new TranslateHttpLoader(http, './assets/i18n/', '.json');
+// }
 
 export function HttpLoaderFactory(http: HttpClient) {
-  // Use environment.apiUrl but add the specific route for translations
-  return new TranslateHttpLoader(http, `${environment.apiUrl}/translations/`, '.json');
-  // return new TranslateHttpLoader(http, './assets/i18n/', '.json');
+  // Backend URL ko comment karo aur local assets use karo
+  // return new TranslateHttpLoader(http, `${environment.apiUrl}/translations/`, '.json');
+  
+  return new TranslateHttpLoader(http, './assets/i18n/', '.json'); // 👈 Isko active karo
 }
 
 export function appInitializerFactory(translate: TranslateService) {
@@ -56,6 +64,11 @@ export function appInitializerFactory(translate: TranslateService) {
       provide: APP_INITIALIZER,
       useFactory: appInitializerFactory,
       deps: [TranslateService],
+      multi: true
+    },
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: AuthInterceptor,
       multi: true
     }
   ],

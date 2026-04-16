@@ -292,12 +292,15 @@ async fetchLocation() {
   async takePhoto(source: CameraSource) {
     try {
       const image = await Camera.getPhoto({
-        quality: 90,
+        quality: 60, // Reduced quality slightly for stability
         allowEditing: false,
-        resultType: CameraResultType.Uri,
+        resultType: CameraResultType.Base64, // Changed from Uri to Base64
         source: source
       });
-      this.capturedPhoto = image.webPath;
+      if (image.base64String) {
+        this.capturedPhoto = `data:image/jpeg;base64,${image.base64String}`;
+        this.cdr.detectChanges();
+      }
     } catch (error) {
       console.log('User cancelled or camera failed', error);
     }
@@ -352,24 +355,17 @@ const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
     const payload = {
       report_id: 'FOR-' + Date.now(),
       user_id: Number(this.dataService.getRangerId()),
-     company_id: Number(cId),
-     client_id: clientId,
-      range: null,
-      // Category Mapping Logic
+      company_id: Number(cId),
+      client_id: Number(clientId || 0),
+      patrol_id: Number(localStorage.getItem('active_patrol_id')) || null,
+      range: dynamicRangeName || '',
       category: (this.currentCategory?.toLowerCase().includes('criminal') || 
                 this.currentCategory?.toLowerCase().includes('crimes')) ? 'crimes' : 'events',
-      
-      // Type Mapping
-      report_type: this.eventTitle ? this.eventTitle.toLowerCase().trim().replace(/\s/g, '_') : 'general_report',
-      
-    
-      // Location Data
-      latitude: lat,
-      longitude: lng,
+      report_type: this.eventTitle || 'General',
+      latitude: Number(lat),
+      longitude: Number(lng),
       beat: this.reportData['Assigned Beat'] || this.reportData['beat'] || 'General',
-      
-      // Merged Data Fields
-      report_data: formattedReportData, // Form data as JSON
+      report_data: JSON.stringify(formattedReportData), 
       photo: this.capturedPhoto || '',
       status: 'Pending'
     };

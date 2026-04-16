@@ -74,6 +74,24 @@
   </div>
 </a>
 
+<a class="menu-item" (click)="goToPage('geofences')" [class.active]="router.url.includes('geofences')">
+  <div class="icon-box orange">
+    <i class="fas fa-draw-polygon"></i>
+  </div>
+  <div class="item-text">
+    <span>Geofences & Sites</span>
+  </div>
+</a>
+
+<a class="menu-item" (click)="goToPage('tasks')" [class.active]="router.url.includes('tasks')">
+  <div class="icon-box" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
+    <i class="fas fa-tasks"></i>
+  </div>
+  <div class="item-text">
+    <span>Task Management</span>
+  </div>
+</a>
+
 <!-- Ye sirf tab dikhega jab user Ranger hoga -->
 <a *ngIf="userRole === 'ranger'" class="menu-item" (click)="goToPage('ranger-dashboard')">
   <div class="icon-box green"><i class="fas fa-map-marked-alt"></i></div>
@@ -105,12 +123,17 @@
   </div>
 </a>
 
-      <a class="menu-item" (click)="goToPage('updates')" [class.active]="router.url.includes('updates')">
+      <a class="menu-item" (click)="goToPage('daily-updates')" [class.active]="router.url.includes('daily-updates')">
         <div class="icon-box purple"><i class="fas fa-newspaper"></i></div>
         <div class="item-text"><span>{{ 'MENU.DAILY_UPDATES' | translate }}</span></div>
       </a>
 
-      <a class="menu-item" (click)="goToPage('visits')" [class.active]="router.url.includes('visits')">
+      <a class="menu-item" (click)="goToPage('chat')" [class.active]="router.url.includes('chat')">
+        <div class="icon-box indigo"><i class="fas fa-comments"></i></div>
+        <div class="item-text"><span>Communication</span></div>
+      </a>
+
+      <a class="menu-item" (click)="goToPage('client-visits')" [class.active]="router.url.includes('client-visits')">
         <div class="icon-box indigo"><i class="fas fa-briefcase"></i></div>
         <div class="item-text"><span>{{ 'MENU.CLIENT_VISITS' | translate }}</span></div>
       </a>

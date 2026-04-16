@@ -7,6 +7,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import * as L from 'leaflet';
+import { DataService } from '../../data.service';
 
 @Component({
   selector: 'app-onsite',
@@ -46,7 +47,6 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
 
   // Configuration
   private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw'; // Re-check if this is restricted
-  private apiUrl: string = `${environment.apiUrl}/onsite-attendance`;
 
   constructor(
     private navCtrl: NavController,
@@ -54,7 +54,8 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
     private actionSheetCtrl: ActionSheetController,
     private http: HttpClient,
     private cdr: ChangeDetectorRef,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private dataService: DataService
   ) {}
 
   ngOnInit() {
@@ -205,39 +206,19 @@ async submit() {
   // --- FIX: Get Company ID from localStorage ---
   // const companyId = localStorage.getItem('company_id');
   const companyId = localStorage.getItem('company_id') || '1';
-  const rangerId = localStorage.getItem('ranger_id');
-
-  // const onsiteData = {
-  //   ranger_id: rangerId ? Number(rangerId) : 0,
-  //   // company_id: companyId ? Number(companyId) : null, // 👈 Admin filtering ke liye compulsory hai
-  //   // company_id: Number(companyId),
-  //   company_id: companyId ? Number(companyId) : null,
-  //   ranger: this.rangerName,
-  //   geofence: this.currentAddress, 
-  //   attendance_type: 'ON-SITE',
-  //   photo: this.capturedPhoto,
-  //   latitude: this.currentLat,
-  //   longitude: this.currentLng,
-  //   status: 'pending',
-  //   location_name: this.currentAddress,
-  //   created_at: new Date().toISOString() 
-  // };
-
   const onsiteData = {
-  ranger_id: rangerId ? Number(rangerId) : 0,
-  company_id: companyId ? Number(companyId) : null,
-  ranger: this.rangerName,
-  geofence: this.currentAddress, 
-  attendance_type: 'ON-SITE',
-  photo: this.capturedPhoto,
-  latitude: Number(this.currentLat),  // 👈 Ensure it's a Number
-  longitude: Number(this.currentLng), // 👈 Ensure it's a Number
-  status: 'pending',
-  location_name: this.currentAddress  // 👈 Explicitly add this
-};
+    geo_id: companyId ? String(companyId) : '1',
+    geo_name: this.currentAddress,
+    site_id: 'ON-SITE', // Explicitly marking as onsite
+    site_name: this.rangerName,
+    photo: this.capturedPhoto,
+    location: `${Number(this.currentLat)},${Number(this.currentLng)}`
+  };
 
-  console.log('Submitting Onsite Attendance for Company:', onsiteData.company_id)
-  this.http.post(this.apiUrl, onsiteData).subscribe({
+  console.log('Submitting Onsite Attendance for Company:', companyId)
+  
+  // Since we mapped onsite to the main markAttendance in DataService, we can just use it
+  this.dataService.markAttendance(onsiteData).subscribe({
     next: async () => {
       const successMsg = await firstValueFrom(this.translate.get('ATTENDANCE.SUCCESS'));
       this.presentToast(successMsg, 'success');

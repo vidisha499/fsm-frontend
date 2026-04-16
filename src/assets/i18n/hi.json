@@ -1,6 +1,69 @@
 {
-  "CHOOSE_LANGUAGE": "भाषा चुनें",
-  "GREETING": "नमस्ते!",
-  "HOME": "होम",
-  "PROFILE": "प्रोफाइल"
+  "DASHBOARD": {
+    "TRACKING_ACTIVE": "ट्रैकिंग सक्रिय",
+    "MISSION_MODULES": "मिशन मॉड्यूल",
+    "BEAT_ATTENDANCE": "बीट<br>उपस्थिति",
+    "ONSITE_LOG": "ऑनसाइट<br>लॉग",
+    "PATROL_MISSIONS": "गश्ती<br>मिशन",
+    "ALERT_INCIDENT": "वन<br>कार्यक्रम"
+  },
+  "SETTINGS": {
+    "TITLE": "खाता सेटिंग्स",
+    "TAB_ACCOUNT": "खाता",
+    "TAB_SECURITY": "सुरक्षा",
+    "LABEL_NAME": "पूरा नाम",
+    "LABEL_DIVISION": "नियुक्त प्रभाग",
+    "LABEL_COMM": "संचार विधि",
+    "LABEL_CURR_PASS": "वर्तमान पिन",
+    "LABEL_NEW_KEY": "नया एन्क्रिप्शन की",
+    "PH_NEW_KEY": "नया की दर्ज करें"
+  },
+  "NAV": {
+    "HOME": "होम",
+    "PATROL": "गश्ती",
+    "SOS": "एसओएस",
+    "ALERTS": "अलर्ट्स",
+    "RANGER": "रेंजर"
+  },
+  "MENU": {
+    "DUTY_ASSIGNMENT": "ड्यूटी असाइनमेंट",
+    "DASHBOARD": "डैशबोर्ड",
+    "ATTENDANCE_REQ": "उपस्थिति अनुरोध",
+    "ASSETS": "संपत्ति सूची",
+    "DAILY_UPDATES": "दैनिक अपडेट",
+    "CLIENT_VISITS": "क्लाइंट विज़िट",
+    "CURRENT_LOCATION": "वर्तमान स्थिति",
+    "ACCOUNT_SETTINGS": "खाता सेटिंग्स",
+    "CHANGE_LANGUAGE": "भाषा बदलें",
+    "LOGOUT": "साइन आउट"
+  },
+  "COMMON": {
+    "CANCEL": "रद्द करें",
+    "CONFIRM": "पुष्टि करें",
+    "SYSTEM_TAG": "वन प्रबंधन प्रणाली"
+  },
+  "LANGUAGE": {
+    "CHOOSE_TITLE": "भाषा चुनें"
+  },
+  "ATTENDANCE": {
+    "TITLE": "बीट उपस्थिति",
+    "LIVE": "लाइव",
+    "CAPTURE_ID": "रेंजर फोटो लें",
+    "VERIFIED": "फोटो सत्यापित",
+    "SCAN_INSTRUCTION": "आगे बढ़ने के लिए कृपया फोटो लें",
+    "LIVE_TRACKING": "लाइव लोकेशन ट्रैकिंग",
+    "RANGER": "रेंजर का नाम",
+    "REGION": "नियुक्त क्षेत्र",
+    "DETECTED_GEOFENCE": "डिटेक्टेड जियोफेंस",
+    "DETECTING": "पता लगाया जा रहा है...",
+    "TIME_LABEL": "उपस्थिति का समय",
+    "MARKING": "मार्क किया जा रहा है...",
+    "MARK_BUTTON": "उपस्थिति दर्ज करने के लिए स्लाइड करें"
+  },
+  "INCIDENTS": {
+    "TITLE": "घटना लॉग",
+    "STATUS_PENDING": "लंबित",
+    "STATUS_RESOLVED": "सुलझा हुआ",
+    "EMPTY_STATE": "अभी तक कोई घटना दर्ज नहीं की गई है।"
+  }
 }

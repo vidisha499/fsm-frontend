@@ -19,17 +19,36 @@ export class LanguageService {
    * Called by APP_INITIALIZER to block app load until 
    * the translation JSON is fetched from the server/assets.
    */
-  async initLanguage(): Promise<void> {
+  // async initLanguage(): Promise<void> {
+  //   const savedLang = localStorage.getItem(this.LANG_KEY) || 'en';
+  //   try {
+  //     await firstValueFrom(this.translate.use(savedLang));
+  //     this.isReady$.next(true);
+  //     console.log('Language initialized from Vercel/Local assets:', savedLang);
+  //   } catch (error) {
+  //     console.error('Failed to load language', error);
+  //     this.isReady$.next(true); 
+  //   }
+  // }
+
+  // language.service.ts
+async initLanguage(): Promise<void> {
     const savedLang = localStorage.getItem(this.LANG_KEY) || 'en';
+    
+    // Direct assets se uthao, backend par mat jao
+    this.translate.setDefaultLang('en'); 
+    
     try {
       await firstValueFrom(this.translate.use(savedLang));
       this.isReady$.next(true);
-      console.log('Language initialized from Vercel/Local assets:', savedLang);
+      console.log('Language initialized:', savedLang);
     } catch (error) {
-      console.error('Failed to load language', error);
+      console.error('Language load failed, falling back to English', error);
+      // Fallback logic
+      await firstValueFrom(this.translate.use('en'));
       this.isReady$.next(true); 
     }
-  }
+}
 
   async setLanguage(lang: string) {
     await firstValueFrom(this.translate.use(lang));

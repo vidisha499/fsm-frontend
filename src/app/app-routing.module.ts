@@ -129,11 +129,30 @@ loadChildren:() => import('./home/reports/reports.module').then( m => m.ReportsP
   path: 'events-fields/:title/:category', // Dono parameters add kar diye
   loadChildren: () => import('./home/events-fields/events-fields.module').then(m => m.EventsFieldsPageModule)
 },
-{
+  {
     path: 'category',
     loadChildren: () => import('./home/category/category.module').then( m => m.CategoryPageModule)
   },
-
+  {
+    path: 'chat',
+    loadChildren: () => import('./home/chat/chat.module').then( m => m.ChatPageModule)
+  },
+  {
+    path: 'daily-updates',
+    loadChildren: () => import('./home/daily-updates/daily-updates.module').then( m => m.DailyUpdatesPageModule)
+  },
+  {
+    path: 'client-visits',
+    loadChildren: () => import('./home/client-visits/client-visits.module').then( m => m.ClientVisitsPageModule)
+  },
+  {
+    path: 'geofences',
+    loadChildren: () => import('./home/geofences/geofences.module').then( m => m.GeofencesPageModule)
+  },
+  {
+    path: 'tasks',
+    loadChildren: () => import('./home/tasks/tasks.module').then( m => m.TasksPageModule)
+  }
 
 ];
 

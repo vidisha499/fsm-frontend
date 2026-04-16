@@ -537,8 +537,10 @@ import { Router } from '@angular/router';
 import { NavController, ToastController, AlertController, LoadingController, GestureController, DomController } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
 import { TranslateService } from '@ngx-translate/core';
-import { firstValueFrom, forkJoin } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import * as L from 'leaflet';
+import { DataService } from '../../data.service';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-patrol-logs',
@@ -564,9 +566,6 @@ export class PatrolLogsPage implements OnInit {
   public filterTo: string = '';
   public rangerName: string = '';
   public maxDate: string = new Date().toISOString().split('T')[0];
-
-  private apiUrl: string = 'https://forest-backend-pi.vercel.app/api/patrols';
-
   constructor(
     private navCtrl: NavController,
     private router: Router,
@@ -577,7 +576,8 @@ export class PatrolLogsPage implements OnInit {
     private cdr: ChangeDetectorRef,
     private gestureCtrl: GestureController,
     private domCtrl: DomController,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private dataService: DataService
   ) {}
 
   ngOnInit() { }
@@ -645,31 +645,29 @@ export class PatrolLogsPage implements OnInit {
     if (from) params.push(`from=${from}`);
     if (to) params.push(`to=${to}`);
     if (userRole === 'RANGER' && userData.id) params.push(`userId=${userData.id}`); 
-    if (userRole === 'RANGER' && storedRangerId) params.push(`rangerId=${storedRangerId}`);
-    if (storedCompanyId) params.push(`companyId=${storedCompanyId}`);
-
-    const queryString = params.length > 0 ? `?${params.join('&')}` : '';
+    if (!storedCompanyId) {
+      loader.dismiss();
+      return;
+    }
     
-    forkJoin({
-      active: this.http.get(`${this.apiUrl}/active${queryString}`),
-      history: this.http.get(`${this.apiUrl}/logs${queryString}`)
-    }).subscribe({
+    this.dataService.getPatrolsByCompany(Number(storedCompanyId)).subscribe({
       next: (res: any) => {
-        const pendingLogs = (res.active || []).map((p: any) => ({
-          ...p,
-          status: 'PENDING',
-          patrolName: p.method ? `${p.method.toUpperCase()} Patrol` : 'Active Patrol',
-          startTime: p.startTime || new Date().toISOString() 
-        }));
+        // Assume FMS returns an array of patrols
+        const allLogs = Array.isArray(res) ? res : res.data || [];
+        
+        // FMS mapping simplifies it
+        this.patrolLogs = allLogs.map((p: any) => {
+          const isCompleted = p.status === 'COMPLETED' || p.status === 'SUCCESS' || !!p.end_lat || !!p.end_time || !!p.ended_at;
+          return {
+            ...p,
+            status: isCompleted ? 'COMPLETED' : (p.status || 'PENDING'),
+            patrolName: (p.type?.trim() && p.method?.trim()) 
+              ? `${p.method.toUpperCase()} - ${p.type.toUpperCase()}` 
+              : 'PATROL LOG',
+            startTime: p.created_at || new Date().toISOString() 
+          };
+        });
 
-        const completedLogs = (res.history || []).map((h: any) => ({
-          ...h,
-          patrolName: (h.method && h.type) 
-            ? `${h.method.toUpperCase()} - ${h.type.toUpperCase()}` 
-            : (h.method ? `${h.method.toUpperCase()} PATROL` : 'COMPLETED LOG')
-        }));
-
-        this.patrolLogs = [...pendingLogs, ...completedLogs];
         loader.dismiss();
         this.cdr.detectChanges();
       },
@@ -710,21 +708,20 @@ export class PatrolLogsPage implements OnInit {
       lng = position.coords.longitude;
     } catch (e) { console.warn("GPS failed, using 0,0"); }
 
+    // Update payload to match FMS `/patrol/start` POST body requirement
     const payload = { 
-      rangerId: parseInt(storedRangerId),
-      companyId: storedCompanyId ? parseInt(storedCompanyId) : null,
-      ranger_name: this.rangerName,
-      method: this.selectedMethod,
+      start_lat: String(lat),
+      start_lng: String(lng),
       type: this.selectedType,
-      latitude: lat,
-      longitude: lng,
-      location_name: 'Patrol Start'
+      method: this.selectedMethod,
+      sessionId: String(storedRangerId) // FMS uses sessionId, presumably ranger ID mapping
     };
 
-    this.http.post(`${this.apiUrl}/active`, payload).subscribe({
+    this.dataService.startActivePatrol(payload).subscribe({
       next: (res: any) => {
         loader.dismiss();
-        const activeId = res.id.toString();
+        // Fallback id for session management
+        const activeId = res && res.id ? res.id.toString() : new Date().getTime().toString();
         
         // Save locally for backup
         localStorage.setItem('active_patrol_id', activeId);
@@ -779,9 +776,37 @@ export class PatrolLogsPage implements OnInit {
     });
     await alert.present();
   }
+  async editPatrol(log: any, event: Event) {
+    event.stopPropagation();
+    const alert = await this.alertCtrl.create({
+      header: 'Edit Patrol',
+      inputs: [
+        { name: 'method', type: 'text', placeholder: 'Method (e.g., vehicle)', value: log.method },
+        { name: 'type', type: 'text', placeholder: 'Type (e.g., Regular)', value: log.type }
+      ],
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Save',
+          handler: (data) => {
+            this.dataService.updatePatrolLog(log.id, data).subscribe({
+              next: () => {
+                log.method = data.method;
+                log.type = data.type;
+                log.patrolName = `${data.method.toUpperCase()} - ${data.type.toUpperCase()}`;
+                this.presentToast('Updated successfully', 'success');
+              },
+              error: () => this.presentToast('Update failed', 'danger')
+            });
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
 
   private async processDelete(id: number) {
-    this.http.delete(`${this.apiUrl}/logs/${id}`).subscribe({
+    this.dataService.deletePatrolLog(id).subscribe({
       next: () => {
         this.patrolLogs = this.patrolLogs.filter(log => log.id !== id);
         this.presentToast('Log deleted', 'success');

@@ -24,6 +24,9 @@ export class AssetsPage implements OnInit {
   lat: any = 'Detecting...';
   lng: any = 'Detecting...';
 
+  isEditMode = false;
+  editingId: any = null;
+
   // Dynamic Lists
   categories: any[] = [];
   conditions: any[] = [];
@@ -50,11 +53,38 @@ assetData = {
 
   async ngOnInit() {
     this.getLoggedUserInfo();
+    this.checkEditMode();
     await this.getCurrentLocation();
 
     // Login hone ke baad hi data mangwao
     if (this.assetData.company_id) {
       this.loadDynamicData(this.assetData.company_id);
+    }
+  }
+
+  checkEditMode() {
+    const selectedAsset = this.dataService.getSelectedAsset();
+    if (selectedAsset && selectedAsset.isEditing) {
+      this.isEditMode = true;
+      this.editingId = selectedAsset.id;
+      
+      // Pre-fill data
+      this.assetData = {
+        company_id: selectedAsset.company_id,
+        created_by: selectedAsset.created_by,
+        client: selectedAsset.client || 'PugArch Technology Pvt Ltd',
+        name: selectedAsset.name,
+        category_id: selectedAsset.category_id,
+        status_id: selectedAsset.status_id,
+        year: selectedAsset.year,
+        description: selectedAsset.description || ''
+      };
+      
+      if (selectedAsset.latitude) this.lat = selectedAsset.latitude;
+      if (selectedAsset.longitude) this.lng = selectedAsset.longitude;
+
+      // Clean up flag
+      delete selectedAsset.isEditing;
     }
   }
 
@@ -165,10 +195,14 @@ async submitAsset() {
       created_by: this.assetData.created_by
     };
 
-    this.dataService.addAsset(payload).subscribe({
+    const request = this.isEditMode 
+      ? this.dataService.updateAsset(this.editingId, payload)
+      : this.dataService.addAsset(payload);
+
+    request.subscribe({
       next: () => {
         loading.dismiss();
-        this.presentToast('Asset Saved Successfully!');
+        this.presentToast(this.isEditMode ? 'Asset Updated Successfully!' : 'Asset Saved Successfully!');
         this.navCtrl.back();
       },
       error: () => { loading.dismiss(); this.presentToast('Error saving data'); }
