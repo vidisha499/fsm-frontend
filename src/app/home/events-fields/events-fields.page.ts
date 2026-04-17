@@ -163,6 +163,17 @@ fieldsConfig: any = {
       { label: 'Amount Claimed (₹)', type: 'number', key: 'amount_claimed' },
       { label: 'Upload Evidence Photo', type: 'file', icon: 'camera-outline', key: 'damage_photo' },
       { label: 'Remarks', type: 'textarea', key: 'remarks' }
+    ],
+
+    'Plantation': [
+      { label: 'GPS Status', type: 'text', value: 'Fetching Address...', readonly: true, icon: 'location-outline', id: 'gps' },
+      { label: 'Assigned Beat', type: 'text', placeholder: 'Enter Beat Name', key: 'beat' },
+      { label: 'Species', type: 'select', options: this.speciesOptions, key: 'species' },
+      { label: 'Total Count', type: 'number', key: 'count' },
+      { label: 'Area Covered (Hectares)', type: 'number', key: 'area' },
+      { label: 'Plantation Year', type: 'number', key: 'year' },
+      { label: 'Site Photo', type: 'file', icon: 'camera-outline', key: 'photo' },
+      { label: 'Remarks', type: 'textarea', key: 'remarks' }
     ]
   };
 
@@ -373,20 +384,13 @@ async fetchLocation() {
       const image = await Camera.getPhoto({
         quality: 60, // Reduced quality slightly for stability
         allowEditing: false,
-<<<<<<< Updated upstream
-        resultType: CameraResultType.Base64, // Changed from Uri to Base64
+        resultType: CameraResultType.Base64,
         source: source
       });
       if (image.base64String) {
-        this.capturedPhoto = `data:image/jpeg;base64,${image.base64String}`;
-=======
-        resultType: CameraResultType.DataUrl,
-        source: source
-      });
-      if (image.dataUrl) {
-        this.capturedPhotos.push(image.dataUrl);
+        const photoUrl = `data:image/jpeg;base64,${image.base64String}`;
+        this.capturedPhotos.push(photoUrl);
         this.checkFormValidity();
->>>>>>> Stashed changes
         this.cdr.detectChanges();
       }
     } catch (error) {
@@ -538,52 +542,25 @@ console.log("Company ID from Service:", this.dataService.getUserCompanyId());
     // 3. FINAL PAYLOAD (Dono versions ka merged data)
     const payload = {
       report_id: 'FOR-' + Date.now(),
-<<<<<<< Updated upstream
       user_id: Number(this.dataService.getRangerId()),
+      user_name: uName,
       company_id: Number(cId),
-      client_id: Number(clientId || 0),
-      patrol_id: Number(localStorage.getItem('active_patrol_id')) || null,
-      range: dynamicRangeName || '',
+      client_id: clientId,
+      range: dynamicRangeName || null,
       category: (this.currentCategory?.toLowerCase().includes('criminal') || 
                 this.currentCategory?.toLowerCase().includes('crimes')) ? 'crimes' : 'events',
-      report_type: this.eventTitle || 'General',
-      latitude: Number(lat),
-      longitude: Number(lng),
-      beat: this.reportData['Assigned Beat'] || this.reportData['beat'] || 'General',
-      report_data: JSON.stringify(formattedReportData), 
-      photo: this.capturedPhoto || '',
-      status: 'Pending'
-=======
-       user_id: Number(this.dataService.getRangerId()),
-       user_name: uName,
-      company_id: Number(cId),
-     client_id: clientId,
-      range: null,
-      // Category Mapping Logic
-      category: (this.currentCategory?.toLowerCase().includes('criminal') || 
-                this.currentCategory?.toLowerCase().includes('crimes')) ? 'crimes' : 'events',
-      
-      // Type Mapping
       report_type: this.eventTitle ? this.eventTitle.toLowerCase().trim().replace(/\s/g, '_') : 'general_report',
-      
-    
-      // 🛡️ Standardized ISO Timestamp
       date_time: new Date().toISOString(),
       date: new Date().toISOString().split('T')[0],
       time: new Date().toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true }),
-      
-      // Location Data
-      latitude: lat,
-      longitude: lng,
+      latitude: Number(lat),
+      longitude: Number(lng),
       beat: this.reportData['Assigned Beat'] || this.reportData['beat'] || 'General',
-      
-      // Merged Data Fields
-      report_data: formattedReportData, // Form data as JSON
-      photo: this.capturedPhotos[0] || '', // Primary photo
-      additional_photos: JSON.stringify(this.capturedPhotos.slice(1)), // Extra photos
+      report_data: formattedReportData,
+      photo: this.capturedPhotos[0] || '', 
+      additional_photos: JSON.stringify(this.capturedPhotos.slice(1)), 
       status: 'Pending',
-      patrol_id: this.patrolId ? Number(this.patrolId) : null 
->>>>>>> Stashed changes
+      patrol_id: this.patrolId ? Number(this.patrolId) : (Number(localStorage.getItem('active_patrol_id')) || null)
     };
 
     console.log("🚀 [DEBUG] Resolving Patrol ID for Payload:", this.patrolId);

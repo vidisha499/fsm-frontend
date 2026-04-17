@@ -14,15 +14,9 @@
               <ion-icon name="arrow-back-outline"></ion-icon>
             </button>
             <div class="title-meta">
-              <span class="sub-heading">CUSTOMIZING OVERRIDES</span>
               <h1 class="header-title">Dynamic Label Builder</h1>
+              <span class="sub-heading">CUSTOMIZING OVERRIDES</span>
             </div>
-          </div>
-          <div class="right-section">
-             <button class="save-sync-btn" (click)="saveAndSync()">
-               <ion-icon name="sync-outline"></ion-icon>
-               <span>Save & Sync</span>
-             </button>
           </div>
         </div>
       </div>
@@ -37,7 +31,7 @@
         
         <div class="picker-group">
             <div class="custom-select-wrapper">
-                <ion-select [(ngModel)]="selectedMasterKey" placeholder="-- Select Master Key to Override --" interface="popover">
+                <ion-select [(ngModel)]="selectedMasterKey" placeholder="-- Select Master Key --" interface="popover">
                     <ion-select-option *ngFor="let key of masterKeys" [value]="key">
                         {{ key | dynamicLabel }} ({{ key }})
                     </ion-select-option>
@@ -79,7 +73,21 @@
         </div>
       </div>
 
-      <div style="height: 50px;"></div>
+      <!-- Bottom Swipe Button -->
+      <div class="bottom-action-container">
+        <div class="swipe-container valid-ready">
+          <div class="swipe-track">
+            <span class="swipe-text" *ngIf="!swipeCompleted">SLIDE TO SAVE & SYNC</span>
+            <span class="swipe-text success" *ngIf="swipeCompleted">SYNCING LABELS...</span>
+            <div class="swipe-progress"></div>
+          </div>
+          <div class="swipe-handle">
+            <ion-icon [name]="swipeCompleted ? 'checkmark-outline' : 'chevron-forward'"></ion-icon>
+          </div>
+        </div>
+      </div>
+
+      <div style="height: 100px;"></div>
 
     </div>
   </div>

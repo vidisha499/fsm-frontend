@@ -694,18 +694,6 @@ export class DataService {
     if (startDate && endDate) url += `&startDate=${startDate}&endDate=${endDate}`;
     return this.http.get(url);
   }
-
-  getForestKPIs(companyId: number, timeframe: string, category: string) {
-    let params = { companyId: companyId, timeframe: timeframe, range: timeframe, category: category };
-    return this.http.get(`${this.baseApiUrl}/forest-events/analytics/kpi`, { params });
-  }
-
-  // FIX: Admin Map Missing Function
-  getForestMapData(companyId: number, range?: string): Observable<any[]> {
-    const params = range ? `?range=${range}` : '';
-    return this.http.get<any[]>(`${this.baseApiUrl}/forest-events/map-data/${companyId}${params}`);
-  }
-
   getCriminalAnalytics(companyId: any, timeframe: string, range: string, beat: string): Observable<any> {
     const url = `${this.baseApiUrl}/incidents/analytics/criminal`;
     const params = { companyId: companyId.toString(), timeframe: timeframe || 'month', range: range || 'all', beat: beat || 'all' };
@@ -726,11 +714,7 @@ export class DataService {
   verifyOtp(phoneNo: string, otp: string) { return this.http.post(`${this.baseApiUrl}/rangers/verify-otp`, { phoneNo, otp }); }
   resetPassword(phoneNo: string, otp: string, newPass: string) { return this.http.post(`${this.baseApiUrl}/rangers/reset-password`, { phoneNo, otp, newPass }); }
 
-  // --- 13. FOREST EVENTS & UTILS ---
-  submitForestEvent(payload: any) { return this.http.post(`${this.baseApiUrl}/forest-reports`, payload); }
-  downloadReport(endpoint: string, payload: any) { 
-    return this.http.post(`${this.baseApiUrl}/${endpoint}`, payload, { responseType: 'blob', observe: 'response' }); 
-  }
+
   get(endpoint: string) { return this.http.get(`${this.baseApiUrl}/${endpoint}`); }
 
   // --- 14. NEW ENDPOINTS FROM FMS COLLECTION ---
@@ -836,7 +820,6 @@ export class DataService {
   updateIncidenceSubType(payload: any) { return this.http.post(`${this.baseApiUrl}/updateIncidenceSubType`, payload); }
   deleteIncidenceSubType(payload: any) { return this.http.post(`${this.baseApiUrl}/deleteIncidenceSubType`, payload); }
 
-<<<<<<< Updated upstream
   // --- 19. TASK MANAGEMENT ---
   addTask(payload: any) { return this.http.post(`${this.baseApiUrl}/addTask`, payload); }
   getTasks(payload: any) { return this.http.post(`${this.baseApiUrl}/getTasks`, payload); }
@@ -853,27 +836,31 @@ export class DataService {
   getForestTaskReminders(payload: any) { return this.http.post(`${this.baseApiUrl}/forest-tasks/reminders`, payload); }
   bulkDeleteForestTasks(payload: any) { return this.http.post(`${this.baseApiUrl}/forest-tasks/bulk-delete`, payload); }
   getAssignableUsers(payload: any) { return this.http.post(`${this.baseApiUrl}/assignable-users`, payload); }
-=======
-  return this.http.get(`${this.baseApiUrl}/forest-events/analytics/kpi`, { params });
-}
 
-getForestMapData(companyId: number, range?: string): Observable<any[]> {
-  const params = range ? `?range=${range}` : '';
-  return this.http.get<any[]>(`${this.baseApiUrl}/forest-events/map-data/${companyId}${params}`);
-}
+  getForestKPIs(companyId: number, range: string, category: string): Observable<any> {
+    const params = { companyId, range, category, timeframe: range };
+    return this.http.get(`${this.baseApiUrl}/forest-events/analytics/kpi`, { params });
+  }
 
-downloadReport(payload: any) {
-  return this.http.post(`${this.baseApiUrl}/reports/generate`, payload, {
-    responseType: 'blob', // Important: File ke liye blob chahiye
-    observe: 'response'   // Response headers check karne ke liye
-  });
-}
+  getForestMapData(companyId: number, range?: string): Observable<any[]> {
+    const params = range ? `?range=${range}` : '';
+    return this.http.get<any[]>(`${this.baseApiUrl}/forest-events/map-data/${companyId}${params}`);
+  }
 
-getForestEventById(id: number): Observable<any> {
-  return this.http.get(`${this.baseApiUrl}/forest-events/${id}`);
-}
+  downloadReport(endpoint: string, payload: any) {
+    return this.http.post(`${this.baseApiUrl}/${endpoint}`, payload, {
+      responseType: 'blob',
+      observe: 'response'
+    });
+  }
 
-  // --- DYNAMIC FORM CONFIGURATION ---
+  submitForestEvent(payload: any) {
+    return this.http.post(`${this.baseApiUrl}/forest-events`, payload);
+  }
+
+  getForestEventById(id: number): Observable<any> {
+    return this.http.get(`${this.baseApiUrl}/forest-events/${id}`);
+  }
 
   saveFormConfig(config: any) {
     return this.http.post(`${this.baseApiUrl}/forest-events/configs`, config);
@@ -885,7 +872,6 @@ getForestEventById(id: number): Observable<any> {
       params: { category, type, companyId: companyId.toString() }
     });
   }
->>>>>>> Stashed changes
 
   getAllConfigs() {
     const companyId = this.getUserCompanyId() || 0;

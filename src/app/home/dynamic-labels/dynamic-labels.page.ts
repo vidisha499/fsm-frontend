@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { NavController, ToastController, LoadingController } from '@ionic/angular';
+import { NavController, ToastController, LoadingController, GestureController } from '@ionic/angular';
 import { LabelService } from 'src/app/services/label.service';
 
 @Component({
@@ -16,11 +16,16 @@ export class DynamicLabelsPage implements OnInit {
   // List of overrides currently being edited
   activeOverrides: { key: string, defaultValue: string, customValue: string }[] = [];
 
+  // --- SWIPE GESTURE STATE ---
+  swipeCompleted: boolean = false;
+  swipeThreshold: number = 0.8;
+
   constructor(
     private labelService: LabelService,
     private toastCtrl: ToastController,
     private loadingCtrl: LoadingController,
-    private navCtrl: NavController
+    private navCtrl: NavController,
+    private gestureCtrl: GestureController
   ) { }
 
   ngOnInit() {
@@ -93,6 +98,7 @@ export class DynamicLabelsPage implements OnInit {
     setTimeout(() => {
       loading.dismiss();
       this.showToast('Labels Synced Successfully! ✅', 'success');
+      setTimeout(() => this.resetSwipe(), 1500);
     }, 1000);
   }
 
@@ -108,5 +114,58 @@ export class DynamicLabelsPage implements OnInit {
 
   goBack() {
     this.navCtrl.back();
+  }
+
+  // --- GESTURE LOGIC ---
+
+  ionViewDidEnter() {
+    this.initSwipeGesture();
+  }
+
+  initSwipeGesture() {
+    const track = document.querySelector('.swipe-track') as HTMLElement;
+    const thumb = document.querySelector('.swipe-handle') as HTMLElement;
+    if (!track || !thumb) return;
+
+    const trackWidth = track.clientWidth - thumb.clientWidth - 12;
+
+    const gesture = this.gestureCtrl.create({
+      el: thumb,
+      threshold: 0,
+      gestureName: 'swipe-to-save',
+      onMove: ev => {
+        if (this.swipeCompleted) return;
+        let x = ev.deltaX;
+        if (x < 0) x = 0;
+        if (x > trackWidth) x = trackWidth;
+        thumb.style.transform = `translateX(${x}px)`;
+        const progress = x / trackWidth;
+        track.style.setProperty('--progress', `${progress}`);
+      },
+      onEnd: ev => {
+        if (this.swipeCompleted) return;
+        const x = ev.deltaX;
+        if (x >= trackWidth * this.swipeThreshold) {
+          this.swipeCompleted = true;
+          thumb.style.transform = `translateX(${trackWidth}px)`;
+          this.saveAndSync();
+        } else {
+          this.resetSwipe();
+        }
+      }
+    });
+
+    gesture.enable(true);
+  }
+
+  resetSwipe() {
+    const thumb = document.querySelector('.swipe-handle') as HTMLElement;
+    if (thumb) {
+      thumb.style.transition = 'transform 0.3s ease-out';
+      thumb.style.transform = 'translateX(0px)';
+    }
+    const track = document.querySelector('.swipe-track') as HTMLElement;
+    if (track) track.style.setProperty('--progress', '0');
+    this.swipeCompleted = false;
   }
 }

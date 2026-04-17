@@ -74,41 +74,25 @@
   </div>
 </a>
 
-<<<<<<< Updated upstream
-<a class="menu-item" (click)="goToPage('geofences')" [class.active]="router.url.includes('geofences')">
-  <div class="icon-box orange">
-    <i class="fas fa-draw-polygon"></i>
-  </div>
-  <div class="item-text">
-    <span>Geofences & Sites</span>
-  </div>
-</a>
+      <a class="menu-item" (click)="goToPage('geofences')" [class.active]="router.url.includes('geofences')">
+        <div class="icon-box orange"><i class="fas fa-draw-polygon"></i></div>
+        <div class="item-text"><span>Geofences & Sites</span></div>
+      </a>
 
-<a class="menu-item" (click)="goToPage('tasks')" [class.active]="router.url.includes('tasks')">
-  <div class="icon-box" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
-    <i class="fas fa-tasks"></i>
-  </div>
-  <div class="item-text">
-    <span>Task Management</span>
-=======
-<a class="menu-item" (click)="goToPage('dynamic-forms')" [class.active]="router.url.includes('dynamic-forms')">
-  <div class="icon-box indigo">
-    <i class="fas fa-edit"></i>
-  </div>
-  <div class="item-text">
-    <span>Change Forms</span>
-  </div>
-</a>
+      <a class="menu-item" (click)="goToPage('tasks')" [class.active]="router.url.includes('tasks')">
+        <div class="icon-box" style="background: rgba(16, 185, 129, 0.15); color: #10b981;"><i class="fas fa-tasks"></i></div>
+        <div class="item-text"><span>Task Management</span></div>
+      </a>
 
-<a class="menu-item" (click)="goToPage('dynamic-labels')" [class.active]="router.url.includes('dynamic-labels')">
-  <div class="icon-box azure">
-    <i class="fas fa-font"></i>
-  </div>
-  <div class="item-text">
-    <span>{{ 'label_dynamic' | dynamicLabel }}</span>
->>>>>>> Stashed changes
-  </div>
-</a>
+      <a class="menu-item" (click)="goToPage('dynamic-forms')" [class.active]="router.url.includes('dynamic-forms')">
+        <div class="icon-box indigo"><i class="fas fa-edit"></i></div>
+        <div class="item-text"><span>Change Forms</span></div>
+      </a>
+
+      <a class="menu-item" (click)="goToPage('dynamic-labels')" [class.active]="router.url.includes('dynamic-labels')">
+        <div class="icon-box azure"><i class="fas fa-font"></i></div>
+        <div class="item-text"><span>{{ 'label_dynamic' | dynamicLabel }}</span></div>
+      </a>
 
 <!-- Ye sirf tab dikhega jab user Ranger hoga -->
 <a *ngIf="userRole === 'ranger'" class="menu-item" (click)="goToPage('ranger-dashboard')">

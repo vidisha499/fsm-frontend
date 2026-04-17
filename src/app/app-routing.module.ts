@@ -133,7 +133,6 @@ loadChildren:() => import('./home/reports/reports.module').then( m => m.ReportsP
     path: 'category',
     loadChildren: () => import('./home/category/category.module').then( m => m.CategoryPageModule)
   },
-<<<<<<< Updated upstream
   {
     path: 'chat',
     loadChildren: () => import('./home/chat/chat.module').then( m => m.ChatPageModule)
@@ -153,10 +152,7 @@ loadChildren:() => import('./home/reports/reports.module').then( m => m.ReportsP
   {
     path: 'tasks',
     loadChildren: () => import('./home/tasks/tasks.module').then( m => m.TasksPageModule)
-  }
-
-=======
-
+  },
   {
     path: 'dynamic-forms',
     loadChildren: () => import('./home/dynamic-forms/dynamic-forms.module').then( m => m.DynamicFormsPageModule)
@@ -165,7 +161,6 @@ loadChildren:() => import('./home/reports/reports.module').then( m => m.ReportsP
     path: 'dynamic-labels',
     loadChildren: () => import('./home/dynamic-labels/dynamic-labels.module').then( m => m.DynamicLabelsPageModule)
   },
->>>>>>> Stashed changes
 ];
 
 @NgModule({

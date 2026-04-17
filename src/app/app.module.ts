@@ -13,11 +13,8 @@ import { FormsModule } from '@angular/forms';
 import { AppComponent } from './app.component';
 import { AppRoutingModule } from './app-routing.module';
 import { environment } from '../environments/environment';
-<<<<<<< Updated upstream
 import { AuthInterceptor } from './auth.interceptor';
-=======
 import { SharedModule } from './shared/shared.module';
->>>>>>> Stashed changes
 
 
 // export function HttpLoaderFactory(http: HttpClient) {
