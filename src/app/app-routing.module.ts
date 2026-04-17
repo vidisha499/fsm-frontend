@@ -161,6 +161,10 @@ loadChildren:() => import('./home/reports/reports.module').then( m => m.ReportsP
     path: 'dynamic-labels',
     loadChildren: () => import('./home/dynamic-labels/dynamic-labels.module').then( m => m.DynamicLabelsPageModule)
   },
+  {
+    path: 'events-reports',
+    loadChildren: () => import('./home/events-reports/events-reports.module').then( m => m.EventsReportsPageModule)
+  },
 ];
 
 @NgModule({

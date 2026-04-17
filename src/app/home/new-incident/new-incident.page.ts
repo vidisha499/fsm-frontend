@@ -19,6 +19,8 @@ private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw';
   private readonly MAX_WIDTH = 700;
   isSubmitting: boolean = false;
   public capturedPhotos: string[] = []; 
+  public selectedZoomImage: string | null = null;
+  public currentZoom: number = 1; // 🔍 Zoom level state
   public currentTranslateX: number = 0;
   public textOpacity: number = 1;
   private startX: number = 0;
@@ -46,7 +48,8 @@ public incidentData = {
   checkpost: '',
   rangerName: '', // Will be auto-filled
   geofence: '',
-  
+  vehicleSeized: 'No',
+  vehicleSeizedType: '',
 };
   constructor(
     private navCtrl: NavController,
@@ -273,6 +276,41 @@ const payload = {
       message, duration: 3000, color, position: 'bottom', mode: 'ios'
     });
     toast.present();
+  }
+
+  // --- Image Viewer / Zoom Logic ---
+  openZoom(imgUrl: string) {
+    this.selectedZoomImage = imgUrl;
+    this.currentZoom = 1;
+  }
+
+  toggleZoom(event: any) {
+    event.stopPropagation();
+    if (this.currentZoom >= 2.5) {
+      this.currentZoom = 1;
+    } else {
+      this.currentZoom += 0.5;
+    }
+  }
+
+  closeZoom() {
+    this.selectedZoomImage = null;
+    this.currentZoom = 1;
+  }
+
+  async downloadImage(imageUrl: string) {
+    const loading = await this.loadingCtrl.create({
+      message: 'Downloading...',
+      duration: 1000
+    });
+    await loading.present();
+    
+    const link = document.createElement('a');
+    link.href = imageUrl;
+    link.download = `incident_photo_${Date.now()}.jpg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   onDragStart(event: TouchEvent) {

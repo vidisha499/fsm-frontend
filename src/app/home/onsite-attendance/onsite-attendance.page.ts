@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import { NavController, ToastController, ActionSheetController, Platform } from '@ionic/angular';
+import { NavController, ToastController, LoadingController, ActionSheetController, Platform } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Geolocation } from '@capacitor/geolocation';
@@ -32,6 +32,8 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
   private startX: number = 0;
   
   // Data Variables
+  public selectedZoomImage: string | null = null;
+  public currentZoom: number = 1; // 🔍 Zoom level state
   public capturedPhoto: string | undefined = undefined;
   public rangerName: string = 'Loading...';
   public currentAddress: string = 'Detecting location...';
@@ -49,6 +51,7 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
   private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw'; // Re-check if this is restricted
 
   constructor(
+    private loadingCtrl: LoadingController,
     private navCtrl: NavController,
     private toastCtrl: ToastController,
     private actionSheetCtrl: ActionSheetController,
@@ -290,5 +293,38 @@ async submit() {
     if (this.timer) clearInterval(this.timer);
     if (this.gpsWatchId) Geolocation.clearWatch({ id: this.gpsWatchId });
     if (this.map) this.map.remove();
+  }
+
+  // --- Image Viewer Methods ---
+  openZoom(imageUrl: string) {
+    this.selectedZoomImage = imageUrl;
+    this.currentZoom = 1;
+  }
+
+  toggleZoom(event: any) {
+    event.stopPropagation();
+    if (this.currentZoom >= 2.5) {
+      this.currentZoom = 1;
+    } else {
+      this.currentZoom += 0.5;
+    }
+  }
+
+  closeZoom() {
+    this.selectedZoomImage = null;
+    this.currentZoom = 1;
+  }
+  async downloadImage(imageUrl: string) {
+    const loader = await this.loadingCtrl.create({
+      message: 'Downloading...',
+      duration: 1000
+    });
+    await loader.present();
+    const link = document.createElement('a');
+    link.href = imageUrl;
+    link.download = `attendance_photo_${Date.now()}.jpg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 }

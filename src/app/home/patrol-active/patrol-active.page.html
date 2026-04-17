@@ -106,32 +106,6 @@
           <span class="count-badge">{{recentSightings.length}}</span>
         </div>
         <div class="logs-list">
-
-             <!-- <div class="log-card" *ngFor="let log of recentSightings.slice().reverse(); let i = index" (click)="viewSightingDetails(log, i)">
-            <div class="log-icon" [ngClass]="log.category?.toLowerCase() || 'other'">
-              <i class="fas" [ngClass]="{
-                'fa-paw': log.category === 'Animal',
-                'fa-droplet': log.category === 'Water',
-                'fa-person-hiking': log.category === 'Impact',
-                'fa-skull': log.category === 'Death',
-                'fa-hammer': log.category === 'Felling',
-                'fa-circle-plus': log.category === 'Other'
-              }"></i>
-            </div>
-            <div class="log-info">
-              <div class="log-main">
-                <span class="log-type">{{ 'PATROL.CAT_' + log.category.toUpperCase() | translate }}</span>
-                <span class="log-species" *ngIf="log.species">• {{log.species}}</span>
-              </div>
-              <span class="log-meta">{{log.sighting_type || 'Direct'}} ({{log.count || 1}})</span>
-              <div class="log-thumbnails" *ngIf="log.photos?.length > 0">
-                <img *ngFor="let p of log.photos" [src]="p" class="mini-thumb" (click)="openZoom(p)">
-              </div>
-            </div>
-            <div class="log-right">
-              <div class="log-time">{{log.timestamp | date:'HH:mm'}}</div>
-            </div>
-          </div> -->
           <div class="log-card" *ngFor="let log of recentSightings; let i = index" (click)="viewSightingDetails(log, i)">
             <div class="log-icon" [ngClass]="log.colorClass || 'other'">
               <i class="fas" [ngClass]="log.icon"></i>
@@ -161,4 +135,30 @@
     </div>
     </div>
   </div> 
+
+  <!-- Full Screen Image Viewer Overlay -->
+  <div class="zoom-overlay" *ngIf="selectedZoomImage" (click)="closeZoom()">
+    <div class="zoomer-container">
+      <div class="viewer-actions">
+        <div class="action-btn" (click)="toggleZoom($event)">
+          <ion-icon [name]="currentZoom > 1 ? 'remove-circle-outline' : 'add-circle-outline'"></ion-icon>
+          <span class="zoom-text">{{ currentZoom }}x</span>
+        </div>
+        <div class="action-btn" (click)="downloadImage(selectedZoomImage); $event.stopPropagation()">
+          <ion-icon name="download-outline"></ion-icon>
+        </div>
+        <div class="action-btn" (click)="closeZoom()">
+          <ion-icon name="close-outline"></ion-icon>
+        </div>
+      </div>
+      
+      <div class="image-scroll-wrapper">
+        <img [src]="selectedZoomImage" 
+             [style.transform]="'scale(' + currentZoom + ')'"
+             (click)="toggleZoom($event)" />
+      </div>
+      
+      <div class="close-btn-bottom">TAP PHOTO TO ZOOM • TAP BACKGROUND TO CLOSE</div>
+    </div>
+  </div>
 </ion-content>

@@ -1,0 +1,319 @@
+.premium-wrapper {
+  position: relative;
+  min-height: 100vh;
+  background: #fdfdfd;
+  padding-bottom: 40px;
+}
+
+.ambient-glow {
+  position: fixed;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  filter: blur(80px);
+  z-index: 0;
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+.glow-1 { top: -100px; right: -100px; background: #10b981; }
+.glow-2 { bottom: -100px; left: -100px; background: #0ea5e9; }
+
+.hero-header {
+  position: relative;
+  height: 220px;
+  background: linear-gradient(135deg, #065431 0%, #064e3b 100%);
+  border-bottom-right-radius: 40px;
+  display: flex;
+  flex-direction: column;
+  padding: 30px 20px;
+  z-index: 2;
+  overflow: hidden;
+
+  .header-overlay {
+    position: absolute;
+    inset: 0;
+    background: url('https://www.transparenttextures.com/patterns/leaf.png');
+    opacity: 0.1;
+  }
+
+  .nav-bar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 30px;
+
+    .glass-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    h1 {
+      color: white;
+      font-size: 20px;
+      font-weight: 700;
+      margin: 0;
+    }
+  }
+
+  .stats-overview {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 15px;
+
+    .stat-item {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+
+      .val {
+        font-size: 24px;
+        font-weight: 800;
+        color: white;
+      }
+      .lbl {
+        font-size: 10px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.7);
+        letter-spacing: 0.5px;
+      }
+      
+      &.has-drafts .val { color: #fbbf24; }
+    }
+
+    .stat-divider {
+      width: 1px;
+      height: 30px;
+      background: rgba(255, 255, 255, 0.2);
+    }
+  }
+}
+
+.main-container {
+  position: relative;
+  margin-top: -30px;
+  padding: 0 20px;
+  z-index: 3;
+}
+
+.segment-container {
+  background: white;
+  border-radius: 15px;
+  padding: 5px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  margin-bottom: 20px;
+
+  ion-segment {
+    --background: transparent;
+    border: none;
+
+    ion-segment-button {
+      --color: #64748b;
+      --color-checked: #10b981;
+      --indicator-color: #f0fdf4;
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+      min-height: 40px;
+      --border-radius: 10px;
+
+      ion-label { margin: 0; position: relative; }
+      
+      .badge-dot {
+        position: absolute;
+        top: -2px;
+        right: -8px;
+        width: 6px;
+        height: 6px;
+        background: #ef4444;
+        border-radius: 50%;
+        box-shadow: 0 0 5px rgba(239, 68, 68, 0.5);
+      }
+    }
+  }
+}
+
+.sync-banner {
+    background: linear-gradient(to right, #10b981, #059669);
+    border-radius: 15px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    color: white;
+    box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2);
+
+    .banner-text {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 600;
+        font-size: 14px;
+        i { font-size: 18px; }
+    }
+
+    .sync-all-btn {
+        background: white;
+        color: #059669;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 800;
+        cursor: pointer;
+    }
+}
+
+.report-card {
+  background: white;
+  border-radius: 18px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  position: relative;
+
+  .card-thumb {
+    width: 65px;
+    height: 65px;
+    border-radius: 14px;
+    background: #f1f5f9;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    i {
+      font-size: 24px;
+      color: #94a3b8;
+    }
+  }
+
+  .card-info {
+    flex: 1;
+
+    .type-tag {
+      font-size: 9px;
+      font-weight: 800;
+      color: #64748b;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+      
+      &.draft { color: #f59e0b; }
+    }
+
+    .beat-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1e293b;
+      margin: 0 0 6px 0;
+    }
+
+    .meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .date {
+        font-size: 11px;
+        color: #94a3b8;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .status-chip {
+        font-size: 9px;
+        font-weight: 800;
+        padding: 2px 6px;
+        border-radius: 5px;
+
+        &.success { background: #f0fdf4; color: #16a34a; }
+        &.pending { background: #fffbeb; color: #d97706; }
+      }
+    }
+  }
+  
+  .card-actions {
+      padding-left: 5px;
+      
+      .delete-btn {
+          background: #fef2f2;
+          color: #ef4444;
+          width: 35px;
+          height: 35px;
+          border-radius: 10px;
+          border: none;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+      }
+  }
+
+  &.draft-mode {
+    border-left: 4px solid #f59e0b;
+  }
+}
+
+.empty-state {
+  padding: 60px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  .empty-icon-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    
+    i { font-size: 30px; color: #94a3b8; }
+    &.green { background: #f0fdf4; i { color: #10b981; } }
+  }
+
+  h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 10px 0;
+  }
+
+  p {
+    font-size: 14px;
+    color: #64748b;
+    line-height: 1.5;
+    margin: 0;
+  }
+}

@@ -72,6 +72,10 @@ openEventsFields(title: string, category: string) {
     }
   }
 
+  goToReports() {
+    this.navCtrl.navigateForward('/events-reports');
+  }
+
   loadBeat() {
   // 1. Check karein ki user_data mil raha hai ya nahi
   const storageData = localStorage.getItem('user_data');

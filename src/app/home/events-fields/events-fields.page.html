@@ -18,91 +18,93 @@
   <div class="content-body">
     <div class="form-card animate-up">
       
-      <div *ngFor="let field of dynamicFields" class="input-wrapper">
-        <ion-label class="field-label">
-          {{ field.label }} <span class="required-star">*</span>
-        </ion-label>
+      <div *ngFor="let field of dynamicFields">
+        <div class="input-wrapper animate-in" *ngIf="isFieldVisible(field)">
+          <ion-label class="field-label">
+            {{ field.label }} <span class="required-star">*</span>
+          </ion-label>
 
-        <!-- Text aur Number Inputs -->
-        <ion-item lines="none" class="custom-input" *ngIf="field.type === 'text' || field.type === 'number'">
-          <ion-icon *ngIf="field.icon" [name]="field.icon" slot="start" class="field-icon"></ion-icon>
-          <ion-input 
-            [type]="field.type" 
-            [placeholder]="field.placeholder" 
-            [(ngModel)]="reportData[field.label]"
-            (ngModelChange)="checkFormValidity()"
-            [readonly]="field.readonly">
-          </ion-input>
-        </ion-item>
+          <!-- Text aur Number Inputs -->
+          <ion-item lines="none" class="custom-input" *ngIf="field.type === 'text' || field.type === 'number'">
+            <ion-icon *ngIf="field.icon" [name]="field.icon" slot="start" class="field-icon"></ion-icon>
+            <ion-input 
+              [type]="field.type" 
+              [placeholder]="field.placeholder" 
+              [(ngModel)]="reportData[field.label]"
+              (ngModelChange)="checkFormValidity()"
+              [readonly]="field.readonly">
+            </ion-input>
+          </ion-item>
 
-        <ion-item lines="none" class="custom-input" *ngIf="field.type === 'select'">
-          <ion-select [placeholder]="field.placeholder" [(ngModel)]="reportData[field.label]" (ionChange)="checkFormValidity()" interface="action-sheet" mode="md">
-            <ion-select-option *ngFor="let opt of field.options" [value]="opt">
-              {{ opt }}
-            </ion-select-option>
-          </ion-select>
-        </ion-item>
-        
-        <!-- Conditional "Other" Textarea -->
-        <ion-item lines="none" class="custom-input area-item animate-in" 
-                  *ngIf="field.type === 'select' && (reportData[field.label] === 'Other' || reportData[field.label] === 'Others')">
-          <ion-textarea 
-            placeholder="Specify Other" 
-            [(ngModel)]="reportData[field.label + '_other']" 
-            (ngModelChange)="checkFormValidity()" 
-            rows="2" 
-            auto-grow="true">
-          </ion-textarea>
-        </ion-item>
+          <ion-item lines="none" class="custom-input" *ngIf="field.type === 'select'">
+            <ion-select [placeholder]="field.placeholder" [(ngModel)]="reportData[field.label]" (ionChange)="checkFormValidity()" interface="action-sheet" mode="md">
+              <ion-select-option *ngFor="let opt of field.options" [value]="opt">
+                {{ opt }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+          
+          <!-- Conditional "Other" Textarea -->
+          <ion-item lines="none" class="custom-input area-item animate-in" 
+                    *ngIf="field.type === 'select' && (reportData[field.label] === 'Other' || reportData[field.label] === 'Others')">
+            <ion-textarea 
+              placeholder="Specify Other" 
+              [(ngModel)]="reportData[field.label + '_other']" 
+              (ngModelChange)="checkFormValidity()" 
+              rows="2" 
+              auto-grow="true">
+            </ion-textarea>
+          </ion-item>
 
-        <!-- Radio Buttons -->
-        <div class="radio-group" *ngIf="field.type === 'radio'">
-          <ion-radio-group [(ngModel)]="reportData[field.label]" (ionChange)="checkFormValidity()">
+          <!-- Radio Buttons -->
+          <div class="radio-group" *ngIf="field.type === 'radio'">
+            <ion-radio-group [(ngModel)]="reportData[field.label]" (ionChange)="checkFormValidity()">
+              <ion-item lines="none" *ngFor="let opt of field.options" class="check-radio-item">
+                <ion-radio [value]="opt" slot="start"></ion-radio>
+                <ion-label>{{ opt }}</ion-label>
+              </ion-item>
+            </ion-radio-group>
+          </div>
+
+          <!-- Checkboxes -->
+          <div class="checkbox-group" *ngIf="field.type === 'checkbox'">
             <ion-item lines="none" *ngFor="let opt of field.options" class="check-radio-item">
-              <ion-radio [value]="opt" slot="start"></ion-radio>
+              <ion-checkbox slot="start" (ionChange)="updateCheckboxValue(field.label, opt, $event)"></ion-checkbox>
               <ion-label>{{ opt }}</ion-label>
             </ion-item>
-          </ion-radio-group>
-        </div>
+          </div>
 
-        <!-- Checkboxes -->
-        <div class="checkbox-group" *ngIf="field.type === 'checkbox'">
-          <ion-item lines="none" *ngFor="let opt of field.options" class="check-radio-item">
-            <ion-checkbox slot="start" (ionChange)="updateCheckboxValue(field.label, opt, $event)"></ion-checkbox>
-            <ion-label>{{ opt }}</ion-label>
+          <!-- Date Picker -->
+          <ion-item lines="none" class="custom-input" *ngIf="field.type === 'date'">
+            <ion-icon name="calendar-outline" slot="start" class="field-icon"></ion-icon>
+            <ion-datetime-button datetime="datetime"></ion-datetime-button>
+            <ion-modal [keepContentsMounted]="true">
+              <ng-template>
+                <ion-datetime id="datetime" presentation="date" [(ngModel)]="reportData[field.label]" (ionChange)="checkFormValidity()"></ion-datetime>
+              </ng-template>
+            </ion-modal>
           </ion-item>
-        </div>
 
-        <!-- Date Picker -->
-        <ion-item lines="none" class="custom-input" *ngIf="field.type === 'date'">
-          <ion-icon name="calendar-outline" slot="start" class="field-icon"></ion-icon>
-          <ion-datetime-button datetime="datetime"></ion-datetime-button>
-          <ion-modal [keepContentsMounted]="true">
-            <ng-template>
-              <ion-datetime id="datetime" presentation="date" [(ngModel)]="reportData[field.label]" (ionChange)="checkFormValidity()"></ion-datetime>
-            </ng-template>
-          </ion-modal>
-        </ion-item>
+          <!-- Textarea -->
+          <ion-item lines="none" class="custom-input area-item" *ngIf="field.type === 'textarea'">
+            <ion-textarea [placeholder]="field.placeholder" [(ngModel)]="reportData[field.label]" (ngModelChange)="checkFormValidity()" rows="3" auto-grow="true"></ion-textarea>
+          </ion-item>
 
-        <!-- Textarea -->
-        <ion-item lines="none" class="custom-input area-item" *ngIf="field.type === 'textarea'">
-          <ion-textarea [placeholder]="field.placeholder" [(ngModel)]="reportData[field.label]" (ngModelChange)="checkFormValidity()" rows="3" auto-grow="true"></ion-textarea>
-        </ion-item>
-
-        <!-- Photo Section (Multi-photo) -->
-        <div class="photo-section" *ngIf="field.type === 'file'">
-          <div class="photos-grid" *ngIf="capturedPhotos.length > 0">
-            <div class="photo-item animate-scale" *ngFor="let photo of capturedPhotos; let i = index">
-              <img [src]="photo" />
-              <div class="remove-btn" (click)="removePhoto(i)">
-                <ion-icon name="close-circle"></ion-icon>
+          <!-- Photo Section (Multi-photo) -->
+          <div class="photo-section" *ngIf="field.type === 'file'">
+            <div class="photos-grid" *ngIf="capturedPhotos.length > 0">
+              <div class="photo-item animate-scale" *ngFor="let photo of capturedPhotos; let i = index">
+                <img [src]="photo" (click)="openZoom(photo); $event.stopPropagation()" />
+                <div class="remove-btn" (click)="removePhoto(i); $event.stopPropagation()">
+                  <ion-icon name="close-circle"></ion-icon>
+                </div>
               </div>
             </div>
-          </div>
-          
-          <div class="upload-placeholder" (click)="selectImageSource()" *ngIf="capturedPhotos.length < 5">
-            <ion-icon name="camera-outline"></ion-icon>
-            <span>Add Photo ({{ capturedPhotos.length }}/5)</span>
+            
+            <div class="upload-placeholder" (click)="selectImageSource(); $event.stopPropagation()" *ngIf="capturedPhotos.length < 5">
+              <ion-icon name="camera-outline"></ion-icon>
+              <span>Add Photo ({{ capturedPhotos.length }}/5)</span>
+            </div>
           </div>
         </div>
       </div>
@@ -118,6 +120,60 @@
           <ion-icon [name]="swipeCompleted ? 'checkmark-outline' : 'chevron-forward-outline'"></ion-icon>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Full Screen Image Viewer Overlay -->
+  <div class="zoom-overlay" *ngIf="selectedZoomImage" (click)="closeZoom()">
+    <div class="zoomer-container">
+      <div class="viewer-actions">
+        <div class="action-btn" (click)="toggleZoom($event)">
+          <ion-icon [name]="currentZoom > 1 ? 'remove-circle-outline' : 'add-circle-outline'"></ion-icon>
+          <span class="zoom-text">{{ currentZoom }}x</span>
+        </div>
+        <div class="action-btn" (click)="downloadImage(selectedZoomImage); $event.stopPropagation()">
+          <ion-icon name="download-outline"></ion-icon>
+        </div>
+        <div class="action-btn" (click)="closeZoom()">
+          <ion-icon name="close-outline"></ion-icon>
+        </div>
+      </div>
+      
+      <div class="image-scroll-wrapper">
+        <img [src]="selectedZoomImage" 
+             [style.transform]="'scale(' + currentZoom + ')'"
+             (click)="toggleZoom($event)" />
+      </div>
+      
+      <div class="close-btn-bottom">TAP PHOTO TO ZOOM • TAP BACKGROUND TO CLOSE</div>
+
+      <!-- Recent Activity Section -->
+      <div class="recent-activity-container animate__animated animate__fadeIn" *ngIf="recentReports.length > 0">
+        <div class="divider-row">
+          <span>RECENT ACTIVITY</span>
+          <div class="line"></div>
+        </div>
+
+        <div class="recent-list">
+          <div class="recent-item" *ngFor="let report of recentReports.slice(0,5)">
+            <div class="item-icon">
+              <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="item-info">
+              <span class="report-type">{{ formatTitle(report.title) }}</span>
+              <span class="report-date">{{ report.date | date:'shortTime' }}</span>
+            </div>
+            <div class="sync-badge">
+              <i class="fas fa-cloud-upload-alt"></i>
+            </div>
+          </div>
+        </div>
+
+        <button class="view-all-btn" (click)="navCtrl.navigateForward('/events-reports')">
+          VIEW FULL HISTORY
+        </button>
+      </div>
+
     </div>
   </div>
 </ion-content>

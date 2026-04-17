@@ -1,113 +1,107 @@
-<ion-content [fullscreen]="true" class="premium-wrapper">
-  <div class="ambient-glow glow-1"></div>
-  <div class="ambient-glow glow-2"></div>
-
-  <div class="hero-header">
-    <div class="header-overlay"></div>
-    <div class="header-content">
+<ion-content [fullscreen]="true">
+  <div class="attendance-container">
+    <div class="header-section">
       <div class="nav-bar">
-        <div class="left-section">
-          <button (click)="goBack()" class="glass-btn">
-            <i class="fas fa-arrow-left"></i>
+        <button class="back-link" (click)="goBack()">
+          <ion-icon name="arrow-back-outline"></ion-icon>
+          <span>{{ 'ATTENDANCE.BACK' | translate }}</span>
+        </button>
+        <div class="header-title">
+          <h1>{{ (isEntry ? 'ATTENDANCE.MARK_ENTRY' : 'ATTENDANCE.MARK_EXIT') | translate }}</h1>
+          <p class="date-text">{{ currentTime | date:'EEEE, dd MMMM' }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="map-section">
+      <div id="attendanceMap" class="leaflet-map"></div>
+      <div class="map-actions">
+        <button class="map-btn recenter" (click)="recenterMap()">
+          <ion-icon name="locate-outline"></ion-icon>
+        </button>
+      </div>
+    </div>
+
+    <div class="details-section">
+      <div class="location-card">
+        <div class="location-info">
+          <div class="icon-circle">
+            <ion-icon name="location"></ion-icon>
+          </div>
+          <div class="text-group">
+            <label>{{ 'ATTENDANCE.CURRENT_LOCATION' | translate }}</label>
+            <p>{{ currentAddress || ('ATTENDANCE.GPS_SEARCH' | translate) }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="photo-card" [class.has-photo]="capturedPhoto">
+        <div class="photo-header">
+          <div class="title-group">
+            <ion-icon name="camera"></ion-icon>
+            <h3>{{ 'ATTENDANCE.UPLOAD_PHOTO' | translate }}</h3>
+          </div>
+          <button class="retake-btn" *ngIf="capturedPhoto" (click)="presentImageSourceOptions()">
+            {{ 'ATTENDANCE.RETAKE' | translate }}
           </button>
-          <h1>{{ 'ATTENDANCE.TITLE' | translate }}</h1>
         </div>
 
-        <div class="auth-badge">
-          <i class="fas fa-fingerprint"></i>
-          <span>{{ 'ATTENDANCE.LIVE' | translate }}</span>
+        <div class="photo-box" (click)="capturedPhoto ? openZoom(capturedPhoto) : presentImageSourceOptions()">
+          <div class="photo-placeholder" *ngIf="!capturedPhoto">
+            <div class="camera-circle">
+              <ion-icon name="camera-outline"></ion-icon>
+            </div>
+            <p>{{ 'ATTENDANCE.TAP_TO_CAPTURE' | translate }}</p>
+          </div>
+          <img *ngIf="capturedPhoto" [src]="capturedPhoto" class="captured-img" />
+          <div class="zoom-badge" *ngIf="capturedPhoto">
+            <ion-icon name="expand-outline"></ion-icon>
+          </div>
+        </div>
+      </div>
+
+      <div class="submit-section">
+        <div class="slider-wrapper">
+          <div class="slider-track" [class.submitting]="isSubmitting" [class.ready]="capturedPhoto">
+            <div class="slider-text" [style.opacity]="textOpacity">
+              {{ (isSubmitting ? 'ATTENDANCE.SUBMITTING' : 'ATTENDANCE.SLIDE_TO_SUBMIT') | translate }}
+            </div>
+            <div class="slider-handle" 
+                 [style.transform]="'translateX(' + currentTranslateX + 'px)'"
+                 (touchstart)="onDragStart($event)"
+                 (touchmove)="onDragMove($event)"
+                 (touchend)="onDragEnd()">
+              <ion-icon [name]="isSubmitting ? 'checkmark-outline' : 'chevron-forward-outline'"></ion-icon>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="card-container">
-    <div class="main-card">
+  <!-- Full Screen Image Viewer Overlay -->
+  <div class="zoom-overlay" *ngIf="selectedZoomImage" (click)="closeZoom()">
+    <div class="zoomer-container">
+      <div class="viewer-actions">
+        <div class="action-btn" (click)="toggleZoom($event)">
+          <ion-icon [name]="currentZoom > 1 ? 'remove-circle-outline' : 'add-circle-outline'"></ion-icon>
+          <span class="zoom-text">{{ currentZoom }}x</span>
+        </div>
+        <div class="action-btn" (click)="downloadImage(selectedZoomImage); $event.stopPropagation()">
+          <ion-icon name="download-outline"></ion-icon>
+        </div>
+        <div class="action-btn" (click)="closeZoom()">
+          <ion-icon name="close-outline"></ion-icon>
+        </div>
+      </div>
       
-      <div class="scanner-section">
-        <div class="camera-frame" (click)="presentImageSourceOptions()">
-          <div class="corners-bold">
-            <span class="t-l"></span><span class="t-r"></span>
-            <span class="b-l"></span><span class="b-r"></span>
-          </div>
-          <div class="scanner-inner" [style.background-image]="capturedPhoto ? 'url(' + capturedPhoto + ')' : ''">
-            <div class="scan-line" *ngIf="!capturedPhoto"></div>
-            <div *ngIf="!capturedPhoto" class="placeholder-content">
-              <ion-icon name="camera" class="main-cam-icon"></ion-icon>
-              <span class="cam-text">{{ 'ATTENDANCE.CAPTURE_ID' | translate }}</span>
-            </div>
-          </div>
-        </div>
-        <p class="instruction" [class.verified]="capturedPhoto">
-          {{ (capturedPhoto ? 'ATTENDANCE.VERIFIED' : 'ATTENDANCE.SCAN_INSTRUCTION') | translate }}
-        </p>
+      <div class="image-scroll-wrapper">
+        <img [src]="selectedZoomImage" 
+             [style.transform]="'scale(' + currentZoom + ')'"
+             (click)="toggleZoom($event)" />
       </div>
-
-      <div class="map-wrapper">
-        <label class="group-label">{{ 'ATTENDANCE.LIVE_TRACKING' | translate }}</label>
-        <div class="map-container">
-          <div id="attendanceMap" style="height: 100%; width: 100%; border-radius: 15px;"></div>
-          
-          <button class="recenter-btn-glass" (click)="recenterMap()">
-            <i class="fas fa-crosshairs"></i>
-          </button>
-        </div>
-      </div>
-
-      <div class="form-body">
-        <div class="input-group">
-          <label>{{ 'ATTENDANCE.RANGER' | translate }}</label>
-          <div class="premium-input readonly">
-            <ion-icon name="person-circle-outline"></ion-icon>
-            <span class="val">{{ rangerName }}</span>
-          </div>
-        </div>
-
-        <div class="input-group">
-          <label>{{ 'ATTENDANCE.REGION' | translate }}</label>
-          <div class="premium-input readonly">
-            <ion-icon name="earth-outline"></ion-icon>
-            <span class="val">{{ rangerRegion }}</span>
-          </div>
-        </div>
-
-        <div class="input-group">
-          <label>{{ 'ATTENDANCE.DETECTED_GEOFENCE' | translate }}</label>
-          <div class="premium-input interactive">
-            <ion-icon name="location-sharp"></ion-icon>
-            <span class="val">{{ currentAddress || ('ATTENDANCE.DETECTING' | translate) }}</span>
-          </div>
-        </div>
-
-        <div class="input-group">
-          <label>{{ 'ATTENDANCE.TIME_LABEL' | translate }}</label>
-          <div class="premium-input readonly">
-            <ion-icon name="calendar-outline"></ion-icon>
-            <span class="val">{{ (attendance?.created_at || currentTime) | date:'dd MMM yyyy • hh:mm a' }}</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="auto-slider-container" 
-           #sliderContainer
-           [class.active]="isSubmitting"
-           (touchstart)="onDragStart($event)"
-           (touchmove)="onDragMove($event)"
-           (touchend)="onDragEnd()">
-        <div class="slider-track">
-          <div class="slider-handle" [style.transform]="'translateX(' + currentTranslateX + 'px)'">
-            <ion-icon name="chevron-forward-outline" *ngIf="!isSubmitting"></ion-icon>
-            <ion-spinner name="crescent" color="light" *ngIf="isSubmitting"></ion-spinner>
-          </div>
-          <span class="slider-text" [style.opacity]="textOpacity">
-            {{ (isSubmitting ? 'ATTENDANCE.MARKING' : 'ATTENDANCE.MARK_BUTTON') | translate }}
-          </span>
-          <div class="end-check">
-            <ion-icon name="checkmark-outline"></ion-icon>
-          </div>
-        </div>
-      </div>
-
+      
+      <div class="close-btn-bottom">TAP PHOTO TO ZOOM • TAP BACKGROUND TO CLOSE</div>
     </div>
   </div>
 </ion-content>

@@ -25,6 +25,7 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
   patrolName: string = 'Active Patrol';
   recentSightings: any[] = [];
   selectedZoomImage: string | null = null;
+  currentZoom: number = 1; // 🔍 Zoom level state
   
   criminalActions = [
     { title: 'Illegal Felling', category: 'criminal', icon: 'fa-tree', class: 'felling' },
@@ -531,10 +532,36 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
 
   openZoom(imgUrl: string) {
     this.selectedZoomImage = imgUrl;
+    this.currentZoom = 1;
+  }
+
+  toggleZoom(event: any) {
+    event.stopPropagation();
+    if (this.currentZoom >= 2.5) {
+      this.currentZoom = 1;
+    } else {
+      this.currentZoom += 0.5;
+    }
   }
 
   closeZoom() {
     this.selectedZoomImage = null;
+    this.currentZoom = 1;
+  }
+
+  async downloadImage(imageUrl: string) {
+    const loading = await this.loadingCtrl.create({
+      message: 'Downloading...',
+      duration: 1000
+    });
+    await loading.present();
+    
+    const link = document.createElement('a');
+    link.href = imageUrl;
+    link.download = `patrol_photo_${Date.now()}.jpg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   ngOnDestroy() {

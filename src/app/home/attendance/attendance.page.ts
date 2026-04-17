@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import { NavController, ToastController, ActionSheetController, Platform } from '@ionic/angular';
+import { NavController, ToastController, LoadingController, ActionSheetController, Platform } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Geolocation } from '@capacitor/geolocation';
@@ -36,6 +36,8 @@ export class AttendancePage implements OnInit, OnDestroy {
   public isEntry: boolean = true;
   public attendance: any = null;
   public currentTime: Date = new Date(); 
+  public selectedZoomImage: string | null = null;
+  public currentZoom: number = 1; // 🔍 Zoom level state
   public capturedPhoto: string = ''; 
   public rangerName: string = '';
   public rangerRegion: string = '';
@@ -48,6 +50,7 @@ export class AttendancePage implements OnInit, OnDestroy {
   private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw';
 
   constructor(
+    private loadingCtrl: LoadingController,
     private navCtrl: NavController,
     private toastCtrl: ToastController,
     private actionSheetCtrl: ActionSheetController,
@@ -410,5 +413,38 @@ async submitAttendance() {
     } else {
       this.resetSlider();
     }
+  }
+
+  // --- Image Viewer Methods ---
+  openZoom(imageUrl: string) {
+    this.selectedZoomImage = imageUrl;
+    this.currentZoom = 1;
+  }
+
+  toggleZoom(event: any) {
+    event.stopPropagation();
+    if (this.currentZoom >= 2.5) {
+      this.currentZoom = 1;
+    } else {
+      this.currentZoom += 0.5;
+    }
+  }
+
+  closeZoom() {
+    this.selectedZoomImage = null;
+    this.currentZoom = 1;
+  }
+  async downloadImage(imageUrl: string) {
+    const loader = await this.loadingCtrl.create({
+      message: 'Downloading...',
+      duration: 1000
+    });
+    await loader.present();
+    const link = document.createElement('a');
+    link.href = imageUrl;
+    link.download = `attendance_photo_${Date.now()}.jpg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 }

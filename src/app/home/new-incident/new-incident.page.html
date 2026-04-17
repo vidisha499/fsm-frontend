@@ -20,352 +20,377 @@
       </div>
     </div>
 
-    <div class="main-container">
-      <div class="form-card">
+
+  <div class="main-container">
+    <div class="form-card">
+      
+      <div class="photo-evidence-container">
+        <div class="photo-grid">
+          <div class="photo-item animate__animated animate__zoomIn" *ngFor="let photo of capturedPhotos; let i = index" (click)="openZoom(photo); $event.stopPropagation()">
+            <img [src]="photo" class="preview-img" />
+            <button class="remove-btn" (click)="removePhoto(i); $event.stopPropagation()">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+
+          <div (click)="takePhoto()" class="upload-zone-mini" *ngIf="capturedPhotos.length < 5">
+            <div class="mini-icon-circle">
+              <i class="fas fa-camera"></i>
+            </div>
+            <span class="mini-text">{{ 'REPORT.ADD_PHOTO' | translate }}</span>
+          </div>
+        </div>
+        <p class="counter-text">{{ capturedPhotos.length }} / 5 {{ 'REPORT.PHOTOS_COUNT' | translate }}</p>
+      </div>
+
+      <div class="map-preview-container animate__animated animate__fadeIn">
+        <div id="incidentMap" style="height: 180px; width: 100%; border-radius: 15px; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 8px;"></div>
+        <div class="location-status" style="padding-left: 5px; margin-bottom: 15px;">
+          <small style="color: #64748b;"><i class="fas fa-map-marker-alt"></i> {{ lat }}, {{ lng }}</small>
+        </div>
+      </div>
+
+      <div class="input-stack">
+        <div class="input-group">
+          <label class="input-label priority-lbl">{{ 'REPORT.PRIORITY_LABEL' | translate }}</label>
+          <div class="input-wrapper">
+            <i class="fas fa-bolt"></i>
+            <select class="styled-select" [(ngModel)]="incidentData.priority">
+              <option value="High Priority">{{ 'REPORT.P_HIGH' | translate }}</option>
+              <option value="Medium Priority">{{ 'REPORT.P_MED' | translate }}</option>
+              <option value="Low Priority">{{ 'REPORT.P_LOW' | translate }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" style="color: #ffc107;">REPORTING OFFICER</label>
+          <div class="input-wrapper officer-badge">
+            <i class="fas fa-user-shield"></i>
+            <input type="text" [(ngModel)]="incidentData.rangerName" readonly />
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" style="color: #28a745;">ACTIVE GEOFENCE</label>
+          <div class="input-wrapper geofence-badge">
+            <i class="fas fa-globe-asia"></i>
+            <input type="text" [(ngModel)]="incidentData.geofence" readonly placeholder="Fetching location..." />
+          </div>
+        </div>
         
-        <div class="photo-evidence-container">
-          <div class="photo-grid">
-            <div class="photo-item animate__animated animate__zoomIn" *ngFor="let photo of capturedPhotos; let i = index">
-              <img [src]="photo" class="preview-img" />
-              <button class="remove-btn" (click)="removePhoto(i)">
-                <i class="fas fa-times"></i>
-              </button>
-            </div>
-
-            <div (click)="takePhoto()" class="upload-zone-mini" *ngIf="capturedPhotos.length < 5">
-              <div class="mini-icon-circle">
-                <i class="fas fa-camera"></i>
-              </div>
-              <span class="mini-text">{{ 'REPORT.ADD_PHOTO' | translate }}</span>
-            </div>
-          </div>
-          <p class="counter-text">{{ capturedPhotos.length }} / 5 {{ 'REPORT.PHOTOS_COUNT' | translate }}</p>
-        </div>
-
-        <div class="map-preview-container animate__animated animate__fadeIn">
-          <div id="incidentMap" style="height: 180px; width: 100%; border-radius: 15px; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 8px;"></div>
-          <div class="location-status" style="padding-left: 5px; margin-bottom: 15px;">
-            <small style="color: #64748b;"><i class="fas fa-map-marker-alt"></i> {{ lat }}, {{ lng }}</small>
-          </div>
-        </div>
-
         <div class="input-stack">
           <div class="input-group">
-            <label class="input-label priority-lbl">{{ 'REPORT.PRIORITY_LABEL' | translate }}</label>
+            <label class="input-label category-lbl">Incident Category</label>
             <div class="input-wrapper">
-              <i class="fas fa-bolt"></i>
-              <select class="styled-select" [(ngModel)]="incidentData.priority">
-                <option value="High Priority">{{ 'REPORT.P_HIGH' | translate }}</option>
-                <option value="Medium Priority">{{ 'REPORT.P_MED' | translate }}</option>
-                <option value="Low Priority">{{ 'REPORT.P_LOW' | translate }}</option>
+              <i class="fas fa-layer-group"></i>
+              <select class="styled-select" [(ngModel)]="incidentData.criteria" (change)="resetSubFields()">
+                <option value="Criminal Activity">⚖️ Criminal Activity</option>
+                <option value="Fire Warning">🔥 Fire Warning</option>
+                <option value="Assets & Tools">🔧 Assets & Tools</option>
               </select>
             </div>
           </div>
 
-        <div class="input-group">
-  <label class="input-label" style="color: #ffc107;">REPORTING OFFICER</label>
-  <div class="input-wrapper officer-badge">
-    <i class="fas fa-user-shield"></i>
-    <input type="text" [(ngModel)]="incidentData.rangerName" readonly />
-  </div>
-</div>
-
-<div class="input-group">
-  <label class="input-label" style="color: #28a745;">ACTIVE GEOFENCE</label>
-  <div class="input-wrapper geofence-badge">
-    <i class="fas fa-globe-asia"></i>
-    <input type="text" [(ngModel)]="incidentData.geofence" readonly placeholder="Fetching location..." />
-  </div>
-</div>
-        
-
-  <div class="input-stack">
-  <div class="input-group">
-  <label class="input-label category-lbl">Incident Category</label>
-  <div class="input-wrapper">
-    <i class="fas fa-layer-group"></i>
-    <select class="styled-select" [(ngModel)]="incidentData.criteria" (change)="resetSubFields()">
-      <option value="Criminal Activity">⚖️ Criminal Activity</option>
-      <option value="Fire Warning">🔥 Fire Warning</option>
-      <option value="Assets & Tools">🔧 Assets & Tools</option>
-    </select>
-  </div>
-</div>
-
-  <div class="input-group animate__animated animate__fadeIn" *ngIf="incidentData.criteria === 'Criminal Activity'">
-    <label class="input-label category-lbl">Criminal Activity Type</label>
-    <div class="input-wrapper">
-      <i class="fas fa-gavel"></i>
-      <select class="styled-select" [(ngModel)]="incidentData.subCategory" (change)="resetSubFields()">
-        <option value="Illegal Felling">Illegal Felling</option>
-        <option value="Timber Transport">Timber Transport</option>
-        <option value="Timber Storage">Timber Storage</option>
-        <option value="Poaching">Poaching</option>
-        <option value="Encroachment">Encroachment</option>
-        <option value="Illegal Mining">Illegal Mining</option>
-      </select>
-    </div>
-  </div>
-
-
-
-  <ng-container *ngIf="incidentData.subCategory === 'Timber Transport'">
-    <div class="input-group animate__animated animate__fadeIn">
-      <label class="input-label category-lbl">Vehicle Type</label>
-      <div class="input-wrapper">
-        <i class="fas fa-truck"></i>
-        <select class="styled-select" [(ngModel)]="incidentData.vehicleType">
-          <option value="Truck">Truck</option>
-          <option value="Tractor">Tractor</option>
-          <option value="Tempo">Tempo</option>
-          <option value="Private">Private Vehicle</option>
-          <option value="Others">Others</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="input-group animate__animated animate__fadeIn">
-      <label class="input-label category-lbl">Transport Route</label>
-      <div class="input-wrapper">
-        <i class="fas fa-road"></i>
-        <select class="styled-select" [(ngModel)]="incidentData.route">
-          <option value="Travel-Route">Travel Route</option>
-          <option value="River">River</option>
-          <option value="Village">Village Road</option>
-          <option value="Others">Others</option>
-        </select>
-      </div>
-    </div>
-  </ng-container>
-
-  <ng-container *ngIf="incidentData.subCategory === 'Illegal Felling'">
-    <div class="input-group animate__animated animate__fadeIn">
-      <label class="input-label category-lbl">Species</label>
-      <div class="input-wrapper">
-        <i class="fas fa-tree"></i>
-        <select class="styled-select" [(ngModel)]="incidentData.species">
-          <option value="Sal">Sal</option>
-          <option value="Saja">Saja</option>
-          <option value="Sagvan">Sagvan</option>
-          <option value="Beeja">Beeja</option>
-          <option value="Halder">Halder</option>
-          <option value="Dawda">Dawda</option>
-          <option value="Safed Siris">Safed Siris</option>
-          <option value="Kala Siris">Kala Siris</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="input-group animate__animated animate__fadeIn">
-      <label class="input-label category-lbl">Reason</label>
-      <div class="input-wrapper">
-        <i class="fas fa-question-circle"></i>
-        <select class="styled-select" [(ngModel)]="incidentData.reason">
-          <option value="Trade">Trade</option>
-          <option value="Fuel">Fuel</option>
-          <option value="Agriculture">Agriculture</option>
-          <option value="Others">Others</option>
-        </select>
-      </div>
-    </div>
-  </ng-container>
-
- 
-
-
-<ng-container *ngIf="incidentData.subCategory === 'Timber Storage' && incidentData.criteria === 'Criminal Activity'">
-  <div class="input-group animate__animated animate__fadeIn">
-    <label class="input-label category-lbl">Storage Area</label>
-    <div class="input-wrapper">
-      <i class="fas fa-warehouse"></i>
-      <select class="styled-select" [(ngModel)]="incidentData.storageArea">
-        <option value="Godown">Godown</option>
-        <option value="Open Space">Open Space</option>
-        <option value="Others">Others</option>
-      </select>
-    </div>
-  </div>
-
-  <div class="input-group animate__animated animate__fadeIn">
-    <label class="input-label category-lbl">Reason</label>
-    <div class="input-wrapper">
-      <i class="fas fa-question-circle"></i>
-      <select class="styled-select" [(ngModel)]="incidentData.reason">
-        <option value="Trade">Trade</option>
-        <option value="Fuel">Fuel</option>
-        <option value="Agriculture">Agriculture</option>
-        <option value="Others">Others</option>
-      </select>
-    </div>
-  </div>
-</ng-container>
-
-<ng-container *ngIf="incidentData.subCategory === 'Poaching' && incidentData.criteria === 'Criminal Activity'">
-  <div class="input-group animate__animated animate__fadeIn">
-    <label class="input-label category-lbl">Animal Species</label>
-    <div class="input-wrapper">
-      <i class="fas fa-paw"></i>
-      <select class="styled-select" [(ngModel)]="incidentData.species">
-        <option value="Sloth Bear">Sloth Bear</option>
-        <option value="Leopard">Leopard</option>
-        <option value="Hyena">Hyena</option>
-        <option value="Jackal">Jackal</option>
-        <option value="Wild Boar">Wild Boar</option>
-        <option value="Deer">Deer</option>
-      </select>
-    </div>
-  </div>
-</ng-container>
-
-
-
-<div class="input-group animate__animated animate__fadeIn" 
-     *ngIf="(incidentData.subCategory === 'Encroachment' || incidentData.subCategory === 'Illegal Mining') && incidentData.criteria === 'Criminal Activity'">
-  <label class="input-label category-lbl">Enter Range</label>
-  <div class="input-wrapper textarea-mode">
-    <i class="fas fa-map-marked-alt"></i>
-    <textarea 
-      [(ngModel)]="incidentData.range" 
-      placeholder="Type Forest Range name here..." 
-      rows="1" 
-      (input)="adjustHeight($event)"
-      class="styled-textarea">
-    </textarea>
-  </div>
-</div>
-
-<ng-container *ngIf="incidentData.criteria === 'Fire Warning'">
-  <div class="input-group animate__animated animate__fadeIn">
-    <label class="input-label category-lbl">Enter Range</label>
-    <div class="input-wrapper textarea-mode">
-      <i class="fas fa-map-marked-alt"></i>
-      <textarea 
-        [(ngModel)]="incidentData.range" 
-        placeholder="Type Forest Range name here..." 
-        rows="1" 
-        (input)="adjustHeight($event)"
-        class="styled-textarea">
-      </textarea>
-    </div>
-  </div>
-
-  <div class="input-group animate__animated animate__fadeIn">
-    <label class="input-label category-lbl">Fire Stage</label>
-    <div class="input-wrapper">
-      <i class="fas fa-fire-alt"></i>
-      <select class="styled-select" [(ngModel)]="incidentData.fireStage">
-        <option value="Low">Low (Ground Smoke/Small Area)</option>
-        <option value="Medium">Medium (Active Spread)</option>
-        <option value="High">High (Crown Fire/Critical)</option>
-      </select>
-    </div>
-  </div>
-</ng-container>
-
-<ng-container *ngIf="incidentData.criteria === 'Assets & Tools'">
-  
-  <div class="input-group animate__animated animate__fadeIn">
-    <label class="input-label category-lbl">Asset Inventory</label>
-    <div class="input-wrapper textarea-mode">
-      <i class="fas fa-boxes"></i>
-      <textarea 
-        [(ngModel)]="incidentData.assetInventory" 
-        placeholder="e.g. Wireless sets, Solar panels, Uniforms..." 
-        rows="1" 
-        (input)="adjustHeight($event)"
-        class="styled-textarea">
-      </textarea>
-    </div>
-  </div>
-
-  <div class="input-group animate__animated animate__fadeIn">
-    <label class="input-label category-lbl">Vehicles</label>
-    <div class="input-wrapper textarea-mode">
-      <i class="fas fa-motorcycle"></i>
-      <textarea 
-        [(ngModel)]="incidentData.vehicleInfo" 
-        placeholder="e.g. Gypsy GJ-01, Hero Splendor, Patrol Boat..." 
-        rows="1" 
-        (input)="adjustHeight($event)"
-        class="styled-textarea">
-      </textarea>
-    </div>
-  </div>
-
-  <div class="input-group animate__animated animate__fadeIn">
-    <label class="input-label category-lbl">Checkpost Name/Location</label>
-    <div class="input-wrapper textarea-mode">
-      <i class="fas fa-gate"></i>
-      <textarea 
-        [(ngModel)]="incidentData.checkpost" 
-        placeholder="e.g. Main Gate, North Border Post..." 
-        rows="1" 
-        (input)="adjustHeight($event)"
-        class="styled-textarea">
-      </textarea>
-    </div>
-  </div>
-
-</ng-container>
-
-<div class="input-group checklist-group">
-  <label class="input-label checklist-lbl">Potential Cause</label>
-  <div class="input-wrapper">
-    <i class="fas fa-clipboard-list"></i>
-    <select class="styled-select" [(ngModel)]="incidentData.cause">
-      
-      <ng-container *ngIf="incidentData.subCategory === 'Poaching'">
-        <option value="Natural">Natural</option>
-        <option value="Death">Death</option>
-        <option value="Accident">Accident</option>
-        <option value="Disease">Disease</option>
-      </ng-container>
-
-      <ng-container *ngIf="incidentData.subCategory !== 'Poaching'">
-        <option value="Human Error">Human Error</option>
-        <option value="Natural Cause">Natural Cause</option>
-        <option value="External Interference">External Interference</option>
-      </ng-container>
-
-    </select>
-  </div>
-</div>
-
-<div class="input-group observation-group">
-    <label class="input-label observation-lbl">{{ 'REPORT.OBS_LABEL' | translate }}</label>
-    <div class="input-wrapper textarea-mode">
-      <i class="fas fa-pen-nib"></i>
-      <textarea [(ngModel)]="incidentData.observation" [placeholder]="'REPORT.OBS_PH' | translate" rows="1" (input)="adjustHeight($event)" class="styled-textarea"></textarea>
-    </div>
-  </div>
-</div>
-        </div>  
-
-        <div class="auto-slider-container" 
-             [class.active]="isSubmitting"
-             [class.disabled]="capturedPhotos.length === 0"
-             (touchstart)="onDragStart($event)"
-             (touchmove)="onDragMove($event)"
-             (touchend)="onDragEnd()">
-             
-          <div class="slider-track">
-            <div class="slider-handle" [style.transform]="'translateX(' + currentTranslateX + 'px)'">
-              <i class="fas fa-lock" *ngIf="capturedPhotos.length === 0"></i>
-              <i class="fas fa-chevron-right" *ngIf="capturedPhotos.length > 0 && !isSubmitting"></i>
-              <ion-spinner name="crescent" color="light" *ngIf="isSubmitting"></ion-spinner>
+          <div class="input-group animate__animated animate__fadeIn" *ngIf="incidentData.criteria === 'Criminal Activity'">
+            <label class="input-label category-lbl">Criminal Activity Type</label>
+            <div class="input-wrapper">
+              <i class="fas fa-gavel"></i>
+              <select class="styled-select" [(ngModel)]="incidentData.subCategory" (change)="resetSubFields()">
+                <option value="Illegal Felling">Illegal Felling</option>
+                <option value="Timber Transport">Timber Transport</option>
+                <option value="Timber Storage">Timber Storage</option>
+                <option value="Poaching">Poaching</option>
+                <option value="Encroachment">Encroachment</option>
+                <option value="Illegal Mining">Illegal Mining</option>
+              </select>
             </div>
-            
-            <span class="slider-text" [style.opacity]="textOpacity">
-              {{ (isSubmitting ? ('REPORT.SUBMITTING' | translate) : ('REPORT.SUBMIT_BTN' | translate)) }}
-            </span>
-            
-            <div class="end-check">
-              <i class="fas fa-check"></i>
+          </div>
+
+          <ng-container *ngIf="incidentData.subCategory === 'Timber Transport'">
+            <div class="input-group animate__animated animate__fadeIn">
+              <label class="input-label category-lbl">Vehicle Type</label>
+              <div class="input-wrapper">
+                <i class="fas fa-truck"></i>
+                <select class="styled-select" [(ngModel)]="incidentData.vehicleType">
+                  <option value="Truck">Truck</option>
+                  <option value="Tractor">Tractor</option>
+                  <option value="Tempo">Tempo</option>
+                  <option value="Private">Private Vehicle</option>
+                  <option value="Others">Others</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="input-group animate__animated animate__fadeIn">
+              <label class="input-label category-lbl">Transport Route</label>
+              <div class="input-wrapper">
+                <i class="fas fa-road"></i>
+                <select class="styled-select" [(ngModel)]="incidentData.route">
+                  <option value="Travel-Route">Travel Route</option>
+                  <option value="River">River</option>
+                  <option value="Village">Village Road</option>
+                  <option value="Others">Others</option>
+                </select>
+              </div>
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="incidentData.subCategory === 'Illegal Felling'">
+            <div class="input-group animate__animated animate__fadeIn">
+              <label class="input-label category-lbl">Species</label>
+              <div class="input-wrapper">
+                <i class="fas fa-tree"></i>
+                <select class="styled-select" [(ngModel)]="incidentData.species">
+                  <option value="Sal">Sal</option>
+                  <option value="Saja">Saja</option>
+                  <option value="Sagvan">Sagvan</option>
+                  <option value="Beeja">Beeja</option>
+                  <option value="Halder">Halder</option>
+                  <option value="Dawda">Dawda</option>
+                  <option value="Safed Siris">Safed Siris</option>
+                  <option value="Kala Siris">Kala Siris</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="input-group animate__animated animate__fadeIn">
+              <label class="input-label category-lbl">Reason</label>
+              <div class="input-wrapper">
+                <i class="fas fa-question-circle"></i>
+                <select class="styled-select" [(ngModel)]="incidentData.reason">
+                  <option value="Trade">Trade</option>
+                  <option value="Fuel">Fuel</option>
+                  <option value="Agriculture">Agriculture</option>
+                  <option value="Others">Others</option>
+                </select>
+              </div>
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="incidentData.subCategory === 'Timber Storage' && incidentData.criteria === 'Criminal Activity'">
+            <div class="input-group animate__animated animate__fadeIn">
+              <label class="input-label category-lbl">Storage Area</label>
+              <div class="input-wrapper">
+                <i class="fas fa-warehouse"></i>
+                <select class="styled-select" [(ngModel)]="incidentData.storageArea">
+                  <option value="Godown">Godown</option>
+                  <option value="Open Space">Open Space</option>
+                  <option value="Others">Others</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="input-group animate__animated animate__fadeIn">
+              <label class="input-label category-lbl">Reason</label>
+              <div class="input-wrapper">
+                <i class="fas fa-question-circle"></i>
+                <select class="styled-select" [(ngModel)]="incidentData.reason">
+                  <option value="Trade">Trade</option>
+                  <option value="Fuel">Fuel</option>
+                  <option value="Agriculture">Agriculture</option>
+                  <option value="Others">Others</option>
+                </select>
+              </div>
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="incidentData.subCategory === 'Poaching' && incidentData.criteria === 'Criminal Activity'">
+            <div class="input-group animate__animated animate__fadeIn">
+              <label class="input-label category-lbl">Animal Species</label>
+              <div class="input-wrapper">
+                <i class="fas fa-paw"></i>
+                <select class="styled-select" [(ngModel)]="incidentData.species">
+                  <option value="Sloth Bear">Sloth Bear</option>
+                  <option value="Leopard">Leopard</option>
+                  <option value="Hyena">Hyena</option>
+                  <option value="Jackal">Jackal</option>
+                  <option value="Wild Boar">Wild Boar</option>
+                  <option value="Deer">Deer</option>
+                </select>
+              </div>
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="incidentData.subCategory === 'Illegal Mining' && incidentData.criteria === 'Criminal Activity'">
+            <div class="input-group animate__animated animate__fadeIn">
+              <label class="input-label category-lbl">Vehicle Seized</label>
+              <div class="input-wrapper">
+                <i class="fas fa-truck-pickup"></i>
+                <select class="styled-select" [(ngModel)]="incidentData.vehicleSeized">
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="input-group animate__animated animate__fadeIn" *ngIf="incidentData.vehicleSeized === 'Yes'">
+              <label class="input-label category-lbl">Vehicle Seized Type</label>
+              <div class="input-wrapper">
+                <i class="fas fa-car-side"></i>
+                <input type="text" [(ngModel)]="incidentData.vehicleSeizedType" placeholder="e.g. Tractor, Trolley, JCB..." class="styled-input" />
+              </div>
+            </div>
+          </ng-container>
+
+          <div class="input-group animate__animated animate__fadeIn" 
+               *ngIf="(incidentData.subCategory === 'Encroachment' || incidentData.subCategory === 'Illegal Mining') && incidentData.criteria === 'Criminal Activity'">
+            <label class="input-label category-lbl">Enter Range</label>
+            <div class="input-wrapper textarea-mode">
+              <i class="fas fa-map-marked-alt"></i>
+              <textarea 
+                [(ngModel)]="incidentData.range" 
+                placeholder="Type Forest Range name here..." 
+                rows="1" 
+                (input)="adjustHeight($event)"
+                class="styled-textarea">
+              </textarea>
+            </div>
+          </div>
+
+          <ng-container *ngIf="incidentData.criteria === 'Fire Warning'">
+            <div class="input-group animate__animated animate__fadeIn">
+              <label class="input-label category-lbl">Enter Range</label>
+              <div class="input-wrapper textarea-mode">
+                <i class="fas fa-map-marked-alt"></i>
+                <textarea 
+                  [(ngModel)]="incidentData.range" 
+                  placeholder="Type Forest Range name here..." 
+                  rows="1" 
+                  (input)="adjustHeight($event)"
+                  class="styled-textarea">
+                </textarea>
+              </div>
+            </div>
+
+            <div class="input-group animate__animated animate__fadeIn">
+              <label class="input-label category-lbl">Fire Stage</label>
+              <div class="input-wrapper">
+                <i class="fas fa-fire-alt"></i>
+                <select class="styled-select" [(ngModel)]="incidentData.fireStage">
+                  <option value="Low">Low (Ground Smoke/Small Area)</option>
+                  <option value="Medium">Medium (Active Spread)</option>
+                  <option value="High">High (Crown Fire/Critical)</option>
+                </select>
+              </div>
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="incidentData.criteria === 'Assets & Tools'">
+            <div class="input-group animate__animated animate__fadeIn">
+              <label class="input-label category-lbl">Asset Inventory</label>
+              <div class="input-wrapper textarea-mode">
+                <i class="fas fa-boxes"></i>
+                <textarea 
+                  [(ngModel)]="incidentData.assetInventory" 
+                  placeholder="e.g. Wireless sets, Solar panels, Uniforms..." 
+                  rows="1" 
+                  (input)="adjustHeight($event)"
+                  class="styled-textarea">
+                </textarea>
+              </div>
+            </div>
+
+            <div class="input-group animate__animated animate__fadeIn">
+              <label class="input-label category-lbl">Vehicles</label>
+              <div class="input-wrapper textarea-mode">
+                <i class="fas fa-motorcycle"></i>
+                <textarea 
+                  [(ngModel)]="incidentData.vehicleInfo" 
+                  placeholder="e.g. Gypsy GJ-01, Hero Splendor, Patrol Boat..." 
+                  rows="1" 
+                  (input)="adjustHeight($event)"
+                  class="styled-textarea">
+                </textarea>
+              </div>
+            </div>
+
+            <div class="input-group animate__animated animate__fadeIn">
+              <label class="input-label category-lbl">Checkpost Name/Location</label>
+              <div class="input-wrapper textarea-mode">
+                <i class="fas fa-gate"></i>
+                <textarea 
+                  [(ngModel)]="incidentData.checkpost" 
+                  placeholder="e.g. Main Gate, North Border Post..." 
+                  rows="1" 
+                  (input)="adjustHeight($event)"
+                  class="styled-textarea">
+                </textarea>
+              </div>
+            </div>
+          </ng-container>
+
+          <div class="input-group checklist-group">
+            <label class="input-label checklist-lbl">Potential Cause</label>
+            <div class="input-wrapper">
+              <i class="fas fa-clipboard-list"></i>
+              <select class="styled-select" [(ngModel)]="incidentData.cause">
+                <ng-container *ngIf="incidentData.subCategory === 'Poaching'">
+                  <option value="Natural">Natural</option>
+                  <option value="Death">Death</option>
+                  <option value="Accident">Accident</option>
+                  <option value="Disease">Disease</option>
+                </ng-container>
+                <ng-container *ngIf="incidentData.subCategory !== 'Poaching'">
+                  <option value="Human Error">Human Error</option>
+                  <option value="Natural Cause">Natural Cause</option>
+                  <option value="External Interference">External Interference</option>
+                </ng-container>
+              </select>
+            </div>
+          </div>
+
+          <div class="input-group observation-group">
+            <label class="input-label observation-lbl">{{ 'REPORT.OBS_LABEL' | translate }}</label>
+            <div class="input-wrapper textarea-mode">
+              <i class="fas fa-pen-nib"></i>
+              <textarea [(ngModel)]="incidentData.observation" [placeholder]="'REPORT.OBS_PH' | translate" rows="1" (input)="adjustHeight($event)" class="styled-textarea"></textarea>
             </div>
           </div>
         </div>
+      </div>
 
-      </div> 
-    </div> 
-  </div> 
+      <div class="slider-wrapper animate-up" [class.ready]="capturedPhotos.length">
+        <div class="slider-track">
+          <div class="slider-text" [style.opacity]="textOpacity">
+            {{ capturedPhotos.length ? (isSubmitting ? ('REPORT.SUBMITTING' | translate) : ('REPORT.SUBMIT_BTN' | translate)) : ('REPORT.ADD_PHOTO' | translate) }}
+          </div>
+          <div class="slider-handle" 
+               (touchstart)="onDragStart($event)" 
+               (touchmove)="onDragMove($event)" 
+               (touchend)="onDragEnd()"
+               [style.transform]="'translateX(' + currentTranslateX + 'px)'">
+            <ion-icon [name]="isSubmitting ? 'sync' : 'chevron-forward'"></ion-icon>
+            <ion-spinner name="crescent" color="light" *ngIf="isSubmitting" style="position: absolute;"></ion-spinner>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="zoom-overlay" *ngIf="selectedZoomImage" (click)="closeZoom()">
+    <div class="zoomer-container">
+      <div class="viewer-actions">
+        <div class="action-btn" (click)="toggleZoom($event)">
+          <ion-icon [name]="currentZoom > 1 ? 'remove-circle-outline' : 'add-circle-outline'"></ion-icon>
+          <span class="zoom-text">{{ currentZoom }}x</span>
+        </div>
+        <div class="action-btn" (click)="downloadImage(selectedZoomImage); $event.stopPropagation()">
+          <ion-icon name="download-outline"></ion-icon>
+        </div>
+        <div class="action-btn" (click)="closeZoom()">
+          <ion-icon name="close-outline"></ion-icon>
+        </div>
+      </div>
+      
+      <div class="image-scroll-wrapper">
+        <img [src]="selectedZoomImage" 
+             [style.transform]="'scale(' + currentZoom + ')'"
+             (click)="toggleZoom($event)" />
+      </div>
+      
+      <div class="close-btn-bottom">TAP PHOTO TO ZOOM • TAP BACKGROUND TO CLOSE</div>
+    </div>
+  </div>
 </ion-content>

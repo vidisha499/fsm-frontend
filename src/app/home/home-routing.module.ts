@@ -144,6 +144,10 @@ loadChildren:() => import('./admin/admin.module').then( m => m.AdminPageModule)
 
  
  
+  {
+    path: 'events-reports',
+    loadChildren: () => import('./events-reports/events-reports.module').then( m => m.EventsReportsPageModule)
+  }
 ];
 
 @NgModule({

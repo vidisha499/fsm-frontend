@@ -1,0 +1,112 @@
+<ion-content [fullscreen]="true">
+  <div class="premium-wrapper">
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <div class="hero-header">
+      <div class="header-overlay"></div>
+      <div class="header-content">
+        <div class="nav-bar">
+          <button (click)="goBack()" class="glass-btn">
+            <i class="fas fa-arrow-left"></i>
+          </button>
+          <h1>Forest Activity Log</h1>
+        </div>
+        <div class="stats-overview animate__animated animate__fadeIn">
+          <div class="stat-item">
+            <span class="val">{{ submittedReports.length }}</span>
+            <span class="lbl">SUBMITTED</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item" [class.has-drafts]="draftReports.length > 0">
+            <span class="val">{{ draftReports.length }}</span>
+            <span class="lbl">OFFLINE DRAFTS</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-container">
+      <div class="segment-container animate__animated animate__fadeIn">
+        <ion-segment [(ngModel)]="activeSegment" mode="ios">
+          <ion-segment-button value="submitted">
+            <ion-label>SUBMITTED</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="drafts">
+            <ion-label>DRAFTS</ion-label>
+            <div class="badge-dot" *ngIf="draftReports.length > 0"></div>
+          </ion-segment-button>
+        </ion-segment>
+      </div>
+
+      <div *ngIf="activeSegment === 'submitted'" class="list-section">
+        <div class="report-card animate__animated animate__fadeInUp" *ngFor="let report of submittedReports">
+          <div class="card-thumb">
+            <img *ngIf="report.photo" [src]="report.photo" />
+            <div *ngIf="!report.photo" class="placeholder-icon">
+              <i class="fas fa-file-invoice"></i>
+            </div>
+          </div>
+          <div class="card-info">
+            <div class="type-tag">{{ formatTitle(report.report_type) }}</div>
+            <h3 class="beat-name">{{ report.beat || 'General Beat' }}</h3>
+            <div class="meta-row">
+              <span class="date"><i class="far fa-clock"></i> {{ formatDate(report.createdAt) }}</span>
+              <span class="status-chip success">SYNCED</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="empty-state" *ngIf="submittedReports.length === 0 && !isLoading">
+          <div class="empty-icon-circle">
+            <i class="fas fa-history"></i>
+          </div>
+          <h3>No activity history found</h3>
+          <p>Reports you submit online will appear here.</p>
+        </div>
+      </div>
+
+      <div *ngIf="activeSegment === 'drafts'" class="list-section">
+        <div class="sync-banner animate__animated animate__slideInDown" *ngIf="draftReports.length > 0">
+            <div class="banner-text">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <span>{{ draftReports.length }} drafts pending sync</span>
+            </div>
+            <button class="sync-all-btn" (click)="syncAllDrafts()">
+                SYNC ALL
+            </button>
+        </div>
+
+        <div class="report-card draft-mode animate__animated animate__fadeInUp" *ngFor="let draft of draftReports">
+          <div class="card-thumb">
+            <img *ngIf="draft.photo" [src]="draft.photo" />
+            <div *ngIf="!draft.photo" class="placeholder-icon">
+                <i class="fas fa-cloud-slash"></i>
+            </div>
+          </div>
+          <div class="card-info" (click)="syncDraft(draft)">
+            <div class="type-tag draft">{{ formatTitle(draft.report_type) }}</div>
+            <h3 class="beat-name">{{ draft.beat || 'Unsaved Location' }}</h3>
+            <div class="meta-row">
+              <span class="date"><i class="far fa-clock"></i> {{ formatDate(draft.createdAt) }}</span>
+              <span class="status-chip pending">OFFLINE</span>
+            </div>
+          </div>
+          <div class="card-actions">
+            <button class="delete-btn" (click)="deleteDraft(draft.draftId)">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="empty-state" *ngIf="draftReports.length === 0">
+            <div class="empty-icon-circle green">
+              <i class="fas fa-check-double"></i>
+            </div>
+            <h3>Everything is synced!</h3>
+            <p>Your offline reports will appear here if sync fails.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</ion-content>

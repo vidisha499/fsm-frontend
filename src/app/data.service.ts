@@ -598,11 +598,12 @@ export class DataService {
     return this.http.post(`${this.baseApiUrl}/patrol-list`, payload);
   }
   getPatrolById(id: number | string) { return this.http.post(`${this.baseApiUrl}/patrol-logs`, { id: id }); }
+  saveSighting(payload: any) { return this.http.post(`${this.baseApiUrl}/forest-reports`, payload); }
+  submitForestEvent(payload: any) { return this.http.post(`${this.baseApiUrl}/forest-reports`, payload); }
   savePatrolLogs(payload: any) { return this.http.post(`${this.baseApiUrl}/save-patrol-logs`, payload); }
   updatePatrolLog(id: string | number, payload: any) { return this.http.put(`${this.baseApiUrl}/patrol-logs/${id}`, payload); }
   deletePatrolLog(id: string | number) { return this.http.delete(`${this.baseApiUrl}/patrol-logs/${id}`); }
   getPatrolPhotos(sessionId: string) { return this.http.post(`${this.baseApiUrl}/patrol/${sessionId}/getphotos`, {}); }
-  saveSighting(payload: any) { return this.http.post(`${this.baseApiUrl}/forest-reports`, payload); }
   getAllMapSightings(companyId: number) { return this.http.get(`${this.baseApiUrl}/patrols/all-sightings?companyId=${companyId}`); }
   getSightingCount(companyId: number, from?: string, to?: string): Observable<number> {
     let params: any = { companyId: companyId.toString() };
@@ -798,6 +799,49 @@ export class DataService {
   getFieldVisitDetail(payload: any) { return this.http.post(`${this.baseApiUrl}/detail`, payload); }
   createFieldVisit(payload: any) { return this.http.post(`${this.baseApiUrl}/create`, payload); }
   updateFieldVisit(id: string, payload: any) { return this.http.post(`${this.baseApiUrl}/${id}/update`, payload); }
+
+  // --- 18. OFFLINE DRAFTS & RECENT ACTIVITY ---
+  
+  saveForestEventDraft(payload: any) {
+    const drafts = this.getForestEventDrafts();
+    drafts.push({
+      ...payload,
+      draftId: 'DRAFT-' + Date.now(),
+      isDraft: true,
+      createdAt: new Date().toISOString()
+    });
+    localStorage.setItem('forest_event_drafts', JSON.stringify(drafts));
+  }
+
+  getForestEventDrafts(): any[] {
+    const drafts = localStorage.getItem('forest_event_drafts');
+    return drafts ? JSON.parse(drafts) : [];
+  }
+
+  deleteForestEventDraft(draftId: string) {
+    let drafts = this.getForestEventDrafts();
+    drafts = drafts.filter(d => d.draftId !== draftId);
+    localStorage.setItem('forest_event_drafts', JSON.stringify(drafts));
+  }
+
+  saveRecentSubmission(payload: any) {
+    const history = this.getRecentSubmissions();
+    // Maintain only last 10 entries locally
+    history.unshift({
+      title: payload.report_type,
+      date: payload.date_dateTime || new Date().toISOString(),
+      category: payload.category,
+      id: payload.report_id
+    });
+    if (history.length > 10) history.pop();
+    localStorage.setItem('forest_recent_history', JSON.stringify(history));
+  }
+
+  getRecentSubmissions(): any[] {
+    const history = localStorage.getItem('forest_recent_history');
+    return history ? JSON.parse(history) : [];
+  }
+
   deleteFieldVisit(id: string) { return this.http.post(`${this.baseApiUrl}/${id}/delete`, {}); }
   syncFieldVisits() { return this.http.post(`${this.baseApiUrl}/sync`, {}); }
 
@@ -852,10 +896,6 @@ export class DataService {
       responseType: 'blob',
       observe: 'response'
     });
-  }
-
-  submitForestEvent(payload: any) {
-    return this.http.post(`${this.baseApiUrl}/forest-events`, payload);
   }
 
   getForestEventById(id: number): Observable<any> {

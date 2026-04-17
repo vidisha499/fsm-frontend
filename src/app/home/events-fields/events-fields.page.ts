@@ -17,8 +17,12 @@ export class EventsFieldsPage implements OnInit {
   reportData: any = {};
   eventTitle: string = 'Logs';
   currentCategory: string = 'General'; // <--- YE LINE ADD KARO
- dynamicFields: any[] = [];
+  dynamicFields: any[] = [];
   capturedPhotos: string[] = [];
+  selectedZoomImage: string | null = null;
+  currentZoom: number = 1; // 🔍 Zoom level state
+  isConfigLoaded: boolean = false; // 🛡️ Prevent redundant re-loads
+  recentReports: any[] = [];
   isFormValid: boolean = false;
   swipeThreshold = 0.8;
   swipeCompleted = false;
@@ -84,8 +88,8 @@ fieldsConfig: any = {
       { label: 'Assigned Beat', type: 'text', placeholder: 'Enter Beat Name', key: 'beat' },
       { label: 'Encroachment Type', type: 'select', options: ['Agriculture', 'Construction'], key: 'encroachment_type' },
       { label: 'Area (Hectare)', type: 'number', placeholder: 'e.g. 1.5', key: 'area_hectare' },
-      { label: 'Machinery Present', type: 'select', options: ['Yes', 'No'], key: 'machinery' },
-      { label: 'Occupants/Persons Involved', type: 'text', key: 'occupants' },
+      { label: 'Article Seized', type: 'select', options: ['Yes', 'No'], key: 'article_seized' },
+      { label: 'Article Details', type: 'text', key: 'article_details', dependsOn: 'Article Seized', showIf: 'Yes' },
       { label: 'Site Photo', type: 'file', icon: 'camera-outline', key: 'photo' },
       { label: 'Remarks', type: 'textarea', key: 'remarks' }
     ],
@@ -95,6 +99,8 @@ fieldsConfig: any = {
       { label: 'Assigned Beat', type: 'text', placeholder: 'Enter Beat Name', key: 'beat' },
       { label: 'Mineral Type', type: 'text', placeholder: 'e.g. Sand', key: 'mineral_type' },
       { label: 'Estimated Volume (cu mtr)', type: 'number', key: 'volume_cum' },
+      { label: 'Vehicle Seized', type: 'select', options: ['Yes', 'No'], key: 'vehicle_seized' },
+      { label: 'Vehicle Seized Type', type: 'text', key: 'vehicle_seized_type', dependsOn: 'Vehicle Seized', showIf: 'Yes' },
       { label: 'Mining Method', type: 'select', options: ['Manual', 'Mechanized'], key: 'mining_method' },
       { label: 'Equipments Seen', type: 'text', key: 'equipment' },
       { label: 'Action Taken', type: 'text', key: 'action_taken' },
@@ -117,6 +123,8 @@ fieldsConfig: any = {
       { label: 'Species', type: 'select', options: this.animalSpecies, key: 'species' },
       { label: 'Sighting Type', type: 'select', options: ['Direct', 'Indirect'], key: 'sighting_type' },
       { label: 'No. of Animals', type: 'number', key: 'num_animals' },
+      { label: 'No. of Males', type: 'number', key: 'num_males' },
+      { label: 'No. of Females', type: 'number', key: 'num_females' },
       { label: 'Gender', type: 'select', options: ['Male', 'Female', 'Unknown'], key: 'gender' },
       { label: 'Evidence Type', type: 'select', options: ['Photo', 'Pugmark', 'Scratch', 'Scat', 'Body Part', 'Den', 'Other'], key: 'evidence_type' },
       { label: 'Upload Photo', type: 'file', icon: 'camera-outline', key: 'photo_evidence' },
@@ -127,7 +135,7 @@ fieldsConfig: any = {
       { label: 'GPS Status', type: 'text', value: 'Fetching Address...', readonly: true, icon: 'location-outline', id: 'gps' },
       { label: 'Assigned Beat', type: 'text', placeholder: 'Enter Beat Name', key: 'beat' },
       { label: 'Source Type', type: 'select', options: ['Earthen Pond', 'Dam', 'Check Dam', 'Stop Dam', 'Concrete Pond', 'Water Stream', 'Well', 'Others'], key: 'source_type' },
-      { label: 'Is it Dry?', type: 'select', options: ['Yes', 'No'], key: 'is_dry' },
+      { label: 'Is it Dry?', type: 'select', options: ['Seasonal (Mausami)', 'Perennial (Baramasi)'], key: 'is_dry' },
       { label: 'Water Quality', type: 'text', key: 'water_quality' },
       { label: 'Animal Signs Observed', type: 'text', key: 'animal_sign' },
       { label: 'Upload Photo', type: 'file', icon: 'camera-outline', key: 'photo' },
@@ -158,7 +166,8 @@ fieldsConfig: any = {
       { label: 'GPS Status', type: 'text', value: 'Fetching Address...', readonly: true, icon: 'location-outline', id: 'gps' },
       { label: 'Assigned Beat', type: 'text', placeholder: 'Enter Beat Name', key: 'beat' },
       { label: 'Compensation Type', type: 'select', options: ['Human death', 'Permanent disability', 'Human injury', 'Cattle death', 'crop damage', 'House damage', 'Other'], key: 'comp_type' },
-      { label: 'Name of Victim/Owner', type: 'text', key: 'victim_name' },
+      { label: 'Name of Victims/Owner', type: 'text', key: 'victim_name' },
+      { label: 'Name of Animal', type: 'text', key: 'animal_name', placeholder: 'Enter animal name' },
       { label: 'Village of Incident', type: 'text', key: 'village' },
       { label: 'Amount Claimed (₹)', type: 'number', key: 'amount_claimed' },
       { label: 'Upload Evidence Photo', type: 'file', icon: 'camera-outline', key: 'damage_photo' },
@@ -179,7 +188,7 @@ fieldsConfig: any = {
 
   constructor(
     private route: ActivatedRoute, 
-    private navCtrl: NavController,
+    public navCtrl: NavController,
     private actionSheetCtrl: ActionSheetController,
     private dataService: DataService,
     private toastCtrl: ToastController,
@@ -190,6 +199,8 @@ fieldsConfig: any = {
   ) {}
 
   ngOnInit() {
+    this.loadRecentSubmissions();
+
     // 1. URL parameters extraction
     let title = this.route.snapshot.paramMap.get('title');
     const category = this.route.snapshot.paramMap.get('category');
@@ -204,7 +215,7 @@ fieldsConfig: any = {
         pid = localStorage.getItem('active_patrol_id');
         console.log("💾 [FALLBACK] Recovered ID from storage:", pid);
       }
- 
+
       this.patrolId = pid;
       console.log("🚀 [STRICT SYNC] EventsFields Patrol ID locked to:", this.patrolId);
     });
@@ -223,6 +234,8 @@ fieldsConfig: any = {
   }
 
   async loadCustomConfiguration() {
+    if (this.isConfigLoaded) return; // 🛑 Prevent duplicate fetching logic
+
     const loading = await this.loadingCtrl.create({
       message: 'Loading form...',
       spinner: 'crescent',
@@ -245,6 +258,7 @@ fieldsConfig: any = {
           this.dynamicFields = this.fieldsConfig[this.eventTitle] || [];
         }
         
+        this.isConfigLoaded = true; // ✅ Mark as loaded
         this.fetchLocation();
         this.loadDefaultBeat();
         setTimeout(() => this.initSwipeGesture(), 500);
@@ -253,6 +267,7 @@ fieldsConfig: any = {
       error: (err) => {
         console.warn("⚠️ Config fetch failed, falling back to defaults:", err);
         this.dynamicFields = this.fieldsConfig[this.eventTitle] || [];
+        this.isConfigLoaded = true; // ✅ Mark as loaded even on error to stop loop
         this.fetchLocation();
         this.loadDefaultBeat();
         setTimeout(() => this.initSwipeGesture(), 500);
@@ -408,6 +423,9 @@ async fetchLocation() {
     let isValid = true;
     for (const field of this.dynamicFields) {
       if (field.id === 'gps') continue; // Always filled by fetchLocation
+      
+      // Skip validation if field is hidden
+      if (!this.isFieldVisible(field)) continue;
 
       const userValue = this.reportData[field.label];
       if (field.type === 'file') {
@@ -431,6 +449,52 @@ async fetchLocation() {
     }
     this.isFormValid = isValid;
     return isValid;
+  }
+
+  isFieldVisible(field: any): boolean {
+    if (!field.dependsOn) return true;
+    const parentValue = this.reportData[field.dependsOn];
+    return parentValue === field.showIf;
+  }
+
+  // --- Image Viewer / Zoom Logic ---
+  openZoom(imgUrl: string) {
+    this.selectedZoomImage = imgUrl;
+    this.currentZoom = 1; // Reset zoom level
+  }
+
+  // Double tap logic or simple button toggle
+  toggleZoom(event: any) {
+    event.stopPropagation();
+    if (this.currentZoom >= 2.5) {
+      this.currentZoom = 1;
+    } else {
+      this.currentZoom += 0.5;
+    }
+  }
+
+  closeZoom() {
+    this.selectedZoomImage = null;
+    this.currentZoom = 1;
+  }
+
+  async downloadImage(imageUrl: string) {
+    const loading = await this.loadingCtrl.create({
+      message: 'Preparing download...',
+      duration: 1000
+    });
+    await loading.present();
+    
+    try {
+      const link = document.createElement('a');
+      link.href = imageUrl;
+      link.download = `forest_photo_${Date.now()}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('Download failed', err);
+    }
   }
 
   // Swipe Gesture logic
@@ -502,61 +566,39 @@ async fetchLocation() {
     if (track) track.style.setProperty('--progress', '0');
   }
 
+  loadRecentSubmissions() {
+    this.recentReports = this.dataService.getRecentSubmissions();
+  }
 
- 
   async submitReport() {
-  const loading = await this.loadingCtrl.create({
-    message: 'Saving Report...',
-    spinner: 'circles'
-  });
-  await loading.present();
+    const loading = await this.loadingCtrl.create({
+      message: 'Saving Report...',
+      spinner: 'circles'
+    });
+    await loading.present();
 
-  try {
     const formattedReportData: any = {};
-    
-    // 1. Dynamic fields se data nikalna (Formatting for report_data JSON)
     this.dynamicFields.forEach(field => {
       const userValue = this.reportData[field.label];
       const key = field.key || field.label;
       formattedReportData[key] = userValue || "";
-      
-      // Include "Other" details if applicable
       if (field.type === 'select' && (userValue === 'Other' || userValue === 'Others')) {
         const otherValue = this.reportData[field.label + '_other'];
-        if (otherValue) {
-          formattedReportData[key + '_details'] = otherValue;
-        }
+        if (otherValue) formattedReportData[key + '_details'] = otherValue;
       }
     });
 
-    // 🔥 UTC ISO FIX: Store arrival time in unambiguous UTC format
-    const indiaTime = new Date().toISOString();
-    const now = new Date(indiaTime);
-
-    // 2. GPS Coordinates extraction (PRIORITIZE NUMERIC COORDINATES)
     const gpsField = this.dynamicFields.find(f => f.id === 'gps');
     const gpsValue = gpsField?.value || ""; 
-    
-    // Latitude/Longitude prioritized from reportData (where numeric strings are stored)
     let lat = this.reportData['latitude'] || "0";
     let lng = this.reportData['longitude'] || "0";
 
-    // Backup only: If reportData is missing lat/lng, try parsing from gpsValue
-    if ((lat === "0" || !lat) && gpsValue && gpsValue.includes(',')) {
-      const parts = gpsValue.split(',');
-      lat = parts[0].trim();
-      lng = parts[1].trim();
-    }
-    console.log("LocalStorage Data:", localStorage.getItem('user_data'));
-console.log("Company ID from Service:", this.dataService.getUserCompanyId());
+    const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+    const cId = userData.company_id || userData.companyId || 0;
+    const clientId = userData.client_id || userData.clientId || null;
+    const uName = userData.name || userData.userName || 'Forest Ranger';
+    const dynamicRangeName = userData.range_name || this.reportData['range'] || null;
 
-  const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
-  const cId = userData.company_id || userData.companyId || 0;
-  const clientId = userData.client_id || userData.clientId || null;
-  const uName = userData.name || userData.userName || 'Forest Ranger';
-  const dynamicRangeName = userData.range_name || this.reportData['range'] ||null;
-
-    // 3. FINAL PAYLOAD (Dono versions ka merged data)
     const payload = {
       report_id: 'FOR-' + Date.now(),
       user_id: Number(this.dataService.getRangerId()),
@@ -580,14 +622,10 @@ console.log("Company ID from Service:", this.dataService.getUserCompanyId());
       patrol_id: this.patrolId ? Number(this.patrolId) : (Number(localStorage.getItem('active_patrol_id')) || null)
     };
 
-    console.log("🚀 [DEBUG] Resolving Patrol ID for Payload:", this.patrolId);
-    console.log("🚀 [DEBUG] FULL PAYLOAD OBJECT:", payload);
-
-    // 4. SERVICE CALL
     this.dataService.submitForestEvent(payload).subscribe({
       next: async (res) => {
-        this.swipeCompleted = false; // Reset for potential next use or error case handling in better UX
         await loading.dismiss();
+        this.dataService.saveRecentSubmission(payload);
         const toast = await this.toastCtrl.create({
           message: 'Report Submitted Successfully! ✅',
           duration: 2000,
@@ -598,26 +636,32 @@ console.log("Company ID from Service:", this.dataService.getUserCompanyId());
         this.navCtrl.back();
       },
       error: async (err) => {
-        this.swipeCompleted = false;
-        this.resetSwipe();
         await loading.dismiss();
-        console.error("❌ Submission Error Log:", err);
+        console.warn("❌ Network failed, saving as draft...", err);
+        this.dataService.saveForestEventDraft(payload);
         
         const toast = await this.toastCtrl.create({
-          message: 'Error: ' + (err.error?.message || 'Server connection failed'),
-          duration: 3000,
-          color: 'danger',
+          message: 'Saved as Draft (Offline) 📁. Sync it from Reports section later.',
+          duration: 4000,
+          color: 'warning',
           position: 'top'
         });
         await toast.present();
+        this.navCtrl.back();
       }
     });
-
-  } catch (err) {
-    if (loading) await loading.dismiss();
-    console.error("Fatal Script Error:", err);
   }
-}
+
+  formatDate(dateStr: string) {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  formatTitle(str: string) {
+    if (!str) return '';
+    return str.replace(/_/g, ' ').toUpperCase();
+  }
 
   goBack() {
     this.navCtrl.back();
