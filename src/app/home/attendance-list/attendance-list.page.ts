@@ -1,7 +1,7 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { NavController, LoadingController , AlertController, IonModal} from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { DataService } from '../../data.service'; 
 import { TranslateService } from '@ngx-translate/core';
 import { environment } from 'src/environments/environment';
@@ -33,7 +33,8 @@ filterLocation: string = ''; // Location input ke liye
 
   isModalOpen: boolean = false; // Modal toggle error fix
   today: string = new Date().toISOString(); // [max]="today" error fix
-  // isFiltered: boolean = false;
+  selectedMode: 'beat' | 'onsite' = 'beat';
+  rangerId: string = localStorage.getItem('ranger_id') || '0';
 
   constructor(
     private navCtrl: NavController,
@@ -42,11 +43,19 @@ filterLocation: string = ''; // Location input ke liye
     private router: Router,
     private dataService: DataService,
     private translate: TranslateService,
-    private alertCtrl: AlertController
+    private alertCtrl: AlertController,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit() {
     this.attendance = this.dataService.getSelectedAttendance();
+    this.route.queryParams.subscribe(params => {
+      if (params['mode'] === 'onsite') {
+        this.selectedMode = 'onsite';
+      } else {
+        this.selectedMode = 'beat';
+      }
+    });
   }
 
   // async loadTodayOnly() {
@@ -160,41 +169,85 @@ async loadAttendanceLogs() {
   if (!companyId) return;
 
   const loader = await this.loadingCtrl.create({
-    message: 'Fetching Logs...',
+    message: `Fetching ${this.selectedMode === 'beat' ? 'Beat' : 'Onsite'} Logs...`,
     spinner: 'crescent'
   });
   await loader.present();
 
-  this.dataService.getAttendanceLogsByRanger(companyId).subscribe({
+  const request = this.selectedMode === 'beat' 
+    ? this.dataService.getAttendanceLogsByRanger(companyId)
+    : this.dataService.getOnsiteLogsByRanger(this.rangerId);
+
+  request.subscribe({
     next: (res: any) => {
-      const logsArray = res.attendance || res.data || res;
-      if (!Array.isArray(logsArray)) {
-        console.error('Expected array but got:', logsArray);
-        loader.dismiss();
-        return;
+      // Robust array extraction for both modes
+      let logsArray: any[] = [];
+      if (Array.isArray(res)) {
+        logsArray = res;
+      } else if (res && Array.isArray(res.data)) {
+        logsArray = res.data;
+      } else if (res && Array.isArray(res.attendance)) {
+        logsArray = res.attendance;
+      } else if (res && res.data && Array.isArray(res.data.attendance)) {
+        logsArray = res.data.attendance;
       }
+      
+      if (logsArray.length === 0 && res && !Array.isArray(res) && !res.data && !res.attendance) {
+         console.warn('Could not find logs array in response:', res);
+      }
+      
       this.allLogs = logsArray.map((log: any) => {
-        // Backend now returns timestamp or entryDateTime
-        const rawDate = log.timestamp || log.entryDateTime || log.created_at || log.createdAt || ''; 
+        // Robust date extraction
+        let rawDate = '';
+        if (this.selectedMode === 'beat') {
+          rawDate = log.timestamp || log.entryDateTime || log.created_at || log.createdAt || '';
+        } else {
+          // Onsite logs typically use created_at
+          rawDate = log.created_at || log.createdAt || log.timestamp || '';
+        }
+
+        // Convert to ISO string for consistent startsWith(today) filtering
+        let formattedDate = '';
+        try {
+          if (rawDate) {
+            formattedDate = new Date(rawDate).toISOString();
+          }
+        } catch (e) {
+          console.warn('Date parsing failed for:', rawDate);
+          formattedDate = rawDate; // Fallback
+        }
+          
         return {
           ...log,
-          createdAt: rawDate,
-          geofence: log.geo_name,
-          rangerName: log.name
+          createdAt: formattedDate,
+          geofence: log.geo_name || log.geofence || 'General Area',
+          rangerName: log.name || log.rangerName || 'Ranger'
         };
       });
 
-      // 2. Sirf AAJ ka data dikhayein (Starts with YYYY-MM-DD)
+      // Filter for today (IST/Local compatible check)
       const today = new Date().toISOString().split('T')[0];
-      this.attendanceLogs = this.allLogs.filter(log => log.createdAt && log.createdAt.startsWith(today));
+      this.attendanceLogs = this.allLogs.filter(log => {
+        if (!log.createdAt) return false;
+        return log.createdAt.split('T')[0] === today;
+      });
       
       loader.dismiss();
     },
     error: (err) => {
       console.error(err);
+      this.allLogs = [];
+      this.attendanceLogs = [];
       loader.dismiss();
     }
   });
+}
+
+setMode(mode: 'beat' | 'onsite') {
+  if (this.selectedMode === mode) return;
+  this.selectedMode = mode;
+  this.isFiltered = false;
+  this.loadAttendanceLogs();
 }
   // UPDATE: Event must be 'any' or 'Event' and come first as per HTML ($event, log.id)
   async confirmDelete(event: any, id: number) {
@@ -219,9 +272,14 @@ async loadAttendanceLogs() {
   }
 
   deleteLog(id: number) {
-    this.http.delete(`${environment.apiUrl}/attendance/beat-attendance/${id}`).subscribe({ 
+    const endpoint = this.selectedMode === 'beat' 
+      ? `${environment.apiUrl}/attendance/beat-attendance/${id}`
+      : `${environment.apiUrl}/onsite-attendance/${id}`;
+
+    this.http.delete(endpoint).subscribe({ 
       next: () => {
         this.attendanceLogs = this.attendanceLogs.filter(log => log.id !== id);
+        this.allLogs = this.allLogs.filter(log => log.id !== id);
       },
       error: (err) => console.error("Delete Error:", err)
     });
@@ -234,8 +292,14 @@ async loadAttendanceLogs() {
   }
 
   viewDetails(log: any) {
-    this.dataService.setSelectedAttendance(log); 
-    this.router.navigate([`/attendance-detail/${log.id}`]);
+    if (this.selectedMode === 'beat') {
+      this.dataService.setSelectedAttendance(log); 
+      this.router.navigate([`/attendance-detail/${log.id}`]);
+    } else {
+      this.router.navigate(['/onsite-attendance-details'], {
+        queryParams: { id: log.id }
+      });
+    }
   }
 
   goBack() {
@@ -325,8 +389,11 @@ resetFilters() {
 
 
 
-goToMarkAttendance() {
-    // Ye aapko attendance mark karne wale page par le jayega
-    this.navCtrl.navigateForward('/attendance'); 
+async goToMarkAttendance() {
+    if (this.selectedMode === 'beat') {
+      this.navCtrl.navigateForward('/attendance'); 
+    } else {
+      this.navCtrl.navigateForward('/onsite-attendance');
+    }
   }
 }

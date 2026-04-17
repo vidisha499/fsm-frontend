@@ -419,6 +419,15 @@ async fetchLocation() {
         isValid = false;
         break;
       }
+
+      // Check for conditional "Other" field
+      if (field.type === 'select' && (userValue === 'Other' || userValue === 'Others')) {
+        const otherValue = this.reportData[field.label + '_other'];
+        if (!otherValue || otherValue.trim() === '') {
+          isValid = false;
+          break;
+        }
+      }
     }
     this.isFormValid = isValid;
     return isValid;
@@ -510,6 +519,14 @@ async fetchLocation() {
       const userValue = this.reportData[field.label];
       const key = field.key || field.label;
       formattedReportData[key] = userValue || "";
+      
+      // Include "Other" details if applicable
+      if (field.type === 'select' && (userValue === 'Other' || userValue === 'Others')) {
+        const otherValue = this.reportData[field.label + '_other'];
+        if (otherValue) {
+          formattedReportData[key + '_details'] = otherValue;
+        }
+      }
     });
 
     // 🔥 UTC ISO FIX: Store arrival time in unambiguous UTC format

@@ -47,13 +47,13 @@
             <div style="margin-top: 35px;">
                 <h3 class="section-title">{{ 'DASHBOARD.MISSION_MODULES' | translate }}</h3>
                 <div class="module-grid">
-                    <div class="module-card card-blue" (click)="goToPage('attendance-list')">
+                    <div class="module-card card-blue" (click)="goToPage('attendance-list', { mode: 'beat' })">
                         <div class="icon-bg"><i class="fas fa-fingerprint"></i></div>
                         <p [innerHTML]="'DASHBOARD.BEAT_ATTENDANCE' | translate"></p>
                         <i class="fas fa-paw watermark"></i>
                     </div>
-                    <div class="module-card card-green" (click)="goToPage('onsite-attendance-logs')">
-                        <div class="icon-bg"><i class="fas fa-satellite"></i></div>
+                    <div class="module-card card-green" (click)="goToPage('geofences')">
+                        <div class="icon-bg"><i class="fas fa-map-marked-alt"></i></div>
                         <p [innerHTML]="'DASHBOARD.ONSITE_LOG' | translate"></p>
                         <i class="fas fa-paw watermark"></i>
                     </div>

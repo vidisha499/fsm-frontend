@@ -35,13 +35,24 @@
           </ion-input>
         </ion-item>
 
-        <!-- Select Dropdowns -->
         <ion-item lines="none" class="custom-input" *ngIf="field.type === 'select'">
           <ion-select [placeholder]="field.placeholder" [(ngModel)]="reportData[field.label]" (ionChange)="checkFormValidity()" interface="action-sheet" mode="md">
             <ion-select-option *ngFor="let opt of field.options" [value]="opt">
               {{ opt }}
             </ion-select-option>
           </ion-select>
+        </ion-item>
+        
+        <!-- Conditional "Other" Textarea -->
+        <ion-item lines="none" class="custom-input area-item animate-in" 
+                  *ngIf="field.type === 'select' && (reportData[field.label] === 'Other' || reportData[field.label] === 'Others')">
+          <ion-textarea 
+            placeholder="Specify Other" 
+            [(ngModel)]="reportData[field.label + '_other']" 
+            (ngModelChange)="checkFormValidity()" 
+            rows="2" 
+            auto-grow="true">
+          </ion-textarea>
         </ion-item>
 
         <!-- Radio Buttons -->

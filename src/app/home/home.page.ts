@@ -518,7 +518,7 @@ async updateProtocol() {
     await toast.present();
   }
 
-  goToPage(path: string) {
+  goToPage(path: string, queryParams: any = {}) {
     this.toggleMenu(false);
 
     setTimeout(() => {
@@ -530,7 +530,7 @@ async updateProtocol() {
         if (lang) localStorage.setItem('app_language_code', lang);
         this.router.navigate(['/login']);
       } else {
-        this.router.navigate(['/', path]);
+        this.router.navigate(['/', path], { queryParams });
       }
     }, 150);
   }

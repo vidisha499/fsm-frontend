@@ -17,10 +17,17 @@
             <button class="filter-toggle-btn"  style="margin-top: 30px;" (click)="isModalOpen = true">
               <i class="fas fa-sliders-h"></i>
             </button>
-<!-- 
-            <button class="glass-back" (click)="isModalOpen = true">
-          <ion-icon name="options-outline"></ion-icon>
-        </button> -->
+          </div>
+        </div>
+
+        <!-- Premium Toggle Switcher -->
+        <div class="toggle-container animate__animated animate__fadeIn">
+          <div class="glass-toggle">
+            <div class="toggle-track" [class.onsite-active]="selectedMode === 'onsite'">
+              <button (click)="setMode('beat')" [class.active]="selectedMode === 'beat'">Beat</button>
+              <button (click)="setMode('onsite')" [class.active]="selectedMode === 'onsite'">Onsite</button>
+              <div class="active-indicator"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -46,9 +53,13 @@
 
           <div class="row-content">
             <div class="top-line">
-              <!-- <span class="type-text" [attr.data-type]="log.type">{{ log.type }}</span> -->
-              <span class="log-date">{{ (log.createdAt || log.created_at) | date:'hh:mm a':'UTC+0530'}}</span>
-              <!-- <h2 class="priority-title">{{ (log.createdAt || log.created_at) | date:'dd MMMM, yyyy':'UTC+0530' }}</h2> -->
+              <span class="log-date">{{ (log.createdAt || log.created_at) | date:'hh:mm a' }}</span>
+              <span *ngIf="selectedMode === 'onsite'" 
+                    class="status-badge" 
+                    [class.status-approved]="log.status === 'approved'"
+                    [class.status-pending]="log.status !== 'approved'">
+                {{ (log.status || 'pending') | uppercase }}
+              </span>
             </div>
             <h2 class="priority-title">{{ (log.createdAt || log.created_at) | date:'dd MMMM, yyyy' }}</h2>
             <div class="reporter-line">
@@ -58,7 +69,7 @@
           </div>
 
           <div class="row-actions">
-            <ion-button fill="clear"color="danger" (click)="confirmDelete($event, log.id)">
+            <ion-button fill="clear" color="danger" (click)="confirmDelete($event, log.id)">
               <ion-icon slot="icon-only" name="trash-outline" style="font-size: 18px;"></ion-icon>
             </ion-button>
             <ion-icon name="chevron-forward" class="chevron"></ion-icon>

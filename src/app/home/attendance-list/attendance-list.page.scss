@@ -37,7 +37,7 @@
   /* Hero Header Section */
   .hero-header {
     position: relative;
-    height: 180px;
+    height: 220px;
     background: url('https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&q=80&w=800') center/cover;
     border-radius: 0 0 45px 45px;
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
@@ -93,6 +93,62 @@
           transition: all 0.3s ease;
           
           &:active { transform: scale(0.9); background: rgba(255, 255, 255, 0.25); }
+        }
+      }
+
+      /* Premium Toggle Switching */
+      .toggle-container {
+        margin-top: 25px;
+        display: flex;
+        justify-content: center;
+        
+        .glass-toggle {
+          background: rgba(255, 255, 255, 0.1);
+          backdrop-filter: blur(15px);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          padding: 5px;
+          border-radius: 16px;
+          width: 100%;
+          max-width: 280px;
+
+          .toggle-track {
+            position: relative;
+            display: flex;
+            height: 40px;
+
+            button {
+              flex: 1;
+              background: transparent;
+              border: none;
+              color: rgba(255, 255, 255, 0.7);
+              font-weight: 700;
+              font-size: 14px;
+              z-index: 2;
+              transition: all 0.3s ease;
+              position: relative;
+
+              &.active {
+                color: var(--dark-slate);
+              }
+            }
+
+            .active-indicator {
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 50%;
+              height: 100%;
+              background: white;
+              border-radius: 12px;
+              transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+              z-index: 1;
+              box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            }
+
+            &.onsite-active .active-indicator {
+              transform: translateX(100%);
+            }
+          }
         }
       }
     }
@@ -168,6 +224,23 @@
             &[data-type="EXIT"] { color: var(--exit-red); }
           }
           .log-date { font-size: 11px; color: #64748b; font-weight: 600; }
+          .status-badge {
+            font-size: 9px;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            
+            &.status-approved {
+              background: rgba(16, 185, 129, 0.15);
+              color: #10b981;
+            }
+          
+            &.status-pending {
+              background: rgba(251, 191, 36, 0.15);
+              color: #fbbf24;
+            }
+          }
         }
         
         .priority-title { 

@@ -217,14 +217,15 @@ async submit() {
 
   console.log('Submitting Onsite Attendance for Company:', companyId)
   
-  // Since we mapped onsite to the main markAttendance in DataService, we can just use it
-  this.dataService.markAttendance(onsiteData).subscribe({
+  // Submitting using the correct Onsite API
+  this.dataService.markOnsiteAttendance(onsiteData).subscribe({
     next: async () => {
       const successMsg = await firstValueFrom(this.translate.get('ATTENDANCE.SUCCESS'));
       this.presentToast(successMsg, 'success');
       setTimeout(() => {
         this.isSubmitting = false;
-        this.navCtrl.navigateRoot('/onsite-attendance-logs');
+        // Redirect to unified history with onsite mode active
+        this.navCtrl.navigateRoot('/attendance-list', { queryParams: { mode: 'onsite' } });
       }, 1500);
     },
     error: async (err) => {

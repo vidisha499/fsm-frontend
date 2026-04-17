@@ -316,7 +316,7 @@ async submitAttendance() {
       // Clear flag after success
       setTimeout(() => {
         this.isSubmitting = false;
-        this.goBack();
+        this.navCtrl.navigateRoot('/attendance-list', { queryParams: { mode: 'beat' } });
       }, 1500);
     },
     error: async (err) => {
