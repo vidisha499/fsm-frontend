@@ -495,7 +495,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { environment } from '../environments/environment';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
 export class DataService {
@@ -545,10 +546,17 @@ export class DataService {
   // --- 4. DASHBOARD & ADMIN STATS ---
   // Replaced explicit api_token with interceptor
   getDashboardStats(companyId: number, from?: string, to?: string) {
+    const token = localStorage.getItem('api_token');
     let params: any = {};
     if (from) params['date_from'] = from;
     if (to) params['date_to'] = to;
-    return this.http.get(`${this.baseApiUrl}/forest-admin-dashboard/data`, { params });
+    
+    // Manually pass Authorization Header. 
+    // This triggers our Interceptor to SKIP adding api_token to the URL, 
+    // bypassing the server's SQL syntax bug.
+    const headers = { 'Authorization': `Bearer ${token}` };
+    
+    return this.http.get(`${this.baseApiUrl}/forest-admin-dashboard/data`, { params, headers });
   }
   getAdminStats(companyId: number, timeframe?: string, from?: string, to?: string) {
     let params = `?timeframe=${timeframe || 'today'}`;
@@ -753,10 +761,24 @@ export class DataService {
     return this.getUserMonthlyAttendance(payload, headers); 
   }
   getApprovedOnsiteByCompany(companyId: string) { return this.http.get(`${this.baseApiUrl}/onsite-attendance/company/${companyId}`); }
-  getWeeklyAttendanceStats(companyId: any, rangerId?: any) {
-    let url = `${this.baseApiUrl}/attendance/stats/weekly?companyId=${companyId}`;
-    if (rangerId) url += `&rangerId=${rangerId}`;
-    return this.http.get<number[]>(url);
+  getWeeklyAttendanceStats(companyId: any, rangerId?: any): Observable<number[]> {
+    const token = localStorage.getItem('api_token');
+    const url = `${this.baseApiUrl}/forest-admin-dashboard/data`;
+    const params: any = { type: 'attendance', companyId: companyId.toString() };
+    if (rangerId) params.ranger_id = rangerId.toString();
+    
+    const headers = { 'Authorization': `Bearer ${token}` };
+
+    return this.http.get<any>(url, { params, headers }).pipe(
+      map(res => {
+        const data = res.data ? res.data : res;
+        return data.officerStatus?.history || data.history || [0, 0, 0, 0, 0, 0, 0];
+      }),
+      catchError(err => {
+        console.warn("⚠️ Attendance API failing (500), using fallback empty data:", err);
+        return of([0, 0, 0, 0, 0, 0, 0]);
+      })
+    );
   }
 
 
@@ -775,7 +797,11 @@ export class DataService {
     return this.http.post(`${this.baseApiUrl}/asset-report`, payload, { responseType: 'blob', observe: 'response' }); 
   }
 
-  getAssetStats(companyId: number): Observable<any> { return this.http.get(`${this.baseApiUrl}/admin/assets/stats/${companyId}`); }
+  getAssetStats(companyId: number): Observable<any> {
+    const token = localStorage.getItem('api_token');
+    const headers = { 'Authorization': `Bearer ${token}` };
+    return this.http.get(`${this.baseApiUrl}/forest-admin-dashboard/data?type=assets&companyId=${companyId}`, { headers });
+  }
   getAssetTrend(companyId: number): Observable<any> { return this.http.get(`${this.baseApiUrl}/assets/assets-trend?company_id=${companyId}`); }
   getAssetsTrend(companyId: number): Observable<any> { return this.getAssetTrend(companyId); }
   getAssetCategories(companyId: any): Observable<any[]> { return this.http.get<any[]>(`${this.baseApiUrl}/assets/categories/${companyId}`); }
@@ -785,30 +811,41 @@ export class DataService {
 
   // --- 10. ANALYTICS ---
   getAssetsAnalytics(companyId: number, startDate?: string, endDate?: string) {
-    let url = `${this.baseApiUrl}/admin/analytics/assets?companyId=${companyId}`;
+    const token = localStorage.getItem('api_token');
+    let url = `${this.baseApiUrl}/forest-admin-dashboard/data?type=assets&companyId=${companyId}`;
     if (startDate && endDate) url += `&startDate=${startDate}&endDate=${endDate}`;
-    return this.http.get(url);
+    const headers = { 'Authorization': `Bearer ${token}` };
+    return this.http.get(url, { headers });
   }
   getEventsAnalytics(companyId: number, timeframe: string, startDate?: string, endDate?: string) {
-    let url = `${this.baseApiUrl}/admin/analytics/events?companyId=${companyId}&timeframe=${timeframe}`;
+    const token = localStorage.getItem('api_token');
+    let url = `${this.baseApiUrl}/forest-admin-dashboard/data?type=events&companyId=${companyId}&timeframe=${timeframe}`;
     if (startDate && endDate) url += `&startDate=${startDate}&endDate=${endDate}`;
-    return this.http.get(url);
+    const headers = { 'Authorization': `Bearer ${token}` };
+    return this.http.get(url, { headers });
   }
   
   // FIX: Admin Analytics Missing Function
   getSubCategoryAnalytics(companyId: number, category: string, subCategory: string, timeframe: string, startDate?: string, endDate?: string): Observable<any> {
-    let url = `${this.baseApiUrl}/admin/analytics/subcategory-details?companyId=${companyId}&category=${category}&subCategory=${encodeURIComponent(subCategory)}&timeframe=${timeframe}`;
+    const token = localStorage.getItem('api_token');
+    let url = `${this.baseApiUrl}/forest-admin-dashboard/data?type=subcategory-details&companyId=${companyId}&category=${category}&subCategory=${encodeURIComponent(subCategory)}&timeframe=${timeframe}`;
     if (startDate && endDate) url += `&startDate=${startDate}&endDate=${endDate}`;
-    return this.http.get(url);
+    const headers = { 'Authorization': `Bearer ${token}` };
+    return this.http.get(url, { headers });
   }
   getCriminalAnalytics(companyId: any, timeframe: string, range: string, beat: string): Observable<any> {
-    const url = `${this.baseApiUrl}/incidents/analytics/criminal`;
-    const params = { companyId: companyId.toString(), timeframe: timeframe || 'month', range: range || 'all', beat: beat || 'all' };
-    return this.http.get(url, { params });
+    const token = localStorage.getItem('api_token');
+    const url = `${this.baseApiUrl}/forest-admin-dashboard/data`;
+    const params = { type: 'criminal', companyId: companyId.toString(), timeframe: timeframe || 'month', range: range || 'all', beat: beat || 'all' };
+    const headers = { 'Authorization': `Bearer ${token}` };
+    return this.http.get(url, { params, headers });
   }
   getFireAnalytics(companyId: any, timeframe: string, range: string, beat: string) {
-    const params = { companyId: companyId.toString(), timeframe, range, beat };
-    return this.http.get(`${this.baseApiUrl}/incidents/analytics/fire`, { params });
+    const token = localStorage.getItem('api_token');
+    const url = `${this.baseApiUrl}/forest-admin-dashboard/data`;
+    const params = { type: 'fire', companyId: companyId.toString(), timeframe, range, beat };
+    const headers = { 'Authorization': `Bearer ${token}` };
+    return this.http.get(url, { params, headers });
   }
 
   // --- 11. ALERTS & SOS ---
@@ -828,20 +865,16 @@ export class DataService {
   getForestReportConfigs() { return this.http.get(`${this.baseApiUrl}/forest-report-configs`); }
   
   getForestReports(paramsOrCategory?: any) { 
-    const token = localStorage.getItem('api_token');
-    let url = `${this.baseApiUrl}/forest-reports?api_token=${token}`;
+    let url = `${this.baseApiUrl}/forest-reports`;
     
     if (typeof paramsOrCategory === 'string') {
-      url += `&category=${paramsOrCategory}`;
-      return this.http.get(url);
+      const params = { category: paramsOrCategory };
+      return this.http.get(url, { params });
     } else if (paramsOrCategory && typeof paramsOrCategory === 'object') {
-      // Use query params for objects
-      return this.http.get(`${this.baseApiUrl}/forest-reports`, { 
-        params: { ...paramsOrCategory, api_token: token || '' } 
-      });
+      return this.http.get(url, { params: paramsOrCategory });
     }
     
-    return this.http.get(url); 
+    return this.http.get(url);
   }
   getSitesList(companyId: string) {
     const token = localStorage.getItem('api_token');

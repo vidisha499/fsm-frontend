@@ -20,7 +20,7 @@ export class AuthInterceptor implements HttpInterceptor {
       return next.handle(request.clone({ headers: request.headers.delete('Bypass-Token') }));
     }
 
-    if (apiToken) {
+    if (apiToken && !request.headers.has('Authorization')) {
       // Add api_token to query params for ALL methods (GET, POST, etc.)
       let clonedRequest = request.clone({
         params: request.params.set('api_token', apiToken)

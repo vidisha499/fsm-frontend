@@ -90,6 +90,13 @@ endDate: string = '';    // Ye missing tha
     { id: 'assets', label: '🛡️ Assets' }
   ];
 
+  manualSubCounts: any = {};
+  manualSpeciesData: any = {};
+  manualRangeData: any = {};
+  manualStorageData: any = {};
+  manualFireCauses: any = {};
+  manualTrendData: any = {};
+  
   // ═══════════════════════════════════════════
   //  THE MAIN CONFIG OBJECT
   // ═══════════════════════════════════════════
@@ -449,7 +456,9 @@ events: {
 private route: ActivatedRoute,) { }
 
   ngOnInit() { 
-    this.companyId = localStorage.getItem('company_id') || 1;
+    const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+    this.companyId = userData.company_id || userData.companyId || 1;
+    console.log("📈 Analytics Page Initialized for Company:", this.companyId);
     this.activeTab = 'criminal';
     this.activeCatId = 'criminal';
     this.activeDateFilter = 'today';
@@ -730,17 +739,6 @@ getIconColor(label: string): string {
   return '#3dc2ff'; // Default Blue
 }
 
-// async updateUIData() {
-//   const cat = this.getCurrentCat();
-//   if (!cat) return;
-
-//   const companyId = localStorage.getItem('company_id') || '1';
-//   const timeframe = this.activeDateFilter || 'today';
-  
-//   // Custom range handle karne ke liye
-//   const startDate = this.startDate; 
-//   const endDate = this.endDate;
-
 //   this.isRefreshing = true;
 //   this.cdr.detectChanges();
 
@@ -824,7 +822,10 @@ async updateUIData() {
   const cat = this.getCurrentCat();
   if (!cat) return;
 
-  const companyId = localStorage.getItem('company_id') || '1';
+  const storageData = localStorage.getItem('user_data');
+  const user = storageData ? JSON.parse(storageData) : {};
+  const companyId = user.company_id || user.companyId || '1';
+  
   this.isRefreshing = true;
   this.cdr.detectChanges();
 
@@ -835,83 +836,228 @@ async updateUIData() {
     this.endDate
   ).subscribe({
     next: (res: any) => {
-      console.log("🚀 Syncing Real Data [Analytics]:", res); 
+      const apiRoot = res.data || res;
+      console.log("🚀 Syncing Real Data Root [Analytics]:", apiRoot); 
       
       // 1. Sync Top-Level KPIs (Visible or used in logic)
-      this.criminalCount = res.criminal_count || 0;
-      this.eventsCount = res.events_count || 0;
-      this.totalEvents = res.total_events || 0;
-      this.fireCount = res.fire_incidents?.val || res.fire?.val || 0;
+      this.criminalCount = Number(apiRoot.criminal_count || 0);
+      this.eventsCount = Number(apiRoot.events_count || 0);
+      this.totalEvents = Number(apiRoot.total_events || 0);
+      this.fireCount = Number(apiRoot.fire_incidents?.val || apiRoot.fire?.val || 0);
 
-      this.destroyCharts();
+      // --- DYNAMIC DATABASE FETCH (FORCE SYNC) ---
+      // We fetch ALL reports without timeframe filters to ensure we don't miss any records
+      // then filter/aggregate on the frontend for 100% reliability.
+      this.dataService.getForestReports().subscribe({
+        next: (raw: any) => {
+          const list = Array.isArray(raw) ? raw : (raw.data || []);
+          console.log("📊 Direct Database Sync [Analytics]: Found", list.length, "Total Records");
+          
+          const manualSubCounts: { [key: string]: number } = {};
+          const manualSpeciesData: { [key: string]: { [key: string]: number } } = {}; // subId -> species -> count
+          const manualRangeData: { [key: string]: { [key: string]: number } } = {};   // subId -> range -> count
+          const manualStorageData: { [key: string]: { godown: number, openSpace: number } } = {}; 
+          const manualFireCauses: { [key: string]: number } = {};
+          const manualTrendData: { [key: string]: { [key: string]: number } } = {};   // subId -> dateYMD -> count
+          const totals = { criminal: 0, events: 0, fire: 0 };
 
-      this.displayProgList = cat.subs.map((s: any) => {
-        // Backend keys check with fallbacks for mapping mismatches
-        let rawData = res[s.id] || res[s.id.toLowerCase()];
-        
-        // Manual Mapping fixes based on backend response structure
-        if (!rawData) {
-           if (s.id === 'compensation') rawData = res.wildlife_compensation;
-           if (s.id === 'water') rawData = res.water_source_status || res.water;
-           if (s.id === 'wild_animal') rawData = res.wild_animal || res.animal;
-           if (s.id === 'jfmc') rawData = res.jfmc || res.jfmc_social_forestry;
-           if (s.id === 'fire_incidents') rawData = res.fire_incidents;
-        }
+          if (list.length > 0) {
+            const todayYMD = new Date().toISOString().split('T')[0];
+            const todayDMY = todayYMD.split('-').reverse().join('-');
 
-        const countVal = (typeof rawData === 'number') ? rawData : (rawData?.val || 0);
+            list.forEach((r: any) => {
+              const cat = (r.category || '').toLowerCase();
+              const type = (r.report_type || r.report_data?.report_type || '').toLowerCase();
+              const rDate = r.date || '';
+              const rCreatedAt = r.created_at || r.date_time || '';
+              const isToday = (rCreatedAt && rCreatedAt.includes(todayYMD)) || (rDate && rDate.includes(todayDMY));
 
-        if (s.charts && Array.isArray(s.charts)) {
-          s.charts.forEach((ch: any) => {
-            if (s.id === 'wild_animal' && ch.id === 'ev-an1') {
-              ch.dynamicData = res.sightings_by_species || []; 
-            } else if (ch.id === 'ev-an2' || (s.id === 'wild_animal' && ch.type === 'line')) {
-              ch.dynamicData = res.trend_data || [];
-            } else if (s.id === 'fire_incidents') {
-              if (ch.id === 'ac-fi1') {
-                const trendArr = res.fire_trend || res.trend_data || [];
-                ch.dynamicData = trendArr.map((t: any) => typeof t.count !== 'undefined' ? t.count : t.value);
-                ch.dynamicLabels = trendArr.map((t: any) => typeof t.day_label !== 'undefined' ? t.day_label : t.label);
-              } else if (ch.id === 'ac-fc1') {
-                ch.dynamicData = res.fire_causes || [];
+              // Filter by timeframe manually
+              if (this.activeDateFilter === 'today' && !isToday) return;
+
+              // Aggregate Main Totals
+              if (cat.includes('crim')) totals.criminal++;
+              else if (cat.includes('fire')) totals.fire++;
+              else if (cat.includes('events') || cat.includes('sight') || cat.includes('monit')) totals.events++;
+
+              // Aggregate Sub-Category Counts (Detailed Mapping - Greedy Keywords)
+              let subId = '';
+              if (type.includes('fell') || cat.includes('fell') || type.includes('tree') || type.includes('wood') || type.includes('cut') || type.includes('logging')) subId = 'felling';
+              else if (type.includes('transp') || cat.includes('transp') || type.includes('vehicle') || type.includes('truck') || type.includes('timber_t')) subId = 'transport';
+              else if (type.includes('storage') || cat.includes('storage') || type.includes('depot') || type.includes('yard')) subId = 'storage';
+              else if (type.includes('poach') || cat.includes('poach') || type.includes('hunt') || type.includes('kill') || type.includes('carcass')) subId = 'poaching';
+              else if (type.includes('encroach') || cat.includes('encroach') || type.includes('land') || type.includes('occupied') || type.includes('कब्जा')) subId = 'encroach';
+              else if (type.includes('mining') || cat.includes('mining') || type.includes('quarry') || type.includes('sand')) subId = 'mining';
+              else if (type.includes('wild') || cat.includes('sight') || cat.includes('animal') || type.includes('paw') || type.includes('monit')) subId = 'wild_animal';
+              else if (type.includes('water') || cat.includes('water') || type.includes('well') || type.includes('pond')) subId = 'water';
+              else if (type.includes('fire') || cat.includes('fire') || type.includes('burn') || type.includes('smoke')) subId = 'fire_incidents';
+              else if (type.includes('compensation') || type.includes('pay') || type.includes('loss')) subId = 'compensation';
+              else if (type.includes('jfmc') || type.includes('social') || type.includes('society')) subId = 'jfmc';
+              
+              if (subId) {
+                manualSubCounts[subId] = (manualSubCounts[subId] || 0) + 1;
+                
+                // Track Species
+                const species = r.species || r.plant_species || r.animal_species || r.tree_species || 'Unknown';
+                if (!manualSpeciesData[subId]) manualSpeciesData[subId] = {};
+                manualSpeciesData[subId][species] = (manualSpeciesData[subId][species] || 0) + 1;
+
+                // Track Range
+                const range = r.range_name || r.range || r.region || r.division || r.beat_name || 'General';
+                if (!manualRangeData[subId]) manualRangeData[subId] = {};
+                manualRangeData[subId][range] = (manualRangeData[subId][range] || 0) + 1;
+
+                // Special Aggregation: Storage
+                if (subId === 'storage') {
+                  const sType = (r.storage_type || r.location_type || r.report_data?.storage_type || r.storage_name || '').toLowerCase();
+                  const isGodown = sType.includes('godown') || sType.includes('indoor') || sType.includes('warehouse') || sType.includes('depot');
+                  if (!manualStorageData[species]) manualStorageData[species] = { godown: 0, openSpace: 0 };
+                  if (isGodown) manualStorageData[species].godown++;
+                  else manualStorageData[species].openSpace++;
+                }
+
+                // Special Aggregation: Fire
+                if (subId === 'fire_incidents') {
+                   const cause = (r.cause || r.report_data?.cause || r.fire_cause || 'Unknown').toLowerCase();
+                   let key = 'unknown';
+                   if (cause.includes('natural')) key = 'natural';
+                   else if (cause.includes('negligence')) key = 'negligence';
+                   else if (cause.includes('intent')) key = 'intentional';
+                   manualFireCauses[key] = (manualFireCauses[key] || 0) + 1;
+                }
+
+                // Track Trend (Daily Counts with Robust Date Parsing)
+                let dateYMD = '';
+                const rawDateStr = rCreatedAt || rDate || '';
+                if (rawDateStr) {
+                   // Fallback for different formats (YYYY-MM-DD vs DD-MM-YYYY)
+                   if (rawDateStr.includes('-')) {
+                      const parts = rawDateStr.split(' ')[0].split('-');
+                      if (parts[0].length === 4) dateYMD = parts[0] + '-' + parts[1] + '-' + parts[2]; // YYYY-MM-DD
+                      else dateYMD = parts[2] + '-' + parts[1] + '-' + parts[0]; // DD-MM-YYYY
+                   } else if (rawDateStr.includes('/')) {
+                      const parts = rawDateStr.split(' ')[0].split('/');
+                      if (parts[2].length === 4) dateYMD = parts[2] + '-' + parts[1] + '-' + parts[0]; // DD/MM/YYYY
+                   }
+                }
+                
+                if (dateYMD && dateYMD.length === 10) {
+                  if (!manualTrendData[subId]) manualTrendData[subId] = {};
+                  manualTrendData[subId][dateYMD] = (manualTrendData[subId][dateYMD] || 0) + 1;
+                }
               }
-            } else {
-              ch.dynamicData = (rawData && Array.isArray(rawData.trend)) ? rawData.trend : [countVal];
+            });
+
+            console.log("📊 Manual Sync Results [Analytics Sub-Categories]:", manualSubCounts);
+            
+            // Store for individual card clicks
+            this.manualSubCounts = manualSubCounts;
+            this.manualSpeciesData = manualSpeciesData;
+            this.manualRangeData = manualRangeData;
+            this.manualStorageData = manualStorageData;
+            this.manualFireCauses = manualFireCauses;
+
+            // Force update UI variables
+            this.criminalCount = totals.criminal;
+            this.eventsCount = totals.events;
+            this.fireCount = totals.fire;
+            this.totalEvents = totals.criminal + totals.events + totals.fire;
+          }
+
+          // Centralized function to inject manual data into a sub-category config
+          const injectManual = (s: any) => {
+             if (s.charts && Array.isArray(s.charts)) {
+                s.charts.forEach((ch: any) => {
+                   const mSpec = this.manualSpeciesData[s.id] || {};
+                   const mRange = this.manualRangeData[s.id] || {};
+                   const mTrend = this.manualTrendData[s.id] || {};
+                   
+                   if (s.id === 'wild_animal' && ch.id === 'ev-an1') {
+                      const arr = Object.keys(mSpec).map(k => ({ label: k, value: mSpec[k] }));
+                      ch.dynamicData = arr.length ? arr : (apiRoot.sightings_by_species || []);
+                   } 
+                   else if (s.id === 'storage') {
+                      if (ch.id === 'ac-s3') {
+                         ch.storageSpecies = Object.keys(this.manualStorageData).map(k => ({ label: k, ...this.manualStorageData[k] }));
+                      } else if (ch.id === 'ac-s4') {
+                         ch.storageProportion = Object.keys(mSpec).map(k => ({ label: k, value: mSpec[k] }));
+                      }
+                   }
+                   else if (s.id === 'fire_incidents' && ch.id === 'ac-fc1') {
+                      const arr = Object.keys(this.manualFireCauses).map(k => ({ label: k, count: this.manualFireCauses[k] }));
+                      ch.dynamicData = arr.length ? arr : (apiRoot.fire_causes || []);
+                   }
+                   else if (ch.id.includes('-f3') || ch.id.includes('-f1') || ch.id.includes('-t2') || ch.id.includes('-s2') || 
+                            ch.id.includes('-p2') || ch.id.includes('-m2') || ch.id.includes('-e2') || ch.id.includes('-wa2') ||
+                            ch.id.includes('-co2') || ch.id.includes('-jf2') || ch.id.includes('-p3') || ch.id.includes('-an3')) {
+                      const src = (ch.id.includes('f1') || ch.id.includes('p3')) ? mSpec : mRange;
+                      ch.dynamicData = Object.keys(src).map(k => ({ label: k, value: src[k] }));
+                   }
+                   
+                   // Fallback for trends (ac-t1, ev-an2, ev-wa1, etc.)
+                   if (ch.id.includes('-t1') || ch.id.includes('-e1') || ch.id.includes('-m1') || ch.id.includes('ev-an2') || ch.id.includes('ev-wa1') || ch.id.includes('-fi1')) {
+                      const trendArr = Object.keys(mTrend).sort().map(k => ({ label: k, value: mTrend[k] }));
+                      if (trendArr.length) ch.dynamicData = trendArr;
+                   }
+                });
+             }
+          };
+
+          // Generate Display List
+          this.destroyCharts();
+          this.displayProgList = cat.subs.map((s: any) => {
+            let apiData = res.data ? (res.data[s.id] || res.data[s.id.toLowerCase()]) : (res[s.id] || res[s.id.toLowerCase()]);
+            const manualVal = this.manualSubCounts[s.id] || 0;
+            const apiVal = (typeof apiData === 'number') ? apiData : (apiData?.val || 0);
+            const countVal = Math.max(apiVal, manualVal);
+
+            // Inject manual charts for this sub
+            injectManual(s);
+
+            // Default fallback for trend
+            if (s.charts) {
+              s.charts.forEach((ch: any) => {
+                if (!ch.dynamicData || (Array.isArray(ch.dynamicData) && !ch.dynamicData.length)) {
+                   ch.dynamicData = (apiData && Array.isArray(apiData.trend)) ? apiData.trend : [countVal];
+                }
+              });
             }
+
+            return { ...s, val: countVal, pct: 0 };
           });
+
+          // Calculate visual percentages
+          const vals = this.displayProgList.map(item => item.val);
+          const visualMax = Math.max(...vals, 50);
+          this.displayProgList.forEach(item => {
+            item.pct = Math.round((item.val / visualMax) * 100);
+          });
+          
+          // FORCED RE-RENDER: Ensure view updates after manual aggregation finishes
+          this.cdr.detectChanges();
+          setTimeout(() => {
+             this.renderSubCharts();
+             this.cdr.detectChanges();
+          }, 400);
+
+          this.currentCatSubsCount = this.displayProgList.length;
+          this.cdr.detectChanges();
+
+          const currentSub = this.displayProgList.find(sub => sub.id === this.activeSubId);
+          this.currentSubCharts = currentSub?.charts || [];
+
+          this.isRefreshing = false;
+          setTimeout(() => {
+            this.renderSubCharts();
+            this.cdr.detectChanges();
+          }, 500); 
+        },
+        error: (err) => {
+          console.error("❌ Analytics Direct Sync Failure:", err);
+          this.isRefreshing = false;
+          this.cdr.detectChanges();
         }
-
-        return { 
-          ...s, 
-          val: countVal, 
-          pct: 0 // Will calculate after mapping all
-        };
       });
-
-      // Calculate percentage relative to a baseline of 50 (or max if higher)
-      // This ensures 1 incident looks small, but bars scale up if data grows.
-      const vals = this.displayProgList.map(item => item.val);
-      const maxInData = Math.max(...vals, 0);
-      const visualMax = Math.max(maxInData, 50); // Minimum scale is 50
-      
-      this.displayProgList.forEach(item => {
-        item.pct = Math.round((item.val / visualMax) * 100);
-      });
-
-      // REMOVED SORTING to match mock-up order (Felling, Transport, etc.)
-      
-      // Update total categories count
-      this.currentCatSubsCount = this.displayProgList.length;
-
-      this.cdr.detectChanges();
-      const currentSub = this.displayProgList.find(sub => sub.id === this.activeSubId);
-      this.currentSubCharts = currentSub?.charts || [];
-      this.isRefreshing = false;
-
-      // Render charts after DOM update
-      setTimeout(() => {
-        this.renderSubCharts();
-        this.cdr.detectChanges();
-      }, 500); 
     },
     error: (err) => {
       this.isRefreshing = false;
@@ -1026,65 +1172,68 @@ setAnaSub(id: string) {
       
       if (!currentSub) return;
 
-      // Update val count
-      currentSub.val = res.total_count || 0;
+      // Update val count with resilient mapping
+      const rawData = res.data || res;
+      const apiVal = rawData.total_count ?? rawData.count ?? rawData.total ?? rawData.val ?? rawData.records ?? 0;
+      
+      // Preserve the manual sync count if it's higher than the API response
+      currentSub.val = Math.max(currentSub.val || 0, Number(apiVal));
+      console.log(`🔍 Combined Val for [${id}]:`, { api: apiVal, final: currentSub.val, raw: rawData });
 
-      // Inject dynamic data into each chart
+      // Inject dynamic data with fallback to manual sync
+      const manualSpec = this.manualSpeciesData[id] || {};
+      const manualRange = this.manualRangeData[id] || {};
+
       if (currentSub.charts && Array.isArray(currentSub.charts)) {
         currentSub.charts.forEach((ch: any) => {
           const chartId = ch.id || '';
 
-          if (chartId === 'ac-t1' && res.trend_30d) {
-            ch.trend30d = res.trend_30d;
-          } else if (chartId === 'ac-t3' && res.vehicle_analytics) {
-            ch.vehicleAnalytics = res.vehicle_analytics;
-          } else if (chartId === 'ac-t4' && res.top_routes) {
-            ch.topRoutes = res.top_routes;
-          } else if (chartId === 'ac-s3' && res.storage_species) {
-            ch.storageSpecies = res.storage_species;
+          if (chartId === 'ac-t1' && rawData.trend_30d) {
+            ch.trend30d = rawData.trend_30d;
+          } else if (chartId === 'ac-t3' && rawData.vehicle_analytics) {
+            ch.vehicleAnalytics = rawData.vehicle_analytics;
+          } else if (chartId === 'ac-t4' && rawData.top_routes) {
+            ch.topRoutes = rawData.top_routes;
+          } else if (chartId === 'ac-s3') {
+            const mStorage = Object.keys(this.manualStorageData).map(k => ({ label: k, ...this.manualStorageData[k] }));
+            ch.storageSpecies = rawData.storage_species || mStorage;
           } else if (chartId === 'ac-s4') {
-            if (res.storage_proportion) ch.storageProportion = res.storage_proportion;
-            else if (res.storage_species) ch.storageProportion = res.storage_species;
-          } else if (chartId === 'ac-p4' && res.poaching_death_cause) {
-            ch.poachingDeathCause = res.poaching_death_cause;
+            const mProp = Object.keys(manualSpec).map(k => ({ label: k, value: manualSpec[k] }));
+            ch.storageProportion = rawData.storage_proportion || rawData.storage_species || mProp;
+          } else if (chartId === 'ac-p4' && rawData.poaching_death_cause) {
+            ch.poachingDeathCause = rawData.poaching_death_cause;
           }
           
-          // Map asset status distribution if available
-          if (res.status_distribution) {
-            ch.statusDistribution = res.status_distribution;
+          if (rawData.status_distribution) {
+            ch.statusDistribution = rawData.status_distribution;
           }
 
-          
-          // 2. Species/Type mapping charts
+          // Species/Type mapping
           if (chartId === 'ac-f1') {
-            ch.dynamicData = res.species_volume || [];
+            const mSpecArr = Object.keys(manualSpec).map(k => ({ label: k, value: manualSpec[k] }));
+            ch.dynamicData = rawData.species_volume && rawData.species_volume.length ? rawData.species_volume : mSpecArr;
           } else if (chartId === 'ac-e2') {
-            ch.dynamicData = res.encroachment_types || [];
+            ch.dynamicData = rawData.encroachment_types || [];
           } else if (chartId === 'ev-wa2') {
-            ch.dynamicData = res.water_types || [];
+            ch.dynamicData = rawData.water_types || [];
           }
-          // 3. Range-wise distribution charts (Matches all subcategories except e2, wa2)
           else if (chartId.includes('-f3') || chartId.includes('-t2') || chartId.includes('-s2') || 
                    chartId.includes('-p2') || chartId.includes('-m2') ||
                    chartId.includes('-jf2') || chartId.includes('-co2') ||
                    chartId.includes('-an3')) {
-            ch.dynamicData = res.range_distribution || [];
+            const mRangeArr = Object.keys(manualRange).map(k => ({ label: k, value: manualRange[k] }));
+            ch.dynamicData = rawData.range_distribution && rawData.range_distribution.length ? rawData.range_distribution : mRangeArr;
           }
-          // 4. Sightings by species (wild_animal specific: ev-an1)
           else if (chartId === 'ev-an1') {
-            ch.dynamicData = res.sightings_by_species || [];
+            const mSpecArr = Object.keys(manualSpec).map(k => ({ label: k, value: manualSpec[k] }));
+            ch.dynamicData = rawData.sightings_by_species && rawData.sightings_by_species.length ? rawData.sightings_by_species : mSpecArr;
           }
-          // 4.5 Fire causes (ac-fc1)
           else if (chartId === 'ac-fc1') {
-            ch.dynamicData = res.fire_causes || [];
+            const mFireArr = Object.keys(this.manualFireCauses).map(k => ({ label: k, count: this.manualFireCauses[k] }));
+            ch.dynamicData = rawData.fire_causes && rawData.fire_causes.length ? rawData.fire_causes : mFireArr;
           }
-          // 5. Default Trend charts (line charts)
           else {
-            ch.dynamicData = res.trend_data || [];
-            if (chartId === 'ac-fi1') {
-              ch.dynamicLabels = (res.trend_data || []).map((t: any) => typeof t.day_label !== 'undefined' ? t.day_label : t.label);
-              ch.dynamicData = (res.trend_data || []).map((t: any) => typeof t.count !== 'undefined' ? t.count : t.value);
-            }
+            ch.dynamicData = rawData.trend_data || [];
           }
         });
       }
@@ -1114,8 +1263,9 @@ setAnaSub(id: string) {
 
 // ngOnInit ya kisi refresh function mein ye call karo
 fetchRealAssetData() {
-  const companyIdRaw = localStorage.getItem('company_id') || '1';
-const companyId = Number(companyIdRaw); // Ya fir use karo: parseInt(companyIdRaw, 10)
+  const storageData = localStorage.getItem('user_data');
+  const user = storageData ? JSON.parse(storageData) : {};
+  const companyId = Number(user.company_id || user.companyId || 1);
 
   this.dataService.getAssetStats(companyId).subscribe((res: any) => {
     console.log("🛠️ Real Asset Data:", res);
@@ -1254,7 +1404,7 @@ renderPieChart(id: string, dataMap: any) {
             }]
         },
         options: {
-            ...this.CDAX,
+            ...CDAX,
             plugins: { 
                 legend: { display: true, position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } 
             }
@@ -1463,15 +1613,6 @@ renderEncroachDistributionBarChart(id: string, data: any[]) {
 }
 
 // 1. CDAX Definition (To fix Property 'CDAX' error)
-CDAX = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: { legend: { display: false } },
-  scales: {
-    y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 } } },
-    x: { grid: { display: false }, ticks: { font: { size: 10, weight: '600' } } }
-  }
-};
 
 // 2. Photo 3 Style Pink Bar Chart
 // renderBarChart(id: string, data: any[], color: string, labels: string[]) {

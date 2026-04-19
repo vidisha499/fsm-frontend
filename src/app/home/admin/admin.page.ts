@@ -743,21 +743,127 @@ changeTimeframe(newTimeframe: string) {
         // --- 1. UNIFIED STATS MAPPING ---
         const stats = res.stats?.data || res.stats || {};
         
-        // Incident Counts
+        // Incident Counts (Initial from summary)
         this.criminalActivityCount = Number(stats.criminal_count || stats.criminalEvents || 0);
         this.sightingsCount = Number(stats.monitoring_count || stats.monitoringEvents || 0);
         this.fireAlertsCount = Number(stats.fire_count || stats.fireEvents || 0);
         this.incidentsCount = Number(stats.total_incidents || stats.total_events || 0);
 
+        // --- DYNAMIC DATABASE FETCH (FORCE SYNC) ---
+        this.dataService.getForestReports().subscribe({
+          next: (reports: any) => {
+            const list = Array.isArray(reports) ? reports : (reports.data || []);
+            
+            if (list.length > 0) {
+               console.log("📊 Direct Database Sync: Found", list.length, "Total Records");
+               
+                const counts = { criminal: 0, monitoring: 0, fire: 0 };
+                const trendMap: { [cat: string]: { [date: string]: number } } = { crim: {}, events: {}, fire: {} };
+                const rangeMap: { [name: string]: number } = {};
+
+                list.forEach((r: any) => {
+                   const cat = (r.category || '').toLowerCase();
+                   const rDate = r.date || ''; 
+                   const rCreatedAt = r.created_at || r.date_time || '';
+                   const range = r.range_name || r.range || r.region || 'General';
+
+                   const todayYMD = new Date().toISOString().split('T')[0]; 
+                   const todayDMY = todayYMD.split('-').reverse().join('-'); 
+                   const isToday = (rCreatedAt && rCreatedAt.includes(todayYMD)) || (rDate && rDate.includes(todayDMY));
+
+                   // Timeframe Checks for Week/Month
+                   const rFullDate = rCreatedAt || rDate;
+                   const rTimestamp = rFullDate ? new Date(rFullDate).getTime() : 0;
+                   const now = new Date().getTime();
+                   const oneDay = 24 * 60 * 60 * 1000;
+                   const isThisWeek = rTimestamp > (now - (7 * oneDay));
+                   const isThisMonth = rTimestamp > (now - (30 * oneDay));
+
+                   // Record for trend mapping (Last 30 Days logic)
+                   let dateYMD = '';
+                   if (rCreatedAt && rCreatedAt.includes('-')) {
+                     const parts = rCreatedAt.split(' ')[0].split('-');
+                     dateYMD = parts[0].length === 4 ? `${parts[0]}-${parts[1]}-${parts[2]}` : `${parts[2]}-${parts[1]}-${parts[0]}`;
+                   } else if (rDate && rDate.includes('-')) {
+                     const parts = rDate.split(' ')[0].split('-');
+                     dateYMD = parts[0].length === 4 ? `${parts[0]}-${parts[1]}-${parts[2]}` : `${parts[2]}-${parts[1]}-${parts[0]}`;
+                   }
+                   
+                   // Categorization
+                   let catKey = '';
+                   if (cat.includes('crim')) catKey = 'crim';
+                   else if (cat.includes('fire')) catKey = 'fire';
+                   else if (cat.includes('events') || cat.includes('sight') || cat.includes('monit')) catKey = 'events';
+
+                   if (catKey && dateYMD) {
+                     trendMap[catKey][dateYMD] = (trendMap[catKey][dateYMD] || 0) + 1;
+                   }
+
+                   // KPI COUNTS: Filter by timeframe
+                   let isPass = true;
+                   if (this.activeDateFilter === 'today' && !isToday) isPass = false;
+                   else if (this.activeDateFilter === 'week' && !isThisWeek) isPass = false;
+                   else if (this.activeDateFilter === 'month' && !isThisMonth) isPass = false;
+
+                   if (isPass && catKey) {
+                      if (catKey === 'crim') counts.criminal++;
+                      else if (catKey === 'fire') counts.fire++;
+                      else if (catKey === 'events') counts.monitoring++;
+                   }
+
+                   rangeMap[range] = (rangeMap[range] || 0) + 1;
+                });
+
+                // 1. Process Trend Arrays (Always 30 days)
+                const last30 = Array.from({length: 30}, (_, i) => {
+                   const d = new Date();
+                   d.setDate(d.getDate() - (29 - i));
+                   return d.toISOString().split('T')[0];
+                });
+
+                const getTrendArr = (k: string) => last30.map(d => trendMap[k][d] || 0);
+                this.criminalTrendData = getTrendArr('crim');
+                this.eventsTrendData = getTrendArr('events');
+                this.fireTrendData = getTrendArr('fire');
+
+                // 2. Process Beat Coverage
+                const totalReports = list.length;
+                this.beatCoverage = Object.keys(rangeMap).map(name => ({
+                   label: name,
+                   val: Math.round((rangeMap[name] / totalReports) * 100),
+                   color: name.toLowerCase().includes('seminary') ? '#0d9488' : '#3b82f6'
+                }));
+
+                // 3. Final KPI Sync (Filtered counts for KPI cards)
+                this.criminalCount = counts.criminal;
+                this.eventsCount = counts.monitoring;
+                this.criminalActivityCount = counts.criminal;
+                this.sightingsCount = counts.monitoring;
+                this.fireAlertsCount = counts.fire;
+                this.incidentsCount = counts.criminal + counts.monitoring + counts.fire;
+                
+                // 4. Trigger Dashoard UI Renders
+               this.loadTrendData();
+               this.initHomeCharts(); // 🔥 Restore mini-charts
+               this.cdr.detectChanges();
+            }
+          },
+          error: (err) => console.error("❌ Direct Sync Failure:", err)
+        });
+
         // Personnel Stats (Sir's Unified API)
         this.onDutyCount = Number(stats.on_duty_count || stats.on_duty || 0);
         this.onLeaveCount = Number(stats.on_leave_count || stats.on_leave || 0);
         this.inactiveCount = Number(stats.inactive_count || stats.inactive || 0);
+
+        // --- 📊 ATTENDANCE HISTORY SYNC ---
+        // Capture Monday-Sunday history from the unified response to avoid the separate failing 500 API
+        if (res.officerStatus && res.officerStatus.history) {
+           console.log("📊 Syncing Attendance History from Dashboard Bundle...");
+           this.initAttChart(res.officerStatus.history); 
+        }
         
-        // Trends & Graphs
-        this.criminalTrendData = (stats.criminal_trend || []).map((t: any) => Number(t.count || 0));
-        this.eventsTrendData = (stats.monitoring_trend || []).map((t: any) => Number(t.count || 0));
-        this.fireTrendData = (stats.fire_trend || []).map((t: any) => Number(t.count || 0));
+        // (Trends & Graphs overwriting logic removed to preserve manual sync data)
 
         // --- 2. DETAILED MARKER PROCESSING ---
         let processedPins: any[] = [];
@@ -806,10 +912,61 @@ changeTimeframe(newTimeframe: string) {
         this.filteredAlerts = [...this.alertsData];
 
         const allUsers = res.users?.data || res.users || res.staff || [];
-        if (Array.isArray(allUsers)) {
+        if (Array.isArray(allUsers) && allUsers.length > 0) {
           this.rangers = allUsers.filter((u: any) => Number(u.role_id || u.roleId) === 4);
           this.filteredRangers = [...this.rangers];
           this.allRangers = this.rangers.length;
+        } else {
+          // 🚀 PRODUCTION SYNC: Fetch real names from Assignable Users API
+          this.dataService.getAssignableUsers({ company_id: this.myCompanyId.toString() }).subscribe({
+            next: (userRes: any) => {
+               const staffList = userRes.data || userRes.users || (Array.isArray(userRes) ? userRes : []);
+               
+               // 🔥 SECONDARY SYNC: Fetch Today's Attendance logs to set real status
+               this.dataService.getAttendanceLogsByRanger(this.myCompanyId.toString()).subscribe({
+                  next: (attRes: any) => {
+                     const logsArray = attRes.data || attRes.attendance || (Array.isArray(attRes) ? attRes : []);
+                     const today = new Date().toISOString().split('T')[0];
+                     
+                     // Create a set of IDs who marked attendance today
+                     const activeIds = new Set();
+                     logsArray.forEach((log: any) => {
+                        const lDate = log.timestamp || log.entryDateTime || log.created_at || '';
+                        if (lDate && lDate.startsWith(today)) {
+                           activeIds.add(log.user_id || log.staff_id || log.ranger_id);
+                        }
+                     });
+
+                     if (staffList.length > 0) {
+                        this.rangers = staffList.map((u: any) => {
+                           const sId = u.id || u.user_id;
+                           const isWorking = activeIds.has(sId);
+                           return {
+                              id: sId,
+                              name: u.name || u.full_name || 'Staff',
+                              status: isWorking ? 1 : 0, // 1 = Green dot, 0 = Red dot
+                              role_id: 4,
+                              range_name: u.range_name || u.beat_name || 'Forest Division'
+                           };
+                        });
+                        
+                        // Sort: Active ones first
+                        this.rangers.sort((a,b) => b.status - a.status);
+                        this.filteredRangers = [...this.rangers];
+                        this.allRangers = this.rangers.length;
+                        
+                        // Update counts based on real today's attendance
+                        this.onDutyCount = activeIds.size;
+                        this.inactiveCount = this.allRangers - this.onDutyCount;
+                        this.onLeaveCount = 0; // Default until Leave API is integrated
+                        
+                        this.cdr.detectChanges();
+                     }
+                  }
+               });
+            },
+            error: (err) => console.error("❌ Assignable Users API Failure:", err)
+          });
         }
 
         // TRIGGER CHART RE-RENDERING
@@ -1418,12 +1575,12 @@ handleApiResponse(res: any) {
     const getTrend = (val: number) => [0, 0, 0, 0, val || 0];
 
     const pairs: [string, number[], string, string?][] = [
-      // Mapping to YOUR specific variables:
-      ['mc-crim', this.criminalTrendData.length > 0 ? this.criminalTrendData : getTrend(this.criminalActivityCount), this.COLORS.rose],
-      ['mc-events', this.eventsTrendData.length > 0 ? this.eventsTrendData : getTrend(this.sightingsCount), this.COLORS.amber],
-      ['mc-fire', this.fireTrendData.length > 0 ? this.fireTrendData : getTrend(this.fireAlertsCount), this.COLORS.orange, 'bar'],
-      ['mc-assets', this.assetsTrendData.length > 0 ? this.assetsTrendData : getTrend(this.totalAssetsCount), this.COLORS.p],
-      ['mc-duty', this.onDutyTrendData.length > 0 ? this.onDutyTrendData : getTrend(this.onDutyCount), this.COLORS.blue, 'bar'],
+      // Mapping to YOUR specific variables - Slicing to last 15 days for Sparklines
+      ['mc-crim', this.criminalTrendData.length > 0 ? this.criminalTrendData.slice(-15) : getTrend(this.criminalActivityCount), this.COLORS.rose],
+      ['mc-events', this.eventsTrendData.length > 0 ? this.eventsTrendData.slice(-15) : getTrend(this.sightingsCount), this.COLORS.amber],
+      ['mc-fire', this.fireTrendData.length > 0 ? this.fireTrendData.slice(-15) : getTrend(this.fireAlertsCount), this.COLORS.orange, 'bar'],
+      ['mc-assets', this.assetsTrendData.length > 0 ? this.assetsTrendData.slice(-15) : getTrend(this.totalAssetsCount), this.COLORS.p],
+      ['mc-duty', this.onDutyTrendData.length > 0 ? this.onDutyTrendData.slice(-7) : getTrend(this.onDutyCount), this.COLORS.blue, 'bar'],
     ];
 
     pairs.forEach(([id, data, color, type = 'line']) => {
@@ -1489,61 +1646,69 @@ handleApiResponse(res: any) {
     });
   }
 
-  initAttChart() {
+  initAttChart(preFetchedData?: number[]) {
+    if (preFetchedData) {
+       this.renderAttChart(preFetchedData);
+       return;
+    }
+
     const user = JSON.parse(localStorage.getItem('user_data') || '{}');
     const companyId = user.company_id ? Number(user.company_id) : 0;
-
-    const rangerId = this.selectedRanger?.id
-      ? Number(this.selectedRanger.id)
-      : undefined;
+    const rangerId = this.selectedRanger?.id ? Number(this.selectedRanger.id) : undefined;
 
     this.dataService.getWeeklyAttendanceStats(companyId, rangerId).subscribe({
-      next: (realData: number[]) => {
-        const el = document.getElementById('c-att') as HTMLCanvasElement;
-        if (!el) return;
-
-        if (this.attChart) {
-          this.attChart.destroy();
-        }
-
-        this.attChart = this.mkChart('c-att', {
-          type: 'line',
-          data: {
-            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-            datasets: [
-              {
-                label: this.selectedRanger
-                  ? `${this.selectedRanger.name}'s Activity`
-                  : 'Total Personnel On-Duty',
-                data: realData,
-                borderColor: this.COLORS.p,
-                backgroundColor: this.mkG(
-                  el.getContext('2d')!,
-                  this.COLORS.p,
-                  100,
-                ),
-                fill: true,
-                tension: 0.4,
-                pointRadius: 4,
-              },
-            ],
-          },
-          options: {
-            ...this.CDAX,
-            scales: {
-              x: { display: true, ticks: { color: '#94a3b8' } },
-              y: {
-                display: true,
-                beginAtZero: true,
-                ticks: { stepSize: 1, color: '#94a3b8' },
-              },
-            },
-          },
-        });
+      next: (realData: number[]) => this.renderAttChart(realData),
+      error: (err: any) => {
+        console.error('Database Fetch Error:', err);
+        this.renderAttChart([0,0,0,0,0,0,0]);
       },
-      error: (err: any) => console.error('Database Fetch Error:', err),
     });
   }
+
+  private renderAttChart(realData: number[]) {
+    const el = document.getElementById('c-att') as HTMLCanvasElement;
+    if (!el) return;
+
+    if (this.attChart) {
+      this.attChart.destroy();
+    }
+
+    this.attChart = this.mkChart('c-att', {
+      type: 'line',
+      data: {
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        datasets: [
+          {
+            label: this.selectedRanger
+              ? `${this.selectedRanger.name}'s Activity`
+              : 'Total Personnel On-Duty',
+            data: realData,
+            borderColor: this.COLORS.p,
+            backgroundColor: this.mkG(
+              el.getContext('2d')!,
+              this.COLORS.p,
+              100,
+            ),
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+          },
+        ],
+      },
+      options: {
+        ...this.CDAX,
+        scales: {
+          x: { display: true, ticks: { color: '#94a3b8' } },
+          y: {
+            display: true,
+            beginAtZero: true,
+            ticks: { stepSize: 1, color: '#94a3b8' },
+          },
+        },
+      },
+    });
+  }
+
 
   private randomizeStats() {
     const kpiIds = ['kv-crim', 'kv-events', 'kv-fire', 'kv-assets'];
@@ -1675,19 +1840,31 @@ handleApiResponse(res: any) {
     this.cdr.detectChanges();
   }
 
-  // Helper for initials (e.g., "R. Patil" -> "RP")
+  // Helper for initials (e.g., "Anand Kankher" -> "AK")
   getInitials(name: string) {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase();
+    if (!name) return 'ST';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }
 
   getRangerColor(name: string): string {
-    const colors = ['#eff6ff', '#f0fdfa', '#fffbeb', '#fff1f2', '#f5f3ff'];
-    // Simple logic to pick a color based on the name string
-    const index = name.length % colors.length;
+    // Premium Vibrant Palette (Tailwind-inspired)
+    const colors = [
+      '#dbeafe', // Blue
+      '#ccfbf1', // Teal
+      '#fef3c7', // Amber
+      '#fee2e2', // Red
+      '#f3e8ff', // Purple
+      '#f0fdf4', // Green
+      '#e0f2fe', // Sky
+    ];
+    // Pick based on name hash to keep it consistent
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colors.length;
     return colors[index];
   }
 

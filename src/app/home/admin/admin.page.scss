@@ -1324,36 +1324,45 @@
         background: var(--surf);
         border: 1.5px solid var(--bord);
         border-radius: var(--rs);
-        padding: 12px;
-        box-shadow: var(--sh);
+        padding: 16px 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
         cursor: pointer;
-        transition: all .2s;
+        transition: all .25s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+        min-height: 120px; /* Consistency in grid */
         
         &:hover {
-          border-color: rgba(13,148,136,.3);
-          transform: translateY(-2px);
+          border-color: var(--p);
+          transform: translateY(-3px);
+          box-shadow: 0 8px 25px rgba(13,148,136, 0.08);
         }
       }
 
       .off-av {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 13px;
+        font-size: 14px;
         font-weight: 800;
-        margin-bottom: 8px;
+        margin-bottom: 12px;
+        box-shadow: inset 0 0 0 1px rgba(0,0,0,0.03);
       }
 
       .off-nm {
-        font-size: 11px;
+        font-size: 12px;
+        line-height: 1.35;
         font-weight: 700;
         color: var(--tx);
-        white-space: nowrap;
+        /* Allow wrapping up to 2 lines */
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
         overflow: hidden;
-        text-overflow: ellipsis;
+        min-height: 32px; /* For alignment */
       }
 
       .off-rl { font-size: 9px; color: var(--tx2); margin-top: 1px; }
