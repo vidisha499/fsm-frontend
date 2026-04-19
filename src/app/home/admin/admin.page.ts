@@ -734,14 +734,11 @@ changeTimeframe(newTimeframe: string) {
     this.isFetching = true;
 
     // FECHING ALL DATA SOURCES (Primary source is Sir's Unified API)
-    forkJoin({
-      stats: this.dataService.getDashboardStats(myCompanyId, dates.from, dates.to),
-      users: this.dataService.getUsersByCompany(myCompanyId),
-      alerts: this.dataService.getLatestAlerts(myCompanyId), // SOS Alerts
-      forestReports: this.dataService.getForestMapData(myCompanyId, this.selectedTimeframe),
-    }).subscribe({
-      next: (res: any) => {
-        console.log("📊 Unified Admin Dashboard Response:", res);
+    this.dataService.getDashboardStats(myCompanyId, dates.from, dates.to).subscribe({
+      next: (apiResponse: any) => {
+        console.log("📊 Unified Admin Dashboard Response:", apiResponse);
+        // Normalize the payload in case it's wrapped in a 'data' object
+        const res = apiResponse.data ? apiResponse.data : apiResponse;
 
         // --- 1. UNIFIED STATS MAPPING ---
         const stats = res.stats?.data || res.stats || {};
@@ -764,7 +761,7 @@ changeTimeframe(newTimeframe: string) {
 
         // --- 2. DETAILED MARKER PROCESSING ---
         let processedPins: any[] = [];
-        const forestRaw = [...(res.forestReports || []), ...(res.forest_reports || []), ...(res.forest_events || [])];
+        const forestRaw = [...(res.forestReports || []), ...(res.forest_reports || []), ...(res.forest_events || []), ...(res.events || [])];
         if (forestRaw.length > 0) {
           const todayStr = new Date().toDateString();
           processedPins = forestRaw
@@ -800,7 +797,7 @@ changeTimeframe(newTimeframe: string) {
         this.updateVisiblePins();
 
         // --- 3. ALERTS & SOS PROCESSING ---
-        this.alertsData = res.alerts || [];
+        this.alertsData = res.alerts || res.sos || [];
         if (this.alertsData.length > 0) {
           this.critCount = this.alertsData.filter(a => a.severity === 'critical').length;
           this.warnCount = this.alertsData.filter(a => a.severity === 'warning').length;
@@ -808,7 +805,7 @@ changeTimeframe(newTimeframe: string) {
         }
         this.filteredAlerts = [...this.alertsData];
 
-        const allUsers = res.users?.data || res.users || [];
+        const allUsers = res.users?.data || res.users || res.staff || [];
         if (Array.isArray(allUsers)) {
           this.rangers = allUsers.filter((u: any) => Number(u.role_id || u.roleId) === 4);
           this.filteredRangers = [...this.rangers];
@@ -1785,20 +1782,49 @@ handleApiResponse(res: any) {
   }
 
   loadTrendData() {
-    const myCompanyId = this.myCompanyId || Number(localStorage.getItem('company_id')) || 1;
-    this.dataService.getIncidentTrend(myCompanyId).subscribe({
-      next: (data: any) => {
-        this.momStatus = data.momLabel || '0% MoM';
-        this.isGoodTrend = data.isImprovement; 
-
-        // Cache for re-initialization (prevents disappearing)
-        this.lastTrendLabels = data.labels || [];
-        this.lastTrendValues = data.values || [];
-
-        this.initTrendChart(this.lastTrendLabels, this.lastTrendValues);
-      },
-      error: (err: any) => console.error('Trend Chart Error:', err),
+    // The legacy '/incidents/trend/{id}' API is deprecated.
+    // We now derive the overall incident trend dynamically from the unified stats arrays.
+    const totalLength = Math.max(
+      this.criminalTrendData?.length || 0,
+      this.eventsTrendData?.length || 0,
+      this.fireTrendData?.length || 0,
+      6 // Fallback to 6 data points if arrays are empty
+    );
+    
+    // Generate simple labels. In a real scenario, you can map 'date' keys if provided in stats.
+    const labels = Array.from({length: totalLength}, (_, i) => `Ref ${i + 1}`);
+    
+    // Summing across all incident types per index to get total trend
+    const values = labels.map((_, i) => {
+       const crim = (this.criminalTrendData && this.criminalTrendData[i]) ? this.criminalTrendData[i] : 0;
+       const env = (this.eventsTrendData && this.eventsTrendData[i]) ? this.eventsTrendData[i] : 0;
+       const fire = (this.fireTrendData && this.fireTrendData[i]) ? this.fireTrendData[i] : 0;
+       
+       // If all are zero, give a random baseline (or 0 if preferred)
+       return crim + env + fire;
     });
+
+    this.lastTrendLabels = labels;
+    this.lastTrendValues = values;
+
+    // Calculate generic Momentum (MoM) based on last two points
+    if (values.length >= 2) {
+      const current = values[values.length - 1];
+      const prev = values[values.length - 2];
+      if (prev > 0) {
+        const mom = Math.round(((current - prev) / prev) * 100);
+        this.momStatus = `${Math.abs(mom)}% MoM`;
+        this.isGoodTrend = mom <= 0; // Negative means fewer incidents, which is good
+      } else {
+        this.momStatus = `0% MoM`;
+        this.isGoodTrend = true;
+      }
+    } else {
+      this.momStatus = `0% MoM`;
+      this.isGoodTrend = true;
+    }
+
+    this.initTrendChart(this.lastTrendLabels, this.lastTrendValues);
   }
   initTrendChart(labels: string[], values: number[]) {
     const canvas = document.getElementById('c-trend') as HTMLCanvasElement;

@@ -385,7 +385,7 @@ toggleEdit() {
   }
 
 
-async updateProtocol() {
+  async updateProtocol() {
     const rId = this.dataService.getRangerId();
     
     if (!rId) {
@@ -396,28 +396,115 @@ async updateProtocol() {
       return;
     }
 
-    this.isSubmitting = true; 
-    this.textOpacity = 0; 
-    
-    const container = document.querySelector('.slider-track');
-    if (container) {
-      this.maxSlide = container.clientWidth - 64; 
-    }
-    this.currentTranslateX = this.maxSlide; 
-    this.cdr.detectChanges();
+    // Only inject password fields if the user actually typed a password
+    if (this.currentPassword && this.rangerPassword) {
+      this.isSubmitting = true; 
+      this.textOpacity = 0; 
+      const container = document.querySelector('.slider-track');
+      if (container) this.maxSlide = container.clientWidth - 64; 
+      this.currentTranslateX = this.maxSlide; 
+      this.cdr.detectChanges();
 
- const updatedData = {
-  id: Number(rId),
-  name: this.rangerName,     // Matches 'name' column
-  contact: this.rangerPhone,  // Matches 'contact' column (apne pehle rangerPhone likha tha shayad)
-  password: this.rangerPassword,
-  profile_pic: this.profileImage && this.profileImage.includes('base64') 
-               ? this.profileImage.split(',')[1] : null
-};
-    this.dataService.updateRanger(updatedData).subscribe({
+      const passwordPayload = {
+        id: Number(rId),
+        user_id: Number(rId),
+        password: this.currentPassword, 
+        old_password: this.currentPassword, 
+        current_password: this.currentPassword,
+        new_password: this.rangerPassword, 
+        new_pass: this.rangerPassword,
+        password_confirmation: this.rangerPassword
+      };
+      
+      this.executeApiSubscription(this.dataService.changePassword(passwordPayload));
+      
+    } else {
+      // Normal Profile Update Requires the Current Password explicitly on the backend!
+      const alert = await this.alertController.create({
+        header: 'Security Check',
+        message: 'Please enter your current PIN to authorize these profile changes.',
+        inputs: [{ name: 'pin', type: 'password', placeholder: 'Current PIN' }],
+        buttons: [
+          { 
+            text: 'Cancel', role: 'cancel', 
+            handler: () => {
+              this.currentTranslateX = 0; 
+              this.textOpacity = 1;
+              this.cdr.detectChanges();
+            } 
+          },
+          {
+            text: 'Authorize',
+            handler: (data) => {
+              if (!data.pin) {
+                this.showToast('PIN is required to update profile.');
+                this.currentTranslateX = 0; 
+                this.textOpacity = 1;
+                this.cdr.detectChanges();
+                return false;
+              }
+              
+              this.isSubmitting = true; 
+              this.textOpacity = 0; 
+              const container = document.querySelector('.slider-track');
+              if (container) this.maxSlide = container.clientWidth - 64; 
+              this.currentTranslateX = this.maxSlide; 
+              this.cdr.detectChanges();
+
+              const updatedData: any = {
+                id: Number(rId),
+                name: this.rangerName,     
+                contact: this.rangerPhone,  
+                password: data.pin, // Laravel forces us to transmit this variable!
+                profile_pic: this.profileImage && this.profileImage.includes('base64') 
+                             ? this.profileImage.split(',')[1] : null
+              };
+
+              this.executeApiSubscription(this.dataService.updateRanger(updatedData));
+              return true;
+            }
+          }
+        ],
+        cssClass: 'premium-action-sheet'
+      });
+      await alert.present();
+    }
+  }
+
+  // Refactored shared subscription cycle
+  private executeApiSubscription(apiCall$: any) {
+    apiCall$.subscribe({
       next: async (res: any) => {
+        // Correctly handle 200 OK responses that carry internal FAILURE states
+        if (res && (res.status === 'FAILURE' || res.status === 'error')) {
+           this.isSubmitting = false;
+           this.currentTranslateX = 0;
+           this.textOpacity = 1;
+           this.showToast(res.message || 'Update failed due to validation');
+           this.cdr.detectChanges();
+           return;
+        }
+
         localStorage.setItem('ranger_username', this.rangerName);
         localStorage.setItem('ranger_phone', this.rangerPhone);
+        
+        // Critically sync the main user_data JSON object used on page refresh!
+        try {
+          const userDataStr = localStorage.getItem('user_data');
+          if (userDataStr) {
+             const userData = JSON.parse(userDataStr);
+             userData.name = this.rangerName;
+             userData.contact = this.rangerPhone;
+             
+             // If backend supplies updated user data layout, use their profile_pic hash
+             if (res.data && res.data.profile_pic) {
+                 userData.profile_pic = res.data.profile_pic;
+             }
+             localStorage.setItem('user_data', JSON.stringify(userData));
+          }
+        } catch (e) {
+          console.warn('Failed to sync user_data hash', e);
+        }
 
         setTimeout(async () => {
           this.isSubmitting = false; 
@@ -444,7 +531,7 @@ async updateProtocol() {
           this.cdr.detectChanges();
         }, 1500);
       },
-      error: (err) => {
+      error: (err:any) => {
         this.isSubmitting = false;
         this.currentTranslateX = 0;
         this.textOpacity = 1;

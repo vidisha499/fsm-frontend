@@ -27,7 +27,7 @@ export class EventsFieldsPage implements OnInit {
   swipeThreshold = 0.8;
   swipeCompleted = false;
   assignedBeat: string = 'Loading...';
-  currentSiteId: string = '1';
+  currentSiteId: string = '';
   patrolId: string | null = null;
   speciesOptions: string[] = ['Sal', 'Saja', 'Sagaon', 'Beeja', 'Haldu', 'Dhawda', 'Safed Siris', 'Kala Siris', 'Jamun', 'Aam', 'Semal', 'Mahua', 'Tendu', 'Nilgiri', 'Others'];
   animalSpecies: string[] = ['Sloth Bear', 'Leopard', 'Hyena', 'Jackal', 'Wild Bear', 'Spotted Deer', 'Sambar', 'Others'];
@@ -323,7 +323,7 @@ async loadDefaultBeat() {
         const firstSite = sites[0];
         const siteName = firstSite.site_name || firstSite.name || 'General';
         this.assignedBeat = siteName;
-        this.currentSiteId = String(firstSite.id || '1');
+        this.currentSiteId = String(firstSite.id || '');
         this.reportData['Assigned Beat'] = siteName;
       } else {
         this.assignedBeat = 'General';

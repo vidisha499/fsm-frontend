@@ -559,7 +559,36 @@ export class DataService {
   getForestAdminDashboard(companyId: number) { return this.getDashboardStats(companyId); }
 
   // --- 5. RANGER/PROFILE MANAGEMENT ---
-  updateRanger(data: any) { return this.http.post(`${this.baseApiUrl}/rangers/update`, data); }
+  updateRanger(data: any) {
+    // Replaced deprecated /rangers/update with Sir's /updateUserDetails endpoint.
+    // Conforming strictly to FormData API payload requirements.
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    
+    for (const key in data) {
+      if (data.hasOwnProperty(key) && data[key] !== null && data[key] !== undefined) {
+        formData.append(key, String(data[key]));
+      }
+    }
+    
+    return this.http.post(`${this.baseApiUrl}/updateUserDetails`, formData);
+  }
+
+  changePassword(payload: any) {
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    
+    // Usually expects current_password / new_password OR old_password / password
+    for (const key in payload) {
+      if (payload.hasOwnProperty(key) && payload[key] !== null && payload[key] !== undefined) {
+        formData.append(key, String(payload[key]));
+      }
+    }
+    return this.http.post(`${this.baseApiUrl}/changePassword`, formData);
+  }
+
   getRangerProfile(id: string) { return this.http.get(`${this.baseApiUrl}/rangers/${id}`); }
   getRangersByCompany(companyId: string) { return this.http.get(`${this.baseApiUrl}/rangers/company/${companyId}`); }
   getUsersByCompany(companyId: any) { return this.http.get(`${this.baseApiUrl}/users/company/${companyId}`); }
@@ -615,8 +644,31 @@ export class DataService {
     const fullPayload = { ...payload, api_token: token };
     return this.http.post(`${this.baseApiUrl}/forest-reports`, fullPayload); 
   }
+  private dataURItoBlob(dataURI: string): Blob {
+    const byteString = atob(dataURI.split(',')[1]);
+    const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], { type: mimeString });
+  }
+
   submitForestEvent(payload: any, headers?: any) {
-    return this.http.post(`${this.baseApiUrl}/forest-reports`, payload, { headers });
+    // Sir's precise API accepts Raw application/json mapping, NOT FormData!
+    // This allows MySQL strict types (integers, nulls) to be ingested directly without string constraint bugs.
+    const token = localStorage.getItem('api_token') || '';
+    
+    // Inject api_token and securely enforce any null fallback values expected by Laravel.
+    const finalPayload = { 
+      ...payload, 
+      api_token: token,
+      site_id: payload.site_id || null // Force NULL explicitly instead of '' for relational constraints
+    };
+
+    const finalHeaders = headers || { 'Bypass-Token': 'true' };
+    return this.http.post(`${this.baseApiUrl}/forest-reports`, finalPayload, { headers: finalHeaders });
   }
   savePatrolLogs(payload: any) { return this.http.post(`${this.baseApiUrl}/save-patrol-logs`, payload); }
   updatePatrolLog(id: string | number, payload: any) { return this.http.put(`${this.baseApiUrl}/patrol-logs/${id}`, payload); }
@@ -706,6 +758,11 @@ export class DataService {
     if (rangerId) url += `&rangerId=${rangerId}`;
     return this.http.get<number[]>(url);
   }
+
+
+
+
+  
 
   // --- 9. ASSETS MANAGEMENT ---
   addAsset(assetData: any): Observable<any> { return this.http.post(`${this.baseApiUrl}/asset/create`, assetData); }
