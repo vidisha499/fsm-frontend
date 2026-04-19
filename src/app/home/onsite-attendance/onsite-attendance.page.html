@@ -1,117 +1,117 @@
 <ion-content [fullscreen]="true">
-  <div class="onsite-container">
-    <div class="header-section">
-      <div class="nav-bar">
-        <button class="back-link" (click)="goBack()">
-          <ion-icon name="arrow-back-outline"></ion-icon>
-          <span>{{ 'ATTENDANCE.BACK' | translate }}</span>
-        </button>
-        <div class="header-title">
-          <h1>{{ 'ATTENDANCE.MARK_ONSITE' | translate }}</h1>
-          <p class="date-text">{{ currentDateTime }}</p>
+  <div class="premium-wrapper">
+    
+    <!-- Header from Screenshot -->
+    <div class="hero-header">
+      <div class="header-content">
+        <div class="nav-group">
+          <button class="back-btn" (click)="goBack()">
+            <ion-icon name="arrow-back-outline"></ion-icon>
+          </button>
+          <h1>Onsite Attendance</h1>
+        </div>
+        <div class="live-badge">
+          <div class="pulse"></div>
+          <span>LIVE</span>
         </div>
       </div>
     </div>
 
-    <!-- Enhanced Map Section -->
-    <div class="map-section" [class.map-ready]="mapLoaded">
-      <div id="onsiteMap" class="leaflet-map"></div>
-      
-      <!-- Premium Overlay for Map Tracking Status -->
-      <div class="map-badge">
-        <div class="pulse-dot"></div>
-        <span>{{ 'PATROL.LIVE_STATUS' | translate }}</span>
-      </div>
-
-      <button class="recenter-btn" (click) ="recenterMap()">
-        <ion-icon name="locate-outline"></ion-icon>
-      </button>
-    </div>
-
-    <div class="details-section">
-      <!-- Location Info Card -->
-      <div class="info-card location-card">
-        <div class="icon-box">
-          <i class="fas fa-map-marker-alt"></i>
-        </div>
-        <div class="card-content">
-          <label>{{ 'ATTENDANCE.LOCATION' | translate }}</label>
-          <p class="address-text">{{ currentAddress }}</p>
-        </div>
-      </div>
-
-      <!-- Photo Evidence Card -->
-      <div class="info-card photo-card" [class.has-photo]="capturedPhoto">
-        <div class="photo-header">
-          <div class="label-group">
-            <i class="fas fa-camera"></i>
-            <span>{{ 'ATTENDANCE.EVIDENCE' | translate }}</span>
+    <div class="card-container">
+      <div class="main-card">
+        
+        <!-- Scanner Section from Image -->
+        <div class="scanner-section">
+          <div class="camera-frame">
+            <div class="corners">
+              <span class="t-l"></span><span class="t-r"></span>
+              <span class="b-l"></span><span class="b-r"></span>
+            </div>
+            <div class="scanner-inner" 
+                 (click)="capturedPhoto ? openZoom(capturedPhoto) : presentImageSourceOptions()"
+                 [style.backgroundImage]="capturedPhoto ? 'url(' + capturedPhoto + ')' : 'none'">
+              <div class="scan-line" *ngIf="capturedPhoto"></div>
+              <div class="placeholder-content" *ngIf="!capturedPhoto">
+                <ion-icon name="camera-outline" class="cam-icon"></ion-icon>
+                <div class="cam-text">CAPTURE ID</div>
+              </div>
+            </div>
           </div>
-          <button class="retake-btn" *ngIf="capturedPhoto" (click)="presentImageSourceOptions()">
-            <i class="fas fa-redo"></i>
+          <div class="scan-msg">Scan identity to proceed</div>
+        </div>
+
+        <!-- Live Tracking Label with Icon -->
+        <div class="section-label">
+          <ion-icon name="location"></ion-icon>
+          <span>Live Tracking</span>
+        </div>
+        
+        <div class="map-container">
+          <div id="onsiteMap"></div>
+          <button class="recenter-btn" (click)="recenterMap()">
+            <ion-icon name="locate-outline"></ion-icon>
           </button>
         </div>
 
-        <div class="photo-display-box" (click)="capturedPhoto ? openZoom(capturedPhoto) : presentImageSourceOptions()">
-          <div class="upload-vibe" *ngIf="!capturedPhoto">
-            <div class="vibe-icon">
-              <ion-icon name="camera-outline"></ion-icon>
+        <!-- Info Cards matching Screenshot -->
+        <div class="info-cards">
+          <div class="field-card">
+            <div class="icon-box"><ion-icon name="person-circle-outline"></ion-icon></div>
+            <div class="content-box">
+              <span class="label">RANGER NAME</span>
+              <span class="value">{{ rangerName }}</span>
             </div>
-            <span>{{ 'ATTENDANCE.TAP_PHOTO' | translate }}</span>
           </div>
-          <img *ngIf="capturedPhoto" [src]="capturedPhoto" class="final-photo" />
-          <div class="expand-vibe" *ngIf="capturedPhoto">
-            <ion-icon name="expand-outline"></ion-icon>
+
+          <div class="field-card">
+            <div class="icon-box"><ion-icon name="navigate-outline"></ion-icon></div>
+            <div class="content-box">
+              <span class="label">DETECTED GEOFENCE</span>
+              <span class="value">{{ currentAddress || 'Detecting location...' }}</span>
+            </div>
+          </div>
+
+          <div class="field-card">
+            <div class="icon-box"><ion-icon name="calendar-outline"></ion-icon></div>
+            <div class="content-box">
+              <span class="label">DATE & TIME</span>
+              <span class="value">{{ currentDateTime }}</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Combined Slider Action -->
-      <div class="action-footer">
-        <div class="slider-container" [class.ready]="capturedPhoto" [class.submitting]="isSubmitting">
-          <div class="slider-track"
+        <!-- Slider from Image -->
+        <div class="action-slider">
+          <div class="slider-handle" 
+               [style.transform]="'translateX(' + currentTranslateX + 'px)'"
                (touchstart)="onDragStart($event)"
                (touchmove)="onDragMove($event)"
                (touchend)="onDragEnd()">
-            
-            <div class="slider-progress" [style.width]="currentTranslateX + 'px'"></div>
-            
-            <div class="slider-knob" [style.transform]="'translateX(' + currentTranslateX + 'px)'">
-              <ion-icon [name]="isSubmitting ? 'checkmark-outline' : 'chevron-forward-outline'"></ion-icon>
-            </div>
-
-            <span class="slider-label" [style.opacity]="textOpacity">
-              {{ (isSubmitting ? 'ATTENDANCE.SYNCING' : 'ATTENDANCE.SLIDE_TO_MARK') | translate }}
-            </span>
+            <ion-icon [name]="isSubmitting ? 'checkmark-outline' : 'chevron-forward-outline'"></ion-icon>
+          </div>
+          <div class="slider-text" [style.opacity]="textOpacity">
+            {{ isSubmitting ? 'Marking...' : 'Mark Attendance' }}
           </div>
         </div>
+
       </div>
     </div>
   </div>
 
-  <!-- Full Screen Image Viewer Overlay -->
-  <div class="zoom-overlay" *ngIf="selectedZoomImage" (click)="closeZoom()">
-    <div class="zoomer-container">
-      <div class="viewer-actions">
-        <div class="action-btn" (click)="toggleZoom($event)">
-          <ion-icon [name]="currentZoom > 1 ? 'remove-circle-outline' : 'add-circle-outline'"></ion-icon>
-          <span class="zoom-text">{{ currentZoom }}x</span>
-        </div>
-        <div class="action-btn" (click)="downloadImage(selectedZoomImage); $event.stopPropagation()">
-          <ion-icon name="download-outline"></ion-icon>
-        </div>
-        <div class="action-btn" (click)="closeZoom()">
-          <ion-icon name="close-outline"></ion-icon>
-        </div>
+  <!-- Zoom Overlay -->
+  <div class="zoom-overlay" [class.active]="selectedZoomImage" (click)="closeZoom()">
+    <div class="zoom-header">
+      <div class="btn" (click)="downloadImage(selectedZoomImage!); $event.stopPropagation()">
+        <ion-icon name="download-outline"></ion-icon>
       </div>
-      
-      <div class="image-scroll-wrapper">
-        <img [src]="selectedZoomImage" 
-             [style.transform]="'scale(' + currentZoom + ')'"
-             (click)="toggleZoom($event)" />
+      <div class="btn" (click)="closeZoom()">
+        <ion-icon name="close-outline"></ion-icon>
       </div>
-      
-      <div class="close-btn-bottom">TAP PHOTO TO ZOOM • TAP BACKGROUND TO CLOSE</div>
     </div>
+    <div class="zoom-body">
+      <img [src]="selectedZoomImage" (click)="$event.stopPropagation()" />
+    </div>
+    <div class="zoom-footer">TAP TO ZOOM • TAP BACKGROUND TO CLOSE</div>
   </div>
 </ion-content>
+t>

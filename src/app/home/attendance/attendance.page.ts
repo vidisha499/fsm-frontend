@@ -282,34 +282,28 @@ async submitAttendance() {
   this.cdr.detectChanges(); 
 
   // 4. Payload Preparation matching Postman mapping
-  const payloadEntry = {
-    geo_id: String(companyId),
-    geo_name: this.currentAddress || 'Unknown Geofence',
-    site_id: '1', // Hardcoded as per Postman example, ideally comes from list
-    site_name: this.rangerRegion,
+  const token = localStorage.getItem('api_token');
+  const headers = { 'Bypass-Token': 'true' };
+
+  const commonPayload = {
+    api_token: token,
+    geo_id: '1', // Hardcoded as per Postman example, ideally comes from getGuardGeofence
+    geo_name: this.currentAddress || 'Unknown Location',
+    site_id: 'beat', // 👈 Distinguishes from 'onsite' in history filter
+    site_name: this.rangerRegion || 'Forest Area',
     photo: this.capturedPhoto,
     location: `${this.currentLat},${this.currentLng}`
-  };
-
-  const payloadExit = {
-    geo_id: String(companyId),
-    geo_name: this.currentAddress || 'Unknown Geofence',
-    site_id: '1', // Sync with Entry
-    site_name: this.rangerRegion,
-    photo: this.capturedPhoto,
-    location: `${this.currentLat},${this.currentLng}` // Sync with Entry
   };
 
   // 5. Debug Logs
   console.log('--- ATTENDANCE SUBMISSION START ---');
   console.log('Type:', this.isEntry ? 'Entry' : 'Exit');
-  console.log('Payload Data:', this.isEntry ? payloadEntry : payloadExit);
-  console.log('-----------------------------------');
+  console.log('Payload:', commonPayload);
 
   // 6. API Call through DataService
   const req = this.isEntry 
-      ? this.dataService.markAttendance(payloadEntry) 
-      : this.dataService.markAttendanceExit(payloadExit);
+      ? this.dataService.markAttendance(commonPayload, headers) 
+      : this.dataService.markAttendanceExit(commonPayload, headers);
 
   req.subscribe({
     next: async () => {

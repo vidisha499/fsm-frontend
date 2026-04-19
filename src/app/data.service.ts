@@ -352,16 +352,6 @@
 // // data.service.ts
 // getIncidentsForMap(companyId: number) {
 //   // Mapping to your NestJS: @Get('company/:cid')
-//   return this.http.get<any[]>(`${this.baseApiUrl}/incidents/company/${companyId}`);
-// }
-
-
-
-// // Isse badal kar...
-// // data.service.ts
-// getAssetCategories(companyId: any): Observable<any[]> { // <--- Yahan <any[]> add kar
-//   return this.http.get<any[]>(`${this.baseApiUrl}/assets/categories/${companyId}`);
-// }
 
 // getAssetStatuses(companyId: number) {
 //   return this.http.get(`${this.baseApiUrl}/assets/statuses/company/${companyId}`);
@@ -579,17 +569,39 @@ export class DataService {
     const id = this.getRangerId();
     return this.http.get(`${this.baseApiUrl}/incidents/my-reports/${id}`);
   }
-  reportNewIncident(incidentData: any) { return this.http.post(`${this.baseApiUrl}/reportIncidence`, incidentData); }
+  reportNewIncident(incidentData: any) { 
+    const token = localStorage.getItem('api_token');
+    const fullPayload = { ...incidentData, api_token: token };
+    return this.http.post(`${this.baseApiUrl}/reportIncidence`, fullPayload); 
+  }
   getIncidentsByCompany(companyId: string) { return this.http.post(`${this.baseApiUrl}/getIncidence`, { company_id: companyId }); }
   getIncidentsForMap(companyId: number) { return this.http.get<any[]>(`${this.baseApiUrl}/incidents/company/${companyId}`); }
   getIncidentTrend(companyId: number): Observable<any> { return this.http.get(`${this.baseApiUrl}/incidents/trend/${companyId}`); }
 
   // --- 7. PATROLS & SIGHTINGS ---
-  startActivePatrol(payload: any) { return this.http.post(`${this.baseApiUrl}/patrol/start`, payload); }
-  getOngoingPatrols() { return this.http.post(`${this.baseApiUrl}/patrol-list`, {}); }
-  getActivePatrols(companyId: number) { return this.http.post(`${this.baseApiUrl}/patrol-list`, { company_id: companyId }); }
-  updatePatrolStats(patrolId: string, data: any) { return this.http.post(`${this.baseApiUrl}/patrol/${patrolId}/end`, data); }
-  uploadPatrolPhoto(patrolId: string, photoData: any) { return this.http.post(`${this.baseApiUrl}/patrol/${patrolId}/photos`, photoData); }
+  startActivePatrol(payload: any) { 
+    const token = localStorage.getItem('api_token');
+    const fullPayload = { ...payload, api_token: token };
+    return this.http.post(`${this.baseApiUrl}/patrol/start`, fullPayload); 
+  }
+  getOngoingPatrols() { 
+    const token = localStorage.getItem('api_token');
+    return this.http.post(`${this.baseApiUrl}/patrol-list`, { api_token: token }); 
+  }
+  getActivePatrols(companyId: number) { 
+    const token = localStorage.getItem('api_token');
+    return this.http.post(`${this.baseApiUrl}/patrol-list`, { company_id: companyId, api_token: token }); 
+  }
+  updatePatrolStats(patrolId: string, data: any) { 
+    const token = localStorage.getItem('api_token');
+    const fullPayload = { ...data, api_token: token };
+    return this.http.post(`${this.baseApiUrl}/patrol/${patrolId}/end`, fullPayload); 
+  }
+  uploadPatrolPhoto(patrolId: string, photoData: any) { 
+    const token = localStorage.getItem('api_token');
+    const fullPayload = { ...photoData, api_token: token };
+    return this.http.post(`${this.baseApiUrl}/patrol/${patrolId}/photos`, fullPayload); 
+  }
   getCompletedPatrolLogs() { return this.http.post(`${this.baseApiUrl}/patrol-logs`, {}); }
   getPatrolsByCompany(companyId: number, dateFrom?: string, dateTo?: string) {
     let payload: any = { company_id: companyId };
@@ -598,8 +610,14 @@ export class DataService {
     return this.http.post(`${this.baseApiUrl}/patrol-list`, payload);
   }
   getPatrolById(id: number | string) { return this.http.post(`${this.baseApiUrl}/patrol-logs`, { id: id }); }
-  saveSighting(payload: any) { return this.http.post(`${this.baseApiUrl}/forest-reports`, payload); }
-  submitForestEvent(payload: any) { return this.http.post(`${this.baseApiUrl}/forest-reports`, payload); }
+  saveSighting(payload: any) { 
+    const token = localStorage.getItem('api_token');
+    const fullPayload = { ...payload, api_token: token };
+    return this.http.post(`${this.baseApiUrl}/forest-reports`, fullPayload); 
+  }
+  submitForestEvent(payload: any, headers?: any) {
+    return this.http.post(`${this.baseApiUrl}/forest-reports`, payload, { headers });
+  }
   savePatrolLogs(payload: any) { return this.http.post(`${this.baseApiUrl}/save-patrol-logs`, payload); }
   updatePatrolLog(id: string | number, payload: any) { return this.http.put(`${this.baseApiUrl}/patrol-logs/${id}`, payload); }
   deletePatrolLog(id: string | number) { return this.http.delete(`${this.baseApiUrl}/patrol-logs/${id}`); }
@@ -614,8 +632,15 @@ export class DataService {
 
   // --- 8. ATTENDANCE (BEAT & ONSITE) ---
   notify() { return this.http.post(`${this.baseApiUrl}/notify`, {}); }
-  markAttendance(payload: any) { return this.http.post(`${this.baseApiUrl}/markAttendance`, payload); }
-  markAttendanceExit(payload: any) { return this.http.post(`${this.baseApiUrl}/markAttendanceExit`, payload); }
+  
+  markAttendance(payload: any, headers?: any) { 
+    return this.http.post(`${this.baseApiUrl}/markAttendance`, payload, { headers }); 
+  }
+  
+  markAttendanceExit(payload: any, headers?: any) { 
+    return this.http.post(`${this.baseApiUrl}/markAttendanceExit`, payload, { headers }); 
+  }
+
   testGroupBy() { return this.http.post(`${this.baseApiUrl}/testGroupBy`, {}); }
   
   markSupervisorAttendance() { return this.http.post(`${this.baseApiUrl}/markSupervisorAttendance`, {}); }
@@ -628,7 +653,12 @@ export class DataService {
   requestExitAttendance(payload: any) { return this.http.post(`${this.baseApiUrl}/requestExitAttendance`, payload); }
   
   getAttendanceRequests(companyId: string) { return this.http.post(`${this.baseApiUrl}/getAttendanceRequests`, { company_id: companyId }); }
-  getAttendanceRequestDetails(id: string) { return this.http.post(`${this.baseApiUrl}/getAttendanceRequestDetails`, { id: id }); }
+  getAttendanceRequestDetails(id: string) { 
+    const token = localStorage.getItem('api_token');
+    const payload = { api_token: token, id: id };
+    const headers = { 'Bypass-Token': 'true' };
+    return this.http.post(`${this.baseApiUrl}/getAttendanceRequestDetails`, payload, { headers }); 
+  }
   
   attendanceGroupByGeoname() { return this.http.post(`${this.baseApiUrl}/attendanceGroupByGeoname`, {}); }
   allAttendanceGroupByGeoname() { return this.http.post(`${this.baseApiUrl}/allAttendanceGroupByGeoname`, {}); }
@@ -643,14 +673,33 @@ export class DataService {
   
   applyWeekoff(payload: any) { return this.http.post(`${this.baseApiUrl}/applyWeekoff`, payload); }
   getWeekoff(payload: any) { return this.http.post(`${this.baseApiUrl}/getWeekoff`, payload); }
-  getUserMonthlyAttendance(companyId: string) { return this.http.post(`${this.baseApiUrl}/getUserMonthlyAttendance`, { company_id: companyId }); }
+  getUserMonthlyAttendance(payload: any, headers?: any) { 
+    // Usually history needs token in body too to match Sir's API style
+    return this.http.post(`${this.baseApiUrl}/getUserMonthlyAttendance`, payload, { headers }); 
+  }
 
-  getAttendanceLogsByRanger(companyId: string) { return this.getUserMonthlyAttendance(companyId); }
+  getAttendanceLogsByRanger(companyId: string) { 
+    const token = localStorage.getItem('api_token');
+    const payload = { company_id: companyId, api_token: token };
+    const headers = { 'Bypass-Token': 'true' };
+    return this.getUserMonthlyAttendance(payload, headers); 
+  }
+  
   getAttendanceByCompany(companyId: string) { return this.getAttendanceRequests(companyId); }
-  markOnsiteAttendance(payload: any) { return this.http.post(`${this.baseApiUrl}/onsite-attendance`, payload); }
+  
+  markOnsiteAttendance(payload: any, headers?: any) { 
+    // Point onsite to same main attendance endpoint to match Sir's API collection
+    return this.markAttendance(payload, headers); 
+  }
   getPendingOnsiteRequests(companyId: string) { return this.http.get(`${this.baseApiUrl}/onsite-attendance/company/${companyId}/pending`); }
   updateOnsiteStatus(id: number, status: 'approved' | 'rejected') { return this.http.patch(`${this.baseApiUrl}/onsite-attendance/${id}/status`, { status }); }
-  getOnsiteLogsByRanger(rangerId: string) { return this.http.get(`${this.baseApiUrl}/onsite-attendance/ranger/${rangerId}`); }
+  getOnsiteLogsByRanger(rangerId: string, companyId: string) { 
+    // Fix: Instead of old GET route that doesn't exist, use common monthly logs with token in body
+    const token = localStorage.getItem('api_token');
+    const payload = { company_id: companyId, api_token: token, ranger_id: rangerId };
+    const headers = { 'Bypass-Token': 'true' };
+    return this.getUserMonthlyAttendance(payload, headers); 
+  }
   getApprovedOnsiteByCompany(companyId: string) { return this.http.get(`${this.baseApiUrl}/onsite-attendance/company/${companyId}`); }
   getWeeklyAttendanceStats(companyId: any, rangerId?: any) {
     let url = `${this.baseApiUrl}/attendance/stats/weekly?companyId=${companyId}`;
@@ -721,7 +770,29 @@ export class DataService {
   // --- 14. NEW ENDPOINTS FROM FMS COLLECTION ---
   getForestReportConfigs() { return this.http.get(`${this.baseApiUrl}/forest-report-configs`); }
   
-  getForestReports(params?: any) { return this.http.get(`${this.baseApiUrl}/forest-reports`, { params }); }
+  getForestReports(paramsOrCategory?: any) { 
+    const token = localStorage.getItem('api_token');
+    let url = `${this.baseApiUrl}/forest-reports?api_token=${token}`;
+    
+    if (typeof paramsOrCategory === 'string') {
+      url += `&category=${paramsOrCategory}`;
+      return this.http.get(url);
+    } else if (paramsOrCategory && typeof paramsOrCategory === 'object') {
+      // Use query params for objects
+      return this.http.get(`${this.baseApiUrl}/forest-reports`, { 
+        params: { ...paramsOrCategory, api_token: token || '' } 
+      });
+    }
+    
+    return this.http.get(url); 
+  }
+  getSitesList(companyId: string) {
+    const token = localStorage.getItem('api_token');
+    return this.http.post(`${this.baseApiUrl}/getSites`, { 
+      company_id: companyId, 
+      api_token: token 
+    });
+  }
   showForestReport(id: string | number, params?: any) { return this.http.get(`${this.baseApiUrl}/forest-reports/${id}`, { params }); }
   createForestReport(payload: any) { return this.http.post(`${this.baseApiUrl}/forest-reports`, payload); }
   updateForestReport(id: string | number, payload: any) { return this.http.post(`${this.baseApiUrl}/forest-reports/${id}/update`, payload); }
@@ -743,7 +814,11 @@ export class DataService {
   getSupervisorSites(payload: any) { return this.http.post(`${this.baseApiUrl}/getSupervisorSites`, payload); }
   getSupervisorPrimaryGeofence(payload: any) { return this.http.post(`${this.baseApiUrl}/getSupervisorPrimaryGeofence`, payload); }
   getGuardsAssociatedWithGeo(payload: any) { return this.http.post(`${this.baseApiUrl}/getGuardsAssociatedWithGeo`, payload); }
-  getGuardGeofence(payload: any) { return this.http.post(`${this.baseApiUrl}/getGuardGeofence`, payload); }
+  getGuardGeofence(payload: any) { 
+    const token = localStorage.getItem('api_token');
+    const fullPayload = { ...payload, api_token: token };
+    return this.http.post(`${this.baseApiUrl}/getGuardGeofence`, fullPayload); 
+  }
   getAllGeofences(payload: any) { return this.http.post(`${this.baseApiUrl}/getAllGeofences`, payload); }
   deleteGeofenceMultiGuard(payload: any) { return this.http.post(`${this.baseApiUrl}/deleteGeofenceMultiGuard`, payload); }
   getClientSites(payload: any) { return this.http.post(`${this.baseApiUrl}/getClientSites`, payload); }
@@ -802,15 +877,41 @@ export class DataService {
 
   // --- 18. OFFLINE DRAFTS & RECENT ACTIVITY ---
   
+  // Check if internet is available
+  isOnline(): boolean {
+    return navigator.onLine;
+  }
+  
   saveForestEventDraft(payload: any) {
-    const drafts = this.getForestEventDrafts();
+    let drafts = this.getForestEventDrafts();
+    
+    // Check for duplicates to avoid bloating
+    const isDuplicate = drafts.some(d => 
+      d.category === payload.category && 
+      d.report_type === payload.report_type && 
+      d.latitude === payload.latitude
+    );
+    if (isDuplicate) return;
+
     drafts.push({
       ...payload,
       draftId: 'DRAFT-' + Date.now(),
       isDraft: true,
       createdAt: new Date().toISOString()
     });
-    localStorage.setItem('forest_event_drafts', JSON.stringify(drafts));
+
+    try {
+      localStorage.setItem('forest_event_drafts', JSON.stringify(drafts));
+    } catch (e) {
+      if (e instanceof DOMException && (e.code === 22 || e.code === 1014 || e.name === 'QuotaExceededError')) {
+        console.warn('LocalStorage quota exceeded. Removing oldest drafts...');
+        // Remove oldest 3 drafts to make space
+        drafts = drafts.slice(-5); // Keep only the latest 5 drafts
+        localStorage.setItem('forest_event_drafts', JSON.stringify(drafts));
+      } else {
+        throw e;
+      }
+    }
   }
 
   getForestEventDrafts(): any[] {
@@ -899,23 +1000,32 @@ export class DataService {
   }
 
   getForestEventById(id: number): Observable<any> {
-    return this.http.get(`${this.baseApiUrl}/forest-events/${id}`);
+    return this.http.get(`${this.baseApiUrl}/forest-reports/${id}`);
   }
 
   saveFormConfig(config: any) {
-    return this.http.post(`${this.baseApiUrl}/forest-events/configs`, config);
+    return this.http.post(`${this.baseApiUrl}/forest-reports/configs`, config);
   }
 
   getFormConfig(category: string, type: string) {
-    const companyId = this.getUserCompanyId() || 0;
-    return this.http.get(`${this.baseApiUrl}/forest-events/configs/fetch`, {
-      params: { category, type, companyId: companyId.toString() }
-    });
+    const companyId = this.getUserCompanyId() || '1';
+    const token = localStorage.getItem('api_token');
+    
+    // Sir's API (POST /getReportIncidenceCheckList)
+    const payload = { 
+      category: category, 
+      report_type: type, 
+      company_id: companyId.toString(),
+      api_token: token 
+    };
+    
+    const headers = { 'Bypass-Token': 'true' };
+    return this.getReportIncidenceCheckList(payload);
   }
 
   getAllConfigs() {
     const companyId = this.getUserCompanyId() || 0;
-    return this.http.get(`${this.baseApiUrl}/forest-events/configs/all`, {
+    return this.http.get(`${this.baseApiUrl}/forest-reports/configs/all`, {
       params: { companyId: companyId.toString() }
     });
   }

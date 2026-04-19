@@ -180,28 +180,31 @@ export class PatrolLogsPage implements OnInit {
       lng = position.coords.longitude;
     } catch (e) { console.warn("GPS failed, using 0,0"); }
 
+    // Generate a truly unique sessionId for this session
+    const uniqueSessionId = `PATROL_${storedRangerId}_${Date.now()}`;
+
     // Update payload to match FMS `/patrol/start` POST body requirement
     const payload = { 
       start_lat: String(lat),
       start_lng: String(lng),
       type: this.selectedType,
       method: this.selectedMethod,
-      sessionId: String(storedRangerId) // FMS uses sessionId, presumably ranger ID mapping
+      sessionId: uniqueSessionId
     };
 
     this.dataService.startActivePatrol(payload).subscribe({
       next: (res: any) => {
         loader.dismiss();
-        // Fallback id for session management
-        const activeId = res && res.id ? res.id.toString() : new Date().getTime().toString();
         
-        // Save locally for backup
+        // Use server's returned ID if available, else fallback to our unique session ID
+        const activeId = (res && res.id) ? res.id.toString() : uniqueSessionId;
+        
         localStorage.setItem('active_patrol_id', activeId);
+        localStorage.setItem('active_patrol_session_id', uniqueSessionId); // Store the string ID for reporting
         localStorage.setItem('temp_patrol_name', `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`);
         
         this.isModalOpen = false;
         
-        // Redundant IDs in queryParams to fix navigation error
         this.navCtrl.navigateForward(['/home/patrol-active'], {
           queryParams: { 
             id: activeId,

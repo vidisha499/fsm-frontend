@@ -1,5 +1,6 @@
 import { Component, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
 import { NavController } from '@ionic/angular';
+import { ActivatedRoute } from '@angular/router';
 import { DataService } from '../../data.service'; // Path apne hisaab se check kar lein
 import * as L from 'leaflet';
 
@@ -15,15 +16,44 @@ export class AttendanceDetailPage implements OnInit, AfterViewInit, OnDestroy {
 
   constructor(
     private dataService: DataService,
-    private navCtrl: NavController
+    private navCtrl: NavController,
+    private route: ActivatedRoute
   ) { }
 
   ngOnInit() {
-    // 1. DataService se selected record uthao
+    // 1. URL se ID check karein (Agar Direct Link ya Refresh hai toh)
+    const id = this.route.snapshot.paramMap.get('id');
+    
+    // 2. DataService se selected record uthao
     this.attendance = this.dataService.getSelectedAttendance();
 
-    // 2. Safety Check: Agar data nahi hai (refresh hone par), toh list par wapas bhej do
-    if (!this.attendance) {
+    // 3. Agar selectedData nahi hai aur ID hai, toh fetch karein
+    if (!this.attendance && id) {
+      this.dataService.getAttendanceRequestDetails(id).subscribe({
+        next: (res: any) => {
+          const raw = res.data || res.attendance || res;
+          
+          // Normalize Keys for Template
+          this.attendance = {
+            ...raw,
+            geofence: raw.geo_name || raw.geofence || 'General Area',
+            region: raw.site_name || raw.region || 'Forest Region',
+            rangerName: raw.name || raw.rangerName || 'Ranger',
+            createdAt: raw.timestamp || raw.entryDateTime || raw.created_at || raw.createdAt
+          };
+
+          if (this.attendance && (this.attendance.latitude || this.attendance.location)) {
+            setTimeout(() => {
+              this.initMap();
+            }, 700); // 👈 Increased delay for absolute frame readiness
+          }
+        },
+        error: (err) => {
+          console.error("Could not load attendance details", err);
+          this.navCtrl.navigateBack('/home/attendance-list');
+        }
+      });
+    } else if (!this.attendance) {
       this.navCtrl.navigateBack('/home/attendance-list');
     }
   }
@@ -39,10 +69,24 @@ export class AttendanceDetailPage implements OnInit, AfterViewInit, OnDestroy {
 
   initMap() {
     try {
-      const lat = parseFloat(this.attendance.latitude);
-      const lng = parseFloat(this.attendance.longitude);
+      let lat = parseFloat(this.attendance.latitude);
+      let lng = parseFloat(this.attendance.longitude);
+
+      // Robust check for "lat,lng" string in 'location' field
+      if ((isNaN(lat) || isNaN(lng)) && this.attendance.location) {
+        const parts = this.attendance.location.split(',');
+        lat = parseFloat(parts[0]);
+        lng = parseFloat(parts[1]);
+      }
+
+      if (isNaN(lat) || isNaN(lng)) {
+        console.warn("Invalid coordinates for map:", lat, lng);
+        return;
+      }
 
       // Map initialization
+      if (this.map) { this.map.remove(); }
+      
       this.map = L.map('detailMap', {
         center: [lat, lng],
         zoom: 16,

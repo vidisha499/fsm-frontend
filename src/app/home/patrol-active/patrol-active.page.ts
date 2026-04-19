@@ -119,6 +119,23 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
       this.recentSightings = [];
       this.sightingMarkersLayer.clearLayers();
     }
+    
+    // Recovery Logic: If session string is missing, fetch it from the server
+    if (!localStorage.getItem('active_patrol_session_id')) {
+      console.log('🔍 Recovering sessionId string from server...');
+      this.dataService.getOngoingPatrols().subscribe({
+        next: (res: any) => {
+          const patrols = res?.data || res || [];
+          const match = patrols.find((p: any) => p.id?.toString() === this.activePatrolId || p.sessionId === this.activePatrolId);
+          if (match && (match.sessionId || match.session_id)) {
+            const sId = match.sessionId || match.session_id;
+            localStorage.setItem('active_patrol_session_id', sId);
+            console.log('✅ Session string recovered:', sId);
+          }
+        }
+      });
+    }
+
     this.refreshRecentSightings();
   }
 
@@ -154,18 +171,17 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
     const rangerId = this.dataService.getRangerId();
-    const activeObs$ = this.http.get(`${this.apiUrl}/active?userId=${rangerId}`);
-    const forestReports$ = this.http.get(`${environment.apiUrl}/forest-events?patrolId=${this.activePatrolId}`);
+    const activeObs$ = this.dataService.getOngoingPatrols();
+    const forestReports$ = this.dataService.getForestReports();
 
     forkJoin([activeObs$, forestReports$]).subscribe({
       next: ([activeData, forestData]: [any, any]) => {
-        // Determine session start
-        let active: any = null;
-        if (Array.isArray(activeData)) {
-          active = activeData.find(p => p.id?.toString() === this.activePatrolId);
-        } else if (activeData && activeData.id?.toString() === this.activePatrolId) {
-          active = activeData;
-        }
+        // Extract patrols from Sir's response (expecting inside .data or array)
+        let patrols = Array.isArray(activeData) ? activeData : (activeData?.data || []);
+        let forestReports = Array.isArray(forestData) ? forestData : (forestData?.data || []);
+
+        // Determine session info
+        const active = patrols.find((p: any) => p.id?.toString() === this.activePatrolId || p.sessionId === this.activePatrolId);
         const rawStart = active?.startTime || active?.start_time || this.startTime;
         const toUtcEpoch = (dateStr: any) => {
           if (!dateStr) return 0;
@@ -403,7 +419,6 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
           const dist = this.lastLatLng.distanceTo(current);
           if (dist > 10) {
             this.totalDistanceKm += dist / 1000;
-            this.syncLocation(current.lat, current.lng);
           }
         }
         this.lastLatLng = current;
@@ -412,11 +427,11 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     });
   }
 
-  syncLocation(lat: number, lng: number) {
-    if (this.activePatrolId) {
-      this.http.patch(`${environment.apiUrl}/patrols/active/${this.activePatrolId}/route`, { lat, lng }).subscribe();
-    }
-  }
+  // syncLocation(lat: number, lng: number) {
+  //   if (this.activePatrolId) {
+  //     this.http.patch(`${environment.apiUrl}/patrols/active/${this.activePatrolId}/route`, { lat, lng }).subscribe();
+  //   }
+  // }
 
   async handleEndTrip(isManual: boolean = false) {
     if (!isManual || this.isSubmitting) return;
@@ -436,23 +451,31 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     await loader.present();
     const eLat = this.lastLatLng ? this.lastLatLng.lat : 0;
     const eLng = this.lastLatLng ? this.lastLatLng.lng : 0;
+    
+    // Sir's /patrol/{{sessionId}}/end payload 
+    // We strictly use the session string ID here
+    const sessionId = localStorage.getItem('active_patrol_session_id') || this.activePatrolId;
+    
     const fmsPayload = {
       end_lat: String(eLat),
       end_lng: String(eLng),
-      status: 'COMPLETED',
-      coords: this.routePoints.map(p => [p.lng, p.lat])
+      coords: this.routePoints.map(p => [p.lng, p.lat]) // Sir expects raw array
     };
-    if (!this.activePatrolId) {
+
+    if (!sessionId) {
+      await loader.dismiss();
       this.showToast('No active patrol ID found', 'danger');
       return;
     }
-    this.dataService.updatePatrolStats(this.activePatrolId, fmsPayload).subscribe({
+
+    this.dataService.updatePatrolStats(sessionId, fmsPayload).subscribe({
       next: async () => {
+        // Upload patrol photos sequentially using Sir's API
         for (const photo of this.capturedPhotos) {
           try {
-            await firstValueFrom(this.dataService.uploadPatrolPhoto(this.activePatrolId as string, { photo }));
+            await firstValueFrom(this.dataService.uploadPatrolPhoto(sessionId, { photo }));
           } catch (e) {
-            console.log('Photo upload issue', e);
+            console.error('Photo upload issue', e);
           }
         }
         await loader.dismiss();
@@ -471,8 +494,13 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
         this.domCtrl.write(() => {
           if (this.endTripKnob) this.endTripKnob.nativeElement.style.transform = `translateX(0px)`;
         });
-        const errorMsg = err.error?.message || 'Sync Error: Please check your connection.';
-        this.showToast(errorMsg, 'danger');
+        const errorMsg = err?.error?.message || 'Sync Error: Please check your connection.';
+        const alert = await this.alertCtrl.create({
+          header: 'Sync Failed',
+          message: errorMsg,
+          buttons: ['OK']
+        });
+        await alert.present();
       }
     });
   }

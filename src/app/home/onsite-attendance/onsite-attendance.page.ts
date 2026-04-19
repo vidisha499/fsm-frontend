@@ -206,22 +206,23 @@ async submit() {
   this.isSubmitting = true;
   this.cdr.detectChanges(); 
 
-  // --- FIX: Get Company ID from localStorage ---
-  // const companyId = localStorage.getItem('company_id');
-  const companyId = localStorage.getItem('company_id') || '1';
+  const token = localStorage.getItem('api_token');
+  const headers = { 'Bypass-Token': 'true' };
+
   const onsiteData = {
-    geo_id: companyId ? String(companyId) : '1',
-    geo_name: this.currentAddress,
-    site_id: 'ON-SITE', // Explicitly marking as onsite
-    site_name: this.rangerName,
+    api_token: token,
+    geo_id: '1',
+    geo_name: this.currentAddress || 'Onsite Location',
+    site_id: 'onsite', // 👈 Unique ID for filtering in history
+    site_name: 'Onsite Attendance',
     photo: this.capturedPhoto,
-    location: `${Number(this.currentLat)},${Number(this.currentLng)}`
+    location: `${this.currentLat},${this.currentLng}`
   };
 
-  console.log('Submitting Onsite Attendance for Company:', companyId)
+  console.log('Submitting Onsite Attendance Payload:', onsiteData);
   
-  // Submitting using the correct Onsite API
-  this.dataService.markOnsiteAttendance(onsiteData).subscribe({
+  // Submitting using the main attendance endpoint for reliability
+  this.dataService.markOnsiteAttendance(onsiteData, headers).subscribe({
     next: async () => {
       const successMsg = await firstValueFrom(this.translate.get('ATTENDANCE.SUCCESS'));
       this.presentToast(successMsg, 'success');

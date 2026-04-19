@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import * as L from 'leaflet';
+import { DataService } from '../../data.service';
 
 @Component({
   selector: 'app-onsite-attendance-details',
@@ -18,7 +19,8 @@ export class OnsiteAttendanceDetailsPage implements OnInit {
   constructor(
     private navCtrl: NavController,
     private route: ActivatedRoute,
-    private http: HttpClient
+    private http: HttpClient,
+    private dataService: DataService
   ) {}
 
   ngOnInit() {
@@ -41,19 +43,39 @@ ionViewDidEnter() {
 
 // 2. Update loadDetails to trigger the map if the page is already active
 loadDetails(id: string) {
-  this.http.get(`${environment.apiUrl}/onsite-attendance/${id}`).subscribe({
-    next: (data: any) => {
-      this.attendanceData = data;
+  this.dataService.getAttendanceRequestDetails(id).subscribe({
+    next: (res: any) => {
+      // Sir's API data normalization
+      const raw = res.data || res.attendance || res;
       
-      // If the data arrives AFTER the page has finished entering, 
-      // we trigger the map here manually.
-      if (data && data.latitude) {
-        setTimeout(() => {
-          this.initMap(data.latitude, data.longitude);
-        }, 100);
+      this.attendanceData = {
+        ...raw,
+        geofence: raw.geo_name || raw.geofence || 'Verified Location',
+        created_at: raw.timestamp || raw.entryDateTime || raw.created_at || new Date(),
+        ranger: raw.name || raw.rangerName || 'Ranger',
+        ranger_id: raw.id || raw.ranger_id || '#'
+      };
+      
+      const data = this.attendanceData;
+      if (data && (data.latitude || data.location)) {
+        let lat = data.latitude;
+        let lng = data.longitude;
+
+        // Sir's API specific: parse location string "lat,lng"
+        if (!lat && data.location && typeof data.location === 'string' && data.location.includes(',')) {
+          const parts = data.location.split(',');
+          lat = parseFloat(parts[0]);
+          lng = parseFloat(parts[1]);
+        }
+
+        if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+          setTimeout(() => {
+            this.initMap(Number(lat), Number(lng));
+          }, 500); // 👈 Wait for full DOM/Wrapper rendering
+        }
       }
     },
-    error: (err) => console.error('Error loading details', err)
+    error: (err) => console.error('Error loading details via Sir\'s API', err)
   });
 }
 

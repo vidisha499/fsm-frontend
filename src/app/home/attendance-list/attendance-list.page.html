@@ -58,7 +58,7 @@
                     class="status-badge" 
                     [class.status-approved]="log.status === 'approved'"
                     [class.status-pending]="log.status !== 'approved'">
-                {{ (log.status || 'pending') | uppercase }}
+                {{ (log.status !== null && log.status !== undefined ? log.status.toString() : 'pending') | uppercase }}
               </span>
             </div>
             <h2 class="priority-title">{{ (log.createdAt || log.created_at) | date:'dd MMMM, yyyy' }}</h2>
@@ -69,9 +69,6 @@
           </div>
 
           <div class="row-actions">
-            <ion-button fill="clear" color="danger" (click)="confirmDelete($event, log.id)">
-              <ion-icon slot="icon-only" name="trash-outline" style="font-size: 18px;"></ion-icon>
-            </ion-button>
             <ion-icon name="chevron-forward" class="chevron"></ion-icon>
           </div>
         </div>

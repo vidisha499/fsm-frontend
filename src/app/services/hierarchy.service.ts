@@ -102,27 +102,26 @@ export class HierarchyService {
     return this.http.get<any[]>(finalUrl);
   }
 
-  // 6. Get Assigned Beat (Migrated to Sir's Production API: POST /api/getGuardGeofence)
+  // 6. Get Assigned Site/Beat (Aligned with Sir's Production API: POST /api/getSites)
   getAssignedBeat(rangerId: number): Observable<any> {
-    const productionUrl = 'https://fms.pugarch.in/public/api/getGuardGeofence';
+    const productionUrl = 'https://fms.pugarch.in/public/api/getSites';
     const apiToken = localStorage.getItem('api_token') || '';
+    const companyId = localStorage.getItem('company_id') || '1';
     
-    console.log('Fetching Beat from Production API for Ranger ID:', rangerId); 
+    console.log('Fetching Sites from Production for Company ID:', companyId); 
     
-    // We'll use FormData as Sir's backend is PHP based and might expect multipart/form-data.
-    // We use 'Bypass-Token' to prevent the interceptor from adding the token to the URL 
-    // simultaneously, which was likely causing the 500 Internal Server Error.
-    const fd = new FormData();
-    fd.append('api_token', apiToken);
+    const payload = { 
+      api_token: apiToken,
+      company_id: companyId 
+    };
 
-    return this.http.post<any>(productionUrl, fd, {
+    return this.http.post<any>(productionUrl, payload, {
       headers: new HttpHeaders().set('Bypass-Token', 'true')
     }).pipe(
       catchError(err => {
-        console.error('Production Beat check failed (Fallback to General):', err);
-        // Fallback to avoid breaking UI while Sir's API is being fixed
+        console.error('Production Sites check failed (Fallback to General):', err);
         const cached = localStorage.getItem('assigned_beat_name') || 'General';
-        return of({ data: { name: cached, beat_name: cached } });
+        return of({ data: [{ site_name: cached }] });
       })
     );
   }

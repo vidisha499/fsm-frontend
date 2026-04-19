@@ -132,13 +132,17 @@ applyFrontendLogic() {
     const logDate = log.createdAt.split('T')[0];
     const isWithinDate = logDate >= start && logDate <= end;
     
+    // Mode check (Beat vs Onsite)
+    const isOnsite = log.site_id === 'onsite' || (log.site_name && log.site_name.toLowerCase().includes('onsite'));
+    const matchesMode = (this.selectedMode === 'onsite') ? isOnsite : !isOnsite;
+
     let isMatchLocation = true;
     if (this.filterLocation) {
       const query = this.filterLocation.toLowerCase();
       const locName = (log.geofence || log.location_name || '').toLowerCase();
       isMatchLocation = locName.includes(query);
     }
-    return isWithinDate && isMatchLocation;
+    return isWithinDate && isMatchLocation && matchesMode;
   });
 }
 
@@ -176,7 +180,7 @@ async loadAttendanceLogs() {
 
   const request = this.selectedMode === 'beat' 
     ? this.dataService.getAttendanceLogsByRanger(companyId)
-    : this.dataService.getOnsiteLogsByRanger(this.rangerId);
+    : this.dataService.getOnsiteLogsByRanger(this.rangerId, companyId);
 
   request.subscribe({
     next: (res: any) => {
@@ -225,11 +229,17 @@ async loadAttendanceLogs() {
         };
       });
 
-      // Filter for today (IST/Local compatible check)
+      // Filter for today AND selected mode
       const today = new Date().toISOString().split('T')[0];
       this.attendanceLogs = this.allLogs.filter(log => {
-        if (!log.createdAt) return false;
-        return log.createdAt.split('T')[0] === today;
+        // 1. Date check
+        const isToday = log.createdAt && log.createdAt.startsWith(today);
+        
+        // 2. Mode check
+        const isOnsite = log.site_id === 'onsite' || (log.site_name && log.site_name.toLowerCase().includes('onsite'));
+        const matchesMode = (this.selectedMode === 'onsite') ? isOnsite : !isOnsite;
+
+        return isToday && matchesMode;
       });
       
       loader.dismiss();

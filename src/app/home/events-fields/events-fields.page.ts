@@ -1,6 +1,6 @@
 import { Component, OnInit,ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { NavController, ActionSheetController, ToastController, LoadingController, GestureController } from '@ionic/angular';
+import { NavController, ActionSheetController, ToastController, LoadingController, GestureController, AlertController } from '@ionic/angular';
 import { Geolocation } from '@capacitor/geolocation';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { DataService } from 'src/app/data.service';
@@ -27,6 +27,7 @@ export class EventsFieldsPage implements OnInit {
   swipeThreshold = 0.8;
   swipeCompleted = false;
   assignedBeat: string = 'Loading...';
+  currentSiteId: string = '1';
   patrolId: string | null = null;
   speciesOptions: string[] = ['Sal', 'Saja', 'Sagaon', 'Beeja', 'Haldu', 'Dhawda', 'Safed Siris', 'Kala Siris', 'Jamun', 'Aam', 'Semal', 'Mahua', 'Tendu', 'Nilgiri', 'Others'];
   animalSpecies: string[] = ['Sloth Bear', 'Leopard', 'Hyena', 'Jackal', 'Wild Bear', 'Spotted Deer', 'Sambar', 'Others'];
@@ -196,7 +197,12 @@ fieldsConfig: any = {
     private hierarchyService: HierarchyService,
     private cdr: ChangeDetectorRef,
     private gestureCtrl: GestureController,
-  ) {}
+    private alertCtrl: AlertController, // 👈 Added missing injection
+  ) {
+    // Bind methods to preserve 'this' context when called from template callbacks
+    this.takePhoto = this.takePhoto.bind(this);
+    this.selectImageSource = this.selectImageSource.bind(this);
+  }
 
   ngOnInit() {
     this.loadRecentSubmissions();
@@ -234,40 +240,51 @@ fieldsConfig: any = {
   }
 
   async loadCustomConfiguration() {
-    if (this.isConfigLoaded) return; // 🛑 Prevent duplicate fetching logic
+    if (this.isConfigLoaded) return; 
 
     const loading = await this.loadingCtrl.create({
-      message: 'Loading form...',
-      spinner: 'crescent',
-      duration: 2000 // Safety timeout
+      message: 'Fetching Form Template...',
+      spinner: 'crescent'
     });
     await loading.present();
 
-    // 🔥 SYNC FIX: Map UI Category to Database Key (match the builder)
-    const dbCategory = (this.currentCategory === 'Criminal Activity') ? 'crimes' : 'events';
+    console.log(`📡 STRICT SYNC: Fetching Global Configs for: [${this.eventTitle}]`);
 
-    console.log(`📡 Fetching Template for: [${dbCategory} | ${this.eventTitle}]`);
+    this.dataService.getForestReportConfigs().subscribe({
+      next: (res: any) => {
+        // Robust extraction logic for Sir's API response
+        const allConfigs = res?.data || res || [];
+        
+        // Match by title or report_type
+        const matchedConfig = allConfigs.find((c: any) => 
+          (c.report_type === this.eventTitle) || 
+          (c.title === this.eventTitle) ||
+          (c.name === this.eventTitle)
+        );
 
-    this.dataService.getFormConfig(dbCategory, this.eventTitle).subscribe({
-      next: (config: any) => {
-        if (config && config.fields && config.fields.length > 0) {
-          console.log("🛠️ Using Custom Form Configuration from DB");
-          this.dynamicFields = config.fields;
+        let fields = [];
+        if (matchedConfig) {
+          fields = matchedConfig.fields || matchedConfig.details || [];
+          console.log("🛠️ STRICT SYNC: Matched Config Found in Sir's API");
+        }
+
+        if (fields.length > 0) {
+          this.dynamicFields = fields;
         } else {
-          console.log("📦 Using Hardcoded Default Form Configuration");
+          console.warn("📦 [RESTORE] Sir's API returned no fields for this title. Using Internal Recovery Form.");
           this.dynamicFields = this.fieldsConfig[this.eventTitle] || [];
         }
         
-        this.isConfigLoaded = true; // ✅ Mark as loaded
+        this.isConfigLoaded = true;
         this.fetchLocation();
         this.loadDefaultBeat();
         setTimeout(() => this.initSwipeGesture(), 500);
         loading.dismiss();
       },
       error: (err) => {
-        console.warn("⚠️ Config fetch failed, falling back to defaults:", err);
+        console.error("⚠️ STRICT SYNC FAILED:", err);
         this.dynamicFields = this.fieldsConfig[this.eventTitle] || [];
-        this.isConfigLoaded = true; // ✅ Mark as loaded even on error to stop loop
+        this.isConfigLoaded = true; 
         this.fetchLocation();
         this.loadDefaultBeat();
         setTimeout(() => this.initSwipeGesture(), 500);
@@ -298,23 +315,26 @@ async loadDefaultBeat() {
   const rangerId = userData.id;
 
   if (rangerId) {
-    this.hierarchyService.getAssignedBeat(rangerId).subscribe({
-      next: (data: any) => {
-        // HomePage ki tarah yahan bhi 'beatName' use karein
-        if (data && data.beatName) { 
-          this.assignedBeat = data.beatName;
-          // Form field ka label 'Assigned Beat' hai, isliye yahi key use hogi
-          this.reportData['Assigned Beat'] = data.beatName;
-        } else {
-          this.assignedBeat = 'General';
-          this.reportData['Assigned Beat'] = 'General';
-        }
-      },
-      error: () => {
+  this.hierarchyService.getAssignedBeat(rangerId).subscribe({
+    next: (res: any) => {
+      // Sir's /getSites returns { data: [{ id, site_name, ... }] } or similar
+      const sites = Array.isArray(res) ? res : (res?.data || []);
+      if (sites.length > 0) {
+        const firstSite = sites[0];
+        const siteName = firstSite.site_name || firstSite.name || 'General';
+        this.assignedBeat = siteName;
+        this.currentSiteId = String(firstSite.id || '1');
+        this.reportData['Assigned Beat'] = siteName;
+      } else {
         this.assignedBeat = 'General';
         this.reportData['Assigned Beat'] = 'General';
       }
-    });
+    },
+    error: () => {
+      this.assignedBeat = 'General';
+      this.reportData['Assigned Beat'] = 'General';
+    }
+  });
   }
 }
 
@@ -571,13 +591,8 @@ async fetchLocation() {
   }
 
   async submitReport() {
-    const loading = await this.loadingCtrl.create({
-      message: 'Saving Report...',
-      spinner: 'circles'
-    });
-    await loading.present();
-
     const formattedReportData: any = {};
+    // Build formatted report data as a JSON string
     this.dynamicFields.forEach(field => {
       const userValue = this.reportData[field.label];
       const key = field.key || field.label;
@@ -589,67 +604,131 @@ async fetchLocation() {
     });
 
     const gpsField = this.dynamicFields.find(f => f.id === 'gps');
-    const gpsValue = gpsField?.value || ""; 
+    const gpsValue = gpsField?.value || "";      
     let lat = this.reportData['latitude'] || "0";
     let lng = this.reportData['longitude'] || "0";
+    const photoArray = this.capturedPhotos.map(p => ({ photo: p }));
 
-    const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
-    const cId = userData.company_id || userData.companyId || 0;
-    const clientId = userData.client_id || userData.clientId || null;
-    const uName = userData.name || userData.userName || 'Forest Ranger';
-    const dynamicRangeName = userData.range_name || this.reportData['range'] || null;
+    // --- SIR'S API ALIGNMENT ---
+    // Use the unique sessionId string for database mapping
+    let cleanPatrolId = "0";
+    const sessionString = localStorage.getItem('active_patrol_session_id');
+    if (sessionString) {
+      cleanPatrolId = sessionString;
+    } else if (this.patrolId && this.patrolId !== 'null' && this.patrolId !== 'undefined' && this.patrolId !== '0') {
+      // Fallback to patrolId if sessionStorage is missing (for resume cases)
+      cleanPatrolId = String(this.patrolId);
+    }
 
     const payload = {
-      report_id: 'FOR-' + Date.now(),
-      user_id: Number(this.dataService.getRangerId()),
-      user_name: uName,
-      company_id: Number(cId),
-      client_id: clientId,
-      range: dynamicRangeName || null,
-      category: (this.currentCategory?.toLowerCase().includes('criminal') || 
-                this.currentCategory?.toLowerCase().includes('crimes')) ? 'crimes' : 'events',
-      report_type: this.eventTitle ? this.eventTitle.toLowerCase().trim().replace(/\s/g, '_') : 'general_report',
-      date_time: new Date().toISOString(),
-      date: new Date().toISOString().split('T')[0],
-      time: new Date().toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true }),
+      api_token: localStorage.getItem('api_token'),
+      category: this.currentCategory || 'Events & Monitoring',
+      report_type: this.eventTitle || 'General Report',
       latitude: Number(lat),
       longitude: Number(lng),
-      beat: this.reportData['Assigned Beat'] || this.reportData['beat'] || 'General',
-      report_data: formattedReportData,
-      photo: this.capturedPhotos[0] || '', 
-      additional_photos: JSON.stringify(this.capturedPhotos.slice(1)), 
-      status: 'Pending',
-      patrol_id: this.patrolId ? Number(this.patrolId) : (Number(localStorage.getItem('active_patrol_id')) || null)
+      patrol_id: cleanPatrolId,
+      site_id: this.currentSiteId, // Dynamically loaded from /getSites
+      report_data: JSON.stringify(formattedReportData),
+      photo: "" // Will be set per-mode below
     };
 
-    this.dataService.submitForestEvent(payload).subscribe({
-      next: async (res) => {
-        await loading.dismiss();
-        this.dataService.saveRecentSubmission(payload);
-        const toast = await this.toastCtrl.create({
-          message: 'Report Submitted Successfully! ✅',
-          duration: 2000,
-          color: 'success',
-          position: 'top'
-        });
-        await toast.present();
-        this.navCtrl.back();
-      },
-      error: async (err) => {
-        await loading.dismiss();
-        console.warn("❌ Network failed, saving as draft...", err);
-        this.dataService.saveForestEventDraft(payload);
-        
-        const toast = await this.toastCtrl.create({
-          message: 'Saved as Draft (Offline) 📁. Sync it from Reports section later.',
-          duration: 4000,
-          color: 'warning',
-          position: 'top'
-        });
-        await toast.present();
-        this.navCtrl.back();
-      }
+    // 1. Check Network Connectivity
+    if (!this.dataService.isOnline()) {
+      console.warn("🌐 Device is OFFLINE. Saving as draft immediately.");
+      this.saveAsDraft(payload);
+      return;
+    }
+
+    const loading = await this.loadingCtrl.create({
+      message: 'Submitting Report...',
+      spinner: 'crescent'
     });
+    await loading.present();
+
+    const isStandalone = (cleanPatrolId === '0');
+    const headers = { 'Bypass-Token': 'true' };
+
+    if (isStandalone) {
+      // --- STANDALONE MODE: Use reportIncidence ---
+      console.log("📂 [MODE: STANDALONE] Using reportIncidence API");
+      
+      const firstPhoto = this.capturedPhotos.length > 0 ? this.capturedPhotos[0] : '';
+      const incidentPayload = {
+        api_token: payload.api_token,
+        incidence_type: payload.report_type,
+        latitude: payload.latitude,
+        longitude: payload.longitude,
+        remarks: `Category: ${payload.category} | Data: ${payload.report_data}`,
+        photo: firstPhoto // Standalone expects single string
+      };
+
+      this.dataService.reportNewIncident(incidentPayload).subscribe({
+        next: async (res) => {
+          await loading.dismiss();
+          this.handleSuccess(payload);
+        },
+        error: async (err) => {
+          await loading.dismiss();
+          this.handleError(err);
+        }
+      });
+
+    } else {
+      // --- PATROL MODE: Use forest-reports ---
+      console.log("🚀 [MODE: PATROL] Using forest-reports API. Patrol ID:", cleanPatrolId);
+      
+      const photoArrayStr = JSON.stringify(this.capturedPhotos.map(p => ({ photo: p })));
+      const patrolPayload = {
+        ...payload,
+        photo: photoArrayStr // Patrol expects JSON array string
+      };
+
+      this.dataService.submitForestEvent(patrolPayload, headers).subscribe({
+        next: async (res) => {
+          await loading.dismiss();
+          this.handleSuccess(payload);
+        },
+        error: async (err) => {
+          await loading.dismiss();
+          this.handleError(err);
+        }
+      });
+    }
+  }
+
+  async handleSuccess(payload: any) {
+    this.dataService.saveRecentSubmission(payload);
+    const toast = await this.toastCtrl.create({
+      message: 'Report Submitted Successfully! ✅',
+      duration: 2000,
+      color: 'success',
+      position: 'top'
+    });
+    await toast.present();
+    this.navCtrl.back();
+  }
+
+  async handleError(err: any) {
+    console.error("❌ Submission Error:", err);
+    const alert = await this.alertCtrl.create({
+      header: 'Submission Error',
+      message: 'Server could not accept this report. Please check your data or try again later.',
+      buttons: ['OK']
+    });
+    await alert.present();
+  }
+
+  // Optimized Draft logic
+  async saveAsDraft(payload: any) {
+    this.dataService.saveForestEventDraft(payload);
+    const toast = await this.toastCtrl.create({
+      message: 'Saved as Draft (Offline Mode) 📁',
+      duration: 3000,
+      color: 'warning',
+      position: 'top'
+    });
+    await toast.present();
+    this.navCtrl.back();
   }
 
   formatDate(dateStr: string) {
