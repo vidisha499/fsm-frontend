@@ -20,7 +20,11 @@ export class ForestEventsPage {
     private loadingCtrl: LoadingController) {}
  
 
-    ngOnInit() {
+  //   ngOnInit() {
+  //   this.loadBeat();
+  // }
+
+     ngOnInit() {
     this.loadBeat();
   }
 
