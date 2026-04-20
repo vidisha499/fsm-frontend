@@ -893,26 +893,81 @@ changeTimeframe(newTimeframe: string) {
                 }
                 this.allIncidents = processedPins;
                 console.log(`📍 Map Pins for Today: ${processedPins.length}`);
+                
+                // 🔄 SYNC DASHBOARD COUNTS WITH MAP PINS
+                // Recalculate KPI counts from the actual filtered records to ensure consistency with the Map
+                this.criminalActivityCount = processedPins.filter(p => 
+                  ['illegal_felling', 'illegal_mining', 'animal_poaching', 'fire_alerts', 'sos', 'encroachment', 'timber'].includes(p.layerId)
+                ).length;
+                
+                this.sightingsCount = processedPins.filter(p => 
+                  ['animal_sighting', 'sighting', 'monitoring'].includes(p.layerId)
+                ).length;
+
+                this.fireAlertsCount = processedPins.filter(p => p.layerId === 'fire_alerts').length;
+                this.incidentsCount = processedPins.length; // Total today
+
                 this.updateVisiblePins();
                 
                 this.loadTrendData();
                 this.initHomeCharts();
                 this.cdr.detectChanges();
+
+                // --- 🚨 ALERTS & SOS PROCESSING (Enhanced with Forest Reports) ---
+                const rawAlerts = apiResponse.data?.alerts || apiResponse.alerts || apiResponse.sos || [];
+                
+                // Transform the forest reports (Today's only) into Alerts format
+                const syncAlerts = (this.allIncidents || []).map(inc => {
+                  const theme = this.getAlertTheme(inc.layerId || inc.category || inc.type);
+                  
+                  // Resolve Name from IDs if direct name missing
+                  const uId = inc.user_id || inc.ranger_id || inc.staff_id || inc.added_by || inc.created_by;
+                  let uName = inc.user_name || inc.ranger_name;
+                  
+                  if (!uName && uId && this.rangers) {
+                    const found = this.rangers.find(r => (r.id || r.user_id) == uId);
+                    if (found) uName = found.name || found.full_name;
+                  }
+
+                  return {
+                    ...inc,
+                    displayTitle: `${uName || 'Officer'} - ${inc.displayLabel || inc.report_type || inc.category || 'Incident'}`,
+                    displayDesc: inc.report_data?.Description || inc.description || 'Action required in beat area.',
+                    displayTime: this.formatTime(inc.created_at || inc.date || new Date().toISOString()),
+                    severity: this.getSeverityFromLayer(inc.layerId),
+                    ...theme // Adds icon, color, bg, label from getAlertTheme
+                  };
+                });
+
+                // Combine system alerts with synced forest reports
+                this.alertsData = [...rawAlerts, ...syncAlerts];
+                
+                // Remove duplicates if any (based on unique ID)
+                
+                const seen = new Set();
+                this.alertsData = this.alertsData.filter(a => {
+                   const uniqueKey = a.id || (a.latitude + '_' + a.longitude + '_' + a.created_at);
+                   if (seen.has(uniqueKey)) return false;
+                   seen.add(uniqueKey);
+                   return true;
+                });
+
+                if (this.alertsData.length > 0) {
+                  this.critCount = this.alertsData.filter((a: any) => a.severity === 'critical').length;
+                  this.warnCount = this.alertsData.filter((a: any) => a.severity === 'warning').length;
+                  this.infoCount = this.alertsData.filter((a: any) => a.severity === 'info').length;
+                } else {
+                  this.critCount = 0;
+                  this.warnCount = 0;
+                  this.infoCount = 0;
+                }
+
+                this.updateFilteredAlerts();
             }
           },
           error: (err) => console.error("❌ Direct Sync Failure:", err)
         });
 
-
-
-        // --- 🚨 ALERTS & SOS PROCESSING ---
-        this.alertsData = res.alerts || res.sos || [];
-        if (this.alertsData.length > 0) {
-          this.critCount = this.alertsData.filter((a: any) => a.severity === 'critical').length;
-          this.warnCount = this.alertsData.filter((a: any) => a.severity === 'warning').length;
-          this.infoCount = this.alertsData.filter((a: any) => a.severity === 'info').length;
-        }
-        this.filteredAlerts = [...this.alertsData];
 
         // --- 👥 PERSONNEL FROM UNIFIED API ---
         const allUsers = res.users?.data || res.users || res.staff || [];
@@ -967,6 +1022,83 @@ changeTimeframe(newTimeframe: string) {
                       this.allRangers = this.rangers.length;
                       this.onDutyCount = activeIds.size;
                       this.inactiveCount = this.allRangers - this.onDutyCount;
+
+                      // ⚡ GENERATE ATTENDANCE ALERTS
+                      const attAlerts = logsArray
+                        .filter((log: any) => {
+                           const lDate = log.timestamp || log.entryDateTime || log.created_at || '';
+                           return lDate && (lDate.includes(todayYMD) || lDate.includes(todayDMY));
+                        })
+                        .map((log: any) => {
+                           const uId = log.user_id || log.staff_id || log.ranger_id;
+                           const uName = this.resolveUserName(uId);
+                           const isExit = (log.entryType || log.type || '').toUpperCase() === 'EXIT';
+                           
+                           return {
+                              ...log,
+                              displayTitle: `${uName} - Attendance ${isExit ? 'Out' : 'In'}`,
+                              displayDesc: `Logged at ${log.location_name || 'Forest Station'}`,
+                              displayTime: this.formatTime(log.timestamp || log.created_at || log.entryDateTime),
+                              severity: 'info',
+                              theme: this.getAlertTheme('ATTENDANCE'),
+                              layerId: 'attendance'
+                           };
+                        });
+
+                      this.alertsData = [...(this.alertsData || []), ...attAlerts];
+
+                      // ⚡ FETCH PATROL ALERTS
+                      this.dataService.getPatrolsByCompany(this.myCompanyId, todayYMD, todayYMD).subscribe({
+                         next: (pRes: any) => {
+                            const pList = pRes.data || pRes.patrols || (Array.isArray(pRes) ? pRes : []);
+                            const pAlerts = pList.map((p: any) => {
+                               const uName = p.user_name || p.ranger_name || this.resolveUserName(p.user_id || p.ranger_id);
+                               return {
+                                  ...p,
+                                  displayTitle: `${uName} - Patrol ${p.status === 'completed' ? 'Ended' : 'Started'}`,
+                                  displayDesc: `Covered ${p.distance_km || 0} km in ${p.range_name || 'Beat'}`,
+                                  displayTime: this.formatTime(p.created_at || p.start_time || p.updated_at),
+                                  severity: 'info',
+                                  theme: this.getAlertTheme('PATROL'),
+                                  layerId: 'patrol'
+                               };
+                            });
+                            
+                            this.alertsData = [...(this.alertsData || []), ...pAlerts];
+                            
+                            // FINAL PASS: Resolve names for all alerts if they still say "Officer"
+                            if (this.alertsData) {
+                               this.alertsData = this.alertsData.map(a => {
+                                  if (a.displayTitle && a.displayTitle.includes('Officer')) {
+                                     const uId = a.user_id || a.ranger_id || a.staff_id || a.added_by || a.created_by;
+                                     const uName = this.resolveUserName(uId);
+                                     if (uName !== 'Officer') {
+                                        a.displayTitle = a.displayTitle.replace('Officer', uName);
+                                     }
+                                  }
+                                  return a;
+                               });
+                            }
+
+                            // DEDUPLICATION & SORTING
+                            const seen = new Set();
+                            this.alertsData = this.alertsData.filter((a: any) => {
+                               const key = (a.id || '') + (a.displayTitle || '') + (a.displayTime || '');
+                               if (seen.has(key)) return false;
+                               seen.add(key);
+                               return true;
+                            });
+
+                            // Update Final Counts
+                            this.critCount = this.alertsData.filter((a: any) => a.severity === 'critical').length;
+                            this.warnCount = this.alertsData.filter((a: any) => a.severity === 'warning').length;
+                            this.infoCount = this.alertsData.filter((a: any) => a.severity === 'info').length;
+                            
+                            this.updateFilteredAlerts();
+                            this.cdr.detectChanges();
+                         }
+                      });
+
                       this.cdr.detectChanges();
                    }
                 }
@@ -1045,34 +1177,30 @@ changeTimeframe(newTimeframe: string) {
     const t = String(type).toUpperCase();
 
     const themes: any = {
-      // --- 🚨 CRITICAL GROUP (Criminal & Fire) ---
+      // --- 🚨 CRITICAL GROUP ---
       FIRE: { bg: '#fff1f0', color: '#ff4d4f', icon: 'flame', label: 'CRITICAL' },
       SOS: { bg: '#fff1f2', color: '#e63946', icon: 'nuclear', label: 'CRITICAL' },
       CRIMINAL: { bg: '#f1f5f9', color: '#3768b7', icon: 'shield-half', label: 'CRITICAL' },
-      
-      // Detailed Criminal Types
-      ILLEGAL_MINING: { bg: '#f1f5f9', color: '#334155', icon: 'hammer', label: 'CRITICAL' },
-      ILLEGAL_FELLING: { bg: '#fef2f2', color: '#b91c1c', icon: 'leaf', label: 'CRITICAL' },
-      ILLEGAL_TIMBER_STORAGE: { bg: '#fffbeb', color: '#92400e', icon: 'construct', label: 'CRITICAL' },
-      ILLEGAL_TIMBER_TRANSPORT: { bg: '#f8fafc', color: '#1e293b', icon: 'bus', label: 'CRITICAL' },
+      MINING: { bg: '#f1f5f9', color: '#334155', icon: 'hammer', label: 'CRITICAL' },
+      FELLING: { bg: '#fef2f2', color: '#b91c1c', icon: 'leaf', label: 'CRITICAL' },
+      POACHING: { bg: '#fff1f2', color: '#be123c', icon: 'skull', label: 'CRITICAL' },
       ENCROACHMENT: { bg: '#f5f3ff', color: '#7c3aed', icon: 'home', label: 'CRITICAL' },
+      TIMBER: { bg: '#fffbeb', color: '#92400e', icon: 'construct', label: 'CRITICAL' },
 
-      // --- ⚠️ WARNING GROUP (Wildlife) ---
-      WILD_ANIMAL_POACHING: { bg: '#fff1f2', color: '#be123c', icon: 'skull', label: 'WARNING' },
-      WILD_ANIMAL_SIGHTING: { bg: '#f0f9ff', color: '#0369a1', icon: 'eye', label: 'WARNING' },
+      // --- ⚠️ WARNING GROUP ---
       SIGHTING: { bg: '#f0f9ff', color: '#fa8c16', icon: 'paw', label: 'WARNING' },
+      MONITORING: { bg: '#f0f9ff', color: '#0369a1', icon: 'eye', label: 'WARNING' },
       WARN: { bg: '#fffbeb', color: '#f39c12', icon: 'warning', label: 'WARNING' },
 
-      // --- ℹ️ INFO GROUP (Environmental & Patrol) ---
-      WATER_SOURCE_STATUS: { bg: '#eff6ff', color: '#2563eb', icon: 'water', label: 'INFO' },
-      PATROL_START: { bg: '#eff6ff', color: '#3b82f6', icon: 'rocket', label: 'INFO' },
-      PATROL_END: { bg: '#f0fdf4', color: '#10b981', icon: 'flag', label: 'INFO' },
+      // --- ℹ️ INFO GROUP ---
       ATTENDANCE: { bg: '#f5f3ff', color: '#8b5cf6', icon: 'finger-print', label: 'INFO' },
+      PATROL: { bg: '#eff6ff', color: '#3b82f6', icon: 'shield-checkmark', label: 'INFO' },
+      WATER: { bg: '#eff6ff', color: '#2563eb', icon: 'water', label: 'INFO' },
       INFO: { bg: '#f8fafc', color: '#64748b', icon: 'notifications', label: 'INFO' },
     };
 
-    // Advanced mapping for complex strings like "ILLEGAL_MINING - Ranger"
-    const matchedKey = Object.keys(themes).find(key => t.startsWith(key));
+    // Use includes for more flexible matching
+    const matchedKey = Object.keys(themes).find(key => t.includes(key));
     return matchedKey ? themes[matchedKey] : themes['INFO'];
   }
 
@@ -1098,6 +1226,23 @@ changeTimeframe(newTimeframe: string) {
 
     // Agar category map mein milti hai toh wo return karo, nahi toh default info icon
     return map[cat] || 'information-circle';
+  }
+
+  private getSeverityFromLayer(layerId: string): 'critical' | 'warning' | 'info' {
+    const crit = ['illegal_felling', 'animal_poaching', 'illegal_mining', 'fire_alerts', 'sos', 'encroachment', 'timber'];
+    const warn = ['animal_sighting', 'sighting', 'monitoring'];
+    
+    const id = (layerId || '').toLowerCase();
+    if (crit.some(k => id.includes(k))) return 'critical';
+    if (warn.some(k => id.includes(k))) return 'warning';
+    return 'info';
+  }
+
+  private resolveUserName(id: any, fallback: string = 'Officer'): string {
+    if (!id) return fallback;
+    // Check in staffList/rangers
+    const found = (this.rangers || []).find(r => (r.id || r.user_id) == id);
+    return found ? (found.name || found.full_name) : fallback;
   }
 
   getCount(sev: string): number {
