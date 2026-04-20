@@ -102,11 +102,30 @@ export class PatrolDetailsPage implements OnInit {
         if (this.patrol.sessionId) sessionIds.push(String(this.patrol.sessionId));
         if (this.patrolId) sessionIds.push(String(this.patrolId));
 
+        const startTime = new Date(this.patrol.start_time || this.patrol.startTime || this.patrol.created_at).getTime();
+        const endTime = this.patrol.end_time || this.patrol.ended_at ? new Date(this.patrol.end_time || this.patrol.ended_at).getTime() : Date.now() + 10000;
+        const userId = Number(this.patrol.user_id || this.patrol.ranger_id);
+
         const patrolObs = reports.filter((r: any) => {
           const rPatrolId = r.patrol_id ? String(r.patrol_id) : null;
           const rSessionId = r.session_id ? String(r.session_id) : null;
-          return (rPatrolId && sessionIds.includes(rPatrolId)) || 
-                 (rSessionId && sessionIds.includes(rSessionId));
+          
+          // 1. Direct ID Match
+          const isIdMatch = (rPatrolId && sessionIds.includes(rPatrolId)) || 
+                           (rSessionId && sessionIds.includes(rSessionId));
+          if (isIdMatch) return true;
+
+          // 2. Time-Range Match (Fallback for patrol_id: 0)
+          if (!rPatrolId || rPatrolId === '0') {
+             const rUserId = Number(r.user_id);
+             const rTime = new Date(r.created_at || r.timestamp).getTime();
+             
+             // If it's the same user and within patrol time window
+             if (rUserId === userId && rTime >= (startTime - 30000) && rTime <= (endTime + 30000)) {
+               return true;
+             }
+          }
+          return false;
         });
         
         if (patrolObs.length > 0) {
@@ -296,11 +315,11 @@ initMap() {
         const iconInfo = this.getIconAndColor(obs.report_type || obs.category);
         const icon = L.divIcon({
           className: 'custom-details-marker',
-          html: `<div style="background-color: ${iconInfo.color}; width: 14px; height: 14px; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 5px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; color: white; font-size: 8px;">
+          html: `<div style="background-color: ${iconInfo.color}; width: 22px; height: 22px; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 8px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white; font-size: 11px;">
                   <i class="fas ${iconInfo.icon}"></i>
                 </div>`,
-          iconSize: [18, 18],
-          iconAnchor: [9, 9]
+          iconSize: [26, 26],
+          iconAnchor: [13, 13]
         });
         
         L.marker(sightingCoord, { icon })
@@ -332,12 +351,11 @@ initMap() {
 private getIconAndColor(category: string): { icon: string, color: string } {
   const cat = category?.toLowerCase().trim() || '';
   
-  // Color palette synchronized with PatrolActivePage
   const colors: any = {
-    animal: '#ca8a04',
-    water: '#0284c7',
-    impact: '#ea580c',
-    death: '#dc2626',
+    animal: '#f59e0b',
+    water: '#0ea5e9',
+    impact: '#8b5cf6',
+    death: '#ef4444',
     felling: '#16a34a',
     other: '#64748b'
   };
@@ -352,7 +370,8 @@ private getIconAndColor(category: string): { icon: string, color: string } {
   if (cat.includes('jfmc')) return { icon: 'fa-users', color: colors.impact };
   if (cat.includes('animal') || cat.includes('species')) return { icon: 'fa-paw', color: colors.animal };
   if (cat.includes('water')) return { icon: 'fa-droplet', color: colors.water };
-  if (cat.includes('fire')) return { icon: 'fa-fire', color: colors.felling };
+  if (cat.includes('fire')) return { icon: 'fa-fire', color: colors.death };
+  if (cat.includes('plantation')) return { icon: 'fa-leaf', color: colors.felling };
   
   return { icon: 'fa-circle-plus', color: colors.other };
 }

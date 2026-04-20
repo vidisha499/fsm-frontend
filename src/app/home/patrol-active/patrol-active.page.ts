@@ -357,8 +357,9 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     if (cat.includes('jfmc')) return { icon: 'fa-users', colorClass: 'impact' };
     if (cat.includes('animal sighting') || cat.includes('species') || cat.includes('animal')) return { icon: 'fa-paw', colorClass: 'animal' };
     if (cat.includes('water')) return { icon: 'fa-droplet', colorClass: 'water' };
-    if (cat.includes('fire')) return { icon: 'fa-fire', colorClass: 'felling' };
+    if (cat.includes('fire')) return { icon: 'fa-fire', colorClass: 'death' }; // FIRE is RED
     if (cat.includes('compensation')) return { icon: 'fa-wallet', colorClass: 'other' };
+    if (cat.includes('plantation')) return { icon: 'fa-leaf', colorClass: 'felling' };
     return { icon: 'fa-circle-plus', colorClass: 'other' };
   }
 
@@ -370,39 +371,39 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
       const lng = parseFloat(s.longitude || s.lng);
       
       if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
-        const icon = this.createSightingIcon(s.category);
-        L.marker([lat, lng], { icon }).addTo(this.sightingMarkersLayer);
+        const icon = this.createSightingIcon(s.category, s.report_type);
+        L.marker([lat, lng], { icon }).addTo(this.sightingMarkersLayer)
+          .bindPopup(`
+            <div style="font-family: sans-serif; padding: 2px;">
+              <b style="text-transform: capitalize; color: #1e293b; font-size: 12px;">${s.displayTitle || 'Observation'}</b>
+            </div>
+          `);
       }
     });
   }
 
-  private createSightingIcon(category: string) {
-    const cat = category?.toLowerCase().trim() || 'other';
+  private createSightingIcon(category: string, reportType?: string) {
+    const cat = (reportType || category || 'other').toLowerCase().trim();
+    const ui = this.getIconForCategory(cat);
+    
     const colors: any = {
-      'illegal felling': '#16a34a', // GREEN
-      'felling': '#16a34a',
-      'fire alerts': '#dc2626',      // RED
-      'fire': '#dc2626',
-      'encroachment': '#ea580c',    // ORANGE
-      'wild animal sighting': '#eab308', // YELLOW/AMBER
-      'sighting': '#eab308',
-      'illegal mining': '#0284c7',   // BLUE
-      'mining': '#0284c7',
-      'timber transport': '#9333ea', // PURPLE
-      'timber storage': '#7c3aed',
+      felling: '#16a34a',
+      water: '#0ea5e9',
+      impact: '#8b5cf6',
+      death: '#ef4444',
+      animal: '#f59e0b',
       other: '#64748b'
     };
-    let color = colors.other;
-    for (const key in colors) {
-      if (cat.includes(key)) {
-        color = colors[key];
-        break;
-      }
-    }
+    
+    const color = colors[ui.colorClass] || colors.other;
+
     return L.divIcon({
-      className: 'custom-marker',
-      html: `<div style="background:${color}; width:12px; height:12px; border-radius:50%; border:2px solid white; box-shadow:0 0 5px rgba(0,0,0,0.3);"></div>`,
-      iconSize: [16, 16]
+      className: 'custom-details-marker',
+      html: `<div style="background-color: ${color}; width: 22px; height: 22px; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 8px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white; font-size: 11px;">
+              <i class="fas ${ui.icon}"></i>
+            </div>`,
+      iconSize: [26, 26],
+      iconAnchor: [13, 13]
     });
   }
 
