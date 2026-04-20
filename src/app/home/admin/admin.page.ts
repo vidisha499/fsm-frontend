@@ -706,9 +706,8 @@ changeTimeframe(newTimeframe: string) {
     this.trendChart.destroy();
   }
 
-  this.loadData(); // Fir se data fetch karo naye filter ke saath
+  this.loadData();
 }
-
 
   loadData() {
     console.log('DEBUG: DataService Object ->', this.dataService);
@@ -719,44 +718,49 @@ changeTimeframe(newTimeframe: string) {
 
     const user = JSON.parse(storageData);
     const myCompanyId = Number(user.company_id || user.companyId);
-    this.myCompanyId = myCompanyId; // Assign to class prop
+    this.myCompanyId = myCompanyId; 
 
-    // Validation Check
     if (!myCompanyId || isNaN(myCompanyId)) {
       console.error('CRITICAL: Company ID missing or invalid!', myCompanyId);
       return;
     }
 
     const dates = this.getFilterDates();
-    const currentTimeframe = this.activeDateFilter || 'today'; // Iske aage 'const' hona chahiye
-    const localISOTime = new Date().toLocaleDateString('en-CA');
-
     this.isFetching = true;
 
-    // FECHING ALL DATA SOURCES (Primary source is Sir's Unified API)
+    // 🔥 PREPARE LOCAL TIME STRINGS (To fix Zero Counts issue)
+    const nowL = new Date();
+    const lYear = nowL.getFullYear();
+    const lMonth = String(nowL.getMonth() + 1).padStart(2, '0');
+    const lDay = String(nowL.getDate()).padStart(2, '0');
+    
+    const todayYMD = `${lYear}-${lMonth}-${lDay}`;
+    const todayDMY = `${lDay}-${lMonth}-${lYear}`;
+    console.log(`🕒 Dashboard Sync using Local Date: ${todayYMD} / ${todayDMY}`);
+
+    // FETCHING ALL DATA SOURCES
     this.dataService.getDashboardStats(myCompanyId, dates.from, dates.to).subscribe({
       next: (apiResponse: any) => {
         console.log("📊 Unified Admin Dashboard Response:", apiResponse);
-        // Normalize the payload in case it's wrapped in a 'data' object
         const res = apiResponse.data ? apiResponse.data : apiResponse;
 
         // --- 1. UNIFIED STATS MAPPING ---
         const stats = res.stats?.data || res.stats || {};
         
-        // Incident Counts (Initial from summary)
+        // Initial values from API summary (will be refined by manual database sync)
         this.criminalActivityCount = Number(stats.criminal_count || stats.criminalEvents || 0);
         this.sightingsCount = Number(stats.monitoring_count || stats.monitoringEvents || 0);
         this.fireAlertsCount = Number(stats.fire_count || stats.fireEvents || 0);
         this.incidentsCount = Number(stats.total_incidents || stats.total_events || 0);
 
-        // --- DYNAMIC DATABASE FETCH (FORCE SYNC) ---
+        // --- DYNAMIC DATABASE FETCH (FORCE SYNC - Fixed for Local Time) ---
         this.dataService.getForestReports().subscribe({
           next: (reports: any) => {
             const list = Array.isArray(reports) ? reports : (reports.data || []);
             
             if (list.length > 0) {
-               console.log("📊 Direct Database Sync: Found", list.length, "Total Records");
-               
+                console.log("📊 Direct Database Sync: Found", list.length, "Total Records");
+                
                 const counts = { criminal: 0, monitoring: 0, fire: 0 };
                 const trendMap: { [cat: string]: { [date: string]: number } } = { crim: {}, events: {}, fire: {} };
                 const rangeMap: { [name: string]: number } = {};
@@ -767,17 +771,17 @@ changeTimeframe(newTimeframe: string) {
                    const rCreatedAt = r.created_at || r.date_time || '';
                    const range = r.range_name || r.range || r.region || 'General';
 
-                   const todayYMD = new Date().toISOString().split('T')[0]; 
-                   const todayDMY = todayYMD.split('-').reverse().join('-'); 
-                   const isToday = (rCreatedAt && rCreatedAt.includes(todayYMD)) || (rDate && rDate.includes(todayDMY));
+                   // Robust Today Check using local time strings
+                   const isToday = (rCreatedAt && (rCreatedAt.includes(todayYMD) || rCreatedAt.includes(todayDMY))) || 
+                                   (rDate && (rDate.includes(todayYMD) || rDate.includes(todayDMY)));
 
                    // Timeframe Checks for Week/Month
                    const rFullDate = rCreatedAt || rDate;
                    const rTimestamp = rFullDate ? new Date(rFullDate).getTime() : 0;
-                   const now = new Date().getTime();
+                   const nowTS = nowL.getTime();
                    const oneDay = 24 * 60 * 60 * 1000;
-                   const isThisWeek = rTimestamp > (now - (7 * oneDay));
-                   const isThisMonth = rTimestamp > (now - (30 * oneDay));
+                   const isThisWeek = rTimestamp > (nowTS - (7 * oneDay));
+                   const isThisMonth = rTimestamp > (nowTS - (30 * oneDay));
 
                    // Record for trend mapping (Last 30 Days logic)
                    let dateYMD = '';
@@ -799,11 +803,11 @@ changeTimeframe(newTimeframe: string) {
                      trendMap[catKey][dateYMD] = (trendMap[catKey][dateYMD] || 0) + 1;
                    }
 
-                   // KPI COUNTS: Filter by timeframe
+                   // KPI COUNTS: Filter by timeframe (Today uses local strings)
                    let isPass = true;
-                   if (this.activeDateFilter === 'today' && !isToday) isPass = false;
-                   else if (this.activeDateFilter === 'week' && !isThisWeek) isPass = false;
-                   else if (this.activeDateFilter === 'month' && !isThisMonth) isPass = false;
+                   if (this.activeDateFilter === 'today') isPass = isToday;
+                   else if (this.activeDateFilter === 'week') isPass = isThisWeek;
+                   else if (this.activeDateFilter === 'month') isPass = isThisMonth;
 
                    if (isPass && catKey) {
                       if (catKey === 'crim') counts.criminal++;
@@ -814,7 +818,7 @@ changeTimeframe(newTimeframe: string) {
                    rangeMap[range] = (rangeMap[range] || 0) + 1;
                 });
 
-                // 1. Process Trend Arrays (Always 30 days)
+                // Update charts and counters
                 const last30 = Array.from({length: 30}, (_, i) => {
                    const d = new Date();
                    d.setDate(d.getDate() - (29 - i));
@@ -826,153 +830,150 @@ changeTimeframe(newTimeframe: string) {
                 this.eventsTrendData = getTrendArr('events');
                 this.fireTrendData = getTrendArr('fire');
 
-                // 2. Process Beat Coverage
                 const totalReports = list.length;
                 this.beatCoverage = Object.keys(rangeMap).map(name => ({
                    label: name,
                    val: Math.round((rangeMap[name] / totalReports) * 100),
-                   color: name.toLowerCase().includes('seminary') ? '#0d9488' : '#3b82f6'
+                   color: '#3b82f6'
                 }));
 
-                // 3. Final KPI Sync (Filtered counts for KPI cards)
+                // Final Update for Template
                 this.criminalCount = counts.criminal;
                 this.eventsCount = counts.monitoring;
                 this.criminalActivityCount = counts.criminal;
                 this.sightingsCount = counts.monitoring;
                 this.fireAlertsCount = counts.fire;
                 this.incidentsCount = counts.criminal + counts.monitoring + counts.fire;
+
+                // --- 📍 MAP MARKER PROCESSING (Using direct sync data) ---
+                let processedPins: any[] = [];
+                if (list.length > 0) {
+                  processedPins = list
+                    .filter((f: any) => {
+                      const latRaw = f.latitude || f.lat;
+                      const latValid = latRaw && !isNaN(parseFloat(latRaw)) && parseFloat(latRaw) !== 0;
+                      
+                      const fDate = f.created_at || f.date || f.date_time || '';
+                      
+                      let isPass = true;
+                      if (this.activeDateFilter === 'today') {
+                         isPass = fDate && (fDate.includes(todayYMD) || fDate.includes(todayDMY));
+                      } else if (this.activeDateFilter === 'week') {
+                         const rTimestamp = fDate ? new Date(fDate).getTime() : 0;
+                         const nowTS = new Date().getTime();
+                         isPass = rTimestamp > (nowTS - (7 * 24 * 60 * 60 * 1000));
+                      } else if (this.activeDateFilter === 'month') {
+                         const rTimestamp = fDate ? new Date(fDate).getTime() : 0;
+                         const nowTS = new Date().getTime();
+                         isPass = rTimestamp > (nowTS - (30 * 24 * 60 * 60 * 1000));
+                      }
+
+                      return latValid && isPass;
+                    })
+                    .map((f: any) => {
+                      const cat = (f.category || '').toLowerCase();
+                      const rType = (f.report_type || f.event_type || '').toLowerCase();
+                      const fullType = `${cat} ${rType}`.toLowerCase();
+                      let layerId = 'general_incident';
+                      if (fullType.includes('poach')) layerId = 'animal_poaching';
+                      else if (fullType.includes('encroach')) layerId = 'encroachment';
+                      else if (fullType.includes('mining')) layerId = 'illegal_mining';
+                      else if (fullType.includes('fell')) layerId = 'illegal_felling';
+                      else if (fullType.includes('sight')) layerId = 'animal_sighting';
+                      else if (fullType.includes('water')) layerId = 'water_status';
+                      else if (fullType.includes('fire')) layerId = 'fire_alerts';
+                      return {
+                        ...f,
+                        latitude: parseFloat(f.latitude || f.lat),
+                        longitude: parseFloat(f.longitude || f.lng),
+                        layerId: layerId,
+                        displayLabel: f.report_type || f.category || 'Forest Report'
+                      };
+                    });
+                }
+                this.allIncidents = processedPins;
+                console.log(`📍 Map Pins for Today: ${processedPins.length}`);
+                this.updateVisiblePins();
                 
-                // 4. Trigger Dashoard UI Renders
-               this.loadTrendData();
-               this.initHomeCharts(); // 🔥 Restore mini-charts
-               this.cdr.detectChanges();
+                this.loadTrendData();
+                this.initHomeCharts();
+                this.cdr.detectChanges();
             }
           },
           error: (err) => console.error("❌ Direct Sync Failure:", err)
         });
 
-        // Personnel Stats (Sir's Unified API)
-        this.onDutyCount = Number(stats.on_duty_count || stats.on_duty || 0);
-        this.onLeaveCount = Number(stats.on_leave_count || stats.on_leave || 0);
-        this.inactiveCount = Number(stats.inactive_count || stats.inactive || 0);
 
-        // --- 📊 ATTENDANCE HISTORY SYNC ---
-        // Capture Monday-Sunday history from the unified response to avoid the separate failing 500 API
-        if (res.officerStatus && res.officerStatus.history) {
-           console.log("📊 Syncing Attendance History from Dashboard Bundle...");
-           this.initAttChart(res.officerStatus.history); 
-        }
-        
-        // (Trends & Graphs overwriting logic removed to preserve manual sync data)
 
-        // --- 2. DETAILED MARKER PROCESSING ---
-        let processedPins: any[] = [];
-        const forestRaw = [...(res.forestReports || []), ...(res.forest_reports || []), ...(res.forest_events || []), ...(res.events || [])];
-        if (forestRaw.length > 0) {
-          const todayStr = new Date().toDateString();
-          processedPins = forestRaw
-            .filter((f: any) => {
-              const latValid = !isNaN(parseFloat(f.latitude)) && parseFloat(f.latitude) !== 0;
-              const fDateObj = f.date || f.created_at ? new Date(f.date || f.created_at) : null;
-              const isToday = fDateObj && fDateObj.toDateString() === todayStr;
-              return latValid && isToday;
-            })
-            .map((f: any) => {
-              const cat = (f.category || '').toLowerCase();
-              const rType = (f.report_type || f.event_type || '').toLowerCase();
-              const fullType = `${cat} ${rType}`.toLowerCase();
-              let layerId = ''; 
-              if (fullType.includes('poach')) layerId = 'animal_poaching';
-              else if (fullType.includes('encroach')) layerId = 'encroachment';
-              else if (fullType.includes('mining')) layerId = 'illegal_mining';
-              else if (fullType.includes('fell')) layerId = 'illegal_felling';
-              else if (fullType.includes('sight')) layerId = 'animal_sighting';
-              else if (fullType.includes('water')) layerId = 'water_status';
-              else if (fullType.includes('fire')) layerId = 'fire_alerts';
-              if (!layerId) return null;
-              return {
-                ...f,
-                latitude: parseFloat(f.latitude),
-                longitude: parseFloat(f.longitude),
-                layerId: layerId,
-                displayLabel: f.report_type || f.category || 'Forest Report'
-              };
-            }).filter(p => p !== null);
-        }
-        this.allIncidents = processedPins;
-        this.updateVisiblePins();
-
-        // --- 3. ALERTS & SOS PROCESSING ---
+        // --- 🚨 ALERTS & SOS PROCESSING ---
         this.alertsData = res.alerts || res.sos || [];
         if (this.alertsData.length > 0) {
-          this.critCount = this.alertsData.filter(a => a.severity === 'critical').length;
-          this.warnCount = this.alertsData.filter(a => a.severity === 'warning').length;
-          this.infoCount = this.alertsData.filter(a => a.severity === 'info').length;
+          this.critCount = this.alertsData.filter((a: any) => a.severity === 'critical').length;
+          this.warnCount = this.alertsData.filter((a: any) => a.severity === 'warning').length;
+          this.infoCount = this.alertsData.filter((a: any) => a.severity === 'info').length;
         }
         this.filteredAlerts = [...this.alertsData];
 
+        // --- 👥 PERSONNEL FROM UNIFIED API ---
         const allUsers = res.users?.data || res.users || res.staff || [];
         if (Array.isArray(allUsers) && allUsers.length > 0) {
           this.rangers = allUsers.filter((u: any) => Number(u.role_id || u.roleId) === 4);
           this.filteredRangers = [...this.rangers];
           this.allRangers = this.rangers.length;
-        } else {
-          // 🚀 PRODUCTION SYNC: Fetch real names from Assignable Users API
-          this.dataService.getAssignableUsers({ company_id: this.myCompanyId.toString() }).subscribe({
-            next: (userRes: any) => {
-               const staffList = userRes.data || userRes.users || (Array.isArray(userRes) ? userRes : []);
-               
-               // 🔥 SECONDARY SYNC: Fetch Today's Attendance logs to set real status
-               this.dataService.getAttendanceLogsByRanger(this.myCompanyId.toString()).subscribe({
-                  next: (attRes: any) => {
-                     const logsArray = attRes.data || attRes.attendance || (Array.isArray(attRes) ? attRes : []);
-                     const today = new Date().toISOString().split('T')[0];
-                     
-                     // Create a set of IDs who marked attendance today
-                     const activeIds = new Set();
-                     logsArray.forEach((log: any) => {
-                        const lDate = log.timestamp || log.entryDateTime || log.created_at || '';
-                        if (lDate && lDate.startsWith(today)) {
-                           activeIds.add(log.user_id || log.staff_id || log.ranger_id);
-                        }
-                     });
-
-                     if (staffList.length > 0) {
-                        this.rangers = staffList.map((u: any) => {
-                           const sId = u.id || u.user_id;
-                           const isWorking = activeIds.has(sId);
-                           return {
-                              id: sId,
-                              name: u.name || u.full_name || 'Staff',
-                              status: isWorking ? 1 : 0, // 1 = Green dot, 0 = Red dot
-                              role_id: 4,
-                              range_name: u.range_name || u.beat_name || 'Forest Division'
-                           };
-                        });
-                        
-                        // Sort: Active ones first
-                        this.rangers.sort((a,b) => b.status - a.status);
-                        this.filteredRangers = [...this.rangers];
-                        this.allRangers = this.rangers.length;
-                        
-                        // Update counts based on real today's attendance
-                        this.onDutyCount = activeIds.size;
-                        this.inactiveCount = this.allRangers - this.onDutyCount;
-                        this.onLeaveCount = 0; // Default until Leave API is integrated
-                        
-                        this.cdr.detectChanges();
-                     }
-                  }
-               });
-            },
-            error: (err) => console.error("❌ Assignable Users API Failure:", err)
-          });
         }
 
-        // TRIGGER CHART RE-RENDERING
-        setTimeout(() => {
-          this.initHomeCharts();
-        }, 400);
+        // Personnel Stats (Sir's Unified API fallback)
+        this.onDutyCount = Number(stats.on_duty_count || stats.on_duty || 0);
+        this.onLeaveCount = Number(stats.on_leave_count || stats.on_leave || 0);
+        this.inactiveCount = Number(stats.inactive_count || stats.inactive || 0);
+
+        if (res.officerStatus && res.officerStatus.history) {
+           this.initAttChart(res.officerStatus.history); 
+        }
+        
+        // --- 📊 ATTENDANCE RECOVERY SYNC (Fixed for Local Time) ---
+        this.dataService.getAssignableUsers({ company_id: this.myCompanyId.toString() }).subscribe({
+          next: (userRes: any) => {
+             const staffList = userRes.data || userRes.users || (Array.isArray(userRes) ? userRes : []);
+             
+             this.dataService.getAttendanceLogsByRanger(this.myCompanyId.toString()).subscribe({
+                next: (attRes: any) => {
+                   const logsArray = attRes.data || attRes.attendance || (Array.isArray(attRes) ? attRes : []);
+                   
+                   // 🔥 Use the same local time strings for consistency
+                   const activeIds = new Set();
+                   logsArray.forEach((log: any) => {
+                      const lDate = log.timestamp || log.entryDateTime || log.created_at || '';
+                      if (lDate && (lDate.includes(todayYMD) || lDate.includes(todayDMY))) {
+                         activeIds.add(log.user_id || log.staff_id || log.ranger_id);
+                      }
+                   });
+
+                   if (staffList.length > 0) {
+                      this.rangers = staffList.map((u: any) => {
+                         const sId = u.id || u.user_id;
+                         const isWorking = activeIds.has(sId);
+                         return {
+                             id: sId,
+                             name: u.name || u.full_name || 'Staff',
+                             status: isWorking ? 1 : 0,
+                             role_id: 4,
+                             range_name: u.range_name || u.beat_name || 'Forest Division'
+                         };
+                      });
+                      
+                      this.rangers.sort((a,b) => b.status - a.status);
+                      this.filteredRangers = [...this.rangers];
+                      this.allRangers = this.rangers.length;
+                      this.onDutyCount = activeIds.size;
+                      this.inactiveCount = this.allRangers - this.onDutyCount;
+                      this.cdr.detectChanges();
+                   }
+                }
+             });
+          },
+          error: (err) => console.error("❌ Assignable Users API Failure:", err)
+        });
 
         this.isFetching = false;
         this.cdr.detectChanges();
@@ -996,26 +997,11 @@ changeTimeframe(newTimeframe: string) {
     if (!this.LAYERS_DATA || !this.layerStates || !this.activePinsDisplay)
       return activeStats;
 
-    const todayStr = new Date().toDateString();
-    
-    // For "Recent" we also handle Yesterday
-    const yesterdayDate = new Date();
-    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-    const yesterdayStr = yesterdayDate.toDateString();
-
+    // Pins are already filtered to Today in loadData(), so just count by layer
     Object.values(this.LAYERS_DATA).forEach((category: any) => {
       category.items.forEach((item: any) => {
         if (this.layerStates[item.id]) {
-          const count = this.activePinsDisplay.filter((p) => {
-            const isSameLayer = p.layerId === item.id;
-            
-            // Robust Date Check for Legend counts
-            const pDateObj = p.created_at || p.date ? new Date(p.created_at || p.date) : null;
-            const pDateStr = pDateObj ? pDateObj.toDateString() : '';
-            
-            const isRecent = pDateStr === todayStr || pDateStr === yesterdayStr;
-            return isSameLayer && isRecent;
-          }).length;
+          const count = this.activePinsDisplay.filter((p: any) => p.layerId === item.id).length;
 
           activeStats.push({
             label: item.label,
