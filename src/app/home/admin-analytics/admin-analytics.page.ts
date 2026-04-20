@@ -688,6 +688,56 @@ private mkChart(id: string, config: any) {
     return Array.from({ length: len }, () => Math.floor(Math.random() * (max - min + 1) + min));
   }
 
+  private isDateInTimeframe(dateStr: string, timeframe: string): boolean {
+    if (!dateStr) return false;
+    
+    // Parse date (Handles YYYY-MM-DD, DD-MM-YYYY, DD/MM/YYYY)
+    let d: Date;
+    if (dateStr.includes('-')) {
+      const parts = dateStr.split(' ')[0].split('-');
+      if (parts[0].length === 4) d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      else d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+    } else if (dateStr.includes('/')) {
+      const parts = dateStr.split(' ')[0].split('/');
+      d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+    } else {
+      d = new Date(dateStr);
+    }
+
+    if (isNaN(d.getTime())) return false;
+
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    if (timeframe === 'today') {
+      return d.getTime() >= startOfToday.getTime();
+    } else if (timeframe === 'week') {
+      const lastWeek = new Date(startOfToday);
+      lastWeek.setDate(lastWeek.getDate() - 7);
+      return d.getTime() >= lastWeek.getTime();
+    } else if (timeframe === 'month') {
+      const lastMonth = new Date(startOfToday);
+      lastMonth.setMonth(lastMonth.getMonth() - 1);
+      return d.getTime() >= lastMonth.getTime();
+    }
+    
+    return true; // 'all'
+  }
+
+  private formatTrendDate(dateStr: string): string {
+    if (!dateStr || dateStr.length < 10) return dateStr;
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const parts = dateStr.split('-');
+    const day = parts[2];
+    const month = months[parseInt(parts[1]) - 1];
+    return `${day} ${month}`;
+  }
+
+  private toTitleCase(str: string): string {
+    if (!str) return 'Unknown';
+    return str.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  }
+
   doRefresh() {
     this.isRefreshing = true;
     this.updateUIData(); // Global counts naye karo
@@ -870,23 +920,29 @@ async updateUIData() {
               const type = (r.report_type || r.report_data?.report_type || '').toLowerCase();
               const rDate = r.date || '';
               const rCreatedAt = r.created_at || r.date_time || '';
-              const isToday = (rCreatedAt && rCreatedAt.includes(todayYMD)) || (rDate && rDate.includes(todayDMY));
+              const rDateStr = r.date || rCreatedAt;
 
-              // Filter by timeframe manually
-              if (this.activeDateFilter === 'today' && !isToday) return;
+              // Filter by timeframe manually (Accurate filtering)
+              if (!this.isDateInTimeframe(rDateStr, this.activeDateFilter)) return;
+
+              // Filter by Range/Beat if selected
+              if (this.selectedRange !== 'all') {
+                 const rRange = (r.range_name || r.range || '').toLowerCase();
+                 if (!rRange.includes(this.selectedRange.toLowerCase())) return;
+              }
 
               // Aggregate Main Totals
               if (cat.includes('crim')) totals.criminal++;
               else if (cat.includes('fire')) totals.fire++;
               else if (cat.includes('events') || cat.includes('sight') || cat.includes('monit')) totals.events++;
 
-              // Aggregate Sub-Category Counts (Detailed Mapping - Greedy Keywords)
+              // Aggregate Sub-Category Counts
               let subId = '';
               if (type.includes('fell') || cat.includes('fell') || type.includes('tree') || type.includes('wood') || type.includes('cut') || type.includes('logging')) subId = 'felling';
               else if (type.includes('transp') || cat.includes('transp') || type.includes('vehicle') || type.includes('truck') || type.includes('timber_t')) subId = 'transport';
               else if (type.includes('storage') || cat.includes('storage') || type.includes('depot') || type.includes('yard')) subId = 'storage';
               else if (type.includes('poach') || cat.includes('poach') || type.includes('hunt') || type.includes('kill') || type.includes('carcass')) subId = 'poaching';
-              else if (type.includes('encroach') || cat.includes('encroach') || type.includes('land') || type.includes('occupied') || type.includes('कब्जा')) subId = 'encroach';
+              else if (type.includes('encroach') || cat.includes('encroach') || type.includes('land') || type.includes('occupied')) subId = 'encroach';
               else if (type.includes('mining') || cat.includes('mining') || type.includes('quarry') || type.includes('sand')) subId = 'mining';
               else if (type.includes('wild') || cat.includes('sight') || cat.includes('animal') || type.includes('paw') || type.includes('monit')) subId = 'wild_animal';
               else if (type.includes('water') || cat.includes('water') || type.includes('well') || type.includes('pond')) subId = 'water';
@@ -897,13 +953,13 @@ async updateUIData() {
               if (subId) {
                 manualSubCounts[subId] = (manualSubCounts[subId] || 0) + 1;
                 
-                // Track Species
-                const species = r.species || r.plant_species || r.animal_species || r.tree_species || 'Unknown';
+                // Track Species (Normalize Label)
+                const species = this.toTitleCase(r.species || r.plant_species || r.animal_species || r.tree_species || 'Unknown');
                 if (!manualSpeciesData[subId]) manualSpeciesData[subId] = {};
                 manualSpeciesData[subId][species] = (manualSpeciesData[subId][species] || 0) + 1;
 
-                // Track Range
-                const range = r.range_name || r.range || r.region || r.division || r.beat_name || 'General';
+                // Track Range (Normalize Label)
+                const range = this.toTitleCase(r.range_name || r.range || r.region || r.division || r.beat_name || 'General');
                 if (!manualRangeData[subId]) manualRangeData[subId] = {};
                 manualRangeData[subId][range] = (manualRangeData[subId][range] || 0) + 1;
 
@@ -919,26 +975,21 @@ async updateUIData() {
                 // Special Aggregation: Fire
                 if (subId === 'fire_incidents') {
                    const cause = (r.cause || r.report_data?.cause || r.fire_cause || 'Unknown').toLowerCase();
-                   let key = 'unknown';
-                   if (cause.includes('natural')) key = 'natural';
-                   else if (cause.includes('negligence')) key = 'negligence';
-                   else if (cause.includes('intent')) key = 'intentional';
+                   let key = 'Unknown';
+                   if (cause.includes('natural')) key = 'Natural';
+                   else if (cause.includes('negligence')) key = 'Negligence';
+                   else if (cause.includes('intent')) key = 'Intentional';
                    manualFireCauses[key] = (manualFireCauses[key] || 0) + 1;
                 }
 
-                // Track Trend (Daily Counts with Robust Date Parsing)
+                // Track Trend
                 let dateYMD = '';
-                const rawDateStr = rCreatedAt || rDate || '';
-                if (rawDateStr) {
-                   // Fallback for different formats (YYYY-MM-DD vs DD-MM-YYYY)
-                   if (rawDateStr.includes('-')) {
-                      const parts = rawDateStr.split(' ')[0].split('-');
-                      if (parts[0].length === 4) dateYMD = parts[0] + '-' + parts[1] + '-' + parts[2]; // YYYY-MM-DD
-                      else dateYMD = parts[2] + '-' + parts[1] + '-' + parts[0]; // DD-MM-YYYY
-                   } else if (rawDateStr.includes('/')) {
-                      const parts = rawDateStr.split(' ')[0].split('/');
-                      if (parts[2].length === 4) dateYMD = parts[2] + '-' + parts[1] + '-' + parts[0]; // DD/MM/YYYY
-                   }
+                if (rCreatedAt && rCreatedAt.includes('-')) {
+                  const parts = rCreatedAt.split(' ')[0].split('-');
+                  if (parts[0].length === 4) dateYMD = parts[0] + '-' + parts[1] + '-' + parts[2];
+                } else if (rDate && rDate.includes('-')) {
+                  const parts = rDate.split(' ')[0].split('-');
+                  if (parts[2].length === 4) dateYMD = parts[2] + '-' + parts[1] + '-' + parts[0];
                 }
                 
                 if (dateYMD && dateYMD.length === 10) {
@@ -947,6 +998,7 @@ async updateUIData() {
                 }
               }
             });
+
 
             console.log("📊 Manual Sync Results [Analytics Sub-Categories]:", manualSubCounts);
             
@@ -996,7 +1048,10 @@ async updateUIData() {
                    
                    // Fallback for trends (ac-t1, ev-an2, ev-wa1, etc.)
                    if (ch.id.includes('-t1') || ch.id.includes('-e1') || ch.id.includes('-m1') || ch.id.includes('ev-an2') || ch.id.includes('ev-wa1') || ch.id.includes('-fi1')) {
-                      const trendArr = Object.keys(mTrend).sort().map(k => ({ label: k, value: mTrend[k] }));
+                      const trendArr = Object.keys(mTrend).sort().map(k => ({ 
+                        label: this.formatTrendDate(k), 
+                        value: mTrend[k] 
+                      }));
                       if (trendArr.length) ch.dynamicData = trendArr;
                    }
                 });
@@ -1097,26 +1152,37 @@ renderBarChart(id: string, data: any[], color: string, labels: string[]) {
       labels: finalLabels,
       datasets: [{ 
         data: finalValues, 
-        backgroundColor: '#34A853', // Original Green color
-        borderRadius: 6,
-        barThickness: 35, // Isse bars patli nahi dikhengi
+        backgroundColor: color || '#34A853',
+        borderRadius: 8,
+        barThickness: 30,
         maxBarThickness: 40
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      plugins: { 
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#fff',
+          titleColor: '#1e293b',
+          bodyColor: '#1e293b',
+          borderColor: '#e2e8f0',
+          borderWidth: 1,
+          padding: 10,
+          displayColors: false
+        }
+      },
       scales: {
         y: { 
           beginAtZero: true,
-          suggestedMax: 10, // YE ZAROORI HAI: Taaki 1-2 value pe bars aadhi screen tak hi rahein
-          ticks: { stepSize: 2, color: '#94a3b8', font: { size: 10 } },
-          grid: { color: '#f1f5f9' }
+          suggestedMax: 5,
+          ticks: { stepSize: 1, color: '#94a3b8', font: { size: 10 } },
+          grid: { color: '#f1f5f9', drawTicks: false }
         },
         x: { 
           grid: { display: false },
-          ticks: { color: '#94a3b8', font: { size: 10 } }
+          ticks: { color: '#64748b', font: { size: 10, weight: '600' } }
         }
       }
     }
@@ -1637,6 +1703,8 @@ renderEncroachDistributionBarChart(id: string, data: any[]) {
 
 
 renderHorizontalBarChart(id: string, data: any[]) {
+  if (!data || !data.length) return;
+  
   return this.mkChart(id, {
     type: 'bar',
     data: {
@@ -1644,27 +1712,33 @@ renderHorizontalBarChart(id: string, data: any[]) {
       datasets: [{
         label: 'Incidents',
         data: data.map(d => d.value),
-        backgroundColor: '#2dd4bf', // Modern Teal
-        borderRadius: 4,
-        barThickness: 15
+        backgroundColor: '#2dd4bf', 
+        borderRadius: 6,
+        barThickness: 20
       }]
     },
     options: {
       indexAxis: 'y', 
       responsive: true,
       maintainAspectRatio: false,
+      plugins: { 
+        legend: { display: false },
+        tooltip: { enabled: true }
+      },
       scales: {
         x: { 
           beginAtZero: true, 
           grid: { color: '#f1f5f9' },
-          ticks: { font: { size: 9 } }
+          ticks: { font: { size: 9 }, stepSize: 1 }
         },
         y: { 
           grid: { display: false },
-          ticks: { font: { size: 10, weight: 'bold' } }
+          ticks: { 
+            font: { size: 11, weight: '600' },
+            color: '#334155'
+          }
         }
-      },
-      plugins: { legend: { display: false } }
+      }
     }
   });
 }

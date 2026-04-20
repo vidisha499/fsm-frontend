@@ -65,7 +65,7 @@
   <div class="item-text"><span>Admin Dashboard</span></div>
 </a>
 
-<a *ngIf="userRole === 'admin' || userRole === '2'" class="menu-item" (click)="goToPage('category')" [class.active]="router.url.includes('category')">
+<a class="menu-item" (click)="goToPage('category')" [class.active]="router.url.includes('category')">
   <div class="icon-box purple">
     <i class="fas fa-sitemap"></i>
   </div>

@@ -1,4 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://forest-backend-pi.vercel.app/api'
+  apiUrl: 'https://fms.pugarch.in/public/api'
 };
+
