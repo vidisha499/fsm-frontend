@@ -165,11 +165,19 @@
     background: #f1f5f9;
 
     .detail-map {
-      height: 230px;
-      width: 100%;
-      display: block;
-      position: relative;
-      z-index: 1; // Leaflet tiles yahan render hongi
+      height: 250px !important;
+      width: 100% !important;
+      display: block !important;
+      position: relative !important;
+      z-index: 10 !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      background: #f1f5f9; // Fallback gray
+      
+      // Leaflet internal classes fix
+      .leaflet-pane, .leaflet-tile-pane {
+        z-index: 1 !important;
+      }
     }
 
     .coords-footer {
@@ -183,6 +191,13 @@
       z-index: 2;
       border-top: 1px solid #e2e8f0;
     }
+  }
+
+  .custom-pin {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2));
   }
 
   .section-label {

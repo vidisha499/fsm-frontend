@@ -11,21 +11,29 @@
     <div class="menu-header-premium">
       <div class="header-content">
         <div class="user-profile-section">
-          <div class="avatar-box">
-  <img *ngIf="userPhoto" [src]="userPhoto" alt="User">
-  
-  <div *ngIf="!userPhoto" 
-       class="letter-placeholder" 
-       [style.background-color]="getAvatarColor(rangerName)">
-    {{ getFirstLetter(rangerName) }}
-  </div>
+          <!-- Sidebar Loader Overlay -->
+          <div *ngIf="isLoadingSidebar" class="sidebar-loader-wrap">
+            <ion-spinner name="crescent"></ion-spinner>
+            <span>Syncing Profile...</span>
+          </div>
 
-  <div class="status-indicator"></div>
-</div>
-  <div class="user-info">
-  <h2>{{ rangerName }}</h2>
-  <p>{{ rangerDivision }}</p> 
-</div>
+          <ng-container *ngIf="!isLoadingSidebar">
+            <div class="avatar-box">
+              <img *ngIf="userPhoto" [src]="userPhoto" alt="User">
+              
+              <div *ngIf="!userPhoto" 
+                   class="letter-placeholder" 
+                   [style.background-color]="getAvatarColor(rangerName)">
+                {{ getFirstLetter(rangerName) }}
+              </div>
+
+              <div class="status-indicator"></div>
+            </div>
+            <div class="user-info">
+              <h2>{{ rangerName }}</h2>
+              <p>{{ rangerDivision }}</p> 
+            </div>
+          </ng-container>
         </div>
 
         <div class="duty-card">
@@ -50,7 +58,7 @@
         <div class="icon-box blue"><i class="fas fa-calendar-check"></i></div>
         <div class="item-text"><span>{{ 'MENU.ATTENDANCE_REQ' | translate }}</span></div>
       </a> -->
-      <a *ngIf="userRole === 'admin' || userRole === '2'" class="menu-item" (click)="goToPage('attendance-requests')">
+      <a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('attendance-requests')">
   <div class="icon-box amber"><i class="fas fa-user-check"></i></div>
   <div class="item-text"><span>{{ 'MENU.ATTENDANCE_REQ' | translate }}</span></div>
 </a>
@@ -59,13 +67,13 @@
   <div class="icon-box red"><i class="fas fa-boxes"></i></div>
   <div class="item-text"><span>{{ 'MENU.ASSETS' | translate }}</span></div>
 </a> -->
-<!-- Ye sirf tab dikhega jab user Admin hoga -->
+<!-- Ye sirf tab dikhega jab user Admin hoga
 <a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('admin-dashboard')">
   <div class="icon-box blue"><i class="fas fa-chart-line"></i></div>
   <div class="item-text"><span>Admin Dashboard</span></div>
-</a>
+</a> -->
 
-<a class="menu-item" (click)="goToPage('category')" [class.active]="router.url.includes('category')">
+<a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('category')" [class.active]="router.url.includes('category')">
   <div class="icon-box purple">
     <i class="fas fa-sitemap"></i>
   </div>
@@ -74,31 +82,31 @@
   </div>
 </a>
 
-      <a class="menu-item" (click)="goToPage('geofences')" [class.active]="router.url.includes('geofences')">
-        <div class="icon-box orange"><i class="fas fa-draw-polygon"></i></div>
-        <div class="item-text"><span>Geofences & Sites</span></div>
-      </a>
+<a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('geofences')" [class.active]="router.url.includes('geofences')">
+  <div class="icon-box orange"><i class="fas fa-draw-polygon"></i></div>
+  <div class="item-text"><span>Geofences & Sites</span></div>
+</a>
 
-      <a class="menu-item" (click)="goToPage('tasks')" [class.active]="router.url.includes('tasks')">
-        <div class="icon-box" style="background: rgba(16, 185, 129, 0.15); color: #10b981;"><i class="fas fa-tasks"></i></div>
-        <div class="item-text"><span>Task Management</span></div>
-      </a>
+<a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('tasks')" [class.active]="router.url.includes('tasks')">
+  <div class="icon-box" style="background: rgba(16, 185, 129, 0.15); color: #10b981;"><i class="fas fa-tasks"></i></div>
+  <div class="item-text"><span>Task Management</span></div>
+</a>
 
-      <a class="menu-item" (click)="goToPage('dynamic-forms')" [class.active]="router.url.includes('dynamic-forms')">
-        <div class="icon-box indigo"><i class="fas fa-edit"></i></div>
-        <div class="item-text"><span>Change Forms</span></div>
-      </a>
+<a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('dynamic-forms')" [class.active]="router.url.includes('dynamic-forms')">
+  <div class="icon-box indigo"><i class="fas fa-edit"></i></div>
+  <div class="item-text"><span>Change Forms</span></div>
+</a>
 
-      <a class="menu-item" (click)="goToPage('dynamic-labels')" [class.active]="router.url.includes('dynamic-labels')">
-        <div class="icon-box azure"><i class="fas fa-font"></i></div>
-        <div class="item-text"><span>{{ 'label_dynamic' | dynamicLabel }}</span></div>
-      </a>
+<a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('dynamic-labels')" [class.active]="router.url.includes('dynamic-labels')">
+  <div class="icon-box azure"><i class="fas fa-font"></i></div>
+  <div class="item-text"><span>{{ 'label_dynamic' | dynamicLabel }}</span></div>
+</a>
 
 <!-- Ye sirf tab dikhega jab user Ranger hoga -->
-<a *ngIf="userRole === 'ranger'" class="menu-item" (click)="goToPage('ranger-dashboard')">
+<!-- <a *ngIf="userRole === 'ranger'" class="menu-item" (click)="goToPage('ranger-dashboard')">
   <div class="icon-box green"><i class="fas fa-map-marked-alt"></i></div>
   <div class="item-text"><span>Ranger Dashboard</span></div>
-</a>
+</a> -->
 
 <!-- Assets List dono ko dikh rahi hai toh rehne do -->
 <a class="menu-item" (click)="goToPage('assets-list')" [class.active]="router.url === '/home/assets-list'">

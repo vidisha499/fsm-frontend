@@ -54,12 +54,6 @@ isSubmitting: boolean = false;
 passwordType: string = 'password';
   passwordIcon: string = 'eye-off';
   
-  // 1. Vercel Configuration
-  // private vercelBaseUrl: string = 'https://fsm-backend-ica4fcwv2-vidishas-projects-1763fd56.vercel.app/api';
-  // private vercelBaseUrl: string = 'https://forest-backend-pi.vercel.app/api';
-    vercelBaseUrl: string = 'https://fms.pugarch.in/public/api';
-
-
   private languageMap: { [key: string]: string } = {
     'English': 'en',
     'Hindi': 'hi',
@@ -406,11 +400,11 @@ toggleEdit() {
       this.cdr.detectChanges();
 
       const rId = this.dataService.getRangerId();
-      const passwordPayload = {
-        id: rId ? +rId : null,
-        mobile: this.rangerPhone, // Secondary identifier sometimes required
+      const passwordPayload: any = {
+        user_id: rId ? +rId : null,
         current_password: this.currentPassword,
-        old_password: this.currentPassword,
+        old_password: this.currentPassword, // Standard Laravel fallback
+        password_current: this.currentPassword, // Another common fallback
         password: this.rangerPassword, 
         password_confirmation: this.rangerPassword
       };
@@ -457,7 +451,9 @@ toggleEdit() {
                 id: Number(rId),
                 name: this.rangerName,     
                 contact: this.rangerPhone,  
-                password: data.pin, // Laravel forces us to transmit this variable!
+                current_password: data.pin,
+                old_password: data.pin,
+                password: data.pin, 
                 profile_pic: this.profileImage && this.profileImage.includes('base64') 
                              ? this.profileImage.split(',')[1] : null
               };

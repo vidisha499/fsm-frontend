@@ -124,7 +124,13 @@ export class AttendanceRequestsPage implements OnInit {
   }
 
   goBack() {
-    this.navCtrl.navigateRoot('/home/admin'); 
+    const roleId = localStorage.getItem('user_role');
+    // If Admin/SuperAdmin, go to /admin. Otherwise /home.
+    if (roleId === '1' || roleId === '2') {
+      this.navCtrl.navigateRoot('/admin');
+    } else {
+      this.navCtrl.navigateRoot('/home');
+    }
   }
 
   async loadRequests() {
@@ -143,8 +149,16 @@ export class AttendanceRequestsPage implements OnInit {
       next: (res: any) => {
         console.log("1. Raw Data from API:", res);
         
-        // Data assignment
-        const sortedData = Array.isArray(res) ? res : [];
+        // Data assignment - Handling both raw array and status/data object
+        let sortedData = [];
+        if (Array.isArray(res)) {
+          sortedData = res;
+        } else if (res && res.data && Array.isArray(res.data)) {
+          sortedData = res.data;
+        } else if (res && res.status === 'SUCCESS' && Array.isArray(res.data)) {
+          sortedData = res.data;
+        }
+        
         this.pendingRequests = sortedData.sort((a: any, b: any) => {
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         });

@@ -8,7 +8,9 @@
       <div class="header-content">
         <div class="nav-bar">
           <div class="left-section">
-            <ion-back-button *ngIf="!activeChat" defaultHref="/home" color="light"></ion-back-button>
+            <button *ngIf="!activeChat" (click)="goBack()" class="glass-btn" style="margin-right: 12px; height: auto;">
+              <ion-icon name="arrow-back-outline" style="color: white; font-size: 24px;"></ion-icon>
+            </button>
             <div *ngIf="activeChat" (click)="closeChat()" class="glass-back-btn">
               <i class="fas fa-chevron-left"></i>
             </div>

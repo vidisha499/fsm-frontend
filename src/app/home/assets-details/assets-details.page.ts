@@ -20,19 +20,40 @@ export class AssetDetailsPage implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit() {
     this.asset = this.dataService.getSelectedAsset(); 
+    
+    // 🔥 ROBUST LOCATION PARSING
+    if (this.asset && this.asset.location) {
+      try {
+        const loc = typeof this.asset.location === 'string' 
+          ? JSON.parse(this.asset.location) 
+          : this.asset.location;
+          
+        if (loc.lat) this.asset.latitude = loc.lat;
+        if (loc.lng) this.asset.longitude = loc.lng;
+      } catch (e) {
+        console.warn('Failed to parse asset location string:', e);
+      }
+    }
+
+    // Fallback mapping for various API formats
+    if (this.asset) {
+      this.asset.latitude = this.asset.latitude || this.asset.lat;
+      this.asset.longitude = this.asset.longitude || this.asset.lng;
+    }
   }
 
   ngAfterViewInit() {
-    if (this.asset && this.asset.latitude && this.asset.longitude) {
-      setTimeout(() => {
-        this.initDynamicMap();
-      }, 600); // UI Render delay
-    }
+    // Moved initialization to ionViewDidEnter for better Ionic compatibility
   }
 
   ngOnDestroy() {
     if (this.map) {
-      this.map.remove();
+      try {
+        this.map.remove();
+        this.map = null;
+      } catch (e) {
+        console.warn("Destroy Map Error:", e);
+      }
     }
   }
 
@@ -60,37 +81,52 @@ ionViewDidEnter() {
 }
 
 initDynamicMap() {
+  if (!this.asset || !this.asset.latitude || !this.asset.longitude) return;
+
   const lat = parseFloat(this.asset.latitude);
   const lng = parseFloat(this.asset.longitude);
 
-  // Purana map instance clear karein
+  const mapContainer = document.getElementById('assetDetailMap');
+  if (!mapContainer) return;
+
+  // 1. Properly remove existing map instance first
   if (this.map) {
-    this.map.remove();
+    try {
+      this.map.remove();
+      this.map = null;
+    } catch (e) {
+      console.warn("Error removing existing map:", e);
+    }
   }
 
-  // ID match honi chahiye HTML se
+  // 2. Ensure container is clean
+  if ((mapContainer as any)._leaflet_id) {
+    delete (mapContainer as any)._leaflet_id;
+  }
+
+  // Fresh Initialize
   this.map = L.map('assetDetailMap', {
     zoomControl: false,
-    attributionControl: false
+    attributionControl: false,
+    fadeAnimation: true
   }).setView([lat, lng], 15);
 
-  L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-    maxZoom: 20,
-    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OSM'
   }).addTo(this.map);
 
   L.marker([lat, lng], {
     icon: L.divIcon({
       className: 'custom-pin',
-      html: `<span style="font-size: 30px;">📍</span>`,
+      html: `<span style="font-size: 30px; filter: drop-shadow(0 4px 5px rgba(0,0,0,0.3));">📍</span>`,
       iconSize: [30, 30],
       iconAnchor: [15, 30]
     })
   }).addTo(this.map);
 
-  // Sabse zaroori: Map size refresh
-  setTimeout(() => {
-    this.map.invalidateSize();
-  }, 300);
+  // Sabse zaroori: Map size refresh (Multiple passes for safety)
+  setTimeout(() => { if (this.map) this.map.invalidateSize(); }, 300);
+  setTimeout(() => { if (this.map) this.map.invalidateSize(); }, 800);
 }
 }

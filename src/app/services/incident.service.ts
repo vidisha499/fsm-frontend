@@ -6,7 +6,7 @@
 //   providedIn: 'root'
 // })
 // export class IncidentService {
-//   private apiUrl = 'https://forest-backend-pi.vercel.app/api/incidents';
+//   private apiUrl = `${environment.apiUrl}/incidents`;
 
 //   constructor(private http: HttpClient) { }
 

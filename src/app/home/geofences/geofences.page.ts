@@ -29,8 +29,17 @@ export class GeofencesPage implements OnInit {
   async loadSites() {
     this.isLoading = true;
     const apiToken = localStorage.getItem('api_token') || '';
+    const companyId = localStorage.getItem('company_id') || '1';
+    const userRole = localStorage.getItem('user_role');
+    const rangerId = localStorage.getItem('ranger_id');
 
-    this.dataService.getSites({ api_token: apiToken }).subscribe({
+    // Include company_id and for rangers, also include user_id to filter for the logged-in user
+    const payload: any = { api_token: apiToken, company_id: companyId };
+    if (userRole !== '1' && userRole !== '2') {
+      payload.user_id = rangerId;
+    }
+
+    this.dataService.getSites(payload).subscribe({
       next: (res: any) => {
         this.isLoading = false;
         console.log('Sites API Response:', res);
@@ -40,21 +49,35 @@ export class GeofencesPage implements OnInit {
         if (Array.isArray(fetchedData)) {
           this.sites = fetchedData;
         } else if (fetchedData && typeof fetchedData === 'object' && !Array.isArray(fetchedData)) {
-          // If it's a single object, wrap it in an array
           this.sites = [fetchedData];
         } else {
           this.sites = [];
         }
+
+        // Additional Frontend Privacy Guard: Double-check that non-admins only see their own data
+        if (userRole !== '1' && userRole !== '2' && rangerId) {
+          this.sites = this.sites.filter(s => 
+            String(s.user_id) === String(rangerId) || 
+            String(s.ranger_id) === String(rangerId) ||
+            !s.user_id // Include if unassigned/system records
+          );
+        }
       },
       error: async (err) => {
         this.isLoading = false;
-        // Silent error to prevent UI break if backend not ready
         console.error('Failed to load sites:', err);
       }
     });
   }
 
   goBack() {
-    this.navCtrl.navigateRoot('/home');
+    const roleId = localStorage.getItem('user_role');
+    // If role is 1 (Super Admin) or 2 (Admin), go to Admin dashboard
+    // Otherwise go to home (Ranger/Supervisor)
+    if (roleId === '1' || roleId === '2') {
+      this.navCtrl.navigateRoot('/admin');
+    } else {
+      this.navCtrl.navigateRoot('/home');
+    }
   }
 }

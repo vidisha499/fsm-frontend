@@ -8,7 +8,9 @@
       <div class="header-content">
         <div class="nav-bar">
           <div class="left-section">
-            <ion-back-button defaultHref="/home" color="light"></ion-back-button>
+            <button (click)="goBack()" class="glass-btn">
+              <ion-icon name="arrow-back-outline" style="color: white;"></ion-icon>
+            </button>
             <h1>Forest Reports</h1>
           </div>
           <div class="right-section">
@@ -63,27 +65,27 @@
     <i class="fas fa-chevron-right"></i>
   </div>
 
-  <div class="submenu-item" (click)="openFilterModal('Employee Attendance with Site/Beat')">
+  <div class="submenu-item" *ngIf="userRole === 'admin'" (click)="openFilterModal('Employee Attendance with Site/Beat')">
     <span>Site/Beat Attendance</span>
     <i class="fas fa-chevron-right"></i>
   </div>
 
-  <div class="submenu-item" (click)="openFilterModal('Absent Report')">
+  <div class="submenu-item" *ngIf="userRole === 'admin'" (click)="openFilterModal('Absent Report')">
     <span>Absent Report</span>
     <i class="fas fa-chevron-right"></i>
   </div>
 
-  <div class="submenu-item" (click)="openFilterModal('Performance Report')">
+  <div class="submenu-item" *ngIf="userRole === 'admin'" (click)="openFilterModal('Performance Report')">
     <span>Performance Report</span>
     <i class="fas fa-chevron-right"></i>
   </div>
 
-  <div class="submenu-item" (click)="openFilterModal('Forgot to Exit')">
+  <div class="submenu-item" *ngIf="userRole === 'admin'" (click)="openFilterModal('Forgot to Exit')">
     <span>Forgot to Exit</span>
     <i class="fas fa-chevron-right"></i>
   </div>
 
-  <div class="submenu-item" (click)="openFilterModal('Emergency Attendance')">
+  <div class="submenu-item" *ngIf="userRole === 'admin'" (click)="openFilterModal('Emergency Attendance')">
     <span>Emergency Attendance</span>
     <i class="fas fa-chevron-right"></i>
   </div>
@@ -112,15 +114,15 @@
     <span>Daily Tour Report</span>
     <i class="fas fa-chevron-right"></i>
   </div>
-  <div class="submenu-item" (click)="openFilterModal('User Tour Report')">
+  <div class="submenu-item" *ngIf="userRole === 'admin'" (click)="openFilterModal('User Tour Report')">
     <span>User Tour Report</span>
     <i class="fas fa-chevron-right"></i>
   </div>
-  <div class="submenu-item" (click)="openFilterModal('Tour Summary Report')">
+  <div class="submenu-item" *ngIf="userRole === 'admin'" (click)="openFilterModal('Tour Summary Report')">
     <span>Tour Summary Report</span>
     <i class="fas fa-chevron-right"></i>
   </div>
-  <div class="submenu-item" (click)="openFilterModal('Tour Diary')">
+  <div class="submenu-item" *ngIf="userRole === 'admin'" (click)="openFilterModal('Tour Diary')">
     <span>Tour Diary</span>
     <i class="fas fa-chevron-right"></i>
   </div>
@@ -149,7 +151,7 @@
     <span>Visitor Daily Report</span>
     <i class="fas fa-chevron-right"></i>
   </div>
-  <div class="submenu-item" (click)="openFilterModal('Visitor Summary Report')">
+  <div class="submenu-item" *ngIf="userRole === 'admin'" (click)="openFilterModal('Visitor Summary Report')">
     <span>Visitor Summary Report</span>
     <i class="fas fa-chevron-right"></i>
   </div>
@@ -260,7 +262,7 @@
       </div>
 
       <div class="filter-body">
-        <div class="data-row-premium" *ngIf="userRole === 'admin' || userRole === '2'">
+        <div class="data-row-premium" *ngIf="userRole === 'admin'">
           <span class="label">CLIENT / RANGE</span>
           <ion-select interface="popover" placeholder="Select" [(ngModel)]="selectedClient" class="compact-select">
             <ion-select-option value="all">All Rangers</ion-select-option>

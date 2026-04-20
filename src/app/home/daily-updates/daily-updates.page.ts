@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { DataService } from 'src/app/data.service';
-import { ToastController } from '@ionic/angular';
+import { ToastController, NavController } from '@ionic/angular';
+
 
 @Component({
   selector: 'app-daily-updates',
@@ -17,7 +18,8 @@ export class DailyUpdatesPage implements OnInit {
 
   constructor(
     private dataService: DataService,
-    private toastCtrl: ToastController
+    private toastCtrl: ToastController,
+    private navCtrl: NavController
   ) { }
 
   ngOnInit() {
@@ -80,5 +82,14 @@ export class DailyUpdatesPage implements OnInit {
         toast.present();
       }
     });
+  }
+
+  goBack() {
+    const roleId = localStorage.getItem('user_role');
+    if (roleId === '1' || roleId === '2') {
+      this.navCtrl.navigateRoot('/admin');
+    } else {
+      this.navCtrl.navigateRoot('/home');
+    }
   }
 }

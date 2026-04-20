@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { DataService } from 'src/app/data.service';
-import { LoadingController, ToastController } from '@ionic/angular';
+import { LoadingController, ToastController, NavController } from '@ionic/angular';
+
 
 @Component({
   selector: 'app-chat',
@@ -20,7 +21,8 @@ export class ChatPage implements OnInit {
   constructor(
     private dataService: DataService,
     private loadingCtrl: LoadingController,
-    private toastCtrl: ToastController
+    private toastCtrl: ToastController,
+    private navCtrl: NavController
   ) { }
 
   ngOnInit() {
@@ -82,5 +84,14 @@ export class ChatPage implements OnInit {
       created_at: new Date().toISOString()
     });
     this.newMessage = '';
+  }
+
+  goBack() {
+    const roleId = localStorage.getItem('user_role');
+    if (roleId === '1' || roleId === '2') {
+      this.navCtrl.navigateRoot('/admin');
+    } else {
+      this.navCtrl.navigateRoot('/home');
+    }
   }
 }

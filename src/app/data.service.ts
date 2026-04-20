@@ -2,7 +2,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { environment } from '../environments/environment';
-import { Observable, of } from 'rxjs';
+import { Observable, of, Subject } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
@@ -11,6 +11,9 @@ export class DataService {
   private selectedIncident: any;
   private selectedAttendance: any;
   private selectedAsset: any;
+
+  // Bridge for Sidebar Refresh
+  public loginSuccess$ = new Subject<void>();
 
   constructor(private http: HttpClient) {}
 
@@ -37,9 +40,8 @@ export class DataService {
   // --- 3. AUTHENTICATION & PROFILE ---
   login(data: any) { return this.http.post(`${this.baseApiUrl}/login`, data); }
   verifyUser() { return this.http.post(`${this.baseApiUrl}/verifyUser`, {}); }
+  verifyOtp(phone: string, otp: string) { return this.http.post(`${this.baseApiUrl}/verifyUser`, { phoneNo: phone, otp: otp }); }
   updateProfilePic(photoBase64: string) { return this.http.post(`${this.baseApiUrl}/updateProfilePic`, { photo: photoBase64 }); }
-  checkUserExists(mobile: string) { return this.http.get(`${this.baseApiUrl}/rangers/check/${mobile}`); }
-  verifyCompanyUser(phone: string) { return this.http.post(`${this.baseApiUrl}/company-user/verify-mobile`, { phone }); }
   
   // NEW AUTH ENDPOINTS
   resetPasswordAuto(payload: any) { return this.http.post(`${this.baseApiUrl}/resetPassword`, payload); }
@@ -90,13 +92,18 @@ export class DataService {
     return this.http.post(`${this.baseApiUrl}/updateUserDetails`, formData);
   }
 
-  changePassword(payload: any) {
+  changePassword(data: any) {
+    const formData = new FormData();
     const token = localStorage.getItem('api_token') || '';
-    const fullPayload = { 
-      ...payload, 
-      api_token: token 
-    };
-    return this.http.post(`${this.baseApiUrl}/changePassword`, fullPayload);
+    formData.append('api_token', token);
+    
+    for (const key in data) {
+      if (data.hasOwnProperty(key) && data[key] !== null && data[key] !== undefined) {
+        formData.append(key, String(data[key]));
+      }
+    }
+    
+    return this.http.post(`${this.baseApiUrl}/changePassword`, formData);
   }
 
   getRangerProfile(id: string) { return this.http.get(`${this.baseApiUrl}/rangers/${id}`); }
@@ -211,10 +218,24 @@ export class DataService {
   markGuardAttendanceExit() { return this.http.post(`${this.baseApiUrl}/markGuardAttendanceExit`, {}); }
   
   requestEntryAttendance(payload: any) { return this.http.post(`${this.baseApiUrl}/requestEntryAttendance`, payload); }
-  updateAttendanceRequestStatus(payload: any) { return this.http.post(`${this.baseApiUrl}/updateAttendanceRequestStatus`, payload); }
+  updateAttendanceRequestStatus(payload: any) { 
+    const token = localStorage.getItem('api_token');
+    const finalPayload = { ...payload, api_token: token };
+    return this.http.post(`${this.baseApiUrl}/updateAttendanceRequestStatus`, finalPayload); 
+  }
   requestExitAttendance(payload: any) { return this.http.post(`${this.baseApiUrl}/requestExitAttendance`, payload); }
   
-  getAttendanceRequests(companyId: string) { return this.http.post(`${this.baseApiUrl}/getAttendanceRequests`, { company_id: companyId }); }
+  getAttendanceRequests(companyId: string) { 
+    const token = localStorage.getItem('api_token');
+    const payload = { company_id: companyId, api_token: token };
+    return this.http.post(`${this.baseApiUrl}/getAttendanceRequests`, payload); 
+  }
+
+  // --- Aliases for compatibility ---
+  getPendingOnsiteRequests(companyId: string) { return this.getAttendanceRequests(companyId); }
+  updateOnsiteStatus(id: number, status: string) { 
+    return this.updateAttendanceRequestStatus({ id: id, status: status }); 
+  }
   getAttendanceRequestDetails(id: string) { 
     const token = localStorage.getItem('api_token');
     const payload = { api_token: token, id: id };
@@ -253,8 +274,7 @@ export class DataService {
     // Point onsite to same main attendance endpoint to match Sir's API collection
     return this.markAttendance(payload, headers); 
   }
-  getPendingOnsiteRequests(companyId: string) { return this.http.get(`${this.baseApiUrl}/onsite-attendance/company/${companyId}/pending`); }
-  updateOnsiteStatus(id: number, status: 'approved' | 'rejected') { return this.http.patch(`${this.baseApiUrl}/onsite-attendance/${id}/status`, { status }); }
+  
   getOnsiteLogsByRanger(rangerId: string, companyId: string) { 
     // Fix: Instead of old GET route that doesn't exist, use common monthly logs with token in body
     const token = localStorage.getItem('api_token');
@@ -262,7 +282,6 @@ export class DataService {
     const headers = { 'Bypass-Token': 'true' };
     return this.getUserMonthlyAttendance(payload, headers); 
   }
-  getApprovedOnsiteByCompany(companyId: string) { return this.http.get(`${this.baseApiUrl}/onsite-attendance/company/${companyId}`); }
   getWeeklyAttendanceStats(companyId: any, rangerId?: any): Observable<number[]> {
     const token = localStorage.getItem('api_token');
     const url = `${this.baseApiUrl}/forest-admin-dashboard/data`;
@@ -356,9 +375,8 @@ export class DataService {
   getAlertsByCompany(companyId: number): Observable<any[]> { return this.http.get<any[]>(`${this.baseApiUrl}/alerts/company/${companyId}`); }
 
   // --- 12. PASSWORD & OTP ---
-  requestPasswordReset(phoneNo: string) { return this.http.post(`${this.baseApiUrl}/rangers/forgot-password`, { phoneNo }); }
-  verifyOtp(phoneNo: string, otp: string) { return this.http.post(`${this.baseApiUrl}/rangers/verify-otp`, { phoneNo, otp }); }
-  resetPassword(phoneNo: string, otp: string, newPass: string) { return this.http.post(`${this.baseApiUrl}/rangers/reset-password`, { phoneNo, otp, newPass }); }
+  requestPasswordReset(phoneNo: string) { return this.http.post(`${this.baseApiUrl}/resetPassword`, { phoneNo }); }
+  resetPassword(phoneNo: string, otp: string, newPass: string) { return this.http.post(`${this.baseApiUrl}/resetPassword`, { phoneNo, otp, newPass }); }
 
 
   get(endpoint: string) { return this.http.get(`${this.baseApiUrl}/${endpoint}`); }
@@ -447,18 +465,76 @@ export class DataService {
   getPlantationById(id: string | number) { return this.http.get(`${this.baseApiUrl}/plantations/${id}`); }
   addPlantationObservation(id: string | number, payload: any) { return this.http.post(`${this.baseApiUrl}/plantations/${id}/observations`, payload); }
 
-  // --- 16. COMMUNICATION (CHAT/NOTIFY) ---
-  postUpdate(payload: any) { return this.http.post(`${this.baseApiUrl}/postUpdate`, payload); }
-  getUpdates() { return this.http.post(`${this.baseApiUrl}/getUpdates`, {}); }
-  getChatUsers() { return this.http.post(`${this.baseApiUrl}/getChatUsers`, {}); }
-  getConversations() { return this.http.post(`${this.baseApiUrl}/getConversations`, {}); }
-  getChatHistory(payload: any) { return this.http.post(`${this.baseApiUrl}/getChatHistory`, payload); }
-  getGroupChatHistory(payload: any) { return this.http.post(`${this.baseApiUrl}/getGroupChatHistory`, payload); }
-  createGroup(payload: any) { return this.http.post(`${this.baseApiUrl}/createGroup`, payload); }
-  uploadChatFile(payload: any) { return this.http.post(`${this.baseApiUrl}/uploadFile`, payload); }
+  // --- 16. COMMUNICATION (CHAT/NOTIFY) ALIGNED WITH SIR'S API ---
+  postUpdate(payload: any) {
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    for (const key in payload) { formData.append(key, payload[key]); }
+    return this.http.post(`${this.baseApiUrl}/postUpdate`, formData);
+  }
 
-  // --- 17. FIELD VISITS / CLIENT VISITS ---
-  addClientVisit(payload: any) { return this.http.post(`${this.baseApiUrl}/addClientVisit`, payload); }
+  getUpdates() {
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    return this.http.post(`${this.baseApiUrl}/getUpdates`, formData);
+  }
+
+  getChatUsers() {
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    return this.http.post(`${this.baseApiUrl}/getChatUsers`, formData);
+  }
+
+  getConversations() {
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    return this.http.post(`${this.baseApiUrl}/getConversations`, formData);
+  }
+
+  getChatHistory(payload: any) {
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    for (const key in payload) { formData.append(key, payload[key]); }
+    return this.http.post(`${this.baseApiUrl}/getChatHistory`, formData);
+  }
+
+  getGroupChatHistory(payload: any) {
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    for (const key in payload) { formData.append(key, payload[key]); }
+    return this.http.post(`${this.baseApiUrl}/getGroupChatHistory`, formData);
+  }
+
+  createGroup(payload: any) {
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    for (const key in payload) { formData.append(key, payload[key]); }
+    return this.http.post(`${this.baseApiUrl}/createGroup`, formData);
+  }
+
+  uploadChatFile(payload: any) {
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    for (const key in payload) { formData.append(key, payload[key]); }
+    return this.http.post(`${this.baseApiUrl}/uploadFile`, formData);
+  }
+
+  // --- 17. FIELD VISITS ALIGNED WITH SIR'S API ---
+  addClientVisit(payload: any) {
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    for (const key in payload) { formData.append(key, payload[key]); }
+    return this.http.post(`${this.baseApiUrl}/addClientVisit`, formData);
+  }
   updateClientVisit(payload: any) { return this.http.post(`${this.baseApiUrl}/updateClientVisit`, payload); }
   getClientVisits() { return this.http.post(`${this.baseApiUrl}/getClientVisits`, {}); }
   getClientFollowUps() { return this.http.post(`${this.baseApiUrl}/getClientFollowUps`, {}); }

@@ -68,7 +68,7 @@ import { Observable, catchError, throwError, of } from 'rxjs';
 })
 export class HierarchyService {
   // NestJS backend on Vercel - has proper CORS and hierarchy endpoints
-  // Laravel API (fms.pugarch.in) doesn't support /hierarchy routes and blocks CORS on /getAssignedBeat
+  // Laravel API (fms.pugarch.in) doesn't support generic /hierarchy tree routes
   private apiUrl = 'https://forest-backend-pi.vercel.app/api/hierarchy';
 
   constructor(private http: HttpClient) {}

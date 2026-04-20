@@ -69,7 +69,7 @@ openEventsFields(title: string, category: string) {
 
   goBack() {
     const role = localStorage.getItem('user_role');
-    if (role === '2') {
+    if (role === '1' || role === '2') {
       this.navCtrl.navigateRoot('/admin');
     } else {
       this.navCtrl.navigateRoot('/home');

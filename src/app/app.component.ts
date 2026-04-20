@@ -3,6 +3,8 @@ import { TranslateService } from '@ngx-translate/core';
 import { Platform, IonRouterOutlet, ActionSheetController, ModalController, MenuController, NavController, ToastController, LoadingController } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { LabelService } from './services/label.service';
+import { DataService } from './data.service'; // Added for refresh sync
+
 
 @Component({
   selector: 'app-root',
@@ -20,6 +22,8 @@ export class AppComponent implements OnInit {
   userPhoto: string = ''; 
   profileImage: string | null = null;
   userRole: string = '';
+  isLoadingSidebar: boolean = false; // Added for loader UI
+
 
   showLanguageModal: boolean = false;
   selectedLanguage: string = 'English';
@@ -51,7 +55,8 @@ export class AppComponent implements OnInit {
     private toastController: ToastController, 
     public router: Router ,
     private loadingCtrl: LoadingController,
-    private labelService: LabelService
+    private labelService: LabelService,
+    private dataService: DataService // Injected
   ) {
     this.renderer.removeClass(document.body, 'dark');
     this.renderer.addClass(document.body, 'light');
@@ -66,6 +71,19 @@ export class AppComponent implements OnInit {
     // 🔥 SYNC FIX: Listen for label updates and force UI refresh
     this.labelService.labelUpdated$.subscribe(() => {
         this.cdr.detectChanges(); 
+    });
+
+    // 🚀 NEW: Listen for Login events to refresh sidebar data immediately
+    this.dataService.loginSuccess$.subscribe(() => {
+      console.log("🔔 Sidebar Refresh Triggered!");
+      this.isLoadingSidebar = true;
+      this.loadUserData();
+      
+      // Artificial delay (1s) to show the professional loader
+      setTimeout(() => {
+        this.isLoadingSidebar = false;
+        this.cdr.detectChanges();
+      }, 1000);
     });
   }
 
@@ -84,18 +102,50 @@ export class AppComponent implements OnInit {
   // }
 
 loadUserData() {
-  this.userRole = localStorage.getItem('user_role') || '4';
+  let rawRole = localStorage.getItem('user_role');
+  const data = localStorage.getItem('user_data');
+  let parsedUser: any = null;
+  
+  if (data) {
+    try {
+      parsedUser = JSON.parse(data);
+    } catch (e) {
+      console.error("Error parsing user_data:", e);
+    }
+  }
+
+  // Fallback role detection
+  if (!rawRole) {
+    const userData = localStorage.getItem('user_data');
+    if (userData) {
+      try {
+        const user = JSON.parse(userData);
+        rawRole = user.role_id?.toString();
+      } catch (e) {
+        console.error("Error parsing user_data for role:", e);
+      }
+    }
+  }
+
+  // Final fallback to Ranger
+  rawRole = rawRole || '4';
+  
+  if (rawRole == '1' || rawRole == '2') {
+    this.userRole = 'admin';
+  } else {
+    this.userRole = 'ranger';
+  }
+
+  console.log("Mapped Role for HTML:", this.userRole);
   
   // Try implicit keys first, then fallback to user_data object
   this.rangerName = localStorage.getItem('ranger_username') || '';
   this.rangerPhone = localStorage.getItem('ranger_phone') || '';
   
   if (!this.rangerName || !this.rangerPhone) {
-    const data = localStorage.getItem('user_data');
-    if (data) {
-      const user = JSON.parse(data);
-      this.rangerName = this.rangerName || user.name || 'User';
-      this.rangerPhone = this.rangerPhone || user.phone || user.contact || '';
+    if (parsedUser) {
+      this.rangerName = this.rangerName || parsedUser.name || 'User';
+      this.rangerPhone = this.rangerPhone || parsedUser.phone || parsedUser.contact || '';
     }
   }
 
@@ -235,10 +285,15 @@ async goToPage(path: string) {
     this.currentPage = 'settings'; 
     this.loadUserData(); 
   } 
-  // 2. Agar Home hai toh Admin Dashboard par bhejo
+  // 2. Agar Home hai toh Role check karke correct dashboard par bhejo
   else if (path === 'home') {
     this.currentPage = 'home';
-    this.navCtrl.navigateRoot('/home/admin'); 
+    const roleId = localStorage.getItem('user_role');
+    if (roleId === '1' || roleId === '2') {
+      this.navCtrl.navigateRoot('/admin');
+    } else {
+      this.navCtrl.navigateRoot('/home');
+    }
   } 
   // 3. Baaki saare pages (Attendance Requests, Updates, etc.) ke liye
   else {

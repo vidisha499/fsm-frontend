@@ -389,6 +389,11 @@ export class DynamicFormsPage implements OnInit {
   }
 
   goBack() {
-    this.navCtrl.back();
+    const roleId = localStorage.getItem('user_role');
+    if (roleId === '1' || roleId === '2') {
+      this.navCtrl.navigateRoot('/admin');
+    } else {
+      this.navCtrl.navigateRoot('/home');
+    }
   }
 }

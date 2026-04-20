@@ -2,7 +2,8 @@
 
 import { Component, OnInit } from '@angular/core';
 import { HierarchyService } from '../../services/hierarchy.service';
-import { AlertController } from '@ionic/angular';
+import { AlertController, NavController } from '@ionic/angular';
+
 
 @Component({
   selector: 'app-category',
@@ -17,7 +18,8 @@ export class CategoryPage implements OnInit {
 
   constructor(
     private hierarchyService: HierarchyService,
-    private alertCtrl: AlertController
+    private alertCtrl: AlertController,
+    private navCtrl: NavController
   ) {
     // Constructor mein call karenge taaki initial load par ID mil jaye
     this.syncCompanyId();
@@ -223,5 +225,14 @@ export class CategoryPage implements OnInit {
         window.alert("Assignment save karne mein error aaya.");
       }
     });
+  }
+
+  goBack() {
+    const roleId = localStorage.getItem('user_role');
+    if (roleId === '1' || roleId === '2') {
+      this.navCtrl.navigateRoot('/admin');
+    } else {
+      this.navCtrl.navigateRoot('/home');
+    }
   }
 }

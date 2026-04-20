@@ -126,24 +126,19 @@ openAssetDetails(asset: any) {
 
   // goBack() { this.navCtrl.navigateBack('/home'); }
   goBack() {
-  // Login page wala exact key name: 'user_role'
-  const userRole = localStorage.getItem('user_role'); 
-  console.log('Back from List - Role:', userRole);
-
-  // Agar Role ID 2 hai (Admin), toh Admin dashboard pe bhejo
-  if (userRole === '2') {
-    this.navCtrl.navigateRoot('/admin', { 
-      animated: true, 
-      animationDirection: 'back' 
-    });
-  } else {
-    // Baaki sab ke liye Ranger dashboard (home)
-    this.navCtrl.navigateRoot('/home', { 
-      animated: true, 
-      animationDirection: 'back' 
-    });
+    const userRole = localStorage.getItem('user_role');
+    if (userRole === '1' || userRole === '2') {
+      this.navCtrl.navigateRoot('/admin', {
+        animated: true,
+        animationDirection: 'back'
+      });
+    } else {
+      this.navCtrl.navigateRoot('/home', {
+        animated: true,
+        animationDirection: 'back'
+      });
+    }
   }
-}
   
 
   // Refresh karne ke liye (Pull to refresh ke liye bhi use kar sakte ho)

@@ -70,18 +70,32 @@ export class ReportsPage implements OnInit { // OnInit implement karo
   constructor(private navCtrl: NavController, private router: Router , private dataService: DataService) {}
 
   ngOnInit() {
-  const rawRole = localStorage.getItem('user_role') || ''; 
-  
-  // Agar role '2' aa raha hai toh usko 'admin' set kar do logic ke liye
-  if (rawRole == '2') {
-    this.userRole = 'admin';
-  } else if (rawRole == '1') {
-    this.userRole = 'ranger';
-  } else {
-    this.userRole = rawRole.trim().toLowerCase();
-  }
+    let rawRole = localStorage.getItem('user_role');
+    
+    // Fallback: Agar user_role nahi hai toh user_data se nikalo (existing sessions ke liye)
+    if (!rawRole) {
+      const userData = localStorage.getItem('user_data');
+      if (userData) {
+        try {
+          const user = JSON.parse(userData);
+          rawRole = user.role_id ? user.role_id.toString() : null;
+        } catch (e) {
+          console.error("Error parsing user_data for role:", e);
+        }
+      }
+    }
 
-  console.log("Mapped Role for HTML:", this.userRole);
+    // Final fallback to Ranger
+    rawRole = rawRole || '4';
+    
+    if (rawRole === '1' || rawRole === '2') {
+      this.userRole = 'admin';
+    } else {
+      this.userRole = 'ranger';
+    }
+
+    console.log("DEBUG: Final rawRole:", rawRole);
+    console.log("DEBUG: Mapped userRole:", this.userRole);
   this.resetFilters();
 }
 
@@ -109,14 +123,7 @@ toggleAttendance() {
   }
   
 
-  goBack() {
-    // Role check logic (lowercase ensure karta hai ki 'Admin' bhi match ho jaye)
-    if (this.userRole === 'admin') {
-      this.navCtrl.navigateBack('/admin-dashboard');
-    } else {
-      this.navCtrl.navigateBack('/ranger-dashboard');
-    }
-  }
+
 
   resetFilters() {
     this.selectedClient = 'all';
@@ -203,5 +210,14 @@ openFilterModal(type: string) {
       }
     });
     
+  }
+
+  goBack() {
+    const roleId = localStorage.getItem('user_role');
+    if (roleId === '1' || roleId === '2') {
+      this.navCtrl.navigateRoot('/admin');
+    } else {
+      this.navCtrl.navigateRoot('/home');
+    }
   }
 }

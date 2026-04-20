@@ -754,10 +754,44 @@ changeTimeframe(newTimeframe: string) {
         this.incidentsCount = Number(stats.total_incidents || stats.total_events || 0);
 
         // --- DYNAMIC DATABASE FETCH (FORCE SYNC - Fixed for Local Time) ---
-        this.dataService.getForestReports().subscribe({
-          next: (reports: any) => {
+        forkJoin({
+          reports: this.dataService.getForestReports(),
+          assets: this.dataService.getAssets(myCompanyId)
+        }).subscribe({
+          next: ({ reports, assets }: { reports: any, assets: any }) => {
             const list = Array.isArray(reports) ? reports : (reports.data || []);
+            const assetList = Array.isArray(assets) ? assets : (assets.data || []);
             
+            // --- A. PROCESS ASSETS ---
+            if (assetList.length > 0) {
+              console.log("📊 Asset Sync: Found", assetList.length, "Total Assets");
+              this.totalAssetsCount = assetList.length;
+              
+              // Category Reset
+              this.realNurseryCount = 0;
+              this.realPlantationCount = 0;
+              this.realOfficeCount = 0;
+              this.realEcoCount = 0;
+              let goodCount = 0;
+
+              assetList.forEach((a: any) => {
+                const cat = (a.category || '').toLowerCase();
+                const status = (a.status || '').toLowerCase();
+
+                if (cat.includes('nursery')) this.realNurseryCount++;
+                else if (cat.includes('plantation')) this.realPlantationCount++;
+                else if (cat.includes('office')) this.realOfficeCount++;
+                else if (cat.includes('eco')) this.realEcoCount++;
+
+                if (status === 'good' || status === 'operational') goodCount++;
+              });
+
+              this.operationalRate = assetList.length > 0 
+                ? Math.round((goodCount / assetList.length) * 100) + '%' 
+                : '100%';
+            }
+
+            // --- B. PROCESS REPORTS ---
             if (list.length > 0) {
                 console.log("📊 Direct Database Sync: Found", list.length, "Total Records");
                 
@@ -837,15 +871,28 @@ changeTimeframe(newTimeframe: string) {
                    color: '#3b82f6'
                 }));
 
-                // Final Update for Template
-                this.criminalCount = counts.criminal;
-                this.eventsCount = counts.monitoring;
-                this.criminalActivityCount = counts.criminal;
-                this.sightingsCount = counts.monitoring;
-                this.fireAlertsCount = counts.fire;
-                this.incidentsCount = counts.criminal + counts.monitoring + counts.fire;
+                // --- FINAL KPI SYNCHRONIZATION (Sir's API Driven) ---
+                const apiCriminal = Number(stats.criminal_count || stats.criminalEvents || 0);
+                const apiEvents = Number(stats.monitoring_count || stats.monitoringEvents || 0);
+                const apiFire = Number(stats.fire_count || stats.fireEvents || 0);
+                const apiAssets = Number(stats.total_assets || 0);
 
-                // --- 📍 MAP MARKER PROCESSING (Using direct sync data) ---
+                // Use API value as priority, fallback to manual sync counts if API is zero
+                this.criminalCount = apiCriminal || counts.criminal;
+                this.eventsCount = apiEvents || counts.monitoring;
+                this.fireAlertsCount = apiFire || counts.fire;
+                this.totalAssetsCount = apiAssets || this.totalAssetsCount;
+
+                // Sync Bottom Snapshot variables
+                this.criminalActivityCount = this.criminalCount;
+                this.sightingsCount = this.eventsCount;
+
+                // Total Summary
+                this.incidentsCount = this.criminalCount + this.eventsCount + this.fireAlertsCount;
+
+                console.log(`%c📊 Final Dashboard Sync: Criminal=${this.criminalCount}, Events=${this.eventsCount}, Fire=${this.fireAlertsCount}, Assets=${this.totalAssetsCount}`, 'color: #10b981; font-weight: bold;');
+
+                // --- 📍 MAP MARKER PROCESSING ---
                 let processedPins: any[] = [];
                 if (list.length > 0) {
                   processedPins = list
@@ -931,8 +978,8 @@ changeTimeframe(newTimeframe: string) {
 
                   return {
                     ...inc,
-                    displayTitle: `${uName || 'Officer'} - ${inc.displayLabel || inc.report_type || inc.category || 'Incident'}`,
-                    displayDesc: inc.report_data?.Description || inc.description || 'Action required in beat area.',
+                    displayTitle: (inc.displayLabel || inc.report_type || inc.category || 'Incident').toLowerCase(),
+                    displayDesc: `${uName || 'Officer'} at ${inc.beat_name || inc.range_name || 'Field Area'}`,
                     displayTime: this.formatTime(inc.created_at || inc.date || new Date().toISOString()),
                     severity: this.getSeverityFromLayer(inc.layerId),
                     ...theme // Adds icon, color, bg, label from getAlertTheme
@@ -1036,8 +1083,8 @@ changeTimeframe(newTimeframe: string) {
                            
                            return {
                               ...log,
-                              displayTitle: `${uName} - Attendance ${isExit ? 'Out' : 'In'}`,
-                              displayDesc: `Logged at ${log.location_name || 'Forest Station'}`,
+                              displayTitle: `attendance ${isExit ? 'out' : 'in'}`,
+                              displayDesc: `${uName} at ${log.location_name || 'Forest Station'}`,
                               displayTime: this.formatTime(log.timestamp || log.created_at || log.entryDateTime),
                               severity: 'info',
                               theme: this.getAlertTheme('ATTENDANCE'),
@@ -1055,8 +1102,8 @@ changeTimeframe(newTimeframe: string) {
                                const uName = p.user_name || p.ranger_name || this.resolveUserName(p.user_id || p.ranger_id);
                                return {
                                   ...p,
-                                  displayTitle: `${uName} - Patrol ${p.status === 'completed' ? 'Ended' : 'Started'}`,
-                                  displayDesc: `Covered ${p.distance_km || 0} km in ${p.range_name || 'Beat'}`,
+                                  displayTitle: `patrol ${p.status === 'completed' ? 'ended' : 'started'}`,
+                                  displayDesc: `${uName} at ${p.range_name || 'Beat Area'}`,
                                   displayTime: this.formatTime(p.created_at || p.start_time || p.updated_at),
                                   severity: 'info',
                                   theme: this.getAlertTheme('PATROL'),
@@ -1251,15 +1298,22 @@ changeTimeframe(newTimeframe: string) {
   }
 
   formatTime(dateStr: string) {
+    if (!dateStr) return '';
     const date = new Date(dateStr);
-    const now = new Date();
-    const diffInMin = Math.floor((now.getTime() - date.getTime()) / 60000);
-
-    if (diffInMin < 1) return 'Just now';
-    if (diffInMin < 60) return `${diffInMin} min ago`;
-    const hours = Math.floor(diffInMin / 60);
-    if (hours < 24) return `${hours}h ago`;
-    return date.toLocaleDateString();
+    
+    // Format: 4/20/26, 2:19 PM
+    const options: any = {
+      year: '2-digit',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    };
+    
+    // Some browsers use commas differently, so we ensure the format matches the image
+    const formatted = date.toLocaleString('en-US', options);
+    return formatted.replace(/ /g, ' ').replace(',', ''); 
   }
 
   loadActivePatrols() {

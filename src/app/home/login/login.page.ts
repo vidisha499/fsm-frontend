@@ -169,6 +169,7 @@ async login() {
         // --- DATA STORAGE ---
         localStorage.setItem('user_data', JSON.stringify(userInfo));
         localStorage.setItem('api_token', userData.api_token);
+        localStorage.setItem('user_role', userRole.toString());
         localStorage.setItem('company_id', userData.company_id.toString());
         localStorage.setItem('ranger_id', userData.id.toString());
         
@@ -178,6 +179,9 @@ async login() {
 
         this.presentToast(`Welcome, ${userData.name}!`, 'success');
         
+        // Trigger Sidebar Refresh
+        this.dataService.loginSuccess$.next();
+
         // --- NAVIGATION LOGIC ---
         // Role 3 = Supervisor, Role 4 = Ranger
         if (userRole === 3 || userRole === 4) { 
