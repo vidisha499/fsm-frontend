@@ -16,7 +16,7 @@ const COLORS = {
   blue: '#3b82f6', ind: '#6366f1', green: '#10b981' 
 };
 
-const SPECIES = ['Teak', 'Sal', 'Sandalwood', 'Rosewood', 'Pine', 'Bamboo', 'Sagaon', 'Beeja'];
+const SPECIES = ['Sal', 'Saja', 'Sagaon', 'Beeja', 'Haldu', 'Dhawda', 'Safed Siris', 'Kala Siris', 'Jamun', 'Aam', 'Semal', 'Mahua', 'Tendu', 'Nilgiri', 'Others'];
 const REGIONS = ['North Division', 'South Valley', 'East Plateau', 'River Buffer', 'West Ridge'];
 const ANIMALS = ['Tiger', 'Elephant', 'Leopard', 'Deer', 'Bison', 'Wild Boar', 'Sloth Bear'];
 const PALETTE = [COLORS.p, COLORS.rose, COLORS.amber, COLORS.ind, COLORS.pur];
@@ -47,6 +47,7 @@ export class AdminAnalyticsPage implements OnInit, OnDestroy {
   activeDateFilter: string = 'today';
   isFilterCollapsed: boolean = true;
   isRefreshing: boolean = false;
+  refreshInterval: any;
 
   selectedRange: string = 'all';
 selectedBeat: string = 'all';
@@ -96,6 +97,7 @@ endDate: string = '';    // Ye missing tha
   manualStorageData: any = {};
   manualFireCauses: any = {};
   manualTrendData: any = {};
+  manualEncroachData: any = {};
   
   // ═══════════════════════════════════════════
   //  THE MAIN CONFIG OBJECT
@@ -134,7 +136,7 @@ criminal: {
           title: "30-Day Transport Trend", 
           sub: "Daily timber transport incidents over period",
           id: "ac-t1", 
-          render: (id: string, obj: any) => this.renderTransportTrendChart(id, obj.trend30d || [])
+          render: (id: string, obj: any) => this.renderTransportTrendChart(id, obj.dynamicData || obj.trend30d || [])
         },
         //{ title: "Vehicle Type Analytics", id: "ac-t3", render: (id: string, obj: any) => this.renderBarChart(id, obj.vehicleAnalytics || [], COLORS.amber, []) },
         //{ title: "Top Smuggling Routes", id: "ac-t4", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.topRoutes || []) },
@@ -467,6 +469,11 @@ private route: ActivatedRoute,) { }
     this.updateUIData();
     this.fetchRealAssetData(); 
 
+    // Refresh data every 30 seconds for "Live" experience
+    this.refreshInterval = setInterval(() => {
+      this.updateUIData();
+    }, 30000);
+
     this.route.queryParams.subscribe((params: any) => {
         if (params && params.type) {
           this.setAnaCat(params.type); 
@@ -477,6 +484,9 @@ private route: ActivatedRoute,) { }
   }
 
   ngOnDestroy() { 
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+    }
     this.onFilterChange();
     this.destroyCharts(); 
   }
@@ -909,6 +919,7 @@ async updateUIData() {
           const manualStorageData: { [key: string]: { godown: number, openSpace: number } } = {}; 
           const manualFireCauses: { [key: string]: number } = {};
           const manualTrendData: { [key: string]: { [key: string]: number } } = {};   // subId -> dateYMD -> count
+          const manualEncroachData: { [key: string]: number } = { 'Agriculture': 0, 'Construction': 0, 'Other': 0 };
           const totals = { criminal: 0, events: 0, fire: 0 };
 
           if (list.length > 0) {
@@ -922,13 +933,24 @@ async updateUIData() {
               const rCreatedAt = r.created_at || r.date_time || '';
               const rDateStr = r.date || rCreatedAt;
 
-              // Filter by timeframe manually (Accurate filtering)
-              if (!this.isDateInTimeframe(rDateStr, this.activeDateFilter)) return;
 
               // Filter by Range/Beat if selected
               if (this.selectedRange !== 'all') {
                  const rRange = (r.range_name || r.range || '').toLowerCase();
                  if (!rRange.includes(this.selectedRange.toLowerCase())) return;
+              }
+
+              // Extract date key early for trend logic
+              let dateYMD = '';
+              const cleanDate = (rDateStr || '').split(' ')[0];
+              if (cleanDate.includes('-')) {
+                const parts = cleanDate.split('-');
+                if (parts[0].length === 4) dateYMD = `${parts[0]}-${parts[1]}-${parts[2]}`; 
+                else if (parts[2].length === 4) dateYMD = `${parts[2]}-${parts[1]}-${parts[0]}`; 
+              } else if (cleanDate.includes('/')) {
+                const parts = cleanDate.split('/');
+                if (parts[2].length === 4) dateYMD = `${parts[2]}-${parts[1]}-${parts[0]}`; 
+                else if (parts[0].length === 4) dateYMD = `${parts[0]}-${parts[1]}-${parts[2]}`; 
               }
 
               // Aggregate Main Totals
@@ -938,11 +960,24 @@ async updateUIData() {
 
               // Aggregate Sub-Category Counts
               let subId = '';
-              if (type.includes('fell') || cat.includes('fell') || type.includes('tree') || type.includes('wood') || type.includes('cut') || type.includes('logging')) subId = 'felling';
-              else if (type.includes('transp') || cat.includes('transp') || type.includes('vehicle') || type.includes('truck') || type.includes('timber_t')) subId = 'transport';
+              const rRaw = JSON.stringify(r).toLowerCase();
+              
+              // 1. Transport (Prioritize to avoid overlap with wood/timber in felling)
+              if (type.includes('transport') || type.includes('vehicle') || type.includes('smuggl') || 
+                  type.includes('transit') || type.includes('truck') || type.includes('timber_t') || 
+                  cat.includes('transport') || rRaw.includes('timber transport')) {
+                subId = 'transport';
+              }
+              // 2. Felling
+              else if (type.includes('fell') || cat.includes('fell') || type.includes('tree') || 
+                       type.includes('wood') || type.includes('cut') || type.includes('logging') || 
+                       rRaw.includes('felling') || rRaw.includes('stump')) {
+                subId = 'felling';
+              }
+              // 3. Others
               else if (type.includes('storage') || cat.includes('storage') || type.includes('depot') || type.includes('yard')) subId = 'storage';
               else if (type.includes('poach') || cat.includes('poach') || type.includes('hunt') || type.includes('kill') || type.includes('carcass')) subId = 'poaching';
-              else if (type.includes('encroach') || cat.includes('encroach') || type.includes('land') || type.includes('occupied')) subId = 'encroach';
+              else if (type.includes('encroach') || cat.includes('encroach') || type.includes('land') || type.includes('occupied') || rRaw.includes('encroach') || rRaw.includes('possession')) subId = 'encroach';
               else if (type.includes('mining') || cat.includes('mining') || type.includes('quarry') || type.includes('sand')) subId = 'mining';
               else if (type.includes('wild') || cat.includes('sight') || cat.includes('animal') || type.includes('paw') || type.includes('monit')) subId = 'wild_animal';
               else if (type.includes('water') || cat.includes('water') || type.includes('well') || type.includes('pond')) subId = 'water';
@@ -950,11 +985,29 @@ async updateUIData() {
               else if (type.includes('compensation') || type.includes('pay') || type.includes('loss')) subId = 'compensation';
               else if (type.includes('jfmc') || type.includes('social') || type.includes('society')) subId = 'jfmc';
               
+              // Track Trend (ALWAYS track last 30 days regardless of current filter)
+              if (subId && dateYMD && dateYMD.length === 10) {
+                // Check if date is within last 30 days
+                const d = new Date(dateYMD);
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                if (d >= thirtyDaysAgo) {
+                  if (!manualTrendData[subId]) manualTrendData[subId] = {};
+                  manualTrendData[subId][dateYMD] = (manualTrendData[subId][dateYMD] || 0) + 1;
+                }
+              }
+
+              // --- REST OF THE AGGREGATION IS FILTER-DEPENDENT ---
+              if (!this.isDateInTimeframe(rDateStr, this.activeDateFilter)) return;
+
               if (subId) {
                 manualSubCounts[subId] = (manualSubCounts[subId] || 0) + 1;
                 
                 // Track Species (Normalize Label)
-                const species = this.toTitleCase(r.species || r.plant_species || r.animal_species || r.tree_species || 'Unknown');
+                // Enhanced species normalization to catch more variations
+                const rawSpecies = r.species || r.plant_species || r.animal_species || r.tree_species || r.report_data?.species || 'Unknown';
+                const species = this.toTitleCase(rawSpecies);
+                
                 if (!manualSpeciesData[subId]) manualSpeciesData[subId] = {};
                 manualSpeciesData[subId][species] = (manualSpeciesData[subId][species] || 0) + 1;
 
@@ -963,7 +1016,14 @@ async updateUIData() {
                 if (!manualRangeData[subId]) manualRangeData[subId] = {};
                 manualRangeData[subId][range] = (manualRangeData[subId][range] || 0) + 1;
 
-                // Special Aggregation: Storage
+                // Special Aggregations (Encroach, Storage, Fire)
+                if (subId === 'encroach') {
+                  const eType = (r.encroachment_type || r.report_data?.encroachment_type || r.type || '').toLowerCase();
+                  if (eType.includes('agri')) manualEncroachData['Agriculture']++;
+                  else if (eType.includes('const') || eType.includes('build') || eType.includes('house')) manualEncroachData['Construction']++;
+                  else manualEncroachData['Other']++;
+                }
+                
                 if (subId === 'storage') {
                   const sType = (r.storage_type || r.location_type || r.report_data?.storage_type || r.storage_name || '').toLowerCase();
                   const isGodown = sType.includes('godown') || sType.includes('indoor') || sType.includes('warehouse') || sType.includes('depot');
@@ -972,33 +1032,13 @@ async updateUIData() {
                   else manualStorageData[species].openSpace++;
                 }
 
-                // Special Aggregation: Fire
                 if (subId === 'fire_incidents') {
-                   const cause = (r.cause || r.report_data?.cause || r.fire_cause || 'Unknown').toLowerCase();
-                   let key = 'Unknown';
-                   if (cause.includes('natural')) key = 'Natural';
-                   else if (cause.includes('negligence')) key = 'Negligence';
-                   else if (cause.includes('intent')) key = 'Intentional';
-                   manualFireCauses[key] = (manualFireCauses[key] || 0) + 1;
-                }
-
-                // Track Trend
-                let dateYMD = '';
-                if (rCreatedAt && rCreatedAt.includes('-')) {
-                  const parts = rCreatedAt.split(' ')[0].split('-');
-                  if (parts[0].length === 4) dateYMD = parts[0] + '-' + parts[1] + '-' + parts[2];
-                } else if (rDate && rDate.includes('-')) {
-                  const parts = rDate.split(' ')[0].split('-');
-                  if (parts[2].length === 4) dateYMD = parts[2] + '-' + parts[1] + '-' + parts[0];
-                }
-                
-                if (dateYMD && dateYMD.length === 10) {
-                  if (!manualTrendData[subId]) manualTrendData[subId] = {};
-                  manualTrendData[subId][dateYMD] = (manualTrendData[subId][dateYMD] || 0) + 1;
+                  const fType = (r.fire_type || r.report_data?.fire_type || r.report_data?.cause || r.cause || 'Unknown').toLowerCase();
+                  const key = this.toTitleCase(fType);
+                  manualFireCauses[key] = (manualFireCauses[key] || 0) + 1;
                 }
               }
             });
-
 
             console.log("📊 Manual Sync Results [Analytics Sub-Categories]:", manualSubCounts);
             
@@ -1008,12 +1048,13 @@ async updateUIData() {
             this.manualRangeData = manualRangeData;
             this.manualStorageData = manualStorageData;
             this.manualFireCauses = manualFireCauses;
+            this.manualEncroachData = manualEncroachData;
 
-            // Force update UI variables
-            this.criminalCount = totals.criminal;
-            this.eventsCount = totals.events;
-            this.fireCount = totals.fire;
-            this.totalEvents = totals.criminal + totals.events + totals.fire;
+            // Force update UI variables (REMOVED as per user request: "upar k count me bhi humko changes nhi krne h")
+            // this.criminalCount = totals.criminal;
+            // this.eventsCount = totals.events;
+            // this.fireCount = totals.fire;
+            // this.totalEvents = totals.criminal + totals.events + totals.fire;
           }
 
           // Centralized function to inject manual data into a sub-category config
@@ -1046,8 +1087,31 @@ async updateUIData() {
                       ch.dynamicData = Object.keys(src).map(k => ({ label: k, value: src[k] }));
                    }
                    
-                   // Fallback for trends (ac-t1, ev-an2, ev-wa1, etc.)
-                   if (ch.id.includes('-t1') || ch.id.includes('-e1') || ch.id.includes('-m1') || ch.id.includes('ev-an2') || ch.id.includes('ev-wa1') || ch.id.includes('-fi1')) {
+                    // 30-Day Trend for Trends (ac-t1, ac-e1, etc.)
+                    if (ch.id === 'ac-t1' || ch.id === 'ac-e1') {
+                      const trend30 = [];
+                      const today = new Date();
+                      for (let i = 29; i >= 0; i--) {
+                        const d = new Date();
+                        d.setDate(today.getDate() - i);
+                        const key = d.toISOString().split('T')[0];
+                        trend30.push({
+                          label: this.formatTrendDate(key),
+                          value: mTrend[key] || 0
+                        });
+                      }
+                      ch.dynamicData = trend30;
+                      ch.trend30d = trend30;
+                    }
+                    
+                    // Encroachment Type Distribution (ac-e2)
+                    if (ch.id === 'ac-e2') {
+                       const arr = Object.keys(manualEncroachData).map(k => ({ label: k, value: manualEncroachData[k] }));
+                       ch.dynamicData = arr;
+                    }
+                    
+                    // Fallback for trends
+                    if (ch.id.includes('-t1') || ch.id.includes('-e1') || ch.id.includes('-m1') || ch.id.includes('ev-an2') || ch.id.includes('ev-wa1') || ch.id.includes('-fi1')) {
                       const trendArr = Object.keys(mTrend).sort().map(k => ({ 
                         label: this.formatTrendDate(k), 
                         value: mTrend[k] 
@@ -1120,7 +1184,6 @@ async updateUIData() {
     }
   });
 }
-// updateUIData ke andar jahan renderSubCharts call hota hai wahan ye check kar:
 renderSubCharts() {
   if (!this.currentSubCharts) return;
 
@@ -1276,10 +1339,28 @@ setAnaSub(id: string) {
 
           // Species/Type mapping
           if (chartId === 'ac-f1') {
-            const mSpecArr = Object.keys(manualSpec).map(k => ({ label: k, value: manualSpec[k] }));
-            ch.dynamicData = rawData.species_volume && rawData.species_volume.length ? rawData.species_volume : mSpecArr;
+            // Volume by Species - Ensure ALL species from the master list are shown
+            const mSpecArr = SPECIES.map(sName => ({
+              label: sName,
+              value: manualSpec[sName] || 0
+            }));
+            
+            // Add any other species found in manualSpec that aren't in the master list
+            Object.keys(manualSpec).forEach(k => {
+              if (!SPECIES.includes(k) && k !== 'Unknown') {
+                mSpecArr.push({ label: k, value: manualSpec[k] });
+              }
+            });
+            
+            // If Unknown has value, add it at the end
+            if (manualSpec['Unknown']) {
+              mSpecArr.push({ label: 'Unknown', value: manualSpec['Unknown'] });
+            }
+
+            ch.dynamicData = mSpecArr;
           } else if (chartId === 'ac-e2') {
-            ch.dynamicData = rawData.encroachment_types || [];
+            const mEncArr = Object.keys(this.manualEncroachData).map(k => ({ label: k, value: this.manualEncroachData[k] }));
+            ch.dynamicData = mEncArr.length ? mEncArr : (rawData.encroachment_types || []);
           } else if (chartId === 'ev-wa2') {
             ch.dynamicData = rawData.water_types || [];
           }
@@ -1287,8 +1368,31 @@ setAnaSub(id: string) {
                    chartId.includes('-p2') || chartId.includes('-m2') ||
                    chartId.includes('-jf2') || chartId.includes('-co2') ||
                    chartId.includes('-an3')) {
-            const mRangeArr = Object.keys(manualRange).map(k => ({ label: k, value: manualRange[k] }));
-            ch.dynamicData = rawData.range_distribution && rawData.range_distribution.length ? rawData.range_distribution : mRangeArr;
+            let mRangeArr = Object.keys(manualRange).map(k => ({ label: k, value: manualRange[k] }));
+            
+            // For Illegal Felling and Timber Transport, ensure the standard three ranges are always represented
+            if (id === 'felling' || id === 'transport') {
+              const targetRanges = ['R2 Test', 'R1 Kankher Test', 'General'];
+              const finalArr = targetRanges.map(name => ({
+                label: name,
+                value: manualRange[name] || 0
+              }));
+              
+              // Add any other ranges found in data
+              Object.keys(manualRange).forEach(k => {
+                if (!targetRanges.includes(k)) {
+                  finalArr.push({ label: k, value: manualRange[k] });
+                }
+              });
+              mRangeArr = finalArr;
+            }
+
+            // Favor manual real-time range distribution for felling and transport
+            if ((id === 'felling' || id === 'transport') && mRangeArr.length > 0) {
+              ch.dynamicData = mRangeArr;
+            } else {
+              ch.dynamicData = rawData.range_distribution && rawData.range_distribution.length ? rawData.range_distribution : mRangeArr;
+            }
           }
           else if (chartId === 'ev-an1') {
             const mSpecArr = Object.keys(manualSpec).map(k => ({ label: k, value: manualSpec[k] }));
@@ -1297,6 +1401,14 @@ setAnaSub(id: string) {
           else if (chartId === 'ac-fc1') {
             const mFireArr = Object.keys(this.manualFireCauses).map(k => ({ label: k, count: this.manualFireCauses[k] }));
             ch.dynamicData = rawData.fire_causes && rawData.fire_causes.length ? rawData.fire_causes : mFireArr;
+          }
+          else if (chartId === 'ac-t1' || chartId === 'ac-e1') {
+            // Prioritize manually calculated 30-day trend
+            if (ch.trend30d && ch.trend30d.length > 0) {
+              ch.dynamicData = ch.trend30d;
+            } else {
+              ch.dynamicData = rawData.trend_data || [];
+            }
           }
           else {
             ch.dynamicData = rawData.trend_data || [];
@@ -1441,8 +1553,9 @@ renderTransportTrendChart(id: string, data: any[]) {
         y: { 
           title: { display: true, text: 'Timber Quantity', color: '#94a3b8', font: { size: 10 } },
           beginAtZero: true, 
+          suggestedMax: 5,
           grid: { color: '#f1f5f9' },
-          ticks: { color: '#94a3b8', font: { size: 9 } }
+          ticks: { color: '#94a3b8', font: { size: 9 }, stepSize: 1 }
         },
         x: { 
           title: { display: true, text: 'Day', color: '#94a3b8', font: { size: 10 } },
@@ -1742,6 +1855,5 @@ renderHorizontalBarChart(id: string, data: any[]) {
     }
   });
 }
-
 
 }

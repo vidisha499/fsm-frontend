@@ -273,7 +273,7 @@ fieldsConfig: any = {
         setTimeout(() => this.initSwipeGesture(), 500);
         loading.dismiss();
       },
-      error: (err) => {
+      error: (err: any) => {
         console.error("⚠️ STRICT SYNC FAILED:", err);
         this.dynamicFields = this.fieldsConfig[this.eventTitle] || [];
         this.isConfigLoaded = true; 

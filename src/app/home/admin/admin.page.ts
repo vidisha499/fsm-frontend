@@ -864,12 +864,19 @@ changeTimeframe(newTimeframe: string) {
                 this.eventsTrendData = getTrendArr('events');
                 this.fireTrendData = getTrendArr('fire');
 
-                const totalReports = list.length;
-                this.beatCoverage = Object.keys(rangeMap).map(name => ({
+                const totalReports = list.length || 1;
+                const targetRanges = ['R2 Test', 'R1 Kankher Test', 'General'];
+                
+                // Add any other ranges that might have data but aren't in target
+                Object.keys(rangeMap).forEach(r => {
+                  if (!targetRanges.includes(r)) targetRanges.push(r);
+                });
+
+                this.beatCoverage = targetRanges.map(name => ({
                    label: name,
-                   val: Math.round((rangeMap[name] / totalReports) * 100),
+                   val: Math.round(((rangeMap[name] || 0) / totalReports) * 100),
                    color: '#3b82f6'
-                }));
+                })).slice(0, 3); // Maintain focus on the top 3 as requested
 
                 // --- FINAL KPI SYNCHRONIZATION (Sir's API Driven) ---
                 const apiCriminal = Number(stats.criminal_count || stats.criminalEvents || 0);

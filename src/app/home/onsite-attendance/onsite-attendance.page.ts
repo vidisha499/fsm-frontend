@@ -226,7 +226,6 @@ async submit() {
     spinner: 'crescent'
   });
   await loader.present();
-
   // Submitting using the main attendance endpoint for reliability
   this.dataService.markOnsiteAttendance(onsiteData, headers).subscribe({
     next: async () => {
