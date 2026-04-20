@@ -339,3 +339,87 @@
     margin: 0;
   }
 }
+
+.custom-bottom-card {
+  --height: auto;
+  --max-height: 70%;
+  --border-radius: 40px 40px 0 0;
+  align-items: flex-end; 
+
+  &::part(content) {
+    border-radius: 40px 40px 0 0;
+    background: #ffffff;
+  }
+
+  .modal-card-content {
+    padding: 30px 24px 50px;
+    
+    .modal-header {
+      text-align: center;
+      margin-bottom: 30px;
+      
+      .title-row {
+        display: flex; align-items: center; justify-content: center; gap: 10px;
+        h3 { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0; }
+        .title-icon { color: #0d9488; font-size: 26px; }
+      }
+      .subtitle { font-size: 14px; color: #94a3b8; margin-top: 6px; }
+    }
+
+    .filter-body {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+
+      .date-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f8fafc;
+        padding: 12px 18px;
+        border-radius: 20px;
+        border: 1px solid #f1f5f9;
+
+        .label { 
+          font-size: 12px; font-weight: 800; color: #64748b; 
+        }
+
+        .date-pill input {
+          border: none;
+          background: #f1f5f9;
+          padding: 8px 12px;
+          border-radius: 10px;
+          font-weight: 700;
+          color: #0f172a;
+          outline: none;
+        }
+      }
+    }
+
+    .modal-footer {
+      margin-top: 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+
+      .apply-btn {
+        width: 100%; 
+        background: #0f172a; 
+        color: white; 
+        padding: 18px;
+        border-radius: 20px; 
+        font-weight: 700; 
+        border: none;
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.2);
+      }
+
+      .clear-btn {
+        background: transparent; border: none; 
+        color: #ef4444; 
+        font-weight: 700;
+        text-decoration: underline;
+      }
+    }
+  }
+}
+

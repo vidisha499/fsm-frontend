@@ -14,6 +14,11 @@ export class EventsReportsPage implements OnInit {
   submittedReports: any[] = [];
   draftReports: any[] = [];
   isLoading: boolean = false;
+  isFilterModalOpen: boolean = false;
+  filterFrom: string = '';
+  filterTo: string = '';
+  maxDate: string = new Date().toISOString().split('T')[0];
+
 
   constructor(
     private navCtrl: NavController,
@@ -31,23 +36,27 @@ export class EventsReportsPage implements OnInit {
   async refreshData() {
     this.isLoading = true;
     this.loadDrafts();
-    this.loadSubmittedReports();
+    this.loadSubmittedReports(this.filterFrom, this.filterTo);
   }
+
 
   loadDrafts() {
     this.draftReports = this.dataService.getForestEventDrafts().reverse();
     this.isLoading = false;
   }
 
-  loadSubmittedReports() {
+  loadSubmittedReports(from?: string, to?: string) {
     const rangerId = this.dataService.getRangerId();
     if (!rangerId) return;
 
-    // We can use getIncidentsByRanger or getForestReports
-    // For consistency with EventsFields, lets fetch recent forest reports
-    this.dataService.getForestReports({ user_id: rangerId }).subscribe({
+    let params: any = { user_id: rangerId };
+    if (from) params.date_from = from;
+    if (to) params.date_to = to;
+
+    this.dataService.getForestReports(params).subscribe({
       next: (res: any) => {
-        this.submittedReports = res?.data || res || [];
+        const rawData = res?.data || res || [];
+        this.submittedReports = rawData.map((r: any) => this.processPhotos(r));
         this.isLoading = false;
       },
       error: (err) => {
@@ -56,6 +65,89 @@ export class EventsReportsPage implements OnInit {
       }
     });
   }
+
+  processPhotos(report: any) {
+    let thumb = null;
+    let photosList: string[] = [];
+    
+    // Check 'photos' array
+    if (Array.isArray(report.photos)) {
+      photosList = [...report.photos];
+    }
+    
+    // Check 'photo' field (could be JSON string or single URL)
+    if (report.photo) {
+      if (typeof report.photo === 'string') {
+        let cleaned = report.photo.trim();
+        // Handle double-escaped JSON strings from PHP/MySQL
+        if (cleaned.startsWith('"[') && cleaned.endsWith(']"')) {
+          cleaned = cleaned.substring(1, cleaned.length - 1).replace(/\\"/g, '"');
+        }
+        
+        if (cleaned.startsWith('[')) {
+          try {
+            const parsed = JSON.parse(cleaned);
+            if (Array.isArray(parsed)) {
+              parsed.forEach((p: any) => {
+                if (p && p.photo) photosList.push(p.photo);
+                else if (p && p.url) photosList.push(p.url);
+                else if (p && p.path) photosList.push(p.path);
+                else if (typeof p === 'string') photosList.push(p);
+              });
+            }
+          } catch(e) {
+             // Fallback for malformed JSON
+             let stripped = cleaned.replace(/^\["?|"?]$/g, '');
+             if (stripped.length > 5) photosList.push(stripped);
+          }
+        } else {
+          photosList.push(cleaned);
+        }
+      } else if (Array.isArray(report.photo)) {
+        report.photo.forEach((p: any) => {
+          if (p && p.photo) photosList.push(p.photo);
+          else if (typeof p === 'string') photosList.push(p);
+        });
+      }
+    }
+
+    // Filter valid URLs
+    const validPhotos = photosList.filter(p => typeof p === 'string' && p.length > 5 && !p.startsWith('['));
+    
+    if (validPhotos.length > 0) {
+      thumb = validPhotos[0];
+    }
+
+    return { 
+      ...report, 
+      displayPhoto: thumb,
+      allPhotos: validPhotos 
+    };
+  }
+
+  viewDetails(report: any) {
+    // We pass the processed data to the details page
+    this.navCtrl.navigateForward(['/home/sightings-details'], {
+      state: { data: report }
+    });
+  }
+
+  setFilterOpen(isOpen: boolean) {
+    this.isFilterModalOpen = isOpen;
+  }
+
+  applyFilter() {
+    this.isFilterModalOpen = false;
+    this.isLoading = true;
+    this.loadSubmittedReports(this.filterFrom, this.filterTo);
+  }
+
+  resetFilter() {
+    this.filterFrom = '';
+    this.filterTo = '';
+    this.applyFilter();
+  }
+
 
   async syncDraft(draft: any) {
     const loading = await this.loadingCtrl.create({

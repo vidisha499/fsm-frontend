@@ -50,10 +50,10 @@
         <div class="icon-box blue"><i class="fas fa-calendar-check"></i></div>
         <div class="item-text"><span>{{ 'MENU.ATTENDANCE_REQ' | translate }}</span></div>
       </a> -->
-      <a *ngIf="userRole === '2'" class="menu-item" (click)="goToPage('attendance-requests')">
-    <div class="icon-box amber"><i class="fas fa-user-check"></i></div>
-    <div class="item-text"><span>{{ 'MENU.ATTENDANCE_REQ' | translate }}</span></div>
-  </a>
+      <a *ngIf="userRole === 'admin' || userRole === '2'" class="menu-item" (click)="goToPage('attendance-requests')">
+  <div class="icon-box amber"><i class="fas fa-user-check"></i></div>
+  <div class="item-text"><span>{{ 'MENU.ATTENDANCE_REQ' | translate }}</span></div>
+</a>
 <!-- 
   <a class="menu-item" (click)="goToPage('assets-list')" [class.active]="router.url === '/home/assets-list'">
   <div class="icon-box red"><i class="fas fa-boxes"></i></div>
@@ -65,7 +65,7 @@
   <div class="item-text"><span>Admin Dashboard</span></div>
 </a>
 
-<a class="menu-item" (click)="goToPage('category')" [class.active]="router.url.includes('category')">
+<a *ngIf="userRole === 'admin' || userRole === '2'" class="menu-item" (click)="goToPage('category')" [class.active]="router.url.includes('category')">
   <div class="icon-box purple">
     <i class="fas fa-sitemap"></i>
   </div>

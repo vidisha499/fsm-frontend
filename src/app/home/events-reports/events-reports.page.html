@@ -15,9 +15,10 @@
             <h1>Forest Activity Log</h1>
           </div>
 
-          <button class="glass-btn info-btn">
+          <button (click)="setFilterOpen(true)" class="glass-btn info-btn">
             <i class="fas fa-sliders-h"></i>
           </button>
+
         </div>
         <div class="stats-overview animate__animated animate__fadeIn">
           <div class="stat-item">
@@ -47,13 +48,14 @@
       </div>
 
       <div *ngIf="activeSegment === 'submitted'" class="list-section">
-        <div class="report-card animate__animated animate__fadeInUp" *ngFor="let report of submittedReports">
+        <div class="report-card animate__animated animate__fadeInUp" *ngFor="let report of submittedReports" (click)="viewDetails(report)">
           <div class="card-thumb">
-            <img *ngIf="report.photo" [src]="report.photo" />
-            <div *ngIf="!report.photo" class="placeholder-icon">
+            <img *ngIf="report.displayPhoto" [src]="report.displayPhoto" />
+            <div *ngIf="!report.displayPhoto" class="placeholder-icon">
               <i class="fas fa-file-invoice"></i>
             </div>
           </div>
+
           <div class="card-info">
             <div class="type-tag">{{ formatTitle(report.report_type) }}</div>
             <h3 class="beat-name">{{ report.beat || 'General Beat' }}</h3>
@@ -116,4 +118,40 @@
       </div>
     </div>
   </div>
+  <ion-modal [isOpen]="isFilterModalOpen" (didDismiss)="setFilterOpen(false)" class="custom-bottom-card">
+    <ng-template>
+      <div class="modal-card-content">
+        
+        <div class="modal-header">
+          <div class="title-row">
+            <ion-icon name="calendar" class="title-icon"></ion-icon>
+            <h3>Filter by Date</h3>
+          </div>
+          <p class="subtitle">Select date range to filter activity logs</p>
+        </div>
+  
+        <div class="filter-body">
+          <div class="date-row">
+            <span class="label">FROM</span>
+            <div class="date-pill">
+               <input type="date" [(ngModel)]="filterFrom" [max]="maxDate">
+            </div>
+          </div>
+  
+          <div class="date-row">
+            <span class="label">TO</span>
+            <div class="date-pill">
+               <input type="date" [(ngModel)]="filterTo" [max]="maxDate">
+            </div>
+          </div>
+        </div>
+  
+        <div class="modal-footer">
+          <button class="apply-btn" (click)="applyFilter()">Apply Filter</button>
+          <button class="clear-btn" (click)="resetFilter()">Reset All Filters</button>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
 </ion-content>
+

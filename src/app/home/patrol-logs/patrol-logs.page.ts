@@ -118,13 +118,18 @@ export class PatrolLogsPage implements OnInit {
       return;
     }
     
-    this.dataService.getPatrolsByCompany(Number(storedCompanyId)).subscribe({
+    this.dataService.getPatrolsByCompany(Number(storedCompanyId), from, to).subscribe({
       next: (res: any) => {
         // Assume FMS returns an array of patrols
         const allLogs = Array.isArray(res) ? res : res.data || [];
         
-        // FMS mapping simplifies it
-        this.patrolLogs = allLogs.map((p: any) => {
+        // Filter by userId if RANGER
+        let filteredLogs = allLogs;
+        if (userRole === 'RANGER' && userData.id) {
+          filteredLogs = allLogs.filter((p: any) => p.user_id == userData.id || p.ranger_id == userData.id);
+        }
+
+        this.patrolLogs = filteredLogs.map((p: any) => {
           const isCompleted = p.status === 'COMPLETED' || p.status === 'SUCCESS' || !!p.end_lat || !!p.end_time || !!p.ended_at;
           return {
             ...p,
