@@ -65,5 +65,35 @@
     "STATUS_PENDING": "Pending",
     "STATUS_RESOLVED": "Resolved",
     "EMPTY_STATE": "No Incidents Logged yet."
+  },
+  "LIST": {
+    "TITLE": "Patrol Logs",
+    "NO_LOGS": "No Patrols Found",
+    "NO_LOGS_SUB": "You haven't completed any patrols yet.",
+    "NEW_SESSION": "New Session",
+    "METHOD": "Method",
+    "TYPE": "Type",
+    "VEHICLE": "Vehicle",
+    "BICYCLE": "Bicycle",
+    "FOOT": "Foot",
+    "REGULAR": "Regular",
+    "SPECIAL": "Special",
+    "EMERGENCY": "Emergency",
+    "SELECT_PLACEHOLDER": "Select...",
+    "STARTING": "Starting...",
+    "START_BTN": "Start Patrol"
+  },
+  "DETAILS": {
+    "TITLE": "Patrol Details",
+    "ACTIVE": "ACTIVE",
+    "DISTANCE": "DISTANCE",
+    "DURATION": "DURATION",
+    "DATE": "DATE",
+    "ROUTE_TITLE": "Route Map",
+    "OBS_TITLE": "Observations",
+    "NO_OBS": "No observations recorded during this patrol.",
+    "LOADING": "Loading...",
+    "UNSPECIFIED": "Unspecified",
+    "SPOTTED": "spotted"
   }
-}
+}

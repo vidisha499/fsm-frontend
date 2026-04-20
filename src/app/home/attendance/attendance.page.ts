@@ -305,8 +305,15 @@ async submitAttendance() {
       ? this.dataService.markAttendance(commonPayload, headers) 
       : this.dataService.markAttendanceExit(commonPayload, headers);
 
+  const loader = await this.loadingCtrl.create({
+    message: 'Submitting Attendance...',
+    spinner: 'crescent'
+  });
+  await loader.present();
+
   req.subscribe({
     next: async () => {
+      await loader.dismiss();
       const msg = await this.translate.get('ATTENDANCE.SUCCESS').toPromise();
       this.presentToast(msg, 'success');
       
@@ -317,6 +324,7 @@ async submitAttendance() {
       }, 1500);
     },
     error: async (err) => {
+      await loader.dismiss();
       console.error("Submission Error Details:", err);
       this.isSubmitting = false;
       this.resetSlider();

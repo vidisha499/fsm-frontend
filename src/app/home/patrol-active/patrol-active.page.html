@@ -102,7 +102,7 @@
 
       <div class="recent-logs-section" *ngIf="recentSightings.length > 0">
         <div class="section-header">
-          <h3>{{ 'PATROL.SESSION_LOGS' | translate }}</h3>
+          <h3>Patrol Observations</h3>
           <span class="count-badge">{{recentSightings.length}}</span>
         </div>
         <div class="logs-list">
@@ -115,24 +115,24 @@
               <div class="log-main">
                 <span class="log-type">{{ log.displayTitle }}</span>
               </div>
-              <span class="log-meta" *ngIf="log.source === 'patrol'">{{log.sighting_type || 'Direct'}} ({{log.count || 1}})</span>
-              <span class="log-meta" *ngIf="log.source === 'report'">Field Report</span>
+              <span class="log-meta">Recorded during current patrol</span>
               
-              <div class="log-thumbnails" *ngIf="log.photos?.length > 0 || log.photo">
-                <img *ngIf="log.photo" [src]="log.photo" class="mini-thumb" (click)="openZoom(log.photo); $event.stopPropagation()">
-                <img *ngFor="let p of log.photos" [src]="p" class="mini-thumb" (click)="openZoom(p); $event.stopPropagation()">
+              <div class="log-thumbnails" *ngIf="log.photo">
+                <div *ngFor="let p of parsePhotos(log.photo)" class="mini-thumb-wrapper">
+                  <img [src]="p.photo" class="mini-thumb" (click)="openZoom(p.photo); $event.stopPropagation()">
+                </div>
               </div>
             </div>
 
             <div class="log-right">
-              <div class="log-time">{{log.timestamp | date:'dd MMM, HH:mm'}}</div>
+              <div class="log-time">{{log.created_at | date:'HH:mm'}}</div>
               <button class="delete-log-btn" (click)="confirmDeleteLog(i, $event)">
                 <i class="fas fa-trash-alt"></i>
               </button>
             </div>
+          </div>
         </div>
       </div>
-    </div>
     </div>
   </div> 
 

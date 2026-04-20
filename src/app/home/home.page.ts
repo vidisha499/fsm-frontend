@@ -405,16 +405,18 @@ toggleEdit() {
       this.currentTranslateX = this.maxSlide; 
       this.cdr.detectChanges();
 
+      const rId = this.dataService.getRangerId();
       const passwordPayload = {
-        id: Number(rId),
-        user_id: Number(rId),
-        password: this.currentPassword, 
-        old_password: this.currentPassword, 
+        id: rId ? +rId : null,
+        mobile: this.rangerPhone, // Secondary identifier sometimes required
         current_password: this.currentPassword,
-        new_password: this.rangerPassword, 
-        new_pass: this.rangerPassword,
+        old_password: this.currentPassword,
+        password: this.rangerPassword, 
         password_confirmation: this.rangerPassword
       };
+      
+      console.log('--- FINAL PASSWORD ATTEMPT (JSON) ---');
+      console.log('Payload:', passwordPayload);
       
       this.executeApiSubscription(this.dataService.changePassword(passwordPayload));
       
@@ -475,8 +477,11 @@ toggleEdit() {
   private executeApiSubscription(apiCall$: any) {
     apiCall$.subscribe({
       next: async (res: any) => {
+        console.log('SERVER SUCCESS RESPONSE:', res);
+        
         // Correctly handle 200 OK responses that carry internal FAILURE states
         if (res && (res.status === 'FAILURE' || res.status === 'error')) {
+           console.error('SERVER RETURNED INTERNAL FAILURE:', res);
            this.isSubmitting = false;
            this.currentTranslateX = 0;
            this.textOpacity = 1;
@@ -512,26 +517,18 @@ toggleEdit() {
           this.currentTranslateX = 0; 
           this.textOpacity = 1;
           this.rangerPassword = '';
-          this.passwordType = 'password';
           this.currentPassword = '';
+          this.showPassword = false;
+          this.showNewPassword = false;
           
           const msg = await this.translate.get('SETTINGS.UPDATE_SUCCESS').toPromise();
           this.showToast(msg || 'Profile Protocol Updated');
-          
-          // --- Password Reset Logic Start ---
-          this.rangerPassword = ''; 
-          this.passwordType = 'password';// Input field khali ho jayegi
-          
-          // Agar aapne password hide/show icons use kiye hain, toh unhe reset karein
-          this.passwordType = 'password'; 
-          this.passwordIcon = 'eye-off'; 
-
-         
 
           this.cdr.detectChanges();
         }, 1500);
       },
       error: (err:any) => {
+        console.error('NETWORK OR SERVER ERROR:', err);
         this.isSubmitting = false;
         this.currentTranslateX = 0;
         this.textOpacity = 1;
@@ -539,7 +536,7 @@ toggleEdit() {
         this.cdr.detectChanges();
       }
     });
-}
+  }
 
   async updateRangerProfile() {
     const loader = await this.loadingController.create({
@@ -623,11 +620,6 @@ toggleEdit() {
   }
 
   // Password toggle karne ka function
-togglePasswordVisibility() {
-  this.passwordType = this.passwordType === 'password' ? 'text' : 'password';
-  this.passwordIcon = this.passwordIcon === 'eye-off' ? 'eye' : 'eye-off';
-  this.cdr.detectChanges();
-}
 
 openMenu() {
     this.menuCtrl.open('start');

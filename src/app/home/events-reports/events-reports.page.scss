@@ -21,47 +21,69 @@
 
 .hero-header {
   position: relative;
-  height: 220px;
-  background: linear-gradient(135deg, #065431 0%, #064e3b 100%);
+  height: 250px; // Slightly taller for more presence
+  background: url('https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&q=80&w=800') center/cover;
   border-bottom-right-radius: 40px;
+  border-bottom-left-radius: 40px; // Added symmetry
   display: flex;
   flex-direction: column;
   padding: 30px 20px;
   z-index: 2;
   overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
 
   .header-overlay {
     position: absolute;
     inset: 0;
-    background: url('https://www.transparenttextures.com/patterns/leaf.png');
-    opacity: 0.1;
+    background: linear-gradient(135deg, rgba(13, 148, 136, 0.85) 0%, rgba(15, 23, 42, 0.8) 100%);
+    opacity: 1; // Increased for a richer look
   }
 
   .nav-bar {
     position: relative;
     display: flex;
     align-items: center;
+    justify-content: space-between; // Spread items
     gap: 15px;
-    margin-bottom: 30px;
+    margin-bottom: 25px;
 
     .glass-btn {
-      width: 40px;
-      height: 40px;
-      border-radius: 12px;
+      width: 45px;
+      height: 45px;
+      border-radius: 14px;
       background: rgba(255, 255, 255, 0.15);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px); // Premium glass effect
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.25);
       color: white;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+
+      &:active {
+        transform: scale(0.95);
+        background: rgba(255, 255, 255, 0.25);
+      }
+      
+      i { font-size: 18px; }
     }
 
-    h1 {
-      color: white;
-      font-size: 20px;
-      font-weight: 700;
-      margin: 0;
+    .header-title-area {
+      flex: 1;
+      text-align: left;
+      
+      h1 {
+        color: white;
+        font-size: 24px; // Larger
+        font-weight: 800;
+        margin: 0;
+        line-height: 1.2;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        letter-spacing: -0.5px;
+      }
     }
   }
 

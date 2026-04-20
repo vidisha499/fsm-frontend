@@ -13,6 +13,7 @@ export class SightingsDetailsPage implements OnInit {
   sighting: any = null;
   reportDataFields: { label: string, value: any }[] = [];
   isLoading = false;
+  cachedState: any = null;
 
   constructor(
     private router: Router,
@@ -38,27 +39,31 @@ export class SightingsDetailsPage implements OnInit {
     const navigation = this.router.getCurrentNavigation();
     const state = navigation?.extras.state;
     
-    // 1. Try to get data from State (fastest)
+    // Cache state for re-use on ionViewWillEnter
     if (state && state['data']) {
-      const basicData = state['data'];
-      const source = state['source'] || 'report';
-      const id = state['id'];
-
-      if (source === 'report' && id) {
-        await this.fetchFullReport(id);
-      } else {
-        this.sighting = basicData;
-        this.processReportData(this.sighting.report_data);
-      }
-      return;
+      this.cachedState = state;
     }
 
-    // 2. Fallback: Get ID from URL and fetch
+    const effectiveState = this.cachedState;
+
+    // 1. Use state data directly — it's already pre-parsed and complete
+    if (effectiveState && effectiveState['data']) {
+      const fullData = effectiveState['data'];
+      this.sighting = this.processObservationPhoto(fullData);
+      // Parse report_data in case it's still a string
+      let rd = fullData.report_data || {};
+      if (typeof rd === 'string') {
+        try { rd = JSON.parse(rd); } catch(e) { rd = {}; }
+      }
+      this.processReportData(rd);
+      return; // We have everything we need — no API call required
+    }
+
+    // 2. Fallback: Get ID from URL and fetch from API
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam && !idParam.startsWith('temp-')) {
       await this.fetchFullReport(parseInt(idParam));
     } else if (!this.sighting) {
-      // 3. Last resort: if no data and no ID to fetch, go back
       console.warn('No sighting data found, redirecting...');
       this.goBack();
     }
@@ -75,15 +80,22 @@ export class SightingsDetailsPage implements OnInit {
     this.dataService.getForestEventById(id).subscribe({
       next: (res: any) => {
         loader.dismiss();
-        if (!res) {
+        // Handle both direct response and wrapped { data: {...} } response
+        const report = res?.data || res;
+        if (!report) {
           console.warn('Report not found for ID:', id);
           this.isLoading = false;
           this.showToast("Report details not found.");
           this.goBack();
           return;
         }
-        this.sighting = res;
-        this.processReportData(res.report_data);
+        this.sighting = this.processObservationPhoto(report);
+        // Parse report_data if it's a string
+        let rd = report.report_data || {};
+        if (typeof rd === 'string') {
+          try { rd = JSON.parse(rd); } catch(e) { rd = {}; }
+        }
+        this.processReportData(rd);
         this.isLoading = false;
       },
       error: (err: any) => {
@@ -127,6 +139,55 @@ export class SightingsDetailsPage implements OnInit {
         value: value
       });
     });
+  }
+
+  private processObservationPhoto(obs: any) {
+    let photosList: string[] = [];
+    
+    if (Array.isArray(obs.photos)) {
+      photosList = [...obs.photos];
+    }
+    
+    if (obs.photo) {
+      if (typeof obs.photo === 'string') {
+        let cleaned = obs.photo.trim();
+        if (cleaned.startsWith('"[') && cleaned.endsWith(']"')) {
+            cleaned = cleaned.substring(1, cleaned.length - 1).replace(/\\"/g, '"');
+        }
+        
+        if (cleaned.startsWith('[')) {
+          try {
+            const parsed = JSON.parse(cleaned);
+            if (Array.isArray(parsed)) {
+               parsed.forEach((p: any) => {
+                  if (p && p.photo) photosList.push(p.photo);
+                  else if (p && p.url) photosList.push(p.url);
+                  else if (p && p.path) photosList.push(p.path);
+                  else if (typeof p === 'string') photosList.push(p);
+               });
+            }
+          } catch(e) {
+            let stripped = cleaned.replace(/^\["?|"?]$/g, '');
+            if (stripped.startsWith('data:') || stripped.startsWith('http')) {
+               photosList.push(stripped);
+            } else {
+               photosList.push(obs.photo);
+            }
+          }
+        } else {
+          photosList.push(cleaned);
+        }
+      } else if (Array.isArray(obs.photo)) {
+        obs.photo.forEach((p: any) => {
+            if (p && p.photo) photosList.push(p.photo);
+            else if (typeof p === 'string') photosList.push(p);
+        });
+      }
+    }
+    
+    obs.photos = photosList.filter(p => typeof p === 'string' && p.length > 5 && !p.startsWith('['));
+    obs.photo = null; 
+    return obs;
   }
 
   getIcon(category: string): string {

@@ -16,7 +16,7 @@ export class EventsFieldsPage implements OnInit {
   
   reportData: any = {};
   eventTitle: string = 'Logs';
-  currentCategory: string = 'General'; // <--- YE LINE ADD KARO
+  currentCategory: string = 'General';
   dynamicFields: any[] = [];
   capturedPhotos: string[] = [];
   selectedZoomImage: string | null = null;
@@ -143,25 +143,22 @@ fieldsConfig: any = {
       { label: 'Remarks', type: 'textarea', key: 'notes' }
     ],
 
-    // Is code ko fieldsConfig object ke andar add karein:
-
-'Fire Alerts': [
-  { label: 'GPS Status', type: 'text', value: 'Fetching Address...', readonly: true, icon: 'location-outline', id: 'gps' },
-  { label: 'Assigned Beat', type: 'text', placeholder: 'Enter Beat Name', key: 'beat' },
-  //{ label: 'Beat Name', type: 'text', placeholder: 'Enter specific beat name', key: 'beat_name' },
-  { label: 'Fire Cause', type: 'select', options: ['Natural', 'Negligence', 'Intentional', 'Unknown'], key: 'fire_cause' },
-  { label: 'Damage Type', type: 'select', options: ['Forest Area', 'Grassland', 'Wildlife Habitat', 'Plantation', 'Human Property', 'Mixed'], key: 'damage_type' },
-  { label: 'Area Burnt (Hectares)', type: 'number', placeholder: '0.00', key: 'area_burnt' },
-  { label: 'No. of Personnel Deployed', type: 'number', placeholder: '0', key: 'personnel_count' },
-  { label: 'Response Time (Minutes)', type: 'number', placeholder: '0', key: 'response_time' },
-  { label: 'Fire Status', type: 'select', options: ['Active', 'Controlled', 'Extinguished'], key: 'fire_status' },
-  { label: 'Detected By', type: 'select', options: ['Patrol', 'Satellite', 'Villager', 'Sensor', 'Other'], key: 'detected_by' },
-  { label: 'Estimated Loss', type: 'text', placeholder: 'Value in ₹ or description', key: 'estimated_loss' },
-  { label: 'Reported By', type: 'text', placeholder: 'Name / Designation', key: 'reported_by' },
-  { label: 'Action Taken', type: 'textarea', placeholder: 'Describe steps taken', key: 'action_taken' },
-  { label: 'Remarks', type: 'textarea', placeholder: 'Additional notes', key: 'remarks' },
-  { label: 'Upload Photo', type: 'file', icon: 'camera-outline', key: 'photo' }
-],
+    'Fire Alerts': [
+      { label: 'GPS Status', type: 'text', value: 'Fetching Address...', readonly: true, icon: 'location-outline', id: 'gps' },
+      { label: 'Assigned Beat', type: 'text', placeholder: 'Enter Beat Name', key: 'beat' },
+      { label: 'Fire Cause', type: 'select', options: ['Natural', 'Negligence', 'Intentional', 'Unknown'], key: 'fire_cause' },
+      { label: 'Damage Type', type: 'select', options: ['Forest Area', 'Grassland', 'Wildlife Habitat', 'Plantation', 'Human Property', 'Mixed'], key: 'damage_type' },
+      { label: 'Area Burnt (Hectares)', type: 'number', placeholder: '0.00', key: 'area_burnt' },
+      { label: 'No. of Personnel Deployed', type: 'number', placeholder: '0', key: 'personnel_count' },
+      { label: 'Response Time (Minutes)', type: 'number', placeholder: '0', key: 'response_time' },
+      { label: 'Fire Status', type: 'select', options: ['Active', 'Controlled', 'Extinguished'], key: 'fire_status' },
+      { label: 'Detected By', type: 'select', options: ['Patrol', 'Satellite', 'Villager', 'Sensor', 'Other'], key: 'detected_by' },
+      { label: 'Estimated Loss', type: 'text', placeholder: 'Value in ₹ or description', key: 'estimated_loss' },
+      { label: 'Reported By', type: 'text', placeholder: 'Name / Designation', key: 'reported_by' },
+      { label: 'Action Taken', type: 'textarea', placeholder: 'Describe steps taken', key: 'action_taken' },
+      { label: 'Remarks', type: 'textarea', placeholder: 'Additional notes', key: 'remarks' },
+      { label: 'Upload Photo', type: 'file', icon: 'camera-outline', key: 'photo' }
+    ],
 
     'Wildlife Compensation': [
       { label: 'GPS Status', type: 'text', value: 'Fetching Address...', readonly: true, icon: 'location-outline', id: 'gps' },
@@ -197,9 +194,8 @@ fieldsConfig: any = {
     private hierarchyService: HierarchyService,
     private cdr: ChangeDetectorRef,
     private gestureCtrl: GestureController,
-    private alertCtrl: AlertController, // 👈 Added missing injection
+    private alertCtrl: AlertController,
   ) {
-    // Bind methods to preserve 'this' context when called from template callbacks
     this.takePhoto = this.takePhoto.bind(this);
     this.selectImageSource = this.selectImageSource.bind(this);
   }
@@ -207,16 +203,12 @@ fieldsConfig: any = {
   ngOnInit() {
     this.loadRecentSubmissions();
 
-    // 1. URL parameters extraction
     let title = this.route.snapshot.paramMap.get('title');
     const category = this.route.snapshot.paramMap.get('category');
     
-    // 2. Query parameters extraction (Patrol Linking)
     this.route.queryParams.subscribe(params => {
-      // 🛡️ PRIMARY: URL Parameters (passed from PatrolActivePage)
       let pid = params['patrolId'] || params['activeId'] || null;
       
-      // 🛡️ SECONDARY: Local Storage (Set by PatrolActivePage)
       if (!pid || pid === 'null' || pid === 'undefined') {
         pid = localStorage.getItem('active_patrol_id');
         console.log("💾 [FALLBACK] Recovered ID from storage:", pid);
@@ -342,7 +334,7 @@ async fetchLocation() {
   try {
     const coordinates = await Geolocation.getCurrentPosition({
       enableHighAccuracy: true,
-      timeout: 10000,
+      timeout: 30000,
       maximumAge: 3000
     });
     const lat = coordinates.coords.latitude;
@@ -607,17 +599,30 @@ async fetchLocation() {
     const gpsValue = gpsField?.value || "";      
     let lat = this.reportData['latitude'] || "0";
     let lng = this.reportData['longitude'] || "0";
+    
+    // Safety check: ensure coordinates aren't lost if they exist in reportData
+    if (lat === "0" && this.reportData['gps']) {
+       // Peek if it's in the gps field string e.g. "19.9, 79.1"
+       const parts = this.reportData['gps'].split(',');
+       if (parts.length === 2) {
+          lat = parts[0].trim();
+          lng = parts[1].trim();
+       }
+    }
     const photoArray = this.capturedPhotos.map(p => ({ photo: p }));
 
     // --- SIR'S API ALIGNMENT ---
-    // Use the unique sessionId string for database mapping
-    let cleanPatrolId = "0";
+    // IMPORTANT: Sir's database expects an INTEGER for patrol_id.
+    // If we send the String UID (e.g. PATROL_123...), the server saves it as 0.
+    // We MUST prioritize the Numeric ID (e.g. 2987).
+    let cleanPatrolId: any = "0";
+    const numericId = this.patrolId || localStorage.getItem('active_patrol_id');
     const sessionString = localStorage.getItem('active_patrol_session_id');
-    if (sessionString) {
-      cleanPatrolId = sessionString;
-    } else if (this.patrolId && this.patrolId !== 'null' && this.patrolId !== 'undefined' && this.patrolId !== '0') {
-      // Fallback to patrolId if sessionStorage is missing (for resume cases)
-      cleanPatrolId = String(this.patrolId);
+
+    if (numericId && numericId !== '0' && numericId !== 'null' && numericId !== 'undefined') {
+      cleanPatrolId = numericId; // Use the Numeric ID for DB mapping
+    } else if (sessionString) {
+      cleanPatrolId = sessionString; // Fallback to string only if no number found
     }
 
     const payload = {
@@ -669,7 +674,7 @@ async fetchLocation() {
         },
         error: async (err) => {
           await loading.dismiss();
-          this.handleError(err);
+          this.handleError(err, incidentPayload);
         }
       });
 
@@ -690,7 +695,7 @@ async fetchLocation() {
         },
         error: async (err) => {
           await loading.dismiss();
-          this.handleError(err);
+          this.handleError(err, patrolPayload);
         }
       });
     }
@@ -708,14 +713,22 @@ async fetchLocation() {
     this.navCtrl.back();
   }
 
-  async handleError(err: any) {
+  async handleError(err: any, payload: any) {
     console.error("❌ Submission Error:", err);
-    const alert = await this.alertCtrl.create({
-      header: 'Submission Error',
-      message: 'Server could not accept this report. Please check your data or try again later.',
-      buttons: ['OK']
-    });
-    await alert.present();
+    
+    // Check for offline/network error (status 0 means no connection to server)
+    if (err.status === 0 || !this.dataService.isOnline()) {
+      console.warn("🌐 Network error detected. Saving as draft automatically.");
+      this.saveAsDraft(payload);
+    } else {
+      // For actual server errors (4xx, 5xx), show the alert
+      const alert = await this.alertCtrl.create({
+        header: 'Submission Error',
+        message: 'Server could not accept this report. Please check your data or try again later.',
+        buttons: ['OK']
+      });
+      await alert.present();
+    }
   }
 
   // Optimized Draft logic

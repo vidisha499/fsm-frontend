@@ -102,12 +102,23 @@
           </div>
         </div> -->
         <div class="input-pill">
-  <label>{{ 'INCIDENT.TIME_LABEL' | translate }}</label>
-  <div class="pill-content">
-    <i class="fas fa-calendar-day"></i>
-    <span class="val">{{ formatDetailDate(incident?.createdAt) }}</span>
-  </div>
-</div>
+          <label>{{ 'INCIDENT.TIME_LABEL' | translate }}</label>
+          <div class="pill-content">
+            <i class="fas fa-calendar-day"></i>
+            <span class="val">{{ formatDetailDate(incident?.createdAt) }}</span>
+          </div>
+        </div>
+
+        <!-- --- DYNAMIC FOREST REPORT DATA --- -->
+        <div class="dynamic-data-section" *ngIf="incident?.report_data">
+           <div class="input-pill" *ngFor="let entry of incident.report_data | keyvalue">
+             <label>{{ entry.key }}</label>
+             <div class="pill-content">
+               <i class="fas fa-info-circle"></i>
+               <span class="val">{{ entry.value || 'N/A' }}</span>
+             </div>
+           </div>
+        </div>
 
       </div>
 

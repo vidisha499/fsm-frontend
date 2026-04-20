@@ -1,384 +1,139 @@
-// .header-container {
-//   position: relative;
-//   height: 240px;
-//   // Your requested image
-//   background: url('https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&q=80&w=800') center/cover;
-//   border-radius: 0 0 45px 45px;
-//   overflow: hidden;
-
-//   // The Bluish-Green Gradient Overlay
-//   .header-overlay {
-//     position: absolute;
-//     inset: 0;
-//     background: linear-gradient(135deg, rgba(13, 148, 136, 0.9) 0%, rgba(15, 23, 42, 0.85) 100%);
-//     z-index: 1;
-//   }
-
-//   .nav-content {
-//     position: relative;
-//     z-index: 2;
-//     padding: 60px 25px;
-
-//     .top-row {
-//       display: flex;
-//       align-items: center;
-//       gap: 15px;
-
-//       .glass-back {
-//         background: rgba(255, 255, 255, 0.2);
-//         backdrop-filter: blur(10px);
-//         border: 1px solid rgba(255, 255, 255, 0.3);
-//         color: white;
-//         width: 45px;
-//         height: 45px;
-//         border-radius: 15px;
-//         display: flex;
-//         align-items: center;
-//         justify-content: center;
-//         font-size: 22px;
-//       }
-
-//       .title-wrapper {
-//         display: flex;
-//         align-items: center;
-//         gap: 12px;
-//         h1 { color: white; font-weight: 800; font-size: 24px; margin: 0; }
-//         .status-pill {
-//           background: #062019;
-//           color: #2dd4bf;
-//           padding: 4px 14px;
-//           border-radius: 20px;
-//           font-size: 10px;
-//           font-weight: 900;
-//           text-transform: uppercase;
-//           border: 1px solid rgba(45, 212, 191, 0.4);
-//         }
-//       }
-//     }
-//   }
-// }
-
-// .content-body {
-//   position: relative;
-//   z-index: 10;
-//   margin-top: -50px; // Pulls content up to overlap the header curve nicely
-//   padding: 0 20px 40px;
-
-//   .label-text {
-//     font-size: 10px;
-//     font-weight: 800;
-//     color: #94a3b8;
-//     letter-spacing: 1.5px;
-//     margin-bottom: 12px;
-//     padding-left: 5px;
-//   }
-
-//   .shadow-soft {
-//     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
-//   }
-
-//   .map-card {
-//     background: white;
-//     height: 240px;
-//     border-radius: 30px;
-//     overflow: hidden;
-//     margin-bottom: 30px;
-//     border: 4px solid white;
-
-//     #attendanceMap {
-//       height: 180px;
-//       width: 100%;
-//     }
-
-//     .map-info {
-//       height: 60px;
-//       display: flex;
-//       align-items: center;
-//       padding: 0 20px;
-//       gap: 10px;
-//       font-size: 13px;
-//       font-weight: 700;
-//       color: #334155;
-//       i { color: #0d9488; }
-//     }
-//   }
-
-//   .detail-pill {
-//     background: white;
-//     border-radius: 22px;
-//     padding: 15px 20px;
-//     display: flex;
-//     align-items: center;
-//     gap: 15px;
-//     margin-bottom: 15px;
-
-//     .icon-circle {
-//       width: 44px;
-//       height: 44px;
-//       border-radius: 14px;
-//       display: flex;
-//       align-items: center;
-//       justify-content: center;
-//       font-size: 18px;
-      
-//       &.in { background: #f0fdf4; color: #16a34a; }
-//       &.out { background: #fef2f2; color: #dc2626; }
-//     }
-
-//     .pill-text {
-//       strong { display: block; font-size: 16px; color: #0f172a; }
-//       span { font-size: 12px; color: #94a3b8; font-weight: 500; }
-//     }
-//   }
-// }
-
-// .photo-card {
-//   background: white;
-//   border-radius: 25px;
-//   overflow: hidden;
-//   margin-bottom: 25px;
-//   height: 200px;
-//   border: 4px solid white;
-  
-//   img {
-//     width: 100%;
-//     height: 100%;
-//     object-fit: cover;
-//   }
-// }
-
-// .truncate-text {
-//   white-space: nowrap;
-//   overflow: hidden;
-//   text-overflow: ellipsis;
-//   display: block;
-//   width: 100%;
-// }
-
-// #attendanceMap {
-//   height: 180px; 
-//   width: 100%;
-//   display: block;
-//   z-index: 1; // Ensure tiles stay below your header overlays
-// }
-
-// /* Add this to fix the missing tile border issues */
-// .leaflet-container {
-//     background: #f8fafc !important;
-// }
-
-// .map-card {
-//   /* ... your existing styles ... */
-//   position: relative; // Needed for internal absolute positioning
-  
-//   #attendanceMap {
-//     height: 180px; 
-//     width: 100%;
-//     display: block;
-//     background: #ebebeb; // Helps you see if the container is actually there
-//     z-index: 1;
-//   }
-// }
-
-// /* VERY IMPORTANT: Leaflet tiles sometimes hide without this */
-// .leaflet-pane {
-//   z-index: 2 !important;
-// }
-// .leaflet-top, .leaflet-bottom {
-//   z-index: 3 !important;
-// }
-
-
-// Main Header with Curved Bottom
-.header-container {
+.premium-wrapper {
+  --primary-teal: #0d9488;
+  --dark-slate: #0f172a;
+  min-height: 100vh;
+  background: #f8fafc;
   position: relative;
-  height: 240px;
-  background: url('https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&q=80&w=800') center/cover;
-  border-radius: 0 0 45px 45px;
-  overflow: hidden;
+  overflow-x: hidden;
 
-  // Bluish-Green Gradient Overlay
-  .header-overlay {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(13, 148, 136, 0.9) 0%, rgba(15, 23, 42, 0.85) 100%);
-    z-index: 1;
+  // 1. Background Effects
+  .ambient-glow {
+    position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.15; z-index: 0;
+    &.glow-1 { width: 300px; height: 300px; background: var(--primary-teal); top: -100px; right: -50px; }
+    &.glow-2 { width: 250px; height: 250px; background: #fbbf24; bottom: 50px; left: -100px; }
   }
 
-  .nav-content {
+  // 2. Hero Header Section
+  .hero-header {
     position: relative;
-    z-index: 2;
-    padding: 60px 25px;
-    margin-top: 8%;
+    height: 180px;
+    background: url('https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&q=80&w=800') center/cover;
+    border-radius: 0 0 45px 45px;
 
-    .top-row {
-      display: flex;
-      align-items: center;
-      gap: 15px;
+    .header-overlay { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(13, 148, 136, 0.9) 0%, rgba(15, 23, 42, 0.8) 100%); border-radius: 0 0 45px 45px; }
+  }
 
-      .glass-back {
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        color: white;
-        width: 45px;
-        height: 45px;
-        border-radius: 15px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 22px;
+  .header-content {
+    position: relative; z-index: 2; padding: 40px 24px;
+    .nav-bar-stack {
+      display: flex; flex-direction: column; gap: 15px;
+      .top-row {
+        display: flex; align-items: center; gap: 15px; margin-top: 30px;
+        h1 { color: white; font-size: 22px; font-weight: 800; margin: 0; }
       }
+    }
+  }
 
-      .title-wrapper {
+  // 3. Navigation Button
+  .glass-btn { 
+    background: rgba(255, 255, 255, 0.15); 
+    border: 1px solid rgba(255, 255, 255, 0.2); 
+    width: 38px; height: 38px; border-radius: 10px; 
+    color: white; display: flex; align-items: center; justify-content: center; 
+    font-size: 20px;
+  }
+
+  // 4. Content Container
+  .main-container { 
+    margin-top: -30px; 
+    padding: 0 18px 100px; 
+    position: relative; 
+    z-index: 3; 
+
+    // --- Detail Cards Style ---
+    .detail-card {
+      background: white;
+      border-radius: 24px;
+      padding: 20px;
+      margin-bottom: 18px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+      border: 1px solid rgba(241, 245, 249, 0.8);
+
+      .label {
+        font-size: 11px;
+        font-weight: 800;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: block;
+        margin-bottom: 12px;
+      }
+    }
+
+    // Selfie Image Style
+    .photo-card {
+      .card-header-line {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        .badge {
+          background: #ef4444; color: white; padding: 4px 12px; border-radius: 12px; font-size: 10px; font-weight: 800;
+          &.entry { background: var(--primary-teal); }
+        }
+      }
+      .image-frame {
+        width: 100%;
+        height: 320px;
+        border-radius: 18px;
+        overflow: hidden;
+        border: 2px solid #f1f5f9;
+        img { width: 100%; height: 100%; object-fit: cover; }
+      }
+    }
+
+    // Info Rows Style
+    .info-card {
+      .info-item {
         display: flex;
         align-items: center;
-        gap: 12px;
-        h1 { color: white; font-weight: 800; font-size: 24px; margin: 0; }
-        .status-pill {
-          background: #062019;
-          color: #2dd4bf;
-          padding: 4px 14px;
-          border-radius: 20px;
-          font-size: 10px;
-          font-weight: 900;
-          text-transform: uppercase;
-          border: 1px solid rgba(45, 212, 191, 0.4);
+        gap: 15px;
+        padding: 14px 0;
+        border-bottom: 1px solid #f8fafc;
+        &:last-child { border: none; }
+
+        .icon-box {
+          width: 42px; height: 42px; border-radius: 12px; background: #f0fdfa;
+          display: flex; align-items: center; justify-content: center;
+          ion-icon { color: var(--primary-teal); font-size: 20px; }
+        }
+
+        .text-data {
+          small { color: #94a3b8; font-size: 10px; font-weight: 700; display: block; }
+          p { color: var(--dark-slate); font-size: 14px; font-weight: 700; margin: 2px 0 0; line-height: 1.2; }
         }
       }
     }
-  }
-}
 
-// Content Body overlapping the header
-.content-body {
-  position: relative;
-  z-index: 10;
-  margin-top: -50px; 
-  padding: 0 20px 40px;
-
-  .label-text {
-    font-size: 10px;
-    font-weight: 800;
-    color: #94a3b8;
-    letter-spacing: 1.5px;
-    margin-bottom: 12px;
-    padding-left: 5px;
-
-    &.centered {
-      text-align: center;
-      padding-left: 0;
-    }
-  }
-
-  .shadow-soft {
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
-  }
-
-  // --- SQUARE PHOTO STYLING ---
-  .photo-square-wrapper {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 30px;
-    margin-top: -25%; // Pull the photo up to overlap the header curve
-  }
-
-  .photo-card-square {
-    width: 200px;  // Square size
-    height: 200px;
-    background: white;
-    border-radius: 25px;
-    overflow: hidden;
-    border: 4px solid white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-  }
-
-  // --- MAP STYLING ---
-  .map-card {
-    background: white;
-    border-radius: 30px;
-    overflow: hidden;
-    margin-bottom: 30px;
-    border: 4px solid white;
-    position: relative;
-
-    #attendanceMap {
-      height: 180px; 
-      width: 100%;
-      display: block;
-      background: #ebebeb;
-      z-index: 1;
-    }
-
-    .map-info {
-      height: 60px;
-      display: flex;
-      align-items: center;
-      padding: 0 20px;
-      gap: 10px;
-      font-size: 13px;
-      font-weight: 700;
-      color: #334155;
-      i { color: #0d9488; }
-    }
-  }
-
-  // --- DETAIL PILLS ---
-  .detail-pill {
-    background: white;
-    border-radius: 22px;
-    padding: 15px 20px;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 15px;
-
-    .icon-circle {
-      width: 44px;
-      height: 44px;
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      
-      &.in { background: #f0fdf4; color: #16a34a; }
-      &.out { background: #fef2f2; color: #dc2626; }
-    }
-
-    .pill-text {
-      strong { display: block; font-size: 16px; color: #0f172a; }
-      span { font-size: 12px; color: #94a3b8; font-weight: 500; }
+    // Map Container Style
+    .map-card {
+      .mini-map {
+        width: 100%;
+        height: 220px;
+        border-radius: 18px;
+        z-index: 1;
+        border: 1px solid #f1f5f9;
+      }
     }
   }
 }
 
-// Utility Classes
-.truncate-text {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: block;
-  width: 100%;
-}
-
-// Leaflet Global Fixes
-.leaflet-container {
-  background: #f8fafc !important;
-}
-
-.leaflet-pane {
-  z-index: 2 !important;
-}
-
-.leaflet-top, .leaflet-bottom {
-  z-index: 3 !important;
+// Leaflet specific fixes for Angular
+:host ::ng-deep {
+  .leaflet-container {
+    font-family: inherit;
+  }
+  .leaflet-vignette {
+    border-radius: 18px;
+  }
 }

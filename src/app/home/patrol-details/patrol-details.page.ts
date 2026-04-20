@@ -59,12 +59,169 @@ export class PatrolDetailsPage implements OnInit {
           });
         }
 
+        // Calculate distance if missing
+        if (!this.patrol.distanceKm && !this.patrol.distance) {
+          this.patrol.distanceKm = this.calculateDistance(this.patrol.route);
+        } else {
+          this.patrol.distanceKm = this.patrol.distanceKm || this.patrol.distance || '0.00';
+        }
+
+        // Calculate duration if missing
+        if (!this.patrol.duration) {
+          this.patrol.duration = this.calculateDuration(this.patrol);
+        }
+        
+        // Ensure startTime is set for the Date field
+        if (!this.patrol.startTime) {
+           this.patrol.startTime = this.patrol.start_time || this.patrol.created_at || this.patrol.timestamp || new Date().toISOString();
+        }
+
+        // Parse existing observations if any
+        if (this.patrol.observationData && this.patrol.observationData.length > 0) {
+          this.patrol.observationData = this.patrol.observationData.map((obs: any) => this.processObservationPhoto(obs));
+        }
+
+        // Fetch observations if not included in patrol details response
+        if (!this.patrol.observationData || this.patrol.observationData.length === 0) {
+          this.fetchObservations();
+        }
+
         setTimeout(() => this.initMap(), 500);
       },
       error: (err: any) => console.error("Load failed", err)
     });
   }
 
+  fetchObservations() {
+    this.dataService.getForestReports().subscribe({
+      next: (res: any) => {
+        const reports = Array.isArray(res) ? res : (res?.data || []);
+        const sessionIds: string[] = [];
+        if (this.patrol.id) sessionIds.push(String(this.patrol.id));
+        if (this.patrol.session_id) sessionIds.push(String(this.patrol.session_id));
+        if (this.patrol.sessionId) sessionIds.push(String(this.patrol.sessionId));
+        if (this.patrolId) sessionIds.push(String(this.patrolId));
+
+        const patrolObs = reports.filter((r: any) => {
+          const rPatrolId = r.patrol_id ? String(r.patrol_id) : null;
+          const rSessionId = r.session_id ? String(r.session_id) : null;
+          return (rPatrolId && sessionIds.includes(rPatrolId)) || 
+                 (rSessionId && sessionIds.includes(rSessionId));
+        });
+        
+        if (patrolObs.length > 0) {
+          this.patrol.observationData = patrolObs.map((obs: any) => this.processObservationPhoto(obs));
+          this.initMap(); // Re-init map to show markers
+        }
+      },
+      error: (err) => console.error("Error fetching observations:", err)
+    });
+  }
+
+  private processObservationPhoto(obs: any) {
+    let photosList: string[] = [];
+    
+    if (Array.isArray(obs.photos)) {
+      photosList = [...obs.photos];
+    }
+    
+    if (obs.photo) {
+      if (typeof obs.photo === 'string') {
+        let cleaned = obs.photo.trim();
+        if (cleaned.startsWith('"[') && cleaned.endsWith(']"')) {
+            cleaned = cleaned.substring(1, cleaned.length - 1).replace(/\\"/g, '"');
+        }
+        
+        if (cleaned.startsWith('[')) {
+          try {
+            const parsed = JSON.parse(cleaned);
+            if (Array.isArray(parsed)) {
+               parsed.forEach((p: any) => {
+                  if (p && p.photo) photosList.push(p.photo);
+                  else if (p && p.url) photosList.push(p.url);
+                  else if (p && p.path) photosList.push(p.path);
+                  else if (typeof p === 'string') photosList.push(p);
+               });
+            }
+          } catch(e) {
+            let stripped = cleaned.replace(/^\["?|"?]$/g, '');
+            if (stripped.startsWith('data:') || stripped.startsWith('http')) {
+               photosList.push(stripped);
+            } else {
+               photosList.push(obs.photo);
+            }
+          }
+        } else {
+          photosList.push(cleaned);
+        }
+      } else if (Array.isArray(obs.photo)) {
+        obs.photo.forEach((p: any) => {
+            if (p && p.photo) photosList.push(p.photo);
+            else if (typeof p === 'string') photosList.push(p);
+        });
+      }
+    }
+    
+    obs.photos = photosList.filter(p => typeof p === 'string' && p.length > 5 && !p.startsWith('['));
+    obs.photo = null; 
+    return obs;
+  }
+
+  calculateDistance(route: any[]): string {
+    if (!route || route.length < 2) return '0.00';
+    let totalDist = 0;
+    for (let i = 0; i < route.length - 1; i++) {
+      const p1 = route[i];
+      const p2 = route[i+1];
+      // Try array format [lat, lng] or object format
+      let lat1, lng1, lat2, lng2;
+      
+      if (Array.isArray(p1)) {
+        lat1 = Number(p1[0]); lng1 = Number(p1[1]);
+      } else {
+        lat1 = Number(p1.latitude || p1.lat); lng1 = Number(p1.longitude || p1.lng);
+      }
+      
+      if (Array.isArray(p2)) {
+        lat2 = Number(p2[0]); lng2 = Number(p2[1]);
+      } else {
+        lat2 = Number(p2.latitude || p2.lat); lng2 = Number(p2.longitude || p2.lng);
+      }
+      
+      if (isNaN(lat1) || isNaN(lng1) || isNaN(lat2) || isNaN(lng2)) continue;
+      
+      const R = 6371; // Earth's radius in km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLng/2) * Math.sin(dLng/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      totalDist += R * c;
+    }
+    return totalDist.toFixed(2);
+  }
+
+  calculateDuration(patrol: any): string {
+    const startStr = patrol.start_time || patrol.created_at || patrol.startTime;
+    const endStr = patrol.end_time || patrol.ended_at || patrol.updated_at || patrol.endTime;
+    
+    if (!startStr || !endStr) return '--:--';
+    
+    const start = new Date(startStr).getTime();
+    const end = new Date(endStr).getTime();
+    const diffMs = end - start;
+    
+    // If diff is negative or 0 or invalid, maybe still active or corrupted
+    if (diffMs <= 0 || isNaN(diffMs)) return '--:--';
+    
+    const diffMins = Math.floor(diffMs / 60000);
+    const hours = Math.floor(diffMins / 60);
+    const mins = diffMins % 60;
+    
+    if (hours > 0) return `${hours}h ${mins}m`;
+    return `${mins}m`;
+  }
 
 initMap() {
     const mapElement = document.getElementById('detailsMap');
@@ -94,10 +251,17 @@ initMap() {
     // 3. Handle Route Polyline
     // Map the route array to Leaflet LatLng tuples
     const routeCoords: L.LatLngTuple[] = (this.patrol.route || []).map((p: any) => {
-      const lat = p.latitude || p.lat;
-      const lng = p.longitude || p.lng;
+      let lat = p.latitude || p.lat;
+      let lng = p.longitude || p.lng;
+      if (lat === undefined && Array.isArray(p)) {
+         if (p[0] > p[1]) {
+           lng = p[0]; lat = p[1];
+         } else {
+           lat = p[0]; lng = p[1];
+         }
+      }
       return [Number(lat), Number(lng)] as L.LatLngTuple;
-    });
+    }).filter((c: any) => !isNaN(c[0]) && !isNaN(c[1]));
 
     if (routeCoords.length > 0) {
       const polyline = L.polyline(routeCoords, { 
@@ -115,11 +279,18 @@ initMap() {
 
     sightings.forEach((obs: any) => {
       // Check both 'latitude/longitude' (Backend) and 'lat/lng' (Old/Fallback)
-      const lat = obs.latitude || obs.lat;
-      const lng = obs.longitude || obs.lng;
+      let lat = obs.latitude || obs.lat;
+      let lng = obs.longitude || obs.lng;
+      
+      if (lat === undefined && Array.isArray(obs.coords)) {
+         lat = obs.coords[0]; lng = obs.coords[1];
+      }
 
-      if (lat !== undefined && lng !== undefined) {
-        const sightingCoord: L.LatLngTuple = [Number(lat), Number(lng)];
+      const numLat = Number(lat);
+      const numLng = Number(lng);
+
+      if (!isNaN(numLat) && !isNaN(numLng) && numLat !== 0 && numLng !== 0) {
+        const sightingCoord: L.LatLngTuple = [numLat, numLng];
         
         // 🛡️ Enhanced Icon Mapping
         const iconInfo = this.getIconAndColor(obs.report_type || obs.category);

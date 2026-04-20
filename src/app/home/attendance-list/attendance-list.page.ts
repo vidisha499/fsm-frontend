@@ -133,7 +133,11 @@ applyFrontendLogic() {
     const isWithinDate = logDate >= start && logDate <= end;
     
     // Mode check (Beat vs Onsite)
-    const isOnsite = log.site_id === 'onsite' || (log.site_name && log.site_name.toLowerCase().includes('onsite'));
+    const isOnsite = String(log.site_id) === '99999' || String(log.geo_id) === '99999' ||
+                     log.site_id === 'onsite' || 
+                     (log.site_name && log.site_name.toLowerCase().includes('onsite')) ||
+                     (log.geo_name && log.geo_name.toLowerCase().includes('[onsite]')) ||
+                     (log.geofence && log.geofence.toLowerCase().includes('[onsite]'));
     const matchesMode = (this.selectedMode === 'onsite') ? isOnsite : !isOnsite;
 
     let isMatchLocation = true;
@@ -236,7 +240,11 @@ async loadAttendanceLogs() {
         const isToday = log.createdAt && log.createdAt.startsWith(today);
         
         // 2. Mode check
-        const isOnsite = log.site_id === 'onsite' || (log.site_name && log.site_name.toLowerCase().includes('onsite'));
+        const isOnsite = String(log.site_id) === '99999' || String(log.geo_id) === '99999' ||
+                         log.site_id === 'onsite' || 
+                         (log.site_name && log.site_name.toLowerCase().includes('onsite')) ||
+                         (log.geo_name && log.geo_name.toLowerCase().includes('[onsite]')) ||
+                         (log.geofence && log.geofence.toLowerCase().includes('[onsite]'));
         const matchesMode = (this.selectedMode === 'onsite') ? isOnsite : !isOnsite;
 
         return isToday && matchesMode;
@@ -302,8 +310,8 @@ setMode(mode: 'beat' | 'onsite') {
   }
 
   viewDetails(log: any) {
+    this.dataService.setSelectedAttendance(log); 
     if (this.selectedMode === 'beat') {
-      this.dataService.setSelectedAttendance(log); 
       this.router.navigate([`/attendance-detail/${log.id}`]);
     } else {
       this.router.navigate(['/onsite-attendance-details'], {

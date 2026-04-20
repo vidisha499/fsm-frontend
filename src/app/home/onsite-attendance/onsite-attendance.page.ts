@@ -211,9 +211,9 @@ async submit() {
 
   const onsiteData = {
     api_token: token,
-    geo_id: '1',
-    geo_name: this.currentAddress || 'Onsite Location',
-    site_id: 'onsite', // 👈 Unique ID for filtering in history
+    geo_id: '99999',
+    geo_name: `[Onsite] ${this.currentAddress || 'Location'}`, 
+    site_id: '99999', // 👈 Unique numeric ID to bypass MySQL string casting to 0
     site_name: 'Onsite Attendance',
     photo: this.capturedPhoto,
     location: `${this.currentLat},${this.currentLng}`
@@ -221,9 +221,16 @@ async submit() {
 
   console.log('Submitting Onsite Attendance Payload:', onsiteData);
   
+  const loader = await this.loadingCtrl.create({
+    message: 'Submitting Attendance...',
+    spinner: 'crescent'
+  });
+  await loader.present();
+
   // Submitting using the main attendance endpoint for reliability
   this.dataService.markOnsiteAttendance(onsiteData, headers).subscribe({
     next: async () => {
+      await loader.dismiss();
       const successMsg = await firstValueFrom(this.translate.get('ATTENDANCE.SUCCESS'));
       this.presentToast(successMsg, 'success');
       setTimeout(() => {
@@ -233,6 +240,7 @@ async submit() {
       }, 1500);
     },
     error: async (err) => {
+      await loader.dismiss();
       console.error("Onsite Sync Error:", err);
       this.isSubmitting = false;
       this.resetSlider();

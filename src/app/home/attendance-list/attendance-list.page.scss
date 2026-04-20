@@ -156,7 +156,7 @@
 
   /* Main Content Container */
   .main-container {
-    margin-top: -30px; 
+    margin-top: 15px; /* Pushed down from -30px to prevent overlap with toggle */
     padding: 0 18px 100px; 
     position: relative; 
     z-index: 3;
