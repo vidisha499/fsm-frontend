@@ -102,18 +102,18 @@ export class HierarchyService {
     return this.http.get<any[]>(finalUrl);
   }
 
-  // 6. Get Assigned Site/Beat (Aligned with Sir's Production API: POST /api/getGuardSite)
+  // 6. Get Assigned Site/Beat (Aligned with Sir's Production API: POST /api/getSites)
   getAssignedBeat(rangerId: number): Observable<any> {
-    const productionUrl = 'https://fms.pugarch.in/public/api/getGuardSite';
+    const productionUrl = 'https://fms.pugarch.in/public/api/getSites';
     const apiToken = localStorage.getItem('api_token') || '';
     const companyId = localStorage.getItem('company_id') || '1';
     
-    console.log('Fetching Guard-Specific Site from Production for User ID:', rangerId); 
+    console.log('Fetching Sites from Production for Company ID:', companyId); 
     
     const payload = { 
       api_token: apiToken,
-      user_id: rangerId,
-      company_id: companyId 
+      company_id: companyId,
+      user_id: rangerId // Send user_id for context-aware site fetching
     };
 
     return this.http.post<any>(productionUrl, payload, {
@@ -122,7 +122,8 @@ export class HierarchyService {
       catchError(err => {
         console.error('Production Sites check failed (Fallback to General):', err);
         const cached = localStorage.getItem('assigned_beat_name') || 'General';
-        return of({ data: [{ site_name: cached }] });
+        // Explicitly return a data array to match Sir's API structure
+        return of({ status: 'SUCCESS', data: [{ site_name: cached }] });
       })
     );
   }

@@ -95,11 +95,12 @@ openEventsFields(title: string, category: string) {
       next: (data: any) => {
         console.log('Backend Response Data:', data);
 
-        const rawPayload = data?.data || data || [];
-        const sites = Array.isArray(rawPayload) ? rawPayload : [rawPayload];
-        if (sites.length > 0 && (sites[0].site_name || sites[0].name)) {
+        // Sir's /getSites returns { data: [{ id, site_name, ... }] }
+        const sites = Array.isArray(data) ? data : (data?.data || []);
+        
+        if (sites.length > 0) {
           const firstSite = sites[0];
-          this.assignedBeatName = (firstSite.site_name || firstSite.name || 'GENERAL').toUpperCase();
+          this.assignedBeatName = (firstSite.site_name || firstSite.name || firstSite.beatName || 'GENERAL').toUpperCase();
         } else {
           this.assignedBeatName = 'GENERAL';
         }

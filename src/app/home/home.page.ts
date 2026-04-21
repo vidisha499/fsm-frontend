@@ -156,17 +156,17 @@ loadDashboardStats(companyId?: any) {
     if (rangerId) {
       this.hierarchyService.getAssignedBeat(rangerId).subscribe({
         next: (res: any) => {
-          const rawPayload = res?.data || res || [];
-          const sites = Array.isArray(rawPayload) ? rawPayload : [rawPayload];
-          if (sites.length > 0 && (sites[0].site_name || sites[0].name)) {
-            const firstSite = sites[0];
-            this.assignedBeatName = (firstSite.site_name || firstSite.name || 'General').toUpperCase();
-            localStorage.setItem('assigned_beat_name', this.assignedBeatName);
+          const data = res.data || res;
+          if (data && (data.beat_name || data.beatName || data.name)) {
+            this.assignedBeatName = data.beat_name || data.beatName || data.name;
           } else {
-            this.assignedBeatName = 'GENERAL';
+            this.assignedBeatName = 'General';
           }
+          // Cache for quick access
+          localStorage.setItem('assigned_beat_name', this.assignedBeatName);
         },
         error: () => {
+          // Fallback to cached value or default
           const cached = localStorage.getItem('assigned_beat_name');
           this.assignedBeatName = cached || 'NOT ASSIGNED';
         }

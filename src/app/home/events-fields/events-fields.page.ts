@@ -309,10 +309,9 @@ async loadDefaultBeat() {
   if (rangerId) {
   this.hierarchyService.getAssignedBeat(rangerId).subscribe({
     next: (res: any) => {
-      // Sir's /getGuardSite returns { data: { id, site_name, ... } } or similar
-      const rawPayload = res?.data || res || [];
-      const sites = Array.isArray(rawPayload) ? rawPayload : [rawPayload];
-      if (sites.length > 0 && (sites[0].site_name || sites[0].name)) {
+      // Sir's /getSites returns { data: [{ id, site_name, ... }] } or similar
+      const sites = Array.isArray(res) ? res : (res?.data || []);
+      if (sites.length > 0) {
         const firstSite = sites[0];
         const siteName = firstSite.site_name || firstSite.name || 'General';
         this.assignedBeat = siteName;
@@ -651,55 +650,27 @@ async fetchLocation() {
     });
     await loading.present();
 
-    const isStandalone = (cleanPatrolId === '0');
+    const photoArrayStr = JSON.stringify(this.capturedPhotos.map(p => ({ photo: p })));
+    const finalPayload = {
+      ...payload,
+      beat_id: payload.site_id, // Sir's Postman uses beat_id
+      data: payload.report_data, // Sir's Postman uses data for JSON content
+      photo: photoArrayStr
+    };
+
+    console.log("🚀 [STRICT SYNC] Using forest-reports API. Patrol ID:", cleanPatrolId);
+    
     const headers = { 'Bypass-Token': 'true' };
-
-    if (isStandalone) {
-      // --- STANDALONE MODE: Use reportIncidence ---
-      console.log("📂 [MODE: STANDALONE] Using reportIncidence API");
-      
-      const firstPhoto = this.capturedPhotos.length > 0 ? this.capturedPhotos[0] : '';
-      const incidentPayload = {
-        api_token: payload.api_token,
-        incidence_type: payload.report_type,
-        latitude: payload.latitude,
-        longitude: payload.longitude,
-        remarks: `Category: ${payload.category} | Data: ${payload.report_data}`,
-        photo: firstPhoto // Standalone expects single string
-      };
-
-      this.dataService.reportNewIncident(incidentPayload).subscribe({
-        next: async (res) => {
-          await loading.dismiss();
-          this.handleSuccess(payload);
-        },
-        error: async (err) => {
-          await loading.dismiss();
-          this.handleError(err, incidentPayload);
-        }
-      });
-
-    } else {
-      // --- PATROL MODE: Use forest-reports ---
-      console.log("🚀 [MODE: PATROL] Using forest-reports API. Patrol ID:", cleanPatrolId);
-      
-      const photoArrayStr = JSON.stringify(this.capturedPhotos.map(p => ({ photo: p })));
-      const patrolPayload = {
-        ...payload,
-        photo: photoArrayStr // Patrol expects JSON array string
-      };
-
-      this.dataService.submitForestEvent(patrolPayload, headers).subscribe({
-        next: async (res) => {
-          await loading.dismiss();
-          this.handleSuccess(payload);
-        },
-        error: async (err) => {
-          await loading.dismiss();
-          this.handleError(err, patrolPayload);
-        }
-      });
-    }
+    this.dataService.submitForestEvent(finalPayload, headers).subscribe({
+      next: async (res) => {
+        await loading.dismiss();
+        this.handleSuccess(payload);
+      },
+      error: async (err) => {
+        await loading.dismiss();
+        this.handleError(err, finalPayload);
+      }
+    });
   }
 
   async handleSuccess(payload: any) {

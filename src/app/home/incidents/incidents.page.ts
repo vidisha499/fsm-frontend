@@ -67,7 +67,7 @@ async loadIncidents() {
   });
   await loader.present();
 
-  this.dataService.getIncidentsByCompany(companyId)
+  this.dataService.getForestReports()
     .subscribe({
       next: (res: any) => { 
         const incidentsList = Array.isArray(res) ? res : (res.data || []);
@@ -146,7 +146,7 @@ getTranslationKey(val: string) {
     });
     await loader.present();
 
-    this.http.delete(`${environment.apiUrl}/reportIncidence/${id}`).subscribe({
+    this.dataService.deleteForestReport(id).subscribe({
       next: async () => {
         await loader.dismiss();
         this.incidents = this.incidents.filter(item => item.id !== id);
