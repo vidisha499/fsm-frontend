@@ -924,6 +924,9 @@ async updateUIData() {
           const manualWaterData: { [key: string]: number } = {
             'Check Dam': 0, 'Stop Dam': 0, 'Dam': 0, 'Earthen Pond': 0, 'Concrete Pond': 0, 'Water Stream': 0, 'Well': 0, 'Others': 0
           };
+          const manualWildAnimalData: { [key: string]: number } = {
+            'Sloth Bear': 0, 'Leopard': 0, 'Hyena': 0, 'Jackal': 0, 'Wild Bear': 0, 'Spotted Deer': 0, 'Sambar': 0, 'Others': 0
+          };
           const totals = { criminal: 0, events: 0, fire: 0 };
 
           if (list.length > 0) {
@@ -1012,7 +1015,12 @@ async updateUIData() {
                 const rawSpecies = r.species || r.plant_species || r.animal_species || r.tree_species || r.report_data?.species || 'Unknown';
                 const species = this.toTitleCase(rawSpecies);
                 
-                if (!manualSpeciesData[subId]) manualSpeciesData[subId] = {};
+                if (!manualSpeciesData[subId]) {
+                  manualSpeciesData[subId] = {};
+                  if (subId === 'wild_animal') {
+                    Object.assign(manualSpeciesData[subId], manualWildAnimalData);
+                  }
+                }
                 manualSpeciesData[subId][species] = (manualSpeciesData[subId][species] || 0) + 1;
 
                 // Track Range (Normalize Label)
@@ -1088,8 +1096,21 @@ async updateUIData() {
                    const mTrend = this.manualTrendData[s.id] || {};
                    
                    if (s.id === 'wild_animal' && ch.id === 'ev-an1') {
-                      const arr = Object.keys(mSpec).map(k => ({ label: k, value: mSpec[k] }));
-                      ch.dynamicData = arr.length ? arr : (apiRoot.sightings_by_species || []);
+                       const mSpecArr = this.animalSpecies.map(sName => ({
+                         label: sName,
+                         value: mSpec[sName] || 0
+                       }));
+                       
+                       Object.keys(mSpec).forEach(k => {
+                         if (!this.animalSpecies.includes(k) && k !== 'Unknown') {
+                           mSpecArr.push({ label: k, value: mSpec[k] });
+                         }
+                       });
+
+                       if (mSpec['Unknown']) {
+                         mSpecArr.push({ label: 'Unknown', value: mSpec['Unknown'] });
+                       }
+                       ch.dynamicData = mSpecArr;
                    } 
                    else if (s.id === 'storage') {
                       if (ch.id === 'ac-s3') {
@@ -1110,7 +1131,7 @@ async updateUIData() {
                    }
                    
                     // 30-Day Trend for Trends (ac-t1, ac-e1, etc.)
-                    if (ch.id === 'ac-t1' || ch.id === 'ac-e1') {
+                    if (ch.id === 'ac-t1' || ch.id === 'ac-e1' || ch.id === 'ev-an2') {
                       const trend30 = [];
                       const today = new Date();
                       for (let i = 29; i >= 0; i--) {
@@ -1126,6 +1147,23 @@ async updateUIData() {
                       ch.trend30d = trend30;
                     }
                     
+                    // JFMC Trend (ev-jf1)
+                    if (ch.id === 'ev-jf1') {
+                      const trend30 = [];
+                      const today = new Date();
+                      for (let i = 29; i >= 0; i--) {
+                        const d = new Date();
+                        d.setDate(today.getDate() - i);
+                        const key = d.toISOString().split('T')[0];
+                        trend30.push({
+                          label: this.formatTrendDate(key),
+                          value: mTrend[key] || 0
+                        });
+                      }
+                      ch.dynamicData = trend30;
+                      ch.trend30d = trend30;
+                    }
+
                     // Water Source Trend (ev-wa1)
                     if (ch.id === 'ev-wa1') {
                       const trend30 = [];
@@ -1441,14 +1479,29 @@ setAnaSub(id: string) {
             }
           }
           else if (chartId === 'ev-an1') {
-            const mSpecArr = Object.keys(manualSpec).map(k => ({ label: k, value: manualSpec[k] }));
-            ch.dynamicData = rawData.sightings_by_species && rawData.sightings_by_species.length ? rawData.sightings_by_species : mSpecArr;
+            const mSpecArr = this.animalSpecies.map(sName => ({
+              label: sName,
+              value: manualSpec[sName] || 0
+            }));
+            
+            // Add any other animals found in manualSpec
+            Object.keys(manualSpec).forEach(k => {
+              if (!this.animalSpecies.includes(k) && k !== 'Unknown') {
+                mSpecArr.push({ label: k, value: manualSpec[k] });
+              }
+            });
+
+            if (manualSpec['Unknown']) {
+              mSpecArr.push({ label: 'Unknown', value: manualSpec['Unknown'] });
+            }
+
+            ch.dynamicData = mSpecArr;
           }
           else if (chartId === 'ac-fc1') {
             const mFireArr = Object.keys(this.manualFireCauses).map(k => ({ label: k, count: this.manualFireCauses[k] }));
             ch.dynamicData = rawData.fire_causes && rawData.fire_causes.length ? rawData.fire_causes : mFireArr;
           }
-          else if (chartId === 'ac-t1' || chartId === 'ac-e1' || chartId === 'ev-wa1') {
+          else if (chartId === 'ac-t1' || chartId === 'ac-e1' || chartId === 'ev-wa1' || chartId === 'ev-jf1' || chartId === 'ev-an2') {
             // Prioritize manually calculated 30-day trend
             if (ch.trend30d && ch.trend30d.length > 0) {
               ch.dynamicData = ch.trend30d;
