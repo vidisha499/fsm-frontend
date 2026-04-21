@@ -988,7 +988,7 @@ async updateUIData() {
               else if (type.includes('mining') || cat.includes('mining') || type.includes('quarry') || type.includes('sand')) subId = 'mining';
               else if (type.includes('wild') || cat.includes('sight') || cat.includes('animal') || type.includes('paw') || type.includes('monit')) subId = 'wild_animal';
               else if (type.includes('water') || cat.includes('water') || type.includes('well') || type.includes('pond')) subId = 'water';
-              else if (type.includes('fire') || cat.includes('fire') || type.includes('burn') || type.includes('smoke')) subId = 'fire_incidents';
+              else if (cat.includes('fire') || type.includes('fire') || rRaw.includes('fire') || rRaw.includes('burn') || rRaw.includes('smoke')) subId = 'fire_incidents';
               else if (type.includes('compensation') || type.includes('pay') || type.includes('loss')) subId = 'compensation';
               else if (type.includes('jfmc') || type.includes('social') || type.includes('society')) subId = 'jfmc';
               
@@ -1045,7 +1045,7 @@ async updateUIData() {
                 }
 
                 if (subId === 'fire_incidents') {
-                  const fType = (r.fire_type || r.report_data?.fire_type || r.report_data?.cause || r.cause || 'Unknown').toLowerCase();
+                  const fType = (r.fire_cause || r.report_data?.fire_cause || r.fire_type || r.report_data?.fire_type || r.report_data?.cause || r.cause || 'Unknown').toLowerCase();
                   const key = this.toTitleCase(fType);
                   manualFireCauses[key] = (manualFireCauses[key] || 0) + 1;
                 }
@@ -1131,55 +1131,32 @@ async updateUIData() {
                    }
                    
                     // 30-Day Trend for Trends (ac-t1, ac-e1, etc.)
-                    if (ch.id === 'ac-t1' || ch.id === 'ac-e1' || ch.id === 'ev-an2') {
+                    if (ch.id === 'ac-t1' || ch.id === 'ac-e1' || ch.id === 'ev-an2' || ch.id === 'ac-fi1' || ch.id === 'ev-wa1' || ch.id === 'ev-jf1') {
                       const trend30 = [];
+                      const labels30 = [];
+                      const flatValues = [];
                       const today = new Date();
                       for (let i = 29; i >= 0; i--) {
                         const d = new Date();
                         d.setDate(today.getDate() - i);
                         const key = d.toISOString().split('T')[0];
-                        trend30.push({
-                          label: this.formatTrendDate(key),
-                          value: mTrend[key] || 0
-                        });
+                        const label = this.formatTrendDate(key);
+                        const val = mTrend[key] || 0;
+                        trend30.push({ label: label, value: val });
+                        labels30.push(label);
+                        flatValues.push(val);
                       }
-                      ch.dynamicData = trend30;
+                      
+                      ch.dynamicLabels = labels30;
                       ch.trend30d = trend30;
+                      
+                      if (ch.id === 'ac-fi1') {
+                        ch.dynamicData = flatValues;
+                      } else {
+                        ch.dynamicData = trend30;
+                      }
                     }
                     
-                    // JFMC Trend (ev-jf1)
-                    if (ch.id === 'ev-jf1') {
-                      const trend30 = [];
-                      const today = new Date();
-                      for (let i = 29; i >= 0; i--) {
-                        const d = new Date();
-                        d.setDate(today.getDate() - i);
-                        const key = d.toISOString().split('T')[0];
-                        trend30.push({
-                          label: this.formatTrendDate(key),
-                          value: mTrend[key] || 0
-                        });
-                      }
-                      ch.dynamicData = trend30;
-                      ch.trend30d = trend30;
-                    }
-
-                    // Water Source Trend (ev-wa1)
-                    if (ch.id === 'ev-wa1') {
-                      const trend30 = [];
-                      const today = new Date();
-                      for (let i = 29; i >= 0; i--) {
-                        const d = new Date();
-                        d.setDate(today.getDate() - i);
-                        const key = d.toISOString().split('T')[0];
-                        trend30.push({
-                          label: this.formatTrendDate(key),
-                          value: mTrend[key] || 0
-                        });
-                      }
-                      ch.dynamicData = trend30;
-                      ch.trend30d = trend30;
-                    }
                     
                     // Water Sources Distribution (ev-wa2)
                     if (ch.id === 'ev-wa2') {
@@ -1193,14 +1170,6 @@ async updateUIData() {
                        ch.dynamicData = arr;
                     }
                     
-                    // Fallback for trends
-                    if (ch.id.includes('-t1') || ch.id.includes('-e1') || ch.id.includes('-m1') || ch.id.includes('ev-an2') || ch.id.includes('ev-wa1') || ch.id.includes('-fi1')) {
-                      const trendArr = Object.keys(mTrend).sort().map(k => ({ 
-                        label: this.formatTrendDate(k), 
-                        value: mTrend[k] 
-                      }));
-                      if (trendArr.length) ch.dynamicData = trendArr;
-                   }
                 });
              }
           };
@@ -1501,10 +1470,15 @@ setAnaSub(id: string) {
             const mFireArr = Object.keys(this.manualFireCauses).map(k => ({ label: k, count: this.manualFireCauses[k] }));
             ch.dynamicData = rawData.fire_causes && rawData.fire_causes.length ? rawData.fire_causes : mFireArr;
           }
-          else if (chartId === 'ac-t1' || chartId === 'ac-e1' || chartId === 'ev-wa1' || chartId === 'ev-jf1' || chartId === 'ev-an2') {
+          else if (chartId === 'ac-t1' || chartId === 'ac-e1' || chartId === 'ev-wa1' || chartId === 'ev-jf1' || chartId === 'ev-an2' || chartId === 'ac-fi1') {
             // Prioritize manually calculated 30-day trend
             if (ch.trend30d && ch.trend30d.length > 0) {
-              ch.dynamicData = ch.trend30d;
+              if (chartId === 'ac-fi1') {
+                ch.dynamicData = ch.trend30d.map((d: any) => d.value);
+              } else {
+                ch.dynamicData = ch.trend30d;
+              }
+              ch.dynamicLabels = ch.trend30d.map((d: any) => d.label);
             } else {
               ch.dynamicData = rawData.trend_data || [];
             }
