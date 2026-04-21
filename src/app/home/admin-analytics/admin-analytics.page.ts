@@ -94,11 +94,21 @@ endDate: string = '';    // Ye missing tha
   manualSubCounts: any = {};
   manualSpeciesData: any = {};
   manualRangeData: any = {};
-  manualStorageData: any = {};
+  manualStorageData: any = {
+    'Sal': { godown: 0, openSpace: 0 }, 'Saja': { godown: 0, openSpace: 0 }, 'Sagaon': { godown: 0, openSpace: 0 },
+    'Beeja': { godown: 0, openSpace: 0 }, 'Haldu': { godown: 0, openSpace: 0 }, 'Dhawda': { godown: 0, openSpace: 0 },
+    'Safed Siris': { godown: 0, openSpace: 0 }, 'Kala Siris': { godown: 0, openSpace: 0 }, 'Others': { godown: 0, openSpace: 0 }
+  };
+  manualPoachingData: any = {
+    'Sloth Bear': { male: 0, female: 0 }, 'Leopard': { male: 0, female: 0 }, 
+    'Hyena': { male: 0, female: 0 }, 'Jackal': { male: 0, female: 0 }, 
+    'Wild Bear': { male: 0, female: 0 }, 'Spotted Deer': { male: 0, female: 0 }, 
+    'Sambar': { male: 0, female: 0 }, 'Others': { male: 0, female: 0 }
+  };
   manualFireCauses: any = {};
   manualTrendData: any = {};
-  manualEncroachData: any = {};
-  manualWaterData: any = {};
+  manualEncroachData: any = { 'Agriculture': 0, 'Construction': 0, 'Other': 0 };
+  manualWaterData: any = { 'Check Dam': 0, 'Stop Dam': 0, 'Dam': 0, 'Earthen Pond': 0, 'Concrete Pond': 0, 'Water Stream': 0, 'Well': 0, 'Others': 0 };
   
   // ═══════════════════════════════════════════
   //  THE MAIN CONFIG OBJECT
@@ -151,21 +161,21 @@ criminal: {
           title: "Storage by Species", 
           sub: "Volume stored in godowns vs open spaces",
           id: "ac-s3", 
-          render: (id: string, obj: any) => this.renderStackedBarChart(id, obj.dynamicData || obj.storageSpecies || []) 
+          render: (id: string, obj: any) => this.renderStackedBarChart(id, obj.storageSpecies || []) 
         },
         { 
           title: "Storage Proportion", 
           sub: "Species-wise share of total seized timber",
           id: "ac-s4", 
-          render: (id: string, obj: any) => this.renderStoragePieChart(id, obj.dynamicData || obj.storageProportion || []) 
+          render: (id: string, obj: any) => this.renderStoragePieChart(id, obj.storageProportion || []) 
         }
       ]
     },
     { 
       id: "poaching", label: "Wild Animal Poaching", emoji: "🐾", color: COLORS.red, val: 0, 
       charts: [
-        { title: "Species vs Incidents", id: "ac-p3", render: (id: string, obj: any) => this.renderDoubleBarChart(id, obj.poachingSpecies || []) },
-        //{ title: "Incident Distribution", id: "ac-p4", render: (id: string, obj: any) => this.renderPieChart(id, obj.poachingDeathCause || []) }
+        { title: "Species with Gender", id: "ac-p3", render: (id: string, obj: any) => this.renderPoachingGenderChart(id, obj.dynamicData || []) },
+        { title: "Range-wise Poaching", id: "ac-p2", render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) }
       ]
     },
     { 
@@ -919,6 +929,12 @@ async updateUIData() {
             'Beeja': { godown: 0, openSpace: 0 }, 'Haldu': { godown: 0, openSpace: 0 }, 'Dhawda': { godown: 0, openSpace: 0 },
             'Safed Siris': { godown: 0, openSpace: 0 }, 'Kala Siris': { godown: 0, openSpace: 0 }, 'Others': { godown: 0, openSpace: 0 }
           };
+          const mPoachingData: { [key: string]: { male: number, female: number } } = {
+            'Sloth Bear': { male: 0, female: 0 }, 'Leopard': { male: 0, female: 0 }, 
+            'Hyena': { male: 0, female: 0 }, 'Jackal': { male: 0, female: 0 }, 
+            'Wild Bear': { male: 0, female: 0 }, 'Spotted Deer': { male: 0, female: 0 }, 
+            'Sambar': { male: 0, female: 0 }, 'Others': { male: 0, female: 0 }
+          };
 
           const manualWildAnimalData: { [key: string]: number } = {
             'Sloth Bear': 0, 'Leopard': 0, 'Hyena': 0, 'Jackal': 0, 'Wild Bear': 0, 'Spotted Deer': 0, 'Sambar': 0, 'Others': 0
@@ -1003,11 +1019,31 @@ async updateUIData() {
                 
                 if (subId === 'storage') {
                   const sType = (r.storage_type || r.report_data?.storage_type || '').toLowerCase();
-                  const qty = Number(r.qty_cmt || r.volume || r.report_data?.qty_cmt || 1);
-                  const isGodown = sType.includes('godown') || sType.includes('indoor') || sType.includes('depot');
-                  if (!mStorageData[species]) mStorageData[species] = { godown: 0, openSpace: 0 };
-                  if (isGodown) mStorageData[species].godown += qty;
-                  else mStorageData[species].openSpace += qty;
+                  const qty = Number(r.qty_cmt || r.volume || r.report_data?.qty_cmt || r.report_data?.volume || r.amount || 1) || 1;
+                  const isGodown = sType.includes('godown') || sType.includes('indoor') || sType.includes('warehouse') || sType.includes('room');
+                  
+                  // Fuzzy species matching to ensure data maps to the correct baseline labels
+                  let matchedKey = 'Others';
+                  for (const sName of SPECIES) {
+                    if (species.trim().toLowerCase() === sName.trim().toLowerCase() || 
+                        species.toLowerCase().includes(sName.toLowerCase()) || 
+                        sName.toLowerCase().includes(species.toLowerCase())) {
+                      matchedKey = sName;
+                      break;
+                    }
+                  }
+                  
+                  if (!mStorageData[matchedKey]) mStorageData[matchedKey] = { godown: 0, openSpace: 0 };
+                  if (isGodown) mStorageData[matchedKey].godown += qty;
+                  else mStorageData[matchedKey].openSpace += qty;
+                }
+
+                if (subId === 'poaching') {
+                  const gender = (r.gender || r.report_data?.gender || 'Unknown').toLowerCase();
+                  if (!mPoachingData[species]) mPoachingData[species] = { male: 0, female: 0 };
+                  if (gender.includes('male') && !gender.includes('female')) mPoachingData[species].male++;
+                  else if (gender.includes('female')) mPoachingData[species].female++;
+                  else mPoachingData[species].male++; // Default to male for incident if unknown but logged
                 }
 
                 if (subId === 'fire_incidents') {
@@ -1037,6 +1073,7 @@ async updateUIData() {
           this.manualSpeciesData = mSpeciesData;
           this.manualRangeData = mRangeData;
           this.manualStorageData = mStorageData;
+          this.manualPoachingData = mPoachingData;
           this.manualFireCauses = mFireCauses;
           this.manualEncroachData = mEncroachData;
           this.manualWaterData = mWaterData;
@@ -1069,12 +1106,23 @@ async updateUIData() {
                    } 
                    else if (s.id === 'storage') {
                       if (ch.id === 'ac-s3') {
-                          ch.dynamicData = Object.keys(this.manualStorageData).map(k => ({ label: k, ...this.manualStorageData[k] }));
+                          ch.dynamicData = SPECIES.map(k => ({ label: k, godown: this.manualStorageData[k]?.godown || 0, openSpace: this.manualStorageData[k]?.openSpace || 0 }));
                       } else if (ch.id === 'ac-s4') {
                           ch.dynamicData = SPECIES.map(sName => ({ label: sName, value: (this.manualStorageData[sName]?.godown || 0) + (this.manualStorageData[sName]?.openSpace || 0) }));
                       }
                    }
-                   else if (s.id === 'fire_incidents' && ch.id === 'ac-fc1') {
+                   else if (s.id === "poaching") {
+                      if (ch.id === "ac-p3") {
+                          ch.dynamicData = Object.keys(this.manualPoachingData).map(k => ({ 
+                            label: k, 
+                            male: this.manualPoachingData[k].male, 
+                            female: this.manualPoachingData[k].female 
+                          }));
+                      } else if (ch.id === "ac-p2") {
+                          ch.dynamicData = Object.keys(mRange).map(k => ({ label: k, value: mRange[k] }));
+                      }
+                   }
+                   else if (s.id === "fire_incidents" && ch.id === "ac-fc1") {
                       const arr = Object.keys(this.manualFireCauses).map(k => ({ label: k, count: this.manualFireCauses[k] }));
                       ch.dynamicData = arr.length ? arr : (apiRoot.fire_causes || []);
                    }
@@ -1224,8 +1272,6 @@ renderBarChart(id: string, data: any[], color: string, labels: string[]) {
         data: finalValues, 
         backgroundColor: color || '#34A853',
         borderRadius: 8,
-        categoryPercentage: 0.7,
-        barPercentage: 0.8,
         barThickness: 30,
         maxBarThickness: 40
       }]
@@ -1649,16 +1695,16 @@ renderStackedBarChart(id: string, data: any[]) {
         {
           label: 'Godown',
           data: godownData,
-          backgroundColor: '#fba14d', 
-          categoryPercentage: 0.7,
-          barPercentage: 0.8
+          backgroundColor: '#fba14d', // Godown color (amber/orange)
+          barThickness: 35,
+          maxBarThickness: 40
         },
         {
           label: 'Open Space',
           data: openSpaceData,
-          backgroundColor: '#4abaa0', 
-          categoryPercentage: 0.7,
-          barPercentage: 0.8
+          backgroundColor: '#4abaa0', // Open space color (teal)
+          barThickness: 35,
+          maxBarThickness: 40
         }
       ]
     },
@@ -1676,27 +1722,13 @@ renderStackedBarChart(id: string, data: any[]) {
         x: { 
           stacked: true,
           grid: { display: false },
-          ticks: { 
-            color: '#94a3b8', 
-            font: { size: 9 },
-            maxRotation: 45,
-            minRotation: 0,
-            autoSkip: true,
-            padding: 5
-          }
+          ticks: { color: '#94a3b8', font: { size: 10 } }
         },
         y: { 
           stacked: true,
-          beginAtZero: true,
-          grid: { color: '#f1f5f9', drawTicks: false },
-          ticks: { 
-            color: '#94a3b8', 
-            font: { size: 9 },
-            callback: (value: any) => {
-              if (value >= 1000) return (value/1000).toFixed(1) + 'k';
-              return value;
-            }
-          }
+          suggestedMax: 150,
+          grid: { color: '#f1f5f9' },
+          ticks: { stepSize: 50, color: '#94a3b8', font: { size: 10 } }
         }
       }
     }
@@ -1737,59 +1769,60 @@ renderStoragePieChart(id: string, data: any[]) {
   });
 }
 
-renderDoubleBarChart(id: string, data: any[]) {
-  const canvas = document.getElementById(id) as HTMLCanvasElement;
-  if (!canvas) return;
+  renderPoachingGenderChart(id: string, data: any[]) {
+    const canvas = document.getElementById(id) as HTMLCanvasElement;
+    if (!canvas) return;
 
-  const plotData = data || [];
+    const plotData = data || [];
+    const labels = plotData.map(d => d.label || 'Unknown');
+    const males = plotData.map(d => d.male || 0);
+    const females = plotData.map(d => d.female || 0);
 
-  const labels = plotData.map(d => d.label || 'Unknown');
-  const incidents = plotData.map(d => d.incidents || d.value || 0);
-  const carcasses = plotData.map(d => d.carcasses || 0);
-
-  return this.mkChart(id, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: 'Incidents',
-          data: incidents,
-          backgroundColor: '#fb4f72', // Pink
-          borderRadius: 4
-        },
-        {
-          label: 'Carcasses',
-          data: carcasses,
-          backgroundColor: '#e8868c', // Light Pink
-          borderRadius: 4
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: true,
-          position: 'bottom',
-          labels: { usePointStyle: true, boxWidth: 10, font: { size: 10 } }
-        }
+    return this.mkChart(id, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Male',
+            data: males,
+            backgroundColor: '#3b82f6', // Blue
+            borderRadius: 4
+          },
+          {
+            label: 'Female',
+            data: females,
+            backgroundColor: '#ec4899', // Pink
+            borderRadius: 4
+          }
+        ]
       },
-      scales: {
-        x: {
-          grid: { display: false },
-          ticks: { color: '#94a3b8', font: { size: 10 } }
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: { usePointStyle: true, boxWidth: 10, font: { size: 10 } }
+          }
         },
-        y: {
-          beginAtZero: true,
-          grid: { color: '#f1f5f9' },
-          ticks: { color: '#94a3b8', font: { size: 10 } }
+        scales: {
+          x: {
+            stacked: true,
+            grid: { display: false },
+            ticks: { color: '#94a3b8', font: { size: 10 } }
+          },
+          y: {
+            stacked: true,
+            beginAtZero: true,
+            grid: { color: '#f1f5f9' },
+            ticks: { color: '#94a3b8', font: { size: 10 } }
+          }
         }
       }
-    }
-  });
-}
+    });
+  }
 
 renderEncroachDistributionBarChart(id: string, data: any[]) {
   const canvas = document.getElementById(id) as HTMLCanvasElement;
