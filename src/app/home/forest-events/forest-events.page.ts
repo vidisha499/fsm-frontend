@@ -95,10 +95,11 @@ openEventsFields(title: string, category: string) {
       next: (data: any) => {
         console.log('Backend Response Data:', data);
 
-        // Aapke AssignmentEntity ke hisaab se backend 'beatName' bhejta hai
-        // Hum safe side ke liye teenon variations check karenge
-        if (data && (data.beatName || data.beat_name || data.beatId)) {
-          this.assignedBeatName = (data.beatName || data.beat_name || 'BEAT: ' + data.beatId).toUpperCase();
+        const rawPayload = data?.data || data || [];
+        const sites = Array.isArray(rawPayload) ? rawPayload : [rawPayload];
+        if (sites.length > 0 && (sites[0].site_name || sites[0].name)) {
+          const firstSite = sites[0];
+          this.assignedBeatName = (firstSite.site_name || firstSite.name || 'GENERAL').toUpperCase();
         } else {
           this.assignedBeatName = 'GENERAL';
         }

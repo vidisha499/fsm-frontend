@@ -102,16 +102,17 @@ export class HierarchyService {
     return this.http.get<any[]>(finalUrl);
   }
 
-  // 6. Get Assigned Site/Beat (Aligned with Sir's Production API: POST /api/getSites)
+  // 6. Get Assigned Site/Beat (Aligned with Sir's Production API: POST /api/getGuardSite)
   getAssignedBeat(rangerId: number): Observable<any> {
-    const productionUrl = 'https://fms.pugarch.in/public/api/getSites';
+    const productionUrl = 'https://fms.pugarch.in/public/api/getGuardSite';
     const apiToken = localStorage.getItem('api_token') || '';
     const companyId = localStorage.getItem('company_id') || '1';
     
-    console.log('Fetching Sites from Production for Company ID:', companyId); 
+    console.log('Fetching Guard-Specific Site from Production for User ID:', rangerId); 
     
     const payload = { 
       api_token: apiToken,
+      user_id: rangerId,
       company_id: companyId 
     };
 

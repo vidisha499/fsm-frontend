@@ -55,7 +55,17 @@ export class EventsReportsPage implements OnInit {
 
     this.dataService.getForestReports(params).subscribe({
       next: (res: any) => {
-        const rawData = res?.data || res || [];
+        let rawData = res?.data || res || [];
+        
+        // Strict frontend filtering to ensure user only sees their own reports
+        rawData = rawData.filter((r: any) => {
+          const uidOptions = [
+            String(r.user_id), String(r.ranger_id), String(r.userId), String(r.rangerId), String(r.created_by),
+            r.user ? String(r.user.id) : null, r.ranger ? String(r.ranger.id) : null
+          ];
+          return uidOptions.includes(String(rangerId));
+        });
+
         this.submittedReports = rawData.map((r: any) => this.processPhotos(r));
         this.isLoading = false;
       },

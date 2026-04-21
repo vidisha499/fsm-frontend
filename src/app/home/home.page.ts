@@ -156,17 +156,17 @@ loadDashboardStats(companyId?: any) {
     if (rangerId) {
       this.hierarchyService.getAssignedBeat(rangerId).subscribe({
         next: (res: any) => {
-          const data = res.data || res;
-          if (data && (data.beat_name || data.beatName || data.name)) {
-            this.assignedBeatName = data.beat_name || data.beatName || data.name;
+          const rawPayload = res?.data || res || [];
+          const sites = Array.isArray(rawPayload) ? rawPayload : [rawPayload];
+          if (sites.length > 0 && (sites[0].site_name || sites[0].name)) {
+            const firstSite = sites[0];
+            this.assignedBeatName = (firstSite.site_name || firstSite.name || 'General').toUpperCase();
+            localStorage.setItem('assigned_beat_name', this.assignedBeatName);
           } else {
-            this.assignedBeatName = 'General';
+            this.assignedBeatName = 'GENERAL';
           }
-          // Cache for quick access
-          localStorage.setItem('assigned_beat_name', this.assignedBeatName);
         },
         error: () => {
-          // Fallback to cached value or default
           const cached = localStorage.getItem('assigned_beat_name');
           this.assignedBeatName = cached || 'NOT ASSIGNED';
         }
@@ -401,12 +401,8 @@ toggleEdit() {
 
       const rId = this.dataService.getRangerId();
       const passwordPayload: any = {
-        user_id: rId ? +rId : null,
-        current_password: this.currentPassword,
-        old_password: this.currentPassword, // Standard Laravel fallback
-        password_current: this.currentPassword, // Another common fallback
-        password: this.rangerPassword, 
-        password_confirmation: this.rangerPassword
+        old_pass: this.currentPassword,
+        new_pass: this.rangerPassword
       };
       
       console.log('--- FINAL PASSWORD ATTEMPT (JSON) ---');

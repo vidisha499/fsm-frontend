@@ -309,9 +309,10 @@ async loadDefaultBeat() {
   if (rangerId) {
   this.hierarchyService.getAssignedBeat(rangerId).subscribe({
     next: (res: any) => {
-      // Sir's /getSites returns { data: [{ id, site_name, ... }] } or similar
-      const sites = Array.isArray(res) ? res : (res?.data || []);
-      if (sites.length > 0) {
+      // Sir's /getGuardSite returns { data: { id, site_name, ... } } or similar
+      const rawPayload = res?.data || res || [];
+      const sites = Array.isArray(rawPayload) ? rawPayload : [rawPayload];
+      if (sites.length > 0 && (sites[0].site_name || sites[0].name)) {
         const firstSite = sites[0];
         const siteName = firstSite.site_name || firstSite.name || 'General';
         this.assignedBeat = siteName;

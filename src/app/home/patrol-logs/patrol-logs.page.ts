@@ -131,12 +131,14 @@ export class PatrolLogsPage implements OnInit {
 
         this.patrolLogs = filteredLogs.map((p: any) => {
           const isCompleted = p.status === 'COMPLETED' || p.status === 'SUCCESS' || !!p.end_lat || !!p.end_time || !!p.ended_at;
+          const mStr = p.method || p.patrol_method || p.method_name || 'PATROL';
+          const tStr = p.type || p.patrol_type || p.type_name || 'LOG';
+
           return {
             ...p,
             status: isCompleted ? 'COMPLETED' : (p.status || 'PENDING'),
-            patrolName: (p.type?.trim() && p.method?.trim()) 
-              ? `${p.method.toUpperCase()} - ${p.type.toUpperCase()}` 
-              : 'PATROL LOG',
+            patrolName: mStr.toString().toUpperCase(),
+            patrolType: tStr.toString().toUpperCase(),
             startTime: p.created_at || new Date().toISOString() 
           };
         });
@@ -236,7 +238,8 @@ export class PatrolLogsPage implements OnInit {
         queryParams: { 
           id: activeId,
           patrolId: activeId,
-          isResuming: true 
+          isResuming: true,
+          startTime: log.startTime || log.created_at
         }
       });
     } else {

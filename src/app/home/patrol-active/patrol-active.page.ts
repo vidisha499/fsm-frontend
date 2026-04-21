@@ -100,8 +100,12 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
         localStorage.setItem('active_patrol_id', this.activePatrolId || '');
         
         // --- STRICT SESSION TRACKING ---
-        // Record EXACTLY when this session started on this device
-        if (!localStorage.getItem('patrol_session_start_time')) {
+        // If resuming from logs with a known server start time, use it
+        if (params['startTime']) {
+          localStorage.setItem('patrol_session_start_time', params['startTime']);
+        } 
+        // Otherwise only initialize if not already present
+        else if (!localStorage.getItem('patrol_session_start_time')) {
           localStorage.setItem('patrol_session_start_time', new Date().toISOString());
         }
         
@@ -332,6 +336,33 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
         lineJoin: 'round'
       }).addTo(this.map);
 
+      // --- PERSISTENCE RESTORE ---
+      const savedRouteStr = localStorage.getItem('active_patrol_route');
+      if (savedRouteStr) {
+        try {
+          this.routePoints = JSON.parse(savedRouteStr);
+          if (this.routePoints && this.routePoints.length > 0) {
+            const latLngs = this.routePoints.map((p: any) => L.latLng(p.lat, p.lng));
+            if (this.routePolyline) {
+              this.routePolyline.setLatLngs(latLngs);
+            }
+            let dist = 0;
+            for (let i = 1; i < latLngs.length; i++) {
+              dist += latLngs[i-1].distanceTo(latLngs[i]) / 1000;
+            }
+            this.totalDistanceKm = dist;
+            this.lastLatLng = latLngs[latLngs.length - 1];
+            
+            // Re-center map to latest point
+            if (this.lastLatLng) {
+               this.map.panTo(this.lastLatLng);
+               if (this.marker) this.marker.setLatLng(this.lastLatLng);
+            }
+          }
+        } catch (e) { console.error('Failed to parse saved route', e); }
+      }
+      // ---------------------------
+
       this.startTracking();
     } catch (e) {
       console.error('Map failed', e);
@@ -421,6 +452,7 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
         
         if (shouldAdd) {
           this.routePoints.push({ lat: current.lat, lng: current.lng });
+          localStorage.setItem('active_patrol_route', JSON.stringify(this.routePoints));
           
           if (this.routePolyline) {
             this.routePolyline.addLatLng(current);
@@ -493,6 +525,9 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
         await loader.dismiss();
         localStorage.removeItem('active_patrol_id');
         localStorage.removeItem('temp_patrol_name');
+        localStorage.removeItem('patrol_session_start_time');
+        localStorage.removeItem('active_patrol_route');
+        localStorage.removeItem('active_patrol_session_id');
         if (this.timerInterval) clearInterval(this.timerInterval);
         if (this.gpsWatchId) await Geolocation.clearWatch({ id: this.gpsWatchId });
         this.showToast('Patrol Saved Successfully', 'success');
@@ -566,6 +601,12 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
 
   // ---------- Timer & Toast ----------
   startTimer() {
+    const startStr = localStorage.getItem('patrol_session_start_time');
+    if (startStr) {
+      const startTimeMs = new Date(startStr).getTime();
+      this.seconds = Math.max(0, Math.floor((Date.now() - startTimeMs) / 1000));
+    }
+
     this.timerInterval = setInterval(() => {
       this.seconds++;
       const h = Math.floor(this.seconds / 3600).toString().padStart(2, '0');

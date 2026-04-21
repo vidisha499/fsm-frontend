@@ -86,50 +86,65 @@ export class EnrollPage implements OnInit {
     });
     await loader.present();
 
-    const payload = { phone: this.ranger.phone }; 
-    const verifyUrl = `${environment.apiUrl}/company-user/verify-mobile`;
+    const payload = { 
+      phone: this.ranger.phone,
+      mobile: this.ranger.phone
+    }; 
+    const verifyUrl = `${environment.apiUrl}/verifyUser`;
 
     this.http.post(verifyUrl, payload).subscribe({
       next: async (res: any) => {
         await loader.dismiss();
         
-        // 1. Data save karo
-        this.verifiedData = {
-          name: res.name,
-          // mobile: res.mobile,
-          mobile: res.contact,
-          role_id: res.role_id || res.roleId || 4,
-          company_id: res.company_id 
-        };
-        
-        this.isVerified = true;
+        // Sir's API always returns HTTP 200, so we MUST check the inner 'status' string
+        if (res.status === 'SUCCESS' || res.status === 'success') {
+          // Exists in approved list and not yet registered
+          const data = res.data || res;
+          this.verifiedData = {
+            name: data.name,
+            mobile: data.contact || data.mobile || data.phone,
+            role_id: data.role_id || data.roleId || 4,
+            company_id: data.company_id 
+          };
+          
+          this.isVerified = true;
 
-        // 2. YAHAN HAI FIX: Custom Alert with Navigation
-        const alert = await this.alertController.create({
-          header: 'Verified!',
-          message: `Welcome ${res.name}. Your number is approved. Click OK to set your password.`,
-          mode: 'ios',
-          cssClass: 'custom-verification-alert',
-          buttons: [
-            {
-              text: 'OK',
-              handler: () => {
-                // ✅ OK dabate hi is page par bhej dega
-                this.navCtrl.navigateForward(['/signup-details'], { 
-                  queryParams: { 
-                    special: JSON.stringify(this.verifiedData) 
-                  } 
-                });
+          const alert = await this.alertController.create({
+            header: 'Verified!',
+            message: `Welcome ${this.verifiedData.name}. Your number is approved. Click OK to set your password.`,
+            mode: 'ios',
+            cssClass: 'custom-verification-alert',
+            buttons: [
+              {
+                text: 'OK',
+                handler: () => {
+                  this.navCtrl.navigateForward(['/signup-details'], { 
+                    queryParams: { 
+                      special: JSON.stringify(this.verifiedData) 
+                    } 
+                  });
+                }
               }
-            }
-          ]
-        });
-        await alert.present();
+            ]
+          });
+          await alert.present();
+        } else {
+          // User already registered OR Not found OR User limit reached
+          const msg = (res.message || '').toLowerCase();
+          
+          if (msg.includes('already') || msg.includes('exist') || msg.includes('registered')) {
+            await this.showCustomAlert('Already Registered', res.message || 'This account already exists. Please login.');
+          } else if (msg.includes('not found')) {
+            await this.showCustomAlert('Access Denied', res.message || 'Your number was not found in the approved list.');
+          } else {
+            await this.showCustomAlert('Verification Failed', res.message || 'Unable to verify number at this time.');
+          }
+        }
       },
       error: async (err) => {
         await loader.dismiss();
         console.error('Verification Error:', err);
-
+        // Fallback for real HTTP errors
         if (err.status === 404) {
           await this.showCustomAlert('Access Denied', 'Your number was not found in the approved list.');
         } else if (err.status === 409) {
@@ -167,6 +182,7 @@ async onSignUp() {
   const signupPayload = {
     name: this.ranger.username,      // DB Column: name
     contact: this.verifiedData.mobile, // 👈 Phone number verified wala use karo
+    mobile: this.verifiedData.mobile,  // Fallback for Sir's API
     email: this.ranger.email || '',  // DB Column: email
     password: this.ranger.password,  // DB Column: password
     // 🔥 DYNAMIC FIX
@@ -175,7 +191,7 @@ async onSignUp() {
     status: 1                         
   };
 
-  const apiUrl = `${environment.apiUrl}/users`;
+  const apiUrl = `${environment.apiUrl}/addUser`;
 
   this.http.post(apiUrl, signupPayload).subscribe({
     next: async (res) => {
