@@ -19,8 +19,14 @@
 
   <div class="card-container" *ngIf="patrol; else loadingTemplate">
     
-    <div class="hero-image-container" *ngIf="patrol.photos?.length > 0">
-      <img [src]="patrol.photos[0]" class="hero-photo" (click)="openZoom(patrol.photos[0])" />
+    <!-- Patrol Photos Gallery -->
+    <div class="patrol-gallery-section" *ngIf="patrol.photos?.length > 0">
+      <h3 class="inner-section-title">{{ 'DETAILS.PATROL_PHOTOS' | translate }}</h3>
+      <div class="patrol-photos-scroll">
+        <div class="patrol-photo-card" *ngFor="let p of patrol.photos">
+          <img [src]="p" (click)="openZoom(p)" class="premium-shadow" />
+        </div>
+      </div>
     </div>
 
     <div class="main-card">

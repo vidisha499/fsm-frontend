@@ -40,22 +40,49 @@ export class PatrolDetailsPage implements OnInit {
   loadPatrolDetails() {
     this.dataService.getPatrolById(String(this.patrolId)).subscribe({
       next: (data: any) => { 
+        // Try to get photos from the main response first
+        let rawPhotos = data.patrol_photos || data.patrolPhotos || data.photos || data.photo || [];
+        if (!Array.isArray(rawPhotos)) {
+          try {
+            rawPhotos = JSON.parse(rawPhotos);
+          } catch(e) {
+            rawPhotos = [rawPhotos];
+          }
+        }
+        
+        let processedPhotos = rawPhotos.map((p: any) => {
+          let url = p.photo || p.url || p;
+          if (typeof url === 'string' && !url.startsWith('http') && !url.startsWith('data:')) {
+             return `https://fms.pugarch.in/public/profilepics/patrols/${url}`;
+          }
+          return url;
+        });
+
         this.patrol = {
           ...data,
-          patrolPhotos: data.patrol_photos || data.patrolPhotos || []
+          photos: processedPhotos,
+          patrolPhotos: processedPhotos
         };
 
-        // If no photos found in main details, try fetching separately as per Postman collection
-        if (!this.patrol.patrolPhotos.length && this.patrolId) {
+        // If no photos found, try fallback endpoint
+        if (processedPhotos.length === 0 && this.patrolId) {
           this.dataService.getPatrolPhotos(this.patrolId).subscribe({
             next: (photoRes: any) => {
-              if (photoRes) {
-                const photos = Array.isArray(photoRes) ? photoRes : (photoRes.data || []);
-                this.patrol.patrolPhotos = photos;
-                this.patrol.photos = photos; // Compatibility with template
+              const extraPhotos = Array.isArray(photoRes) ? photoRes : (photoRes.data || []);
+              if (extraPhotos.length > 0) {
+                const moreProcessed = extraPhotos.map((p: any) => {
+                  let url = p.photo || p;
+                  if (typeof url === 'string' && !url.startsWith('http') && !url.startsWith('data:')) {
+                     return `https://fms.pugarch.in/public/profilepics/patrols/${url}`;
+                  }
+                  return url;
+                });
+                this.patrol.photos = moreProcessed;
+                this.patrol.patrolPhotos = moreProcessed;
                 this.cdr.detectChanges();
               }
-            }
+            },
+            error: (err) => console.log('Fallback photos API failed or not available:', err)
           });
         }
 

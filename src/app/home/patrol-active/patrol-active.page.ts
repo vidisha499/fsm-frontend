@@ -537,9 +537,14 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     this.dataService.updatePatrolStats(sessionId, fmsPayload).subscribe({
       next: async () => {
         // Upload patrol photos sequentially using Sir's API
+        // Try to use numeric ID for photos, since /photos endpoint doesn't support the string ID yet
+        const numericId = this.activePatrolId && !this.activePatrolId.startsWith('PATROL_') 
+          ? this.activePatrolId 
+          : sessionId;
+
         for (const photo of this.capturedPhotos) {
           try {
-            await firstValueFrom(this.dataService.uploadPatrolPhoto(sessionId, { photo }));
+            await firstValueFrom(this.dataService.uploadPatrolPhoto(numericId, { photo }));
           } catch (e) {
             console.error('Photo upload issue', e);
           }

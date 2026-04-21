@@ -204,7 +204,8 @@ export class PatrolLogsPage implements OnInit {
         loader.dismiss();
         
         // Use server's returned ID if available, else fallback to our unique session ID
-        const activeId = (res && res.id) ? res.id.toString() : uniqueSessionId;
+        const realId = res?.id || res?.data?.id || res?.patrol?.id;
+        const activeId = realId ? realId.toString() : uniqueSessionId;
         
         localStorage.setItem('active_patrol_id', activeId);
         localStorage.setItem('active_patrol_session_id', uniqueSessionId); // Store the string ID for reporting

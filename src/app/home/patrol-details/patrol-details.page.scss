@@ -59,15 +59,44 @@
   .card-container {
     margin-top: -30px; padding: 0 18px 40px; position: relative; z-index: 3;
     
-    .hero-image-container {
-      display: flex; justify-content: center;
+    .patrol-gallery-section {
       margin-top: -55px; 
       margin-bottom: 25px;
+      padding: 0 5px;
 
-      .hero-photo {
-        width: 130px; height: 130px; object-fit: cover;
-        border-radius: 35px; border: 5px solid white;
-        box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+      .inner-section-title {
+        color: white;
+        margin-bottom: 12px;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding-left: 10px;
+      }
+
+      .patrol-photos-scroll {
+        display: flex;
+        overflow-x: auto;
+        gap: 12px;
+        padding: 5px 2px 15px;
+        -webkit-overflow-scrolling: touch;
+        &::-webkit-scrollbar { display: none; }
+
+        .patrol-photo-card {
+          min-width: 140px;
+          height: 140px;
+          border-radius: 35px;
+          overflow: hidden;
+          border: 4px solid white;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+          flex-shrink: 0;
+          transition: transform 0.2s ease;
+          
+          &:active { transform: scale(0.96); }
+
+          img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+        }
       }
     }
 

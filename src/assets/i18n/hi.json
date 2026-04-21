@@ -74,5 +74,19 @@
     "STATUS_PENDING": "लंबित",
     "STATUS_RESOLVED": "सुलझा हुआ",
     "EMPTY_STATE": "अभी तक कोई घटना दर्ज नहीं की गई है।"
+  },
+  "DETAILS": {
+    "TITLE": "गश्ती विवरण",
+    "ACTIVE": "सक्रिय",
+    "DISTANCE": "दूरी",
+    "DURATION": "अवधि",
+    "DATE": "तारीख",
+    "ROUTE_TITLE": "मार्ग मानचित्र",
+    "PATROL_PHOTOS": "गश्त साक्ष्य गैलरी",
+    "OBS_TITLE": "अवलोकन",
+    "NO_OBS": "इस गश्त के दौरान कोई अवलोकन दर्ज नहीं किया गया।",
+    "LOADING": "लोड हो रहा है...",
+    "UNSPECIFIED": "अनिर्दिष्ट",
+    "SPOTTED": "देखा गया"
   }
 }
