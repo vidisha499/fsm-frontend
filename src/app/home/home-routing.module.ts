@@ -145,6 +145,18 @@ loadChildren:() => import('./admin/admin.module').then( m => m.AdminPageModule)
  
  
   {
+    path: 'officers',
+    loadChildren: () => import('./officers/officers.module').then(m => m.OfficersPageModule)
+  },
+  {
+    path: 'officer-details/:id',
+    loadChildren: () => import('./officer-details/officer-details.module').then(m => m.OfficerDetailsPageModule)
+  },
+  {
+    path: 'super-admin',
+    loadChildren: () => import('./super-admin/super-admin.module').then(m => m.SuperAdminPageModule)
+  },
+  {
     path: 'events-reports',
     loadChildren: () => import('./events-reports/events-reports.module').then( m => m.EventsReportsPageModule)
   }

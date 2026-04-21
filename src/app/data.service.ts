@@ -40,6 +40,12 @@ export class DataService {
   // --- 3. AUTHENTICATION & PROFILE ---
   login(data: any) { return this.http.post(`${this.baseApiUrl}/login`, data); }
   verifyUser() { return this.http.post(`${this.baseApiUrl}/verifyUser`, {}); }
+  getProfile() {
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    return this.http.post(`${this.baseApiUrl}/getProfile`, formData);
+  }
   verifyOtp(phone: string, otp: string) { return this.http.post(`${this.baseApiUrl}/verifyUser`, { phoneNo: phone, otp: otp }); }
   updateProfilePic(photoBase64: string) { return this.http.post(`${this.baseApiUrl}/updateProfilePic`, { photo: photoBase64 }); }
   

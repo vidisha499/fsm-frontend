@@ -165,6 +165,18 @@ loadChildren:() => import('./home/reports/reports.module').then( m => m.ReportsP
     path: 'events-reports',
     loadChildren: () => import('./home/events-reports/events-reports.module').then( m => m.EventsReportsPageModule)
   },
+  {
+    path: 'officers',
+    loadChildren: () => import('./home/officers/officers.module').then(m => m.OfficersPageModule)
+  },
+  {
+    path: 'officer-details/:id',
+    loadChildren: () => import('./home/officer-details/officer-details.module').then(m => m.OfficerDetailsPageModule)
+  },
+  {
+    path: 'super-admin',
+    loadChildren: () => import('./home/super-admin/super-admin.module').then(m => m.SuperAdminPageModule)
+  },
 ];
 
 @NgModule({

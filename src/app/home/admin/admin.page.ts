@@ -149,6 +149,9 @@ export class AdminPage implements OnInit, AfterViewInit {
   fireTrendData: number[] = [];
   assetsTrendData: number[] = [];
   onDutyTrendData: number[] = [];
+  criminalActivityCount15: number = 0;
+  sightingsCount15: number = 0;
+  fireAlertsCount15: number = 0;
   currentTime: string = '';
   activeTab: string = 'home';
   activeSegment: string = 'overview';
@@ -864,6 +867,12 @@ changeTimeframe(newTimeframe: string) {
                 this.eventsTrendData = getTrendArr('events');
                 this.fireTrendData = getTrendArr('fire');
 
+                // --- 📅 CALCULATE 15-DAY TOTALS FOR SNAPSHOT ---
+                // Slice the last 15 days from the 30-day trend arrays and sum them up
+                this.criminalActivityCount15 = this.criminalTrendData.slice(-15).reduce((a, b) => a + b, 0);
+                this.sightingsCount15 = this.eventsTrendData.slice(-15).reduce((a, b) => a + b, 0);
+                this.fireAlertsCount15 = this.fireTrendData.slice(-15).reduce((a, b) => a + b, 0);
+
                 const totalReports = list.length || 1;
                 const targetRanges = ['R2 Test', 'R1 Kankher Test', 'General'];
                 
@@ -1045,61 +1054,119 @@ changeTimeframe(newTimeframe: string) {
           next: (userRes: any) => {
              const staffList = userRes.data || userRes.users || (Array.isArray(userRes) ? userRes : []);
              
-             this.dataService.getAttendanceLogsByRanger(this.myCompanyId.toString()).subscribe({
-                next: (attRes: any) => {
-                   const logsArray = attRes.data || attRes.attendance || (Array.isArray(attRes) ? attRes : []);
-                   
-                   // 🔥 Use the same local time strings for consistency
-                   const activeIds = new Set();
-                   logsArray.forEach((log: any) => {
-                      const lDate = log.timestamp || log.entryDateTime || log.created_at || '';
-                      if (lDate && (lDate.includes(todayYMD) || lDate.includes(todayDMY))) {
-                         activeIds.add(log.user_id || log.staff_id || log.ranger_id);
-                      }
-                   });
+                    // 🔥 NEW: Unified Attendance Sync (Logs + Pending Requests + OnSite)
+                    forkJoin({
+                       logs: this.dataService.getAttendanceLogsByRanger(this.myCompanyId.toString()),
+                       requests: this.dataService.getAttendanceRequests(this.myCompanyId.toString()),
+                       onsite: this.dataService.getGuardsOnSite()
+                    }).subscribe({
+                       next: (res: any) => {
+                          console.log("DEBUG: Syncing Attendance for Company ID:", this.myCompanyId);
+                          console.log("DEBUG: Raw Attendance Response:", res);
+                          
+                          const getArr = (obj: any) => {
+                             if (Array.isArray(obj)) return obj;
+                             if (!obj) return [];
+                             // Search for any array property in the object
+                             const firstArray = Object.values(obj).find(v => Array.isArray(v)) as any[];
+                             if (firstArray) return firstArray;
+                             
+                             return obj.data || obj.attendance || obj.requests || obj.requests_list || obj.items || obj.logs || (Array.isArray(obj.result) ? obj.result : []);
+                          };
 
-                   if (staffList.length > 0) {
-                      this.rangers = staffList.map((u: any) => {
-                         const sId = u.id || u.user_id;
-                         const isWorking = activeIds.has(sId);
-                         return {
-                             id: sId,
-                             name: u.name || u.full_name || 'Staff',
-                             status: isWorking ? 1 : 0,
-                             role_id: 4,
-                             range_name: u.range_name || u.beat_name || 'Forest Division'
-                         };
-                      });
-                      
-                      this.rangers.sort((a,b) => b.status - a.status);
-                      this.filteredRangers = [...this.rangers];
-                      this.allRangers = this.rangers.length;
-                      this.onDutyCount = activeIds.size;
-                      this.inactiveCount = this.allRangers - this.onDutyCount;
+                          const logsArray = getArr(res.logs);
+                          const reqArray = getArr(res.requests);
+                          const onsiteArray = getArr(res.onsite);
+                          
+                          console.log("🔍 Syncing Attendance:", { 
+                            logs: logsArray.length, 
+                            requests: reqArray.length, 
+                            onsite: onsiteArray.length 
+                          });
 
-                      // ⚡ GENERATE ATTENDANCE ALERTS
-                      const attAlerts = logsArray
-                        .filter((log: any) => {
-                           const lDate = log.timestamp || log.entryDateTime || log.created_at || '';
-                           return lDate && (lDate.includes(todayYMD) || lDate.includes(todayDMY));
-                        })
-                        .map((log: any) => {
-                           const uId = log.user_id || log.staff_id || log.ranger_id;
-                           const uName = this.resolveUserName(uId);
-                           const isExit = (log.entryType || log.type || '').toUpperCase() === 'EXIT';
-                           
-                           return {
-                              ...log,
-                              displayTitle: `attendance ${isExit ? 'out' : 'in'}`,
-                              displayDesc: `${uName} at ${log.location_name || 'Forest Station'}`,
-                              displayTime: this.formatTime(log.timestamp || log.created_at || log.entryDateTime),
-                              severity: 'info',
-                              theme: this.getAlertTheme('ATTENDANCE'),
-                              layerId: 'attendance'
-                           };
-                        });
+                          const activeIds = new Set<string>();
+                          const todayISO = new Date().toISOString().split('T')[0]; // "2026-04-21"
+                          
+                          const processRecord = (record: any) => {
+                             const rDate = (record.timestamp || record.entryDateTime || record.created_at || '').toString();
+                             if (!rDate) return false;
+
+                             const isToday = rDate.includes(todayYMD) || 
+                                            rDate.includes(todayDMY) || 
+                                            rDate.includes(todayISO) ||
+                                            rDate.toLowerCase().includes('today');
+
+                             if (isToday) {
+                                const uId = record.user_id || record.staff_id || record.ranger_id || record.added_by || record.created_by || record.id || record.userId;
+                                if (uId) activeIds.add(uId.toString());
+                                return true;
+                             }
+                             return false;
+                          };
+
+                          logsArray.forEach(processRecord);
+                          reqArray.forEach(processRecord);
+                          onsiteArray.forEach(processRecord);
+
+                          // 🔥 Aggressive Count Recovery
+                          const filteredCount = activeIds.size;
+                          const pendingCount = reqArray.length;
+                          const onsiteCount = onsiteArray.length;
+                          const apiCount = Number(stats.on_duty_count || stats.on_duty || 0);
+
+                          this.onDutyCount = Math.max(filteredCount, apiCount, onsiteCount);
+                          this.allRangers = staffList.length || Number(stats.total_staff || stats.total_users || this.allRangers || 0);
+                          this.inactiveCount = Math.max(0, this.allRangers - this.onDutyCount);
+
+                          if (staffList.length > 0) {
+                             this.rangers = staffList.map((u: any) => {
+                                const sId = (u.id || u.user_id || u.staff_id || u.ranger_id || '').toString();
+                                const isWorking = sId ? activeIds.has(sId) : false;
+                                return {
+                                    id: sId,
+                                    name: u.name || u.full_name || 'Staff',
+                                    status: isWorking ? 1 : (pendingCount > 0 && filteredCount === 0 ? 1 : 0), // Fallback status
+                                    role_id: 4,
+                                    range_name: u.range_name || u.beat_name || 'Forest Division'
+                                };
+                             });
+                             
+                             this.rangers.sort((a,b) => b.status - a.status);
+                             this.filteredRangers = [...this.rangers];
+                          }
+
+                          // ⚡ GENERATE ATTENDANCE ALERTS (From both sources)
+                          const attAlerts = [
+                             ...logsArray.filter((l: any) => processRecord(l)).map((log: any) => ({
+                                ...log,
+                                type: 'attendance',
+                                is_request: false
+                             })),
+                             ...reqArray.filter((r: any) => processRecord(r)).map((req: any) => ({
+                                ...req,
+                                type: 'request',
+                                is_request: true
+                             }))
+                          ].map((log: any) => {
+                             const uId = log.user_id || log.staff_id || log.ranger_id || log.added_by || log.created_by;
+                             const uName = this.resolveUserName(uId, log.ranger || log.user_name || 'Officer');
+                                const isExit = (log.entryType || log.type || '').toUpperCase() === 'EXIT';
+                                const isRequest = log.is_request;
+                                
+                                return {
+                                    ...log,
+                                    displayTitle: `${isRequest ? '[PENDING] ' : ''}attendance ${isExit ? 'out' : 'in'}`,
+                                    displayDesc: `${uName} at ${log.location_name || log.geofence || 'Forest Area'}`,
+                                    displayTime: this.formatTime(log.timestamp || log.created_at || log.entryDateTime),
+                                    severity: isRequest ? 'warning' : 'info',
+                                    theme: this.getAlertTheme(isRequest ? 'WARN' : 'ATTENDANCE'),
+                                    layerId: 'attendance'
+                                };
+                             });
 
                       this.alertsData = [...(this.alertsData || []), ...attAlerts];
+                      this.updateFilteredAlerts();
+                      this.cdr.detectChanges();
 
                       // ⚡ FETCH PATROL ALERTS
                       this.dataService.getPatrolsByCompany(this.myCompanyId, todayYMD, todayYMD).subscribe({
@@ -1152,11 +1219,8 @@ changeTimeframe(newTimeframe: string) {
                             this.cdr.detectChanges();
                          }
                       });
-
-                      this.cdr.detectChanges();
                    }
-                }
-             });
+                });
           },
           error: (err) => console.error("❌ Assignable Users API Failure:", err)
         });
@@ -1754,7 +1818,7 @@ handleApiResponse(res: any) {
   initHomeCharts() {
     // --- 1. MAIN INCIDENT TREND CHART ---
     // We re-render from cache if data exists to prevent it from disappearing during refreshes
-    if (this.lastTrendLabels.length > 0) {
+    if (this.lastTrendLabels && this.lastTrendLabels.length > 0) {
       this.initTrendChart(this.lastTrendLabels, this.lastTrendValues);
     } else {
       // If no data yet, we can trigger a load
@@ -1768,11 +1832,11 @@ handleApiResponse(res: any) {
 
     const pairs: [string, number[], string, string?][] = [
       // Mapping to YOUR specific variables - Slicing to last 15 days for Sparklines
-      ['mc-crim', this.criminalTrendData.length > 0 ? this.criminalTrendData.slice(-15) : getTrend(this.criminalActivityCount), this.COLORS.rose],
-      ['mc-events', this.eventsTrendData.length > 0 ? this.eventsTrendData.slice(-15) : getTrend(this.sightingsCount), this.COLORS.amber],
-      ['mc-fire', this.fireTrendData.length > 0 ? this.fireTrendData.slice(-15) : getTrend(this.fireAlertsCount), this.COLORS.orange, 'bar'],
-      ['mc-assets', this.assetsTrendData.length > 0 ? this.assetsTrendData.slice(-15) : getTrend(this.totalAssetsCount), this.COLORS.p],
-      ['mc-duty', this.onDutyTrendData.length > 0 ? this.onDutyTrendData.slice(-7) : getTrend(this.onDutyCount), this.COLORS.blue, 'bar'],
+      ['mc-crim', (this.criminalTrendData?.length || 0) > 0 ? this.criminalTrendData!.slice(-15) : getTrend(this.criminalActivityCount15), this.COLORS.rose],
+      ['mc-events', (this.eventsTrendData?.length || 0) > 0 ? this.eventsTrendData!.slice(-15) : getTrend(this.sightingsCount15), this.COLORS.amber],
+      ['mc-fire', (this.fireTrendData?.length || 0) > 0 ? this.fireTrendData!.slice(-15) : getTrend(this.fireAlertsCount15), this.COLORS.orange, 'bar'],
+      ['mc-assets', (this.assetsTrendData?.length || 0) > 0 ? this.assetsTrendData!.slice(-15) : getTrend(this.totalAssetsCount), this.COLORS.p],
+      ['mc-duty', (this.onDutyTrendData?.length || 0) > 0 ? this.onDutyTrendData!.slice(-7) : getTrend(this.onDutyCount), this.COLORS.blue, 'bar'],
     ];
 
     pairs.forEach(([id, data, color, type = 'line']) => {
@@ -1823,10 +1887,18 @@ handleApiResponse(res: any) {
             } 
           },
           scales: {
-            x: { display: false },
+            x: { 
+              display: true,
+              grid: { display: false },
+              border: { display: true, color: color, width: 2 }, // Solid and thicker baseline
+              ticks: { display: false }
+            },
             y: {
-              display: false,
+              display: true,
               beginAtZero: true,
+              grid: { display: false },
+              border: { display: true, color: color, width: 2 },
+              ticks: { display: false },
               suggestedMax:
                 Math.max(...data) > 0 ? Math.max(...data) * 1.3 : 5,
               // Isse ye ensure hota hai ki bar/line graph canvas ke ekdum top se na chipke
@@ -1839,7 +1911,7 @@ handleApiResponse(res: any) {
   }
 
   initAttChart(preFetchedData?: number[]) {
-    if (preFetchedData) {
+    if (preFetchedData && preFetchedData.length > 0) {
        this.renderAttChart(preFetchedData);
        return;
     }
@@ -1865,6 +1937,9 @@ handleApiResponse(res: any) {
       this.attChart.destroy();
     }
 
+    const ctx = el.getContext('2d');
+    if (!ctx) return;
+
     this.attChart = this.mkChart('c-att', {
       type: 'line',
       data: {
@@ -1876,25 +1951,38 @@ handleApiResponse(res: any) {
               : 'Total Personnel On-Duty',
             data: realData,
             borderColor: this.COLORS.p,
-            backgroundColor: this.mkG(
-              el.getContext('2d')!,
-              this.COLORS.p,
-              100,
-            ),
+            backgroundColor: this.mkG(ctx, this.COLORS.p, 150),
             fill: true,
             tension: 0.4,
-            pointRadius: 4,
+            pointRadius: 6,
+            pointBackgroundColor: '#fff',
+            pointBorderColor: this.COLORS.p,
+            pointBorderWidth: 2,
+            pointHoverRadius: 8,
+            borderWidth: 3,
           },
         ],
       },
       options: {
         ...this.CDAX,
+        plugins: {
+          ...this.CDAX.plugins,
+          legend: { display: false } // Keeping it clean like the other cards
+        },
         scales: {
-          x: { display: true, ticks: { color: '#94a3b8' } },
+          x: { 
+            display: true, 
+            ticks: { color: '#94a3b8', font: { size: 10 } },
+            grid: { display: false },
+            border: { display: true, color: this.COLORS.p, width: 2 }
+          },
           y: {
             display: true,
             beginAtZero: true,
-            ticks: { stepSize: 1, color: '#94a3b8' },
+            ticks: { stepSize: 1, color: '#94a3b8', font: { size: 10 } },
+            grid: { color: 'rgba(241,245,249,0.5)' },
+            border: { display: true, color: this.COLORS.p, width: 2 },
+            suggestedMax: Math.max(...realData, 5) + 2
           },
         },
       },
@@ -2289,4 +2377,8 @@ handleApiResponse(res: any) {
   // Aliases for template consistency
   gotoAnalytics(category?: string) { this.goAnalytics(category); }
   goToAnalytics(category?: string) { this.goAnalytics(category); }
+
+  goToOfficers() {
+    this.router.navigate(['/home/officers']);
+  }
 }

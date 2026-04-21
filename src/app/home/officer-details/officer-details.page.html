@@ -1,0 +1,135 @@
+<ion-header class="ion-no-border">
+  <div class="header-section">
+    <div class="toolbar-overlay">
+      <button class="back-btn" (click)="goBack()">
+        <ion-icon name="arrow-back-outline"></ion-icon>
+      </button>
+      <span class="page-title">Details</span>
+      <button class="top-refresh" (click)="doRefresh()">
+        <ion-icon name="refresh-outline"></ion-icon>
+      </button>
+    </div>
+
+    <!-- Hero Profile Section -->
+    <div *ngIf="officer" class="hero-container">
+      <div class="avatar-wrapper">
+        <img *ngIf="officer.photo" [src]="officer.photo" class="profile-img" (error)="officer.photo = null" />
+        <div *ngIf="!officer.photo" class="profile-fallback">
+          {{ getInitials(officer.name) }}
+        </div>
+      </div>
+      
+      <h2 class="profile-name">{{ officer.name }}</h2>
+      <p class="profile-subtitle">{{ officer.role_name }}</p>
+      <p class="profile-id">{{ officer.emp_code }}</p>
+      
+      <div class="role-badge">
+        {{ (officer.role_name || 'OFFICER') | uppercase }}
+      </div>
+    </div>
+
+    <!-- Action Float Buttons -->
+    <div class="action-float">
+      <button class="float-btn trash">
+        <ion-icon name="trash-outline"></ion-icon>
+      </button>
+      <button class="float-btn refresh" (click)="doRefresh()">
+        <ion-icon name="refresh-outline"></ion-icon>
+      </button>
+    </div>
+  </div>
+</ion-header>
+
+<ion-content class="details-content">
+  <div *ngIf="isLoading" class="loading-wrap">
+    <ion-spinner name="crescent"></ion-spinner>
+  </div>
+
+  <div *ngIf="!isLoading && officer" class="info-scroll">
+    
+    <!-- PERSONAL INFO -->
+    <div class="info-card">
+      <div class="card-head">
+        <ion-icon name="person-outline"></ion-icon>
+        <span>PERSONAL INFO</span>
+      </div>
+      <div class="divider"></div>
+
+      <div class="field-row">
+        <label>Contact</label>
+        <span class="val">{{ officer.phone }}</span>
+      </div>
+
+      <div class="field-row">
+        <label>Email</label>
+        <span class="val">{{ officer.email }}</span>
+      </div>
+
+      <div class="field-row">
+        <label>DOB</label>
+        <span class="val">{{ officer.dob }}</span>
+      </div>
+
+      <div class="field-row">
+        <label>Gender</label>
+        <span class="val">{{ officer.gender }}</span>
+      </div>
+
+      <div class="field-row">
+        <label>Address</label>
+        <span class="val">{{ officer.address }}</span>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="info-card">
+      <div class="card-head">
+        <ion-icon name="settings-outline"></ion-icon>
+        <span>SETTINGS</span>
+      </div>
+      <div class="divider"></div>
+
+      <div class="setting-row">
+        <div class="setting-text">
+          <div class="setting-label">Onsite Attendance Auto-Approve</div>
+          <div class="setting-sub">Automatically approve check-ins</div>
+        </div>
+        <ion-toggle mode="ios" color="success"></ion-toggle>
+      </div>
+    </div>
+
+    <!-- ASSIGNED SITE/BEAT -->
+    <div class="info-card">
+      <div class="card-head">
+        <ion-icon name="map-outline"></ion-icon>
+        <span>ASSIGNED SITE/BEAT</span>
+        <ion-icon name="create-outline" class="edit-btn-icon"></ion-icon>
+      </div>
+      <div class="divider"></div>
+
+      <div class="site-inner-card">
+        <div class="site-row-top">
+          <span class="site-name-val">{{ officer.site_name || 'B12 Test' }}</span>
+          <ion-icon name="chevron-forward-outline"></ion-icon>
+        </div>
+        
+        <div class="site-meta">
+          <div class="meta-item">
+            <span class="m-lbl">Date</span>
+            <span class="m-val">{{ assignedSite?.date_from || '13-04-2026' }} - {{ assignedSite?.date_to || '13-04-2027' }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="m-lbl">Shift</span>
+            <span class="m-val">{{ assignedSite?.shift || 'General Shift' }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="m-lbl">Shift Time</span>
+            <span class="m-val">{{ assignedSite?.shift_time_from || '12:00 am' }} - {{ assignedSite?.shift_time_to || '11:57 pm' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="height: 30px;"></div>
+  </div>
+</ion-content>

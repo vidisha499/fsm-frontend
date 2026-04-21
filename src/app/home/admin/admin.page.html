@@ -205,7 +205,7 @@
     </div>
 
     <div class="kpi-scroll">
-      <div class="kpi-card" data-c="blue">
+      <div class="kpi-card" data-c="blue" (click)="goToOfficers()">
         <div class="kpi-ico" style="background:#eff6ff">
           <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#3b82f6" stroke-width="2">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
@@ -309,14 +309,14 @@
   <div class="mini-scroll">
     <div class="mini-card" data-cat="criminal" (click)="goAnalytics('criminal')">
       <div class="mini-lbl">🌲 Criminal Activity</div>
-      <div class="mini-val" style="color:var(--rose)" id="ms-crim">{{criminalActivityCount}}</div>
+      <div class="mini-val" style="color:var(--rose)" id="ms-crim">{{criminalActivityCount15}}</div>
       <div class="mini-ch"><canvas id="mc-crim"></canvas></div>
       <div class="mini-meta">Y: Cases · X: Last 15 Days</div>
     </div>
 
     <div class="mini-card" data-cat="events" (click)="goAnalytics('events')">
       <div class="mini-lbl">🐾 Events & Monitor.</div>
-      <div class="mini-val" style="color:var(--amber)" id="ms-events">{{ sightingsCount }}</div>
+      <div class="mini-val" style="color:var(--amber)" id="ms-events">{{ sightingsCount15 }}</div>
       <div class="mini-ch"><canvas id="mc-events"></canvas></div>
       <div class="mini-meta">Y: Events · X: Last 15 Days</div>
     </div>
@@ -324,7 +324,7 @@
 
     <div class="mini-card" data-cat="fire" (click)="goAnalytics('fire')">
       <div class="mini-lbl">🔥 Fire Incidents</div>
-      <div class="mini-val" style="color:var(--orange)" id="ms-fire">{{fireAlertsCount}}</div>
+      <div class="mini-val" style="color:var(--orange)" id="ms-fire">{{fireAlertsCount15}}</div>
       <div class="mini-ch"><canvas id="mc-fire"></canvas></div>
       <div class="mini-meta">Y: Alerts · X: Last 15 Days</div>
     </div>

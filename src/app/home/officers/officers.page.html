@@ -1,0 +1,86 @@
+<ion-header class="ion-no-border">
+  <div class="header-section">
+    <div class="toolbar">
+      <div class="tbar-left">
+        <button class="glass-btn" (click)="goBack()">
+          <ion-icon name="arrow-back-outline"></ion-icon>
+        </button>
+        <div>
+          <div class="tbar-title">Officers</div>
+          <div class="tbar-sub">{{ totalCount }} OFFICERS</div>
+        </div>
+      </div>
+      <div class="tbar-right">
+        <button class="glass-btn" (click)="doRefresh()">
+          <ion-icon name="funnel-outline"></ion-icon>
+        </button>
+        <button class="glass-btn" (click)="doRefresh()">
+          <ion-icon name="refresh-outline"></ion-icon>
+        </button>
+      </div>
+    </div>
+
+    <div class="search-container">
+      <div class="search-box">
+        <ion-icon name="search-outline"></ion-icon>
+        <input type="text"
+               placeholder="Search Employees..."
+               [(ngModel)]="searchText"
+               (input)="onSearch()" />
+      </div>
+    </div>
+  </div>
+</ion-header>
+
+<ion-content class="officers-content">
+
+  <!-- Loading -->
+  <div class="loading-container" *ngIf="isLoading">
+    <ion-spinner name="crescent" color="primary"></ion-spinner>
+    <p>Loading officers...</p>
+  </div>
+
+  <!-- Officers List -->
+  <div class="officers-list" *ngIf="!isLoading">
+    <div class="officer-card" *ngFor="let officer of filteredOfficers"
+         (click)="openOfficerDetail(officer)">
+
+      <div class="officer-avatar-wrap">
+        <img *ngIf="officer.photo"
+             [src]="officer.photo"
+             class="officer-avatar"
+             (error)="officer.photo = null" />
+        <div *ngIf="!officer.photo" class="officer-avatar-fallback">
+          {{ getInitials(officer.name) }}
+        </div>
+        <div class="status-dot"
+             [class.online]="officer.hasAttended"
+             [class.offline]="!officer.hasAttended"></div>
+      </div>
+
+      <div class="officer-info">
+        <h3 class="officer-name">{{ officer.name }}</h3>
+        <div class="officer-meta">
+          <span class="site-name" *ngIf="officer.site_name">{{ officer.site_name }}</span>
+          <span class="meta-separator" *ngIf="officer.site_name"> · </span>
+          <span class="duty-status"
+                [class.on-duty]="officer.hasAttended"
+                [class.no-show]="!officer.hasAttended">
+            {{ officer.dutyStatus }}
+          </span>
+        </div>
+      </div>
+
+      <div class="arrow-icon">
+        <ion-icon name="chevron-forward-outline"></ion-icon>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="filteredOfficers.length === 0">
+      <ion-icon name="people-outline"></ion-icon>
+      <p>No officers found</p>
+    </div>
+  </div>
+
+</ion-content>
