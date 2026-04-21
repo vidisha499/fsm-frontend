@@ -104,17 +104,20 @@ export class HierarchyService {
 
   // 6. Get Assigned Site/Beat (Aligned with Sir's Production API: POST /api/getSites)
   getAssignedBeat(rangerId: number): Observable<any> {
-    const productionUrl = 'https://fms.pugarch.in/public/api/getSites';
     const apiToken = localStorage.getItem('api_token') || '';
     const companyId = localStorage.getItem('company_id') || '1';
+    const userRole = localStorage.getItem('user_role');
     
-    console.log('Fetching Sites from Production for Company ID:', companyId); 
+    // Using generic getSites for all roles as specialized endpoints are currently unstable (returning 500)
+    const productionUrl = `${environment.apiUrl}/getSites`;
     
     const payload = { 
       api_token: apiToken,
       company_id: companyId,
-      user_id: rangerId // Send user_id for context-aware site fetching
+      user_id: rangerId // geofences.page.ts suggests this works for filtering
     };
+
+    console.log('🔄 Fetching Assigned Site from /getSites for Role:', userRole, 'ID:', rangerId);
 
     return this.http.post<any>(productionUrl, payload, {
       headers: new HttpHeaders().set('Bypass-Token', 'true')
@@ -122,7 +125,6 @@ export class HierarchyService {
       catchError(err => {
         console.error('Production Sites check failed (Fallback to General):', err);
         const cached = localStorage.getItem('assigned_beat_name') || 'General';
-        // Explicitly return a data array to match Sir's API structure
         return of({ status: 'SUCCESS', data: [{ site_name: cached }] });
       })
     );

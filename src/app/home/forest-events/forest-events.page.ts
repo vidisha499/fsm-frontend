@@ -95,12 +95,24 @@ openEventsFields(title: string, category: string) {
       next: (data: any) => {
         console.log('Backend Response Data:', data);
 
-        // Sir's /getSites returns { data: [{ id, site_name, ... }] }
-        const sites = Array.isArray(data) ? data : (data?.data || []);
+        let sites: any[] = [];
+        if (data && data.data) {
+          sites = Array.isArray(data.data) ? data.data : [data.data];
+        } else if (Array.isArray(data)) {
+          sites = data;
+        } else if (data && typeof data === 'object') {
+          sites = [data];
+        }
         
         if (sites.length > 0) {
-          const firstSite = sites[0];
-          this.assignedBeatName = (firstSite.site_name || firstSite.name || firstSite.beatName || 'GENERAL').toUpperCase();
+          const s = sites[0];
+          const name = s.site_name || s.beat_name || s.name || s.beatName || s.siteName;
+          if (name) {
+            this.assignedBeatName = name.toUpperCase();
+            localStorage.setItem('assigned_beat_name', this.assignedBeatName); // Cache for other pages
+          } else {
+            this.assignedBeatName = 'GENERAL';
+          }
         } else {
           this.assignedBeatName = 'GENERAL';
         }
