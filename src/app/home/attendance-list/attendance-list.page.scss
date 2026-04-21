@@ -151,6 +151,29 @@
           }
         }
       }
+
+      .sync-container {
+        margin-top: 15px;
+        display: flex;
+        justify-content: center;
+        
+        .sync-btn {
+          background: rgba(251, 191, 36, 0.2);
+          border: 1px solid rgba(251, 191, 36, 0.4);
+          padding: 8px 16px;
+          border-radius: 12px;
+          color: white;
+          font-weight: 700;
+          font-size: 13px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          backdrop-filter: blur(10px);
+          
+          ion-icon { font-size: 18px; }
+          &:active { transform: scale(0.95); }
+        }
+      }
     }
   }
 
@@ -239,6 +262,11 @@
             &.status-pending {
               background: rgba(251, 191, 36, 0.15);
               color: #fbbf24;
+            }
+
+            &.status-offline {
+              background: rgba(249, 115, 22, 0.15);
+              color: #f97316;
             }
           }
         }

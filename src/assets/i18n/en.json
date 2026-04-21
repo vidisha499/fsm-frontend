@@ -58,7 +58,16 @@
     "DETECTING": "Detecting...",
     "TIME_LABEL": "Attendance Time",
     "MARKING": "Marking...",
-    "MARK_BUTTON": "Slide to Mark Attendance"
+    "MARK_BUTTON": "Slide to Mark Attendance",
+    "SUCCESS": "Attendance Marked Successfully!",
+    "SYNC_ERROR": "Sync Error. Please check connection.",
+    "OFFLINE_SYNC_WAIT": "Device is still offline.",
+    "PHOTO_REQUIRED": "Ranger photo is required.",
+    "SELECT_SOURCE": "Select Image Source",
+    "CAMERA": "Camera",
+    "GALLERY": "Gallery",
+    "CANCEL": "Cancel",
+    "GPS_SEARCH": "Searching for GPS Signal..."
   },
   "INCIDENTS": {
     "TITLE": "Incident Logs",

@@ -186,80 +186,122 @@ async loadAttendanceLogs() {
     ? this.dataService.getAttendanceLogsByRanger(companyId)
     : this.dataService.getOnsiteLogsByRanger(this.rangerId, companyId);
 
-  request.subscribe({
-    next: (res: any) => {
-      // Robust array extraction for both modes
-      let logsArray: any[] = [];
-      if (Array.isArray(res)) {
-        logsArray = res;
-      } else if (res && Array.isArray(res.data)) {
-        logsArray = res.data;
-      } else if (res && Array.isArray(res.attendance)) {
-        logsArray = res.attendance;
-      } else if (res && res.data && Array.isArray(res.data.attendance)) {
-        logsArray = res.data.attendance;
-      }
-      
-      if (logsArray.length === 0 && res && !Array.isArray(res) && !res.data && !res.attendance) {
-         console.warn('Could not find logs array in response:', res);
-      }
-      
-      this.allLogs = logsArray.map((log: any) => {
-        // Robust date extraction
-        let rawDate = '';
-        if (this.selectedMode === 'beat') {
-          rawDate = log.timestamp || log.entryDateTime || log.created_at || log.createdAt || '';
-        } else {
-          // Onsite logs typically use created_at
-          rawDate = log.created_at || log.createdAt || log.timestamp || '';
-        }
-
-        // Convert to ISO string for consistent startsWith(today) filtering
-        let formattedDate = '';
-        try {
-          if (rawDate) {
-            formattedDate = new Date(rawDate).toISOString();
+      request.subscribe({
+        next: (res: any) => {
+          // Robust array extraction for both modes
+          let logsArray: any[] = [];
+          if (Array.isArray(res)) {
+            logsArray = res;
+          } else if (res && Array.isArray(res.data)) {
+            logsArray = res.data;
+          } else if (res && Array.isArray(res.attendance)) {
+            logsArray = res.attendance;
+          } else if (res && res.data && Array.isArray(res.data.attendance)) {
+            logsArray = res.data.attendance;
           }
-        } catch (e) {
-          console.warn('Date parsing failed for:', rawDate);
-          formattedDate = rawDate; // Fallback
-        }
           
-        return {
-          ...log,
-          createdAt: formattedDate,
-          geofence: log.geo_name || log.geofence || 'General Area',
-          rangerName: log.name || log.rangerName || 'Ranger'
-        };
-      });
+          const fetchedLogs = logsArray.map((log: any) => {
+            let rawDate = '';
+            if (this.selectedMode === 'beat') {
+              rawDate = log.timestamp || log.entryDateTime || log.created_at || log.createdAt || '';
+            } else {
+              rawDate = log.created_at || log.createdAt || log.timestamp || '';
+            }
 
-      // Filter for today AND selected mode
-      const today = new Date().toISOString().split('T')[0];
-      this.attendanceLogs = this.allLogs.filter(log => {
-        // 1. Date check
-        const isToday = log.createdAt && log.createdAt.startsWith(today);
-        
-        // 2. Mode check
-        const isOnsite = String(log.site_id) === '99999' || String(log.geo_id) === '99999' ||
-                         log.site_id === 'onsite' || 
-                         (log.site_name && log.site_name.toLowerCase().includes('onsite')) ||
-                         (log.geo_name && log.geo_name.toLowerCase().includes('[onsite]')) ||
-                         (log.geofence && log.geofence.toLowerCase().includes('[onsite]'));
-        const matchesMode = (this.selectedMode === 'onsite') ? isOnsite : !isOnsite;
+            let formattedDate = '';
+            try { if (rawDate) formattedDate = new Date(rawDate).toISOString(); } catch (e) { formattedDate = rawDate; }
+              
+            return {
+              ...log,
+              createdAt: formattedDate,
+              geofence: log.geo_name || log.geofence || 'General Area',
+              rangerName: log.name || log.rangerName || 'Ranger'
+            };
+          });
 
-        return isToday && matchesMode;
+          // Merge Offline Drafts
+          const drafts = this.dataService.getAttendanceDrafts(this.selectedMode);
+          this.allLogs = [...drafts, ...fetchedLogs];
+
+          // Filter for today AND selected mode
+          const today = new Date().toISOString().split('T')[0];
+          this.attendanceLogs = this.allLogs.filter(log => {
+            const isToday = log.createdAt && log.createdAt.startsWith(today);
+            const isOnsite = String(log.site_id) === '99999' || String(log.geo_id) === '99999' ||
+                             log.site_id === 'onsite' || 
+                             (log.site_name && log.site_name.toLowerCase().includes('onsite')) ||
+                             (log.geo_name && log.geo_name.toLowerCase().includes('[onsite]')) ||
+                             (log.geofence && log.geofence.toLowerCase().includes('[onsite]'));
+            const matchesMode = (this.selectedMode === 'onsite') ? isOnsite : !isOnsite;
+            return isToday && matchesMode;
+          });
+          
+          loader.dismiss();
+        },
+        error: (err) => {
+          console.error(err);
+          const drafts = this.dataService.getAttendanceDrafts(this.selectedMode);
+          this.allLogs = drafts;
+          this.attendanceLogs = drafts;
+          loader.dismiss();
+        }
       });
-      
-      loader.dismiss();
-    },
-    error: (err) => {
-      console.error(err);
-      this.allLogs = [];
-      this.attendanceLogs = [];
-      loader.dismiss();
     }
-  });
-}
+
+    hasOfflineLogs(): boolean {
+      return this.attendanceLogs && this.attendanceLogs.some(l => l.isOffline);
+    }
+
+    async syncOfflineDrafts() {
+      if (!this.dataService.isOnline()) {
+        const msg = await this.translate.get('ATTENDANCE.OFFLINE_SYNC_WAIT').toPromise() || 'Still offline. Please check connection.';
+        this.presentToast(msg, 'warning');
+        return;
+      }
+
+      const drafts = this.dataService.getAttendanceDrafts(this.selectedMode);
+      if (drafts.length === 0) return;
+
+      const loader = await this.loadingCtrl.create({
+        message: 'Syncing Offline Logs...',
+        spinner: 'crescent'
+      });
+      await loader.present();
+
+      let successCount = 0;
+      const headers = { 'Bypass-Token': 'true' };
+
+      for (const draft of drafts) {
+        try {
+          const req = this.selectedMode === 'beat' 
+            ? (draft.isEntry ? this.dataService.markOfflineEntryAttendance(draft, headers) : this.dataService.markOfflineExitAttendance(draft, headers))
+            : this.dataService.markOfflineEmergencyAttendance(draft, headers);
+          
+          await req.toPromise();
+          this.dataService.deleteAttendanceDraft(draft.draftId, this.selectedMode);
+          successCount++;
+        } catch (e) {
+          console.error("Sync failed for draft:", draft.draftId, e);
+        }
+      }
+
+      await loader.dismiss();
+      if (successCount > 0) {
+        this.presentToast(`Successfully synced ${successCount} logs!`, 'success');
+        this.loadAttendanceLogs();
+      } else {
+        this.presentToast('Sync failed. Will try again later.', 'danger');
+      }
+    }
+
+    async presentToast(message: string, color: string) {
+      const toast = await (this as any).alertCtrl.create({ // Using alert for prominence or toast
+        header: 'Sync Status',
+        message: message,
+        buttons: ['OK']
+      });
+      await toast.present();
+    }
 
 setMode(mode: 'beat' | 'onsite') {
   if (this.selectedMode === mode) return;

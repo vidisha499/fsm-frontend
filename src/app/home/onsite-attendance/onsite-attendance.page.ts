@@ -221,6 +221,26 @@ async submit() {
 
   console.log('Submitting Onsite Attendance Payload:', onsiteData);
   
+  // 6. Check Online Status
+  if (!this.dataService.isOnline()) {
+    console.warn("Offline detected. Saving onsite draft locally.");
+    const offlinePayload = {
+      ...onsiteData,
+      createdAt: new Date().toISOString(),
+      geo_name: onsiteData.geo_name || 'Onsite Offline'
+    };
+    this.dataService.saveAttendanceDraft(offlinePayload, 'onsite');
+    
+    this.isSubmitting = false;
+    this.resetSlider();
+    this.presentToast('Onsite attendance saved offline.', 'secondary');
+    
+    setTimeout(() => {
+      this.navCtrl.navigateRoot('/attendance-list', { queryParams: { mode: 'onsite' } });
+    }, 1500);
+    return;
+  }
+
   const loader = await this.loadingCtrl.create({
     message: 'Submitting Attendance...',
     spinner: 'crescent'

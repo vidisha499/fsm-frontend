@@ -250,9 +250,9 @@ export class DataService {
   getGuardsOnSite() { return this.http.post(`${this.baseApiUrl}/getGuardsOnSite`, {}); }
   getGuardAttendance() { return this.http.post(`${this.baseApiUrl}/getGuardAttendance`, {}); }
   
-  markOfflineEntryAttendance(payload: any) { return this.http.post(`${this.baseApiUrl}/markOfflineEntryAttendance`, payload); }
-  markOfflineExitAttendance(payload: any) { return this.http.post(`${this.baseApiUrl}/markOfflineExitAttendance`, payload); }
-  markOfflineEmergencyAttendance(payload: any) { return this.http.post(`${this.baseApiUrl}/markOfflineEmergencyAttendance`, payload); }
+  markOfflineEntryAttendance(payload: any, headers?: any) { return this.http.post(`${this.baseApiUrl}/markOfflineEntryAttendance`, payload, { headers }); }
+  markOfflineExitAttendance(payload: any, headers?: any) { return this.http.post(`${this.baseApiUrl}/markOfflineExitAttendance`, payload, { headers }); }
+  markOfflineEmergencyAttendance(payload: any, headers?: any) { return this.http.post(`${this.baseApiUrl}/markOfflineEmergencyAttendance`, payload, { headers }); }
   
   applyWeekoff(payload: any) { return this.http.post(`${this.baseApiUrl}/applyWeekoff`, payload); }
   getWeekoff(payload: any) { return this.http.post(`${this.baseApiUrl}/getWeekoff`, payload); }
@@ -609,6 +609,30 @@ export class DataService {
   getRecentSubmissions(): any[] {
     const history = localStorage.getItem('forest_recent_history');
     return history ? JSON.parse(history) : [];
+  }
+
+  // --- ATTENDANCE OFFLINE SUPPORT ---
+  saveAttendanceDraft(payload: any, mode: 'beat' | 'onsite') {
+    const drafts = this.getAttendanceDrafts(mode);
+    drafts.push({
+      ...payload,
+      draftId: 'ATT-' + Date.now(),
+      mode: mode,
+      isOffline: true,
+      timestamp: new Date().toISOString()
+    });
+    localStorage.setItem(`attendance_drafts_${mode}`, JSON.stringify(drafts));
+  }
+
+  getAttendanceDrafts(mode: 'beat' | 'onsite'): any[] {
+    const drafts = localStorage.getItem(`attendance_drafts_${mode}`);
+    return drafts ? JSON.parse(drafts) : [];
+  }
+
+  deleteAttendanceDraft(draftId: string, mode: 'beat' | 'onsite') {
+    let drafts = this.getAttendanceDrafts(mode);
+    drafts = drafts.filter(d => d.draftId !== draftId);
+    localStorage.setItem(`attendance_drafts_${mode}`, JSON.stringify(drafts));
   }
 
   deleteFieldVisit(id: string) { return this.http.post(`${this.baseApiUrl}/${id}/delete`, {}); }

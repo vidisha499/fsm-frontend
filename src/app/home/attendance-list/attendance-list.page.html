@@ -30,6 +30,14 @@
             </div>
           </div>
         </div>
+
+        <!-- Sync Button for Offline Logs -->
+        <div class="sync-container animate__animated animate__pulse animate__infinite" *ngIf="allLogs && allLogs.length > 0">
+           <button class="sync-btn" (click)="syncOfflineDrafts()" *ngIf="hasOfflineLogs()">
+             <ion-icon name="sync-outline"></ion-icon>
+             <span>Sync Now</span>
+           </button>
+        </div>
       </div>
     </div>
 
@@ -54,11 +62,14 @@
           <div class="row-content">
             <div class="top-line">
               <span class="log-date">{{ (log.createdAt || log.created_at) | date:'hh:mm a' }}</span>
-              <span *ngIf="selectedMode === 'onsite'" 
+              <span *ngIf="selectedMode === 'onsite' && !log.isOffline" 
                     class="status-badge" 
                     [class.status-approved]="log.status === 'approved'"
                     [class.status-pending]="log.status !== 'approved'">
                 {{ (log.status !== null && log.status !== undefined ? log.status.toString() : 'pending') | uppercase }}
+              </span>
+              <span *ngIf="log.isOffline" class="status-badge status-offline">
+                OFFLINE
               </span>
             </div>
             <h2 class="priority-title">{{ (log.createdAt || log.created_at) | date:'dd MMMM, yyyy' }}</h2>

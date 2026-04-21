@@ -300,7 +300,28 @@ async submitAttendance() {
   console.log('Type:', this.isEntry ? 'Entry' : 'Exit');
   console.log('Payload:', commonPayload);
 
-  // 6. API Call through DataService
+  // 6. Check Online Status
+  if (!this.dataService.isOnline()) {
+    console.warn("Offline detected. Saving attendance draft locally.");
+    const offlinePayload = {
+      ...commonPayload,
+      isEntry: this.isEntry, // Store type for offline sync
+      createdAt: new Date().toISOString(),
+      geo_name: commonPayload.geo_name || 'Offline Location'
+    };
+    this.dataService.saveAttendanceDraft(offlinePayload, 'beat');
+    
+    this.isSubmitting = false;
+    this.resetSlider();
+    this.presentToast('Attendance saved offline. It will sync when online.', 'secondary');
+    
+    setTimeout(() => {
+      this.navCtrl.navigateRoot('/attendance-list', { queryParams: { mode: 'beat' } });
+    }, 1500);
+    return;
+  }
+
+  // 7. API Call through DataService
   const req = this.isEntry 
       ? this.dataService.markAttendance(commonPayload, headers) 
       : this.dataService.markAttendanceExit(commonPayload, headers);
