@@ -161,13 +161,13 @@ criminal: {
           title: "Storage by Species", 
           sub: "Volume stored in godowns vs open spaces",
           id: "ac-s3", 
-          render: (id: string, obj: any) => this.renderStackedBarChart(id, obj.storageSpecies || []) 
+          render: (id: string, obj: any) => this.renderStackedBarChart(id, obj.dynamicData || []) 
         },
         { 
           title: "Storage Proportion", 
           sub: "Species-wise share of total seized timber",
           id: "ac-s4", 
-          render: (id: string, obj: any) => this.renderStoragePieChart(id, obj.storageProportion || []) 
+          render: (id: string, obj: any) => this.renderStoragePieChart(id, obj.dynamicData || []) 
         }
       ]
     },
@@ -1273,7 +1273,7 @@ renderBarChart(id: string, data: any[], color: string, labels: string[]) {
         backgroundColor: color || '#34A853',
         borderRadius: 8,
         barThickness: 30,
-        maxBarThickness: 40
+        categoryPercentage: 0.8
       }]
     },
     options: {
@@ -1696,15 +1696,15 @@ renderStackedBarChart(id: string, data: any[]) {
           label: 'Godown',
           data: godownData,
           backgroundColor: '#fba14d', // Godown color (amber/orange)
-          barThickness: 35,
-          maxBarThickness: 40
+          barPercentage: 0.6,
+          categoryPercentage: 0.8
         },
         {
           label: 'Open Space',
           data: openSpaceData,
           backgroundColor: '#4abaa0', // Open space color (teal)
-          barThickness: 35,
-          maxBarThickness: 40
+          barPercentage: 0.6,
+          categoryPercentage: 0.8
         }
       ]
     },
