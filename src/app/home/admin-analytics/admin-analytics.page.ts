@@ -151,13 +151,13 @@ criminal: {
           title: "Storage by Species", 
           sub: "Volume stored in godowns vs open spaces",
           id: "ac-s3", 
-          render: (id: string, obj: any) => this.renderStackedBarChart(id, obj.storageSpecies || []) 
+          render: (id: string, obj: any) => this.renderStackedBarChart(id, obj.dynamicData || obj.storageSpecies || []) 
         },
         { 
           title: "Storage Proportion", 
           sub: "Species-wise share of total seized timber",
           id: "ac-s4", 
-          render: (id: string, obj: any) => this.renderStoragePieChart(id, obj.storageProportion || []) 
+          render: (id: string, obj: any) => this.renderStoragePieChart(id, obj.dynamicData || obj.storageProportion || []) 
         }
       ]
     },
@@ -900,54 +900,44 @@ async updateUIData() {
       const apiRoot = res.data || res;
       console.log("🚀 Syncing Real Data Root [Analytics]:", apiRoot); 
       
-      // 1. Sync Top-Level KPIs (Visible or used in logic)
-      this.criminalCount = Number(apiRoot.criminal_count || 0);
-      this.eventsCount = Number(apiRoot.events_count || 0);
-      this.totalEvents = Number(apiRoot.total_events || 0);
-      this.fireCount = Number(apiRoot.fire_incidents?.val || apiRoot.fire?.val || 0);
-
-      // --- DYNAMIC DATABASE FETCH (FORCE SYNC) ---
-      // We fetch ALL reports without timeframe filters to ensure we don't miss any records
-      // then filter/aggregate on the frontend for 100% reliability.
       this.dataService.getForestReports().subscribe({
         next: (raw: any) => {
           const list = Array.isArray(raw) ? raw : (raw.data || []);
           console.log("📊 Direct Database Sync [Analytics]: Found", list.length, "Total Records");
           
-          const manualSubCounts: { [key: string]: number } = {};
-          const manualSpeciesData: { [key: string]: { [key: string]: number } } = {}; // subId -> species -> count
-          const manualRangeData: { [key: string]: { [key: string]: number } } = {};   // subId -> range -> count
-          const manualStorageData: { [key: string]: { godown: number, openSpace: number } } = {}; 
-          const manualFireCauses: { [key: string]: number } = {};
-          const manualTrendData: { [key: string]: { [key: string]: number } } = {};   // subId -> dateYMD -> count
-          const manualEncroachData: { [key: string]: number } = { 'Agriculture': 0, 'Construction': 0, 'Other': 0 };
-          const manualWaterData: { [key: string]: number } = {
+          const mSubCounts: { [key: string]: number } = {};
+          const mSpeciesData: { [key: string]: { [key: string]: number } } = {};
+          const mRangeData: { [key: string]: { [key: string]: number } } = {};
+          const mFireCauses: { [key: string]: number } = {};
+          const mTrendData: { [key: string]: { [key: string]: number } } = {};
+          const mEncroachData: { [key: string]: number } = { 'Agriculture': 0, 'Construction': 0, 'Other': 0 };
+          const mWaterData: { [key: string]: number } = {
             'Check Dam': 0, 'Stop Dam': 0, 'Dam': 0, 'Earthen Pond': 0, 'Concrete Pond': 0, 'Water Stream': 0, 'Well': 0, 'Others': 0
           };
+          const mStorageData: { [key: string]: { godown: number, openSpace: number } } = {
+            'Sal': { godown: 0, openSpace: 0 }, 'Saja': { godown: 0, openSpace: 0 }, 'Sagaon': { godown: 0, openSpace: 0 },
+            'Beeja': { godown: 0, openSpace: 0 }, 'Haldu': { godown: 0, openSpace: 0 }, 'Dhawda': { godown: 0, openSpace: 0 },
+            'Safed Siris': { godown: 0, openSpace: 0 }, 'Kala Siris': { godown: 0, openSpace: 0 }, 'Others': { godown: 0, openSpace: 0 }
+          };
+
           const manualWildAnimalData: { [key: string]: number } = {
             'Sloth Bear': 0, 'Leopard': 0, 'Hyena': 0, 'Jackal': 0, 'Wild Bear': 0, 'Spotted Deer': 0, 'Sambar': 0, 'Others': 0
           };
-          const totals = { criminal: 0, events: 0, fire: 0 };
+
+          let cCount = 0, fCount = 0, eCount = 0;
 
           if (list.length > 0) {
-            const todayYMD = new Date().toISOString().split('T')[0];
-            const todayDMY = todayYMD.split('-').reverse().join('-');
-
             list.forEach((r: any) => {
               const cat = (r.category || '').toLowerCase();
               const type = (r.report_type || r.report_data?.report_type || '').toLowerCase();
-              const rDate = r.date || '';
-              const rCreatedAt = r.created_at || r.date_time || '';
-              const rDateStr = r.date || rCreatedAt;
+              const rDateStr = r.date || r.created_at || r.date_time || '';
+              const rRaw = JSON.stringify(r).toLowerCase();
 
-
-              // Filter by Range/Beat if selected
               if (this.selectedRange !== 'all') {
                  const rRange = (r.range_name || r.range || '').toLowerCase();
                  if (!rRange.includes(this.selectedRange.toLowerCase())) return;
               }
 
-              // Extract date key early for trend logic
               let dateYMD = '';
               const cleanDate = (rDateStr || '').split(' ')[0];
               if (cleanDate.includes('-')) {
@@ -960,132 +950,97 @@ async updateUIData() {
                 else if (parts[0].length === 4) dateYMD = `${parts[0]}-${parts[1]}-${parts[2]}`; 
               }
 
-              // Aggregate Main Totals
-              if (cat.includes('crim')) totals.criminal++;
-              else if (cat.includes('fire')) totals.fire++;
-              else if (cat.includes('events') || cat.includes('sight') || cat.includes('monit')) totals.events++;
+              if (cat.includes('crim')) cCount++;
+              else if (cat.includes('fire')) fCount++;
+              else if (cat.includes('events') || cat.includes('sight') || cat.includes('monit')) eCount++;
 
-              // Aggregate Sub-Category Counts
               let subId = '';
-              const rRaw = JSON.stringify(r).toLowerCase();
+              if (type.includes('transport') || type.includes('vehicle') || rRaw.includes('timber transport')) subId = 'transport';
+              else if (type.includes('fell') || cat.includes('fell') || rRaw.includes('felling')) subId = 'felling';
+              else if (type.includes('storage') || cat.includes('storage') || rRaw.includes('storage')) subId = 'storage';
+              else if (type.includes('poach') || cat.includes('poach') || rRaw.includes('poach')) subId = 'poaching';
+              else if (type.includes('encroach') || cat.includes('encroach') || rRaw.includes('encroach')) subId = 'encroach';
+              else if (type.includes('mining') || cat.includes('mining') || rRaw.includes('mining')) subId = 'mining';
+              else if (type.includes('wild') || cat.includes('sight') || cat.includes('animal')) subId = 'wild_animal';
+              else if (type.includes('water') || cat.includes('water')) subId = 'water';
+              else if (cat.includes('fire') || type.includes('fire') || rRaw.includes('fire')) subId = 'fire_incidents';
+              else if (type.includes('compensation') || type.includes('loss')) subId = 'compensation';
+              else if (type.includes('jfmc') || type.includes('social')) subId = 'jfmc';
               
-              // 1. Transport (Prioritize to avoid overlap with wood/timber in felling)
-              if (type.includes('transport') || type.includes('vehicle') || type.includes('smuggl') || 
-                  type.includes('transit') || type.includes('truck') || type.includes('timber_t') || 
-                  cat.includes('transport') || rRaw.includes('timber transport')) {
-                subId = 'transport';
-              }
-              // 2. Felling
-              else if (type.includes('fell') || cat.includes('fell') || type.includes('tree') || 
-                       type.includes('wood') || type.includes('cut') || type.includes('logging') || 
-                       rRaw.includes('felling') || rRaw.includes('stump')) {
-                subId = 'felling';
-              }
-              // 3. Others
-              else if (type.includes('storage') || cat.includes('storage') || type.includes('depot') || type.includes('yard')) subId = 'storage';
-              else if (type.includes('poach') || cat.includes('poach') || type.includes('hunt') || type.includes('kill') || type.includes('carcass')) subId = 'poaching';
-              else if (type.includes('encroach') || cat.includes('encroach') || type.includes('land') || type.includes('occupied') || rRaw.includes('encroach') || rRaw.includes('possession')) subId = 'encroach';
-              else if (type.includes('mining') || cat.includes('mining') || type.includes('quarry') || type.includes('sand')) subId = 'mining';
-              else if (type.includes('wild') || cat.includes('sight') || cat.includes('animal') || type.includes('paw') || type.includes('monit')) subId = 'wild_animal';
-              else if (type.includes('water') || cat.includes('water') || type.includes('well') || type.includes('pond')) subId = 'water';
-              else if (cat.includes('fire') || type.includes('fire') || rRaw.includes('fire') || rRaw.includes('burn') || rRaw.includes('smoke')) subId = 'fire_incidents';
-              else if (type.includes('compensation') || type.includes('pay') || type.includes('loss')) subId = 'compensation';
-              else if (type.includes('jfmc') || type.includes('social') || type.includes('society')) subId = 'jfmc';
-              
-              // Track Trend (ALWAYS track last 30 days regardless of current filter)
-              if (subId && dateYMD && dateYMD.length === 10) {
-                // Check if date is within last 30 days
+              if (subId && dateYMD.length === 10) {
                 const d = new Date(dateYMD);
                 const thirtyDaysAgo = new Date();
                 thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
                 if (d >= thirtyDaysAgo) {
-                  if (!manualTrendData[subId]) manualTrendData[subId] = {};
-                  manualTrendData[subId][dateYMD] = (manualTrendData[subId][dateYMD] || 0) + 1;
+                  if (!mTrendData[subId]) mTrendData[subId] = {};
+                  mTrendData[subId][dateYMD] = (mTrendData[subId][dateYMD] || 0) + 1;
                 }
               }
 
-              // --- REST OF THE AGGREGATION IS FILTER-DEPENDENT ---
               if (!this.isDateInTimeframe(rDateStr, this.activeDateFilter)) return;
 
               if (subId) {
-                manualSubCounts[subId] = (manualSubCounts[subId] || 0) + 1;
+                mSubCounts[subId] = (mSubCounts[subId] || 0) + 1;
+                const rawSp = r.species || r.plant_species || r.animal_species || r.tree_species || r.report_data?.species || 'Others';
+                const species = this.toTitleCase(rawSp);
                 
-                // Track Species (Normalize Label)
-                // Enhanced species normalization to catch more variations
-                const rawSpecies = r.species || r.plant_species || r.animal_species || r.tree_species || r.report_data?.species || 'Unknown';
-                const species = this.toTitleCase(rawSpecies);
-                
-                if (!manualSpeciesData[subId]) {
-                  manualSpeciesData[subId] = {};
-                  if (subId === 'wild_animal') {
-                    Object.assign(manualSpeciesData[subId], manualWildAnimalData);
-                  }
+                if (!mSpeciesData[subId]) {
+                  mSpeciesData[subId] = {};
+                  if (subId === 'wild_animal') Object.assign(mSpeciesData[subId], manualWildAnimalData);
                 }
-                manualSpeciesData[subId][species] = (manualSpeciesData[subId][species] || 0) + 1;
+                mSpeciesData[subId][species] = (mSpeciesData[subId][species] || 0) + 1;
 
-                // Track Range (Normalize Label)
-                const range = this.toTitleCase(r.range_name || r.range || r.region || r.division || r.beat_name || 'General');
-                if (!manualRangeData[subId]) manualRangeData[subId] = {};
-                manualRangeData[subId][range] = (manualRangeData[subId][range] || 0) + 1;
+                const range = this.toTitleCase(r.range_name || r.range || r.region || 'General');
+                if (!mRangeData[subId]) mRangeData[subId] = {};
+                mRangeData[subId][range] = (mRangeData[subId][range] || 0) + 1;
 
-                // Special Aggregations (Encroach, Storage, Fire)
                 if (subId === 'encroach') {
-                  const eType = (r.encroachment_type || r.report_data?.encroachment_type || r.type || '').toLowerCase();
-                  if (eType.includes('agri')) manualEncroachData['Agriculture']++;
-                  else if (eType.includes('const') || eType.includes('build') || eType.includes('house')) manualEncroachData['Construction']++;
-                  else manualEncroachData['Other']++;
+                  const eType = (r.encroachment_type || r.report_data?.encroachment_type || '').toLowerCase();
+                  if (eType.includes('agri')) mEncroachData['Agriculture']++;
+                  else if (eType.includes('const') || eType.includes('house')) mEncroachData['Construction']++;
+                  else mEncroachData['Other']++;
                 }
                 
                 if (subId === 'storage') {
-                  const sType = (r.storage_type || r.location_type || r.report_data?.storage_type || r.storage_name || '').toLowerCase();
-                  const isGodown = sType.includes('godown') || sType.includes('indoor') || sType.includes('warehouse') || sType.includes('depot');
-                  if (!manualStorageData[species]) manualStorageData[species] = { godown: 0, openSpace: 0 };
-                  if (isGodown) manualStorageData[species].godown++;
-                  else manualStorageData[species].openSpace++;
+                  const sType = (r.storage_type || r.report_data?.storage_type || '').toLowerCase();
+                  const qty = Number(r.qty_cmt || r.volume || r.report_data?.qty_cmt || 1);
+                  const isGodown = sType.includes('godown') || sType.includes('indoor') || sType.includes('depot');
+                  if (!mStorageData[species]) mStorageData[species] = { godown: 0, openSpace: 0 };
+                  if (isGodown) mStorageData[species].godown += qty;
+                  else mStorageData[species].openSpace += qty;
                 }
 
                 if (subId === 'fire_incidents') {
-                  const fType = (r.fire_cause || r.report_data?.fire_cause || r.fire_type || r.report_data?.fire_type || r.report_data?.cause || r.cause || 'Unknown').toLowerCase();
+                  const fType = (r.fire_cause || r.report_data?.fire_cause || 'Unknown').toLowerCase();
                   const key = this.toTitleCase(fType);
-                  manualFireCauses[key] = (manualFireCauses[key] || 0) + 1;
+                  mFireCauses[key] = (mFireCauses[key] || 0) + 1;
                 }
 
                 if (subId === 'water') {
-                  const wType = (r.source_type || r.report_data?.source_type || r.type || 'Others').toLowerCase();
+                  const wType = (r.source_type || r.report_data?.source_type || 'Others').toLowerCase();
                   let key = 'Others';
                   if (wType.includes('chek') || wType.includes('check')) key = 'Check Dam';
                   else if (wType.includes('stop dam')) key = 'Stop Dam';
-                  else if (wType.includes('concrete pond')) key = 'Concrete Pond';
-                  else if (wType.includes('earthen pond')) key = 'Earthen Pond';
                   else if (wType.includes('pond')) key = 'Pond';
-                  else if (wType.includes('stream')) key = 'Water Stream';
                   else if (wType.includes('well')) key = 'Well';
-                  else if (wType.includes('dam')) key = 'Dam';
                   else key = this.toTitleCase(wType);
-                  
-                  manualWaterData[key] = (manualWaterData[key] || 0) + 1;
+                  mWaterData[key] = (mWaterData[key] || 0) + 1;
                 }
               }
             });
-
-            console.log("📊 Manual Sync Results [Analytics Sub-Categories]:", manualSubCounts);
-            
-            // Store for individual card clicks
-            this.manualSubCounts = manualSubCounts;
-            this.manualSpeciesData = manualSpeciesData;
-            this.manualRangeData = manualRangeData;
-            this.manualStorageData = manualStorageData;
-            this.manualFireCauses = manualFireCauses;
-            this.manualEncroachData = manualEncroachData;
-            this.manualWaterData = manualWaterData;
-            this.manualTrendData = manualTrendData;
-
-            // Force update UI variables (REMOVED as per user request: "upar k count me bhi humko changes nhi krne h")
-            // this.criminalCount = totals.criminal;
-            // this.eventsCount = totals.events;
-            // this.fireCount = totals.fire;
-            // this.totalEvents = totals.criminal + totals.events + totals.fire;
           }
+          
+          this.criminalCount = cCount;
+          this.fireCount = fCount;
+          this.eventsCount = eCount;
+          this.manualSubCounts = mSubCounts;
+          this.manualSpeciesData = mSpeciesData;
+          this.manualRangeData = mRangeData;
+          this.manualStorageData = mStorageData;
+          this.manualFireCauses = mFireCauses;
+          this.manualEncroachData = mEncroachData;
+          this.manualWaterData = mWaterData;
+          this.manualTrendData = mTrendData;
 
           // Centralized function to inject manual data into a sub-category config
           const injectManual = (s: any) => {
@@ -1114,9 +1069,9 @@ async updateUIData() {
                    } 
                    else if (s.id === 'storage') {
                       if (ch.id === 'ac-s3') {
-                         ch.storageSpecies = Object.keys(this.manualStorageData).map(k => ({ label: k, ...this.manualStorageData[k] }));
+                          ch.dynamicData = Object.keys(this.manualStorageData).map(k => ({ label: k, ...this.manualStorageData[k] }));
                       } else if (ch.id === 'ac-s4') {
-                         ch.storageProportion = Object.keys(mSpec).map(k => ({ label: k, value: mSpec[k] }));
+                          ch.dynamicData = SPECIES.map(sName => ({ label: sName, value: (this.manualStorageData[sName]?.godown || 0) + (this.manualStorageData[sName]?.openSpace || 0) }));
                       }
                    }
                    else if (s.id === 'fire_incidents' && ch.id === 'ac-fc1') {
@@ -1160,13 +1115,13 @@ async updateUIData() {
                     
                     // Water Sources Distribution (ev-wa2)
                     if (ch.id === 'ev-wa2') {
-                       const arr = Object.keys(manualWaterData).map(k => ({ label: k, value: manualWaterData[k] }));
+                       const arr = Object.keys(this.manualWaterData).map(k => ({ label: k, value: this.manualWaterData[k] }));
                        ch.dynamicData = arr;
                     }
 
                     // Encroachment Type Distribution (ac-e2)
                     if (ch.id === 'ac-e2') {
-                       const arr = Object.keys(manualEncroachData).map(k => ({ label: k, value: manualEncroachData[k] }));
+                       const arr = Object.keys(this.manualEncroachData).map(k => ({ label: k, value: this.manualEncroachData[k] }));
                        ch.dynamicData = arr;
                     }
                     
@@ -1269,6 +1224,8 @@ renderBarChart(id: string, data: any[], color: string, labels: string[]) {
         data: finalValues, 
         backgroundColor: color || '#34A853',
         borderRadius: 8,
+        categoryPercentage: 0.7,
+        barPercentage: 0.8,
         barThickness: 30,
         maxBarThickness: 40
       }]
@@ -1357,7 +1314,7 @@ setAnaSub(id: string) {
       const rawData = res.data || res;
       const apiVal = rawData.total_count ?? rawData.count ?? rawData.total ?? rawData.val ?? rawData.records ?? 0;
       
-      // Preserve the manual sync count if it's higher than the API response
+// Preserve the manual sync count if it's higher than the API response
       currentSub.val = Math.max(currentSub.val || 0, Number(apiVal));
       console.log(`🔍 Combined Val for [${id}]:`, { api: apiVal, final: currentSub.val, raw: rawData });
 
@@ -1376,11 +1333,21 @@ setAnaSub(id: string) {
           } else if (chartId === 'ac-t4' && rawData.top_routes) {
             ch.topRoutes = rawData.top_routes;
           } else if (chartId === 'ac-s3') {
-            const mStorage = Object.keys(this.manualStorageData).map(k => ({ label: k, ...this.manualStorageData[k] }));
-            ch.storageSpecies = rawData.storage_species || mStorage;
+            const mStorage = SPECIES.map(k => ({ 
+              label: k, 
+              godown: this.manualStorageData[k]?.godown || 0,
+              openSpace: this.manualStorageData[k]?.openSpace || 0
+            }));
+            ch.dynamicData = mStorage;
           } else if (chartId === 'ac-s4') {
-            const mProp = Object.keys(manualSpec).map(k => ({ label: k, value: manualSpec[k] }));
-            ch.storageProportion = rawData.storage_proportion || rawData.storage_species || mProp;
+            const mSpecArr = SPECIES.map(sName => {
+              const sData = this.manualStorageData[sName] || { godown: 0, openSpace: 0 };
+              return {
+                label: sName,
+                value: sData.godown + sData.openSpace
+              };
+            });
+            ch.dynamicData = mSpecArr;
           } else if (chartId === 'ac-p4' && rawData.poaching_death_cause) {
             ch.poachingDeathCause = rawData.poaching_death_cause;
           }
@@ -1682,16 +1649,16 @@ renderStackedBarChart(id: string, data: any[]) {
         {
           label: 'Godown',
           data: godownData,
-          backgroundColor: '#fba14d', // Godown color (amber/orange)
-          barThickness: 35,
-          maxBarThickness: 40
+          backgroundColor: '#fba14d', 
+          categoryPercentage: 0.7,
+          barPercentage: 0.8
         },
         {
           label: 'Open Space',
           data: openSpaceData,
-          backgroundColor: '#4abaa0', // Open space color (teal)
-          barThickness: 35,
-          maxBarThickness: 40
+          backgroundColor: '#4abaa0', 
+          categoryPercentage: 0.7,
+          barPercentage: 0.8
         }
       ]
     },
@@ -1709,13 +1676,27 @@ renderStackedBarChart(id: string, data: any[]) {
         x: { 
           stacked: true,
           grid: { display: false },
-          ticks: { color: '#94a3b8', font: { size: 10 } }
+          ticks: { 
+            color: '#94a3b8', 
+            font: { size: 9 },
+            maxRotation: 45,
+            minRotation: 0,
+            autoSkip: true,
+            padding: 5
+          }
         },
         y: { 
           stacked: true,
-          suggestedMax: 150,
-          grid: { color: '#f1f5f9' },
-          ticks: { stepSize: 50, color: '#94a3b8', font: { size: 10 } }
+          beginAtZero: true,
+          grid: { color: '#f1f5f9', drawTicks: false },
+          ticks: { 
+            color: '#94a3b8', 
+            font: { size: 9 },
+            callback: (value: any) => {
+              if (value >= 1000) return (value/1000).toFixed(1) + 'k';
+              return value;
+            }
+          }
         }
       }
     }
@@ -1734,9 +1715,9 @@ renderStoragePieChart(id: string, data: any[]) {
   return this.mkChart(id, {
     type: 'pie',
     data: {
-      labels: labels.length ? labels : ['Pending'],
+      labels: labels.length ? labels : SPECIES,
       datasets: [{
-        data: values.length ? values : [1],
+        data: values.length && values.some(v => v > 0) ? values : Array(labels.length || SPECIES.length).fill(0),
         backgroundColor: ['#14b8a6', '#f59e0b', '#ef4444', '#3b82f6'],
         borderWidth: 2,
         borderColor: '#ffffff'
