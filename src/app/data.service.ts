@@ -217,7 +217,7 @@ export class DataService {
   markGuardAttendance() { return this.http.post(`${this.baseApiUrl}/markGuardAttendance`, {}); }
   markGuardAttendanceExit() { return this.http.post(`${this.baseApiUrl}/markGuardAttendanceExit`, {}); }
   
-  requestEntryAttendance(payload: any) { return this.http.post(`${this.baseApiUrl}/requestEntryAttendance`, payload); }
+  requestEntryAttendance(payload: any, headers?: any) { return this.http.post(`${this.baseApiUrl}/requestEntryAttendance`, payload, { headers }); }
   updateAttendanceRequestStatus(payload: any) { 
     const token = localStorage.getItem('api_token');
     const finalPayload = { ...payload, api_token: token };
@@ -271,8 +271,8 @@ export class DataService {
   getAttendanceByCompany(companyId: string) { return this.getAttendanceRequests(companyId); }
   
   markOnsiteAttendance(payload: any, headers?: any) { 
-    // Point onsite to same main attendance endpoint to match Sir's API collection
-    return this.markAttendance(payload, headers); 
+    // Point onsite to requestEntryAttendance so it goes to approval queue in Sir's API
+    return this.requestEntryAttendance(payload, headers); 
   }
   
   getOnsiteLogsByRanger(rangerId: string, companyId: string) { 
