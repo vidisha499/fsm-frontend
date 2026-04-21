@@ -319,12 +319,34 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
   // ---------- Map logic ----------
   async initMap() {
     try {
-      const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 30000 });
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
-      this.lastLatLng = L.latLng(lat, lng);
+      let lat = 21.1458; // Default fallback (Nagpur region)
+      let lng = 79.0882;
+
+      // Try to get current position, but don't block forever if offline/no GPS
+      try {
+        const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 5000 });
+        lat = pos.coords.latitude;
+        lng = pos.coords.longitude;
+        this.lastLatLng = L.latLng(lat, lng);
+      } catch (gpsError) {
+        console.warn('GPS failed or offline, using fallback for initial map view', gpsError);
+        // If we have saved route points, use the last one as fallback
+        if (this.routePoints && this.routePoints.length > 0) {
+          const lastPoint = this.routePoints[this.routePoints.length - 1];
+          lat = lastPoint.lat;
+          lng = lastPoint.lng;
+          this.lastLatLng = L.latLng(lat, lng);
+        }
+      }
+
       this.map = L.map('map', { center: [lat, lng], zoom: 17, zoomControl: false });
-      L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] }).addTo(this.map);
+      
+      // Use a more resilient tile layer strategy
+      L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { 
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        maxZoom: 20
+      }).addTo(this.map);
+
       this.sightingMarkersLayer.addTo(this.map);
       this.marker = L.marker([lat, lng], { icon: this.locationIcon }).addTo(this.map);
       
@@ -365,7 +387,7 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
 
       this.startTracking();
     } catch (e) {
-      console.error('Map failed', e);
+      console.error('Map initialization failed', e);
     }
   }
 

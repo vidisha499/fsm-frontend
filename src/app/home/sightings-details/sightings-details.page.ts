@@ -202,7 +202,8 @@ export class SightingsDetailsPage implements OnInit {
         return url;
     });
     
-    obs.photos = validPhotos;
+    // REMOVE DUPLICATES
+    obs.photos = [...new Set(validPhotos)];
     obs.photo = null; 
     return obs;
   }
