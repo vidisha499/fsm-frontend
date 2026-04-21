@@ -98,6 +98,7 @@ endDate: string = '';    // Ye missing tha
   manualFireCauses: any = {};
   manualTrendData: any = {};
   manualEncroachData: any = {};
+  manualWaterData: any = {};
   
   // ═══════════════════════════════════════════
   //  THE MAIN CONFIG OBJECT
@@ -920,6 +921,9 @@ async updateUIData() {
           const manualFireCauses: { [key: string]: number } = {};
           const manualTrendData: { [key: string]: { [key: string]: number } } = {};   // subId -> dateYMD -> count
           const manualEncroachData: { [key: string]: number } = { 'Agriculture': 0, 'Construction': 0, 'Other': 0 };
+          const manualWaterData: { [key: string]: number } = {
+            'Check Dam': 0, 'Stop Dam': 0, 'Dam': 0, 'Earthen Pond': 0, 'Concrete Pond': 0, 'Water Stream': 0, 'Well': 0, 'Others': 0
+          };
           const totals = { criminal: 0, events: 0, fire: 0 };
 
           if (list.length > 0) {
@@ -1037,6 +1041,22 @@ async updateUIData() {
                   const key = this.toTitleCase(fType);
                   manualFireCauses[key] = (manualFireCauses[key] || 0) + 1;
                 }
+
+                if (subId === 'water') {
+                  const wType = (r.source_type || r.report_data?.source_type || r.type || 'Others').toLowerCase();
+                  let key = 'Others';
+                  if (wType.includes('chek') || wType.includes('check')) key = 'Check Dam';
+                  else if (wType.includes('stop dam')) key = 'Stop Dam';
+                  else if (wType.includes('concrete pond')) key = 'Concrete Pond';
+                  else if (wType.includes('earthen pond')) key = 'Earthen Pond';
+                  else if (wType.includes('pond')) key = 'Pond';
+                  else if (wType.includes('stream')) key = 'Water Stream';
+                  else if (wType.includes('well')) key = 'Well';
+                  else if (wType.includes('dam')) key = 'Dam';
+                  else key = this.toTitleCase(wType);
+                  
+                  manualWaterData[key] = (manualWaterData[key] || 0) + 1;
+                }
               }
             });
 
@@ -1049,6 +1069,8 @@ async updateUIData() {
             this.manualStorageData = manualStorageData;
             this.manualFireCauses = manualFireCauses;
             this.manualEncroachData = manualEncroachData;
+            this.manualWaterData = manualWaterData;
+            this.manualTrendData = manualTrendData;
 
             // Force update UI variables (REMOVED as per user request: "upar k count me bhi humko changes nhi krne h")
             // this.criminalCount = totals.criminal;
@@ -1104,6 +1126,29 @@ async updateUIData() {
                       ch.trend30d = trend30;
                     }
                     
+                    // Water Source Trend (ev-wa1)
+                    if (ch.id === 'ev-wa1') {
+                      const trend30 = [];
+                      const today = new Date();
+                      for (let i = 29; i >= 0; i--) {
+                        const d = new Date();
+                        d.setDate(today.getDate() - i);
+                        const key = d.toISOString().split('T')[0];
+                        trend30.push({
+                          label: this.formatTrendDate(key),
+                          value: mTrend[key] || 0
+                        });
+                      }
+                      ch.dynamicData = trend30;
+                      ch.trend30d = trend30;
+                    }
+                    
+                    // Water Sources Distribution (ev-wa2)
+                    if (ch.id === 'ev-wa2') {
+                       const arr = Object.keys(manualWaterData).map(k => ({ label: k, value: manualWaterData[k] }));
+                       ch.dynamicData = arr;
+                    }
+
                     // Encroachment Type Distribution (ac-e2)
                     if (ch.id === 'ac-e2') {
                        const arr = Object.keys(manualEncroachData).map(k => ({ label: k, value: manualEncroachData[k] }));
@@ -1362,7 +1407,8 @@ setAnaSub(id: string) {
             const mEncArr = Object.keys(this.manualEncroachData).map(k => ({ label: k, value: this.manualEncroachData[k] }));
             ch.dynamicData = mEncArr.length ? mEncArr : (rawData.encroachment_types || []);
           } else if (chartId === 'ev-wa2') {
-            ch.dynamicData = rawData.water_types || [];
+            const mWaterArr = Object.keys(this.manualWaterData).map(k => ({ label: k, value: this.manualWaterData[k] }));
+            ch.dynamicData = mWaterArr.length ? mWaterArr : (rawData.water_types || []);
           }
           else if (chartId.includes('-f3') || chartId.includes('-t2') || chartId.includes('-s2') || 
                    chartId.includes('-p2') || chartId.includes('-m2') ||
@@ -1402,7 +1448,7 @@ setAnaSub(id: string) {
             const mFireArr = Object.keys(this.manualFireCauses).map(k => ({ label: k, count: this.manualFireCauses[k] }));
             ch.dynamicData = rawData.fire_causes && rawData.fire_causes.length ? rawData.fire_causes : mFireArr;
           }
-          else if (chartId === 'ac-t1' || chartId === 'ac-e1') {
+          else if (chartId === 'ac-t1' || chartId === 'ac-e1' || chartId === 'ev-wa1') {
             // Prioritize manually calculated 30-day trend
             if (ch.trend30d && ch.trend30d.length > 0) {
               ch.dynamicData = ch.trend30d;
