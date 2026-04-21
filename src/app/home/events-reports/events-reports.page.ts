@@ -112,8 +112,21 @@ export class EventsReportsPage implements OnInit {
     }
 
     // Filter valid URLs
-    const validPhotos = photosList.filter(p => typeof p === 'string' && p.length > 5 && !p.startsWith('['));
+    let validPhotos = photosList.filter(p => typeof p === 'string' && p.length > 5 && !p.startsWith('['));
     
+    // Format relative paths and fix broken absolute paths
+    validPhotos = validPhotos.map(url => {
+        // Fix for absolute URLs that are missing '/public/' which causes 404
+        if (typeof url === 'string' && url.includes('fms.pugarch.in/profilepics/')) {
+            url = url.replace('fms.pugarch.in/profilepics/', 'fms.pugarch.in/public/profilepics/');
+        }
+        
+        if (!url.startsWith('http') && !url.startsWith('data:')) {
+            return `https://fms.pugarch.in/public/profilepics/forest_reports/${url}`;
+        }
+        return url;
+    });
+
     if (validPhotos.length > 0) {
       thumb = validPhotos[0];
     }

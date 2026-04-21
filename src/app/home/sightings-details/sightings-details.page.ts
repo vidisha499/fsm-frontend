@@ -128,6 +128,10 @@ export class SightingsDetailsPage implements OnInit {
       // Skip empty or purely technical fields if any
       if (value === null || value === undefined || value === '') return;
       if (typeof value === 'object') return; // Skip complex objects if any
+      
+      // Skip photo keys so they don't render as text URLs
+      const lowerKey = key.toLowerCase();
+      if (lowerKey === 'photo' || lowerKey === 'photos' || lowerKey.includes('photo')) return;
 
       // Formatting keys for better display (e.g., "area_burnt" -> "Area Burnt")
       const formattedLabel = key
@@ -185,7 +189,20 @@ export class SightingsDetailsPage implements OnInit {
       }
     }
     
-    obs.photos = photosList.filter(p => typeof p === 'string' && p.length > 5 && !p.startsWith('['));
+    let validPhotos = photosList.filter(p => typeof p === 'string' && p.length > 5 && !p.startsWith('['));
+    validPhotos = validPhotos.map(url => {
+        // Fix for absolute URLs that are missing '/public/' which causes 404
+        if (typeof url === 'string' && url.includes('fms.pugarch.in/profilepics/')) {
+            url = url.replace('fms.pugarch.in/profilepics/', 'fms.pugarch.in/public/profilepics/');
+        }
+        
+        if (!url.startsWith('http') && !url.startsWith('data:')) {
+            return `https://fms.pugarch.in/public/profilepics/forest_reports/${url}`;
+        }
+        return url;
+    });
+    
+    obs.photos = validPhotos;
     obs.photo = null; 
     return obs;
   }
