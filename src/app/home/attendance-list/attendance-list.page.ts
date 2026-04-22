@@ -4,7 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { Router, ActivatedRoute } from '@angular/router';
 import { DataService } from '../../data.service'; 
 import { TranslateService } from '@ngx-translate/core';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Subscription } from 'rxjs';
 import { environment } from 'src/environments/environment';
 
 @Component({
@@ -23,14 +23,10 @@ filterLocation: string = ''; // Location input ke liye
   startDate: string | undefined;
   endDate: string | undefined;
   maxDate: string = new Date().toISOString();
+  filters: any = { fromDate: '', toDate: '', location: '' };
   isFiltered: boolean = false;
+  private syncSub!: Subscription;
   todayDateOnly: string = new Date().toISOString().split('T')[0]; // Format: "2026-02-25"
-
-  filters = {
-    location: '',
-    fromDate: new Date().toISOString(),
-    toDate: new Date().toISOString()
-  };
 
   isModalOpen: boolean = false; // Modal toggle error fix
   today: string = new Date().toISOString(); // [max]="today" error fix
@@ -49,14 +45,20 @@ filterLocation: string = ''; // Location input ke liye
   ) {}
 
   ngOnInit() {
-    this.attendance = this.dataService.getSelectedAttendance();
     this.route.queryParams.subscribe(params => {
-      if (params['mode'] === 'onsite') {
-        this.selectedMode = 'onsite';
-      } else {
-        this.selectedMode = 'beat';
-      }
+      if (params['mode']) this.selectedMode = params['mode'];
+      this.loadAttendanceLogs();
     });
+
+    // Auto-refresh when sync completes
+    this.syncSub = this.dataService.syncCompleted$.subscribe(() => {
+      console.log("♻️ Sync detected, refreshing attendance list...");
+      this.loadAttendanceLogs();
+    });
+  }
+
+  ngOnDestroy() {
+    if (this.syncSub) this.syncSub.unsubscribe();
   }
 
   // async loadTodayOnly() {

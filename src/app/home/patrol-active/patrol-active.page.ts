@@ -4,7 +4,7 @@ import { Geolocation } from '@capacitor/geolocation';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { HttpClient } from '@angular/common/http';
 import { TranslateService } from '@ngx-translate/core';
-import { firstValueFrom, forkJoin } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import * as L from 'leaflet';
 import { ActivatedRoute } from '@angular/router';
@@ -26,7 +26,7 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
   patrolName: string = 'Active Patrol';
   recentSightings: any[] = [];
   selectedZoomImage: string | null = null;
-  currentZoom: number = 1; // 🔍 Zoom level state
+  currentZoom: number = 1;
   
   criminalActions = [
     { title: 'Illegal Felling', category: 'criminal', icon: 'fa-tree', class: 'felling' },
@@ -56,11 +56,10 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
   timerInterval: any;
   gpsWatchId: any;
 
-  // UI flags used in template
+  // UI flags
   isSubmitting: boolean = false;
   isFinished: boolean = false;
   capturedPhotos: string[] = [];
-  // Timestamp when component initialized, used for session start fallback
   startTime: string = new Date().toISOString();
 
   totalDistanceKm: number = 0;
@@ -68,16 +67,12 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
   routePoints: { lat: number; lng: number }[] = [];
   activeReportCategory: 'criminal' | 'events' = 'criminal';
 
-  // Helper icons
   private locationIcon = L.divIcon({
     className: 'user-location-marker',
     html: '<div class="blue-dot"></div>',
     iconSize: [20, 20],
     iconAnchor: [10, 10]
   });
-
-  // Legacy API URL (kept for backward compatibility)
-  private apiUrl = environment.apiUrl;
 
   constructor(
     private navCtrl: NavController,
@@ -100,20 +95,12 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
       if (rawId) {
         this.activePatrolId = rawId.toString();
         localStorage.setItem('active_patrol_id', this.activePatrolId || '');
-        
-        // --- STRICT SESSION TRACKING ---
-        // If resuming from logs with a known server start time, use it
         if (params['startTime']) {
           localStorage.setItem('patrol_session_start_time', params['startTime']);
-        } 
-        // Otherwise only initialize if not already present
-        else if (!localStorage.getItem('patrol_session_start_time')) {
+        } else if (!localStorage.getItem('patrol_session_start_time')) {
           localStorage.setItem('patrol_session_start_time', new Date().toISOString());
         }
-        
-        console.log('🚀 [SYNC] Patrol ID locked to:', this.activePatrolId);
       } else {
-        console.error('CRITICAL: No ID found!');
         this.navCtrl.navigateRoot('/home/patrol-logs');
         return;
       }
@@ -128,15 +115,7 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
   }
 
   async ionViewDidEnter() {
-    if (this.activePatrolId && this.activePatrolId !== this.route.snapshot.queryParamMap.get('id')) {
-      console.log('🛡️ ID CHANGE DETECTED: Flushing state...');
-      this.recentSightings = [];
-      this.sightingMarkersLayer.clearLayers();
-    }
-    
-    // Recovery Logic: If session string is missing, fetch it from the server
     if (!localStorage.getItem('active_patrol_session_id')) {
-      console.log('🔍 Recovering sessionId string from server...');
       this.dataService.getOngoingPatrols().subscribe({
         next: (res: any) => {
           const patrols = res?.data || res || [];
@@ -144,23 +123,18 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
           if (match && (match.sessionId || match.session_id)) {
             const sId = match.sessionId || match.session_id;
             localStorage.setItem('active_patrol_session_id', sId);
-            console.log('✅ Session string recovered:', sId);
-            // Re-refresh now that we have the strict ID
             this.refreshRecentSightings();
           }
         }
       });
     }
-
     this.refreshRecentSightings();
   }
 
   ionViewWillEnter() {
-    // Refresh reports every time we come back from the reporting page
     this.refreshRecentSightings();
   }
 
-  // ---------- Navigation & UI ----------
   openQuickReport(action: any) {
     const currentId = this.activePatrolId || localStorage.getItem('active_patrol_id');
     if (!currentId) {
@@ -184,107 +158,81 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     });
   }
 
-  // ---------- Data Refresh ----------
   refreshRecentSightings() {
     const sessionId = localStorage.getItem('active_patrol_session_id') || this.activePatrolId;
-    if (!sessionId) {
-      console.warn('Refresh skipped: No active session ID found');
-      this.recentSightings = [];
-      return;
-    }
+    if (!sessionId) return;
 
-    // FIX: Do NOT pass the string session ID to Sir's API as patrol_id - backend won't find it.
-    // Instead, fetch all reports for this user and apply our client-side smart filter.
-    const userId = this.dataService.getRangerId();
-    this.dataService.getForestReports({ user_id: userId }).subscribe({
+    const currentUserId = Number(this.dataService.getRangerId());
+    const sessionStart = new Date(localStorage.getItem('patrol_session_start_time') || '2000-01-01').getTime();
+    const now = new Date();
+
+    this.dataService.getForestReports({ user_id: currentUserId }).subscribe({
       next: (res: any) => {
         const reports = res?.data || res || [];
-        
-        // SMART SYNC FAILSAFE: 
-        // Sir's API currently has a bug where it saves patrol_id as 0 even when sent correctly.
-        // We use a "Double Verification" strategy:
-        const currentUserId = Number(this.dataService.getRangerId());
-        const sessionStart = new Date(localStorage.getItem('patrol_session_start_time') || '2000-01-01').getTime();
-        const now = new Date();
-        
-        this.recentSightings = reports
+        const onlineReports = reports
           .filter((item: any) => {
             const itemPid = String(item.patrol_id || item.patrolId || '0');
             const currentPid = String(sessionId || '');
             const numericPid = String(this.activePatrolId || '');
-            
-            // 1. Direct ID Match (Primary)
             const isDirectMatch = (itemPid !== '0' && (itemPid === currentPid || itemPid === numericPid));
             if (isDirectMatch) return true;
-
-            // 2. Strict Session Session Match (Fallback for patrol_id: 0)
             if (itemPid === '0' || itemPid === '') {
               const itemUserId = Number(item.user_id || 0);
               const itemTime = new Date(item.created_at || item.date_time || now).getTime();
-              
-              // Only match if it's OUR report and was created AFTER the patrol started
-              if (itemUserId === currentUserId && itemTime >= sessionStart) {
-                return true; 
-              }
+              if (itemUserId === currentUserId && itemTime >= sessionStart) return true;
             }
             return false;
           })
           .map((item: any) => {
             const ui = this.getIconForCategory(item.report_type || item.category || 'other');
-            return {
-              ...item,
-              icon: ui.icon,
-              colorClass: ui.colorClass,
-              source: 'report',
-              displayTitle: this.formatTitle(item.report_type || item.category || 'Observation')
-            };
-          }).sort((a: any, b: any) => new Date(b.created_at || b.timestamp).getTime() - new Date(a.created_at || a.timestamp).getTime());
+            return { ...item, icon: ui.icon, colorClass: ui.colorClass, source: 'report', displayTitle: this.formatTitle(item.report_type || item.category || 'Observation') };
+          });
 
+        const drafts = this.dataService.getForestEventDrafts().filter(d => d.patrol_id === this.activePatrolId || d.patrolId === this.activePatrolId).map(d => {
+          const ui = this.getIconForCategory(d.report_type || d.category || 'other');
+          return { ...d, isOffline: true, status: 'OFFLINE', icon: ui.icon, colorClass: ui.colorClass, displayTitle: this.formatTitle(d.report_type || d.category || 'Observation'), created_at: d.createdAt || d.timestamp };
+        });
+
+        this.recentSightings = [...drafts, ...onlineReports].sort((a: any, b: any) => new Date(b.created_at || b.timestamp).getTime() - new Date(a.created_at || a.timestamp).getTime());
         this.updateSightingMarkers();
         this.cdr.detectChanges();
-        console.log(`📊 Session Reports Synced: ${this.recentSightings.length} entries.`);
       },
       error: err => {
-        console.error('Session Report fetch failed', err);
-        this.showToast('Failed to sync session reports', 'danger');
+        const drafts = this.dataService.getForestEventDrafts().filter(d => d.patrol_id === this.activePatrolId || d.patrolId === this.activePatrolId).map(d => {
+          const ui = this.getIconForCategory(d.report_type || d.category || 'other');
+          return { ...d, isOffline: true, status: 'OFFLINE', icon: ui.icon, colorClass: ui.colorClass, displayTitle: this.formatTitle(d.report_type || d.category || 'Observation'), created_at: d.createdAt || d.timestamp };
+        });
+        this.recentSightings = drafts;
+        this.cdr.detectChanges();
       }
     });
   }
 
-  parsePhotos(photoJson: string): any[] {
+  parsePhotos(photoJson: any): any[] {
     if (!photoJson) return [];
+    if (Array.isArray(photoJson)) return photoJson.map(p => p.photo || p);
     if (typeof photoJson === 'string' && photoJson.includes('data:')) return [{ photo: photoJson }];
     try {
-      return JSON.parse(photoJson);
-    } catch (e) {
-      return [];
-    }
+      const parsed = JSON.parse(photoJson);
+      return Array.isArray(parsed) ? parsed.map((p: any) => p.photo || p) : [{ photo: photoJson }];
+    } catch (e) { return [{ photo: photoJson }]; }
   }
 
-  // ---------- Photo handling ----------
   async takeQuickPhoto() {
     try {
-      const image = await Camera.getPhoto({
-        quality: 90,
-        allowEditing: false,
-        resultType: CameraResultType.Base64,
-        source: CameraSource.Camera
-      });
+      const image = await Camera.getPhoto({ quality: 90, allowEditing: false, resultType: CameraResultType.Base64, source: CameraSource.Camera });
       if (image.base64String) {
         this.capturedPhotos.push(`data:image/jpeg;base64,${image.base64String}`);
         this.cdr.detectChanges();
       }
-    } catch (error) {
-      console.error('Camera error:', error);
-    }
+    } catch (error) { console.error('Camera error:', error); }
   }
 
   async confirmDeleteLog(index: number, event: Event) {
     event.stopPropagation();
     const item = this.recentSightings[index];
     if (!item.id) {
-      this.showToast('Cannot delete unsynced log. Refreshing...', 'warning');
-      this.refreshRecentSightings();
+      this.showToast('Cannot delete unsynced log.', 'warning');
       return;
     }
     const alert = await this.alertCtrl.create({
@@ -296,20 +244,14 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
           text: 'Delete',
           role: 'destructive',
           handler: () => {
-            const url = item.source === 'report'
-              ? `${environment.apiUrl}/forest-events/${item.id}`
-              : `${environment.apiUrl}/patrols/sightings/${item.id}`;
+            const url = `${environment.apiUrl}/forest-events/${item.id}`;
             this.http.delete(url).subscribe({
               next: () => {
                 this.recentSightings.splice(index, 1);
                 this.updateSightingMarkers();
-                this.showToast('Deleted successfully');
                 this.cdr.detectChanges();
               },
-              error: err => {
-                console.error('Delete failed', err);
-                this.showToast('Server Error: Delete failed', 'danger');
-              }
+              error: err => console.error('Delete failed', err)
             });
           }
         }
@@ -318,103 +260,54 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     await alert.present();
   }
 
-  // ---------- Map logic ----------
   async initMap() {
     try {
-      let lat = 21.1458; // Default fallback (Nagpur region)
-      let lng = 79.0882;
-
-      // Try to get current position, but don't block forever if offline/no GPS
+      let lat = 21.1458; let lng = 79.0882;
       try {
         const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 5000 });
-        lat = pos.coords.latitude;
-        lng = pos.coords.longitude;
-        this.lastLatLng = L.latLng(lat, lng);
-      } catch (gpsError) {
-        console.warn('GPS failed or offline, using fallback for initial map view', gpsError);
-        // If we have saved route points, use the last one as fallback
-        if (this.routePoints && this.routePoints.length > 0) {
-          const lastPoint = this.routePoints[this.routePoints.length - 1];
-          lat = lastPoint.lat;
-          lng = lastPoint.lng;
-          this.lastLatLng = L.latLng(lat, lng);
+        lat = pos.coords.latitude; lng = pos.coords.longitude;
+      } catch (e) {
+        if (this.routePoints.length > 0) {
+          const lp = this.routePoints[this.routePoints.length - 1];
+          lat = lp.lat; lng = lp.lng;
         }
       }
-
+      this.lastLatLng = L.latLng(lat, lng);
       this.map = L.map('map', { center: [lat, lng], zoom: 17, zoomControl: false });
-      
-      // Use a more resilient tile layer strategy
-      L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { 
-        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-        maxZoom: 20
-      }).addTo(this.map);
-
+      L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { subdomains: ['mt0', 'mt1', 'mt2', 'mt3'], maxZoom: 20 }).addTo(this.map);
       this.sightingMarkersLayer.addTo(this.map);
       this.marker = L.marker([lat, lng], { icon: this.locationIcon }).addTo(this.map);
-      
-      // Initialize live trail line
-      this.routePolyline = L.polyline([], {
-        color: '#16a34a',
-        weight: 4,
-        opacity: 0.8,
-        lineJoin: 'round'
-      }).addTo(this.map);
+      this.routePolyline = L.polyline([], { color: '#16a34a', weight: 4, opacity: 0.8, lineJoin: 'round' }).addTo(this.map);
 
-      // --- PERSISTENCE RESTORE ---
-      const savedRouteStr = localStorage.getItem('active_patrol_route');
-      if (savedRouteStr) {
+      const savedRoute = localStorage.getItem('active_patrol_route');
+      if (savedRoute) {
         try {
-          this.routePoints = JSON.parse(savedRouteStr);
-          if (this.routePoints && this.routePoints.length > 0) {
-            const latLngs = this.routePoints.map((p: any) => L.latLng(p.lat, p.lng));
-            if (this.routePolyline) {
-              this.routePolyline.setLatLngs(latLngs);
-            }
-            let dist = 0;
-            for (let i = 1; i < latLngs.length; i++) {
-              dist += latLngs[i-1].distanceTo(latLngs[i]) / 1000;
-            }
-            this.totalDistanceKm = dist;
-            this.lastLatLng = latLngs[latLngs.length - 1];
-            
-            // Re-center map to latest point
-            if (this.lastLatLng) {
-               this.map.panTo(this.lastLatLng);
-               if (this.marker) this.marker.setLatLng(this.lastLatLng);
-            }
+          this.routePoints = JSON.parse(savedRoute);
+          const lls = this.routePoints.map(p => L.latLng(p.lat, p.lng));
+          this.routePolyline.setLatLngs(lls);
+          if (lls.length > 0) {
+            this.lastLatLng = lls[lls.length - 1];
+            this.map.panTo(this.lastLatLng);
+            this.marker.setLatLng(this.lastLatLng);
           }
-        } catch (e) { console.error('Failed to parse saved route', e); }
+        } catch (e) {}
       }
-      // ---------------------------
-
       this.startTracking();
-    } catch (e) {
-      console.error('Map initialization failed', e);
-    }
+    } catch (e) { console.error('Map init failed', e); }
   }
 
   private formatTitle(str: string): string {
     if (!str) return 'Other';
-    return str.replace(/_/g, ' ')
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
+    return str.replace(/_/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
   }
 
   private getIconForCategory(category: string): { icon: string; colorClass: string } {
     const cat = category?.toLowerCase().trim() || '';
     if (cat.includes('felling')) return { icon: 'fa-tree', colorClass: 'felling' };
     if (cat.includes('encroachment')) return { icon: 'fa-map-location-dot', colorClass: 'water' };
-    if (cat.includes('timber transport')) return { icon: 'fa-truck', colorClass: 'impact' };
-    if (cat.includes('timber storage')) return { icon: 'fa-warehouse', colorClass: 'other' };
     if (cat.includes('poaching')) return { icon: 'fa-bullseye', colorClass: 'death' };
-    if (cat.includes('mining')) return { icon: 'fa-mountain', colorClass: 'animal' };
-    if (cat.includes('jfmc')) return { icon: 'fa-users', colorClass: 'impact' };
-    if (cat.includes('animal sighting') || cat.includes('species') || cat.includes('animal')) return { icon: 'fa-paw', colorClass: 'animal' };
-    if (cat.includes('water')) return { icon: 'fa-droplet', colorClass: 'water' };
-    if (cat.includes('fire')) return { icon: 'fa-fire', colorClass: 'death' }; // FIRE is RED
-    if (cat.includes('compensation')) return { icon: 'fa-wallet', colorClass: 'other' };
-    if (cat.includes('plantation')) return { icon: 'fa-leaf', colorClass: 'felling' };
+    if (cat.includes('fire')) return { icon: 'fa-fire', colorClass: 'death' };
+    if (cat.includes('animal')) return { icon: 'fa-paw', colorClass: 'animal' };
     return { icon: 'fa-circle-plus', colorClass: 'other' };
   }
 
@@ -424,39 +317,17 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     this.recentSightings.forEach(s => {
       const lat = parseFloat(s.latitude || s.lat);
       const lng = parseFloat(s.longitude || s.lng);
-      
-      if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
-        const icon = this.createSightingIcon(s.category, s.report_type);
-        L.marker([lat, lng], { icon }).addTo(this.sightingMarkersLayer)
-          .bindPopup(`
-            <div style="font-family: sans-serif; padding: 2px;">
-              <b style="text-transform: capitalize; color: #1e293b; font-size: 12px;">${s.displayTitle || 'Observation'}</b>
-            </div>
-          `);
+      if (!isNaN(lat) && !isNaN(lng) && lat !== 0) {
+        L.marker([lat, lng], { icon: this.createSightingIcon(s.category, s.report_type) }).addTo(this.sightingMarkersLayer);
       }
     });
   }
 
   private createSightingIcon(category: string, reportType?: string) {
-    const cat = (reportType || category || 'other').toLowerCase().trim();
-    const ui = this.getIconForCategory(cat);
-    
-    const colors: any = {
-      felling: '#16a34a',
-      water: '#0ea5e9',
-      impact: '#8b5cf6',
-      death: '#ef4444',
-      animal: '#f59e0b',
-      other: '#64748b'
-    };
-    
-    const color = colors[ui.colorClass] || colors.other;
-
+    const ui = this.getIconForCategory(reportType || category || 'other');
     return L.divIcon({
       className: 'custom-details-marker',
-      html: `<div style="background-color: ${color}; width: 22px; height: 22px; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 8px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white; font-size: 11px;">
-              <i class="fas ${ui.icon}"></i>
-            </div>`,
+      html: `<div style="background-color: #64748b; width: 22px; height: 22px; border: 2px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px;"><i class="fas ${ui.icon}"></i></div>`,
       iconSize: [26, 26],
       iconAnchor: [13, 13]
     });
@@ -466,169 +337,61 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     this.gpsWatchId = await Geolocation.watchPosition({ enableHighAccuracy: true, maximumAge: 3000 }, position => {
       if (position && this.map) {
         const current = L.latLng(position.coords.latitude, position.coords.longitude);
-        
-        // Always update marker position
         if (this.marker) this.marker.setLatLng(current);
-
-        // --- SMART BUFFER LOGIC ---
-        // Only record point if distance > 10m from last recorded point
-        const shouldAdd = !this.lastLatLng || this.lastLatLng.distanceTo(current) > 10;
-        
-        if (shouldAdd) {
+        if (!this.lastLatLng || this.lastLatLng.distanceTo(current) > 10) {
           this.routePoints.push({ lat: current.lat, lng: current.lng });
           localStorage.setItem('active_patrol_route', JSON.stringify(this.routePoints));
-          
-          if (this.routePolyline) {
-            this.routePolyline.addLatLng(current);
-          }
-
-          if (this.lastLatLng) {
-            const dist = this.lastLatLng.distanceTo(current);
-            this.totalDistanceKm += dist / 1000;
-          }
-          
+          if (this.routePolyline) this.routePolyline.addLatLng(current);
           this.lastLatLng = current;
         }
-
         this.cdr.detectChanges();
       }
     });
   }
 
-  // syncLocation(lat: number, lng: number) {
-  //   if (this.activePatrolId) {
-  //     this.http.patch(`${environment.apiUrl}/patrols/active/${this.activePatrolId}/route`, { lat, lng }).subscribe();
-  //   }
-  // }
-
   async handleEndTrip(isManual: boolean = false) {
     if (!isManual || this.isSubmitting) return;
-    const rId = localStorage.getItem('ranger_id');
-    const cId = localStorage.getItem('company_id');
-    if (!rId || !cId) {
-      this.showToast('Session Error: Missing Ranger or Company ID. Please log in again.', 'danger');
-      return;
-    }
     this.isSubmitting = true;
-    this.isFinished = true;
-    const loader = await this.loadingCtrl.create({
-      message: 'Syncing Final Patrol Data...',
-      mode: 'ios',
-      backdropDismiss: false
-    });
+    const loader = await this.loadingCtrl.create({ message: 'Syncing Final Patrol Data...', mode: 'ios' });
     await loader.present();
-    const eLat = this.lastLatLng ? this.lastLatLng.lat : 0;
-    const eLng = this.lastLatLng ? this.lastLatLng.lng : 0;
-    
-    // Sir's /patrol/{{sessionId}}/end payload 
-    // We strictly use the session string ID here
     const sessionId = localStorage.getItem('active_patrol_session_id') || this.activePatrolId;
-    
-    const fmsPayload = {
-      end_lat: String(eLat),
-      end_lng: String(eLng),
-      coords: this.routePoints.map(p => [p.lng, p.lat]), // Sir expects raw array
-      patrolId: sessionId, // Used for offline tracking
-      status: 'COMPLETED', // Ensure UI shows it as completed offline
-      patrolName: localStorage.getItem('temp_patrol_name') || 'Active Patrol',
-      method: localStorage.getItem('temp_patrol_name')?.split(' - ')[0] || 'Patrol',
-      type: localStorage.getItem('temp_patrol_name')?.split(' - ')[1] || 'Regular'
+    const payload = {
+      end_lat: String(this.lastLatLng?.lat || 0),
+      end_lng: String(this.lastLatLng?.lng || 0),
+      coords: this.routePoints.map(p => [p.lng, p.lat]),
+      status: 'COMPLETED'
     };
 
-    if (!sessionId) {
-      await loader.dismiss();
-      this.showToast('No active patrol ID found', 'danger');
-      return;
-    }
-
     if (!this.dataService.isOnline()) {
-      console.warn("Offline detected. Saving patrol end locally.");
-      this.dataService.savePatrolDraft(fmsPayload, 'end');
-      
+      this.dataService.savePatrolDraft(payload, 'end');
       await loader.dismiss();
-      localStorage.removeItem('active_patrol_id');
-      localStorage.removeItem('temp_patrol_name');
-      localStorage.removeItem('patrol_session_start_time');
-      localStorage.removeItem('active_patrol_route');
-      localStorage.removeItem('active_patrol_session_id');
-      
-      if (this.timerInterval) clearInterval(this.timerInterval);
-      if (this.gpsWatchId) await Geolocation.clearWatch({ id: this.gpsWatchId });
-      
-      this.showToast('Patrol ended offline. It will sync when online.', 'secondary');
-      this.navCtrl.navigateRoot('/home/patrol-logs');
-      return;
-    }
-
-    this.dataService.updatePatrolStats(sessionId, fmsPayload).subscribe({
-      next: async () => {
-        // Upload patrol photos sequentially using Sir's API
-        // Try to use numeric ID for photos, since /photos endpoint doesn't support the string ID yet
-        const numericId = this.activePatrolId && !this.activePatrolId.startsWith('PATROL_') 
-          ? this.activePatrolId 
-          : sessionId;
-
-        for (const photo of this.capturedPhotos) {
-          try {
-            await firstValueFrom(this.dataService.uploadPatrolPhoto(numericId, { photo }));
-          } catch (e) {
-            console.error('Photo upload issue', e);
+      this.finalizeSession();
+    } else {
+      this.dataService.updatePatrolStats(sessionId!, payload).subscribe({
+        next: async () => {
+          for (const photo of this.capturedPhotos) {
+            await firstValueFrom(this.dataService.uploadPatrolPhoto(this.activePatrolId!, { photo }));
           }
-        }
-        await loader.dismiss();
-        localStorage.removeItem('active_patrol_id');
-        localStorage.removeItem('temp_patrol_name');
-        localStorage.removeItem('patrol_session_start_time');
-        localStorage.removeItem('active_patrol_route');
-        localStorage.removeItem('active_patrol_session_id');
-        if (this.timerInterval) clearInterval(this.timerInterval);
-        if (this.gpsWatchId) await Geolocation.clearWatch({ id: this.gpsWatchId });
-        this.showToast('Patrol Saved Successfully', 'success');
-        this.navCtrl.navigateRoot('/home/patrol-logs');
-      },
-      error: async err => {
-        console.error('CRITICAL SYNC ERROR:', err);
-        await loader.dismiss();
-        this.isSubmitting = false;
-        this.isFinished = false;
-        this.domCtrl.write(() => {
-          if (this.endTripKnob) this.endTripKnob.nativeElement.style.transform = `translateX(0px)`;
-        });
-        const errorMsg = err?.error?.message || 'Sync Error: Please check your connection.';
-        const alert = await this.alertCtrl.create({
-          header: 'Sync Failed',
-          message: errorMsg,
-          buttons: ['OK']
-        });
-        await alert.present();
-      }
-    });
+          await loader.dismiss();
+          this.finalizeSession();
+        },
+        error: async () => { await loader.dismiss(); this.isSubmitting = false; }
+      });
+    }
+  }
+
+  private finalizeSession() {
+    localStorage.removeItem('active_patrol_id');
+    localStorage.removeItem('patrol_session_start_time');
+    localStorage.removeItem('active_patrol_route');
+    localStorage.removeItem('active_patrol_session_id');
+    if (this.timerInterval) clearInterval(this.timerInterval);
+    if (this.gpsWatchId) Geolocation.clearWatch({ id: this.gpsWatchId });
+    this.navCtrl.navigateRoot('/home/patrol-logs');
   }
 
   viewSightingDetails(log: any, index: number) {
-    // Parse report_data safely
-    let reportData = log.report_data || {};
-    if (typeof reportData === 'string') {
-      try { reportData = JSON.parse(reportData); } catch(e) { reportData = {}; }
-    }
-
-    // Parse photos from the server format [{photo: "url"}, ...]
-    let photos: string[] = [];
-    if (log.photo) {
-      if (Array.isArray(log.photo)) {
-        photos = log.photo.map((p: any) => p.photo || p);
-      } else if (typeof log.photo === 'string') {
-        try {
-          const parsed = JSON.parse(log.photo);
-          photos = Array.isArray(parsed) ? parsed.map((p: any) => p.photo || p) : [log.photo];
-        } catch (e) { photos = [log.photo]; }
-      }
-    }
-
-    const fullData = { ...log, report_data: reportData, photos };
-    this.navCtrl.navigateForward(['/sightings-details', log.id || 0], {
-      state: { data: fullData, source: 'report', id: log.id }
-    });
+    this.navCtrl.navigateForward(['/sightings-details', log.id || 0], { state: { data: log, source: 'report' } });
   }
 
   setupEndTripGesture() {
@@ -636,8 +399,7 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     const knob = this.endTripKnob.nativeElement;
     const track = this.endTripTrack.nativeElement;
     const gesture = this.gestureCtrl.create({
-      el: knob,
-      gestureName: 'end-trip',
+      el: knob, gestureName: 'end-trip',
       onMove: ev => {
         const max = track.clientWidth - knob.clientWidth - 12;
         const x = Math.max(0, Math.min(ev.deltaX, max));
@@ -652,14 +414,9 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     gesture.enable(true);
   }
 
-  // ---------- Timer & Toast ----------
   startTimer() {
     const startStr = localStorage.getItem('patrol_session_start_time');
-    if (startStr) {
-      const startTimeMs = new Date(startStr).getTime();
-      this.seconds = Math.max(0, Math.floor((Date.now() - startTimeMs) / 1000));
-    }
-
+    if (startStr) this.seconds = Math.max(0, Math.floor((Date.now() - new Date(startStr).getTime()) / 1000));
     this.timerInterval = setInterval(() => {
       this.seconds++;
       const h = Math.floor(this.seconds / 3600).toString().padStart(2, '0');
@@ -675,36 +432,16 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     await toast.present();
   }
 
-  recenterMap() {
-    if (this.lastLatLng && this.map) this.map.panTo(this.lastLatLng);
-  }
-
-  goBack() {
-    this.navCtrl.navigateBack('/patrol-logs');
-  }
-
-  openZoom(imgUrl: string) {
-    if (!imgUrl) return;
-    this.photoViewer.open(imgUrl);
-  }
-
-  closeZoom() {
-    this.photoViewer.close();
-  }
+  recenterMap() { if (this.lastLatLng && this.map) this.map.panTo(this.lastLatLng); }
+  goBack() { this.navCtrl.navigateBack('/patrol-logs'); }
+  openZoom(imgUrl: string) { if (imgUrl) this.photoViewer.open(imgUrl); }
+  closeZoom() { this.photoViewer.close(); }
 
   async downloadImage(imageUrl: string) {
-    const loading = await this.loadingCtrl.create({
-      message: 'Downloading...',
-      duration: 1000
-    });
-    await loading.present();
-    
     const link = document.createElement('a');
     link.href = imageUrl;
     link.download = `patrol_photo_${Date.now()}.jpg`;
-    document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
   }
 
   ngOnDestroy() {

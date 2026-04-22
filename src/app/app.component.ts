@@ -114,14 +114,18 @@ export class AppComponent implements OnInit {
   @HostListener('window:online')
   onOnline() {
     console.log("🌐 System back online! Triggering background sync...");
-    this.dataService.syncAllDrafts().then(res => {
+    this.dataService.syncAllDrafts().then(async res => {
       if (res.success && res.count && res.count > 0) {
-        this.toastController.create({
-          message: `Background Sync Complete: ${res.count} records uploaded.`,
+        console.log(`✅ Background sync completed: ${res.count} items.`);
+        const msg = await this.translate.get('LIST.SYNC_COMPLETE').toPromise() || `Successfully synced ${res.count} offline records.`;
+        const toast = await this.toastController.create({
+          message: msg,
           duration: 3000,
           color: 'success',
+          position: 'bottom',
           mode: 'ios'
-        }).then(t => t.present());
+        });
+        toast.present();
       }
     });
   }

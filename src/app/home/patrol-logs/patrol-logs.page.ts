@@ -5,7 +5,7 @@ import { Router } from '@angular/router';
 import { NavController, ToastController, AlertController, LoadingController, GestureController, DomController } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
 import { TranslateService } from '@ngx-translate/core';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Subscription } from 'rxjs';
 import * as L from 'leaflet';
 import { DataService } from '../../data.service';
 import { environment } from 'src/environments/environment';
@@ -19,6 +19,7 @@ import { environment } from 'src/environments/environment';
 export class PatrolLogsPage implements OnInit {
   @ViewChild('sliderKnob', { read: ElementRef }) sliderKnob!: ElementRef;
   @ViewChild('sliderTrack', { read: ElementRef }) sliderTrack!: ElementRef;
+  private syncSub!: Subscription;
 
   public patrolLogs: any[] = [];
   public isModalOpen = false;
@@ -48,7 +49,17 @@ export class PatrolLogsPage implements OnInit {
     private dataService: DataService
   ) {}
 
-  ngOnInit() { }
+  ngOnInit() { 
+    // Auto-refresh when sync completes
+    this.syncSub = this.dataService.syncCompleted$.subscribe(() => {
+      console.log("♻️ Sync detected, refreshing patrol list...");
+      this.loadPatrolLogs();
+    });
+  }
+  
+  ngOnDestroy() {
+    if (this.syncSub) this.syncSub.unsubscribe();
+  }
   
   ionViewWillEnter() { 
     this.loadPatrolLogs(); 
@@ -180,11 +191,15 @@ export class PatrolLogsPage implements OnInit {
           if (!uniqueDraftMap.has(id) || d.type === 'end') {
             const mStr = d.method || d.patrolName?.split(' - ')[0] || 'PATROL';
             const tStr = d.type_name || d.type || d.patrolType || d.patrolName?.split(' - ')[1] || 'LOG';
+            
+            const isCompleted = d.status === 'COMPLETED' || d.type === 'end' || !!d.end_lat;
+            
             uniqueDraftMap.set(id, {
               ...d,
+              status: isCompleted ? 'COMPLETED' : (d.status || 'PENDING'),
               patrolName: mStr.toString().toUpperCase(),
               patrolType: tStr.toString().toUpperCase(),
-              startTime: d.startTime || d.timestamp || new Date().toISOString()
+              startTime: d.startTime || d.timestamp || d.created_at || new Date().toISOString()
             });
           }
         });

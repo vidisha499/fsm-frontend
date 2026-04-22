@@ -1,4 +1,3 @@
-
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { environment } from '../environments/environment';
@@ -14,6 +13,7 @@ export class DataService {
 
   // Bridge for Sidebar Refresh
   public loginSuccess$ = new Subject<void>();
+  public syncCompleted$ = new Subject<void>();
 
   constructor(private http: HttpClient) {}
 
@@ -804,6 +804,10 @@ export class DataService {
         this.deletePatrolDraft(draft.draftId);
         syncCount++;
       } catch (e) { console.error("Sync Patrol Error", e); }
+    }
+
+    if (syncCount > 0) {
+      this.syncCompleted$.next();
     }
 
     return { success: true, count: syncCount };
