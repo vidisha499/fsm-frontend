@@ -125,11 +125,17 @@ export class PatrolLogsPage implements OnInit {
         if (userRole === 'RANGER' && userData.id) {
           filteredLogs = allLogs.filter((p: any) => p.user_id == userData.id || p.ranger_id == userData.id);
         }
-
         const fetchedLogs = filteredLogs.map((p: any) => {
           const isCompleted = p.status === 'COMPLETED' || p.status === 'SUCCESS' || !!p.end_lat || !!p.end_time || !!p.ended_at;
-          const mStr = p.method || p.patrol_method || p.method_name || 'PATROL';
-          const tStr = p.type || p.patrol_type || p.type_name || 'LOG';
+          const mStr = p.method || p.patrol_method || p.method_name || p.patrol_method_name || p.p_method || p.session || 'PATROL';
+          let tStr = p.type || p.patrol_type || p.type_name || p.patrol_type_name || p.type_label || p.patrol_type_label || p.method_type || p.p_type || p.type_str;
+          
+          // If type is still missing but we have a custom session string
+          if (!tStr && p.patrolName && p.patrolName.includes(' - ')) {
+            tStr = p.patrolName.split(' - ')[1];
+          }
+          
+          if (!tStr || tStr === '') tStr = 'LOG';
 
           return {
             ...p,
@@ -146,7 +152,15 @@ export class PatrolLogsPage implements OnInit {
         rawDrafts.forEach(d => {
           const id = d.sessionId || d.patrolId;
           if (!uniqueDraftMap.has(id) || d.type === 'end') {
-            uniqueDraftMap.set(id, d);
+            const mStr = d.method || 'PATROL';
+            const tStr = d.type_name || d.type || 'LOG';
+            
+            uniqueDraftMap.set(id, {
+              ...d,
+              patrolName: mStr.toString().toUpperCase(),
+              patrolType: tStr.toString().toUpperCase(),
+              startTime: d.startTime || d.timestamp || new Date().toISOString()
+            });
           }
         });
         const drafts = Array.from(uniqueDraftMap.values());
@@ -158,9 +172,25 @@ export class PatrolLogsPage implements OnInit {
       },
       error: async (err) => {
         console.error("LOAD ERROR:", err);
-        const drafts = this.dataService.getPatrolDrafts();
-        this.patrolLogs = drafts;
+        // Even if API fails (e.g. offline), show local drafts with proper mapping
+        const rawDrafts = this.dataService.getPatrolDrafts();
+        const uniqueDraftMap = new Map();
+        rawDrafts.forEach(d => {
+          const id = d.sessionId || d.patrolId || d.draftId;
+          if (!uniqueDraftMap.has(id) || d.type === 'end') {
+            const mStr = d.method || d.patrolName?.split(' - ')[0] || 'PATROL';
+            const tStr = d.type_name || d.type || d.patrolType || d.patrolName?.split(' - ')[1] || 'LOG';
+            uniqueDraftMap.set(id, {
+              ...d,
+              patrolName: mStr.toString().toUpperCase(),
+              patrolType: tStr.toString().toUpperCase(),
+              startTime: d.startTime || d.timestamp || new Date().toISOString()
+            });
+          }
+        });
+        this.patrolLogs = Array.from(uniqueDraftMap.values());
         loader.dismiss();
+        this.cdr.detectChanges();
       }
     });
   }
@@ -296,8 +326,15 @@ export class PatrolLogsPage implements OnInit {
 
   // --- ACTIONS & NAVIGATION ---
   viewDetails(log: any) {
-    if (log.status === 'PENDING') {
-      const activeId = log.id.toString();
+    if (log.status === 'PENDING' || log.isOffline) {
+      // Use patrolId or sessionId if id is missing (common in offline drafts)
+      const rawId = log.id || log.patrolId || log.sessionId || log.draftId;
+      if (!rawId) {
+        this.presentToast('Invalid Session ID', 'danger');
+        return;
+      }
+
+      const activeId = rawId.toString();
       localStorage.setItem('active_patrol_id', activeId);
 
       this.navCtrl.navigateForward(['/home/patrol-active'], {
@@ -305,11 +342,14 @@ export class PatrolLogsPage implements OnInit {
           id: activeId,
           patrolId: activeId,
           isResuming: true,
-          startTime: log.startTime || log.created_at
+          startTime: log.startTime || log.created_at || log.timestamp
         }
       });
     } else {
-      this.navCtrl.navigateForward(['/patrol-details', log.id]);
+      const detailId = log.id || log.patrolId || log.sessionId;
+      if (detailId) {
+        this.navCtrl.navigateForward(['/patrol-details', detailId.toString()]);
+      }
     }
   }
 

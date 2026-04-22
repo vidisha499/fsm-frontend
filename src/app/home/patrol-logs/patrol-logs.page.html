@@ -40,7 +40,9 @@
       <div class="log-entry-card" *ngFor="let log of patrolLogs" (click)="viewDetails(log)">
         <div style="display: flex; align-items: center; gap: 15px;">
           <div class="icon-thumb">
-            <i [class]="log.patrolName?.toLowerCase().includes('foot') ? 'fas fa-hiking' : 'fas fa-binoculars'"></i>
+            <i [class]="log.patrolName?.toLowerCase().includes('foot') ? 'fas fa-hiking' : 
+                        log.patrolName?.toLowerCase().includes('bicycle') ? 'fas fa-bicycle' : 
+                        'fas fa-binoculars'"></i>
           </div>
           <div class="log-info">
             <p class="log-title">{{ log.patrolName }} - {{ log.patrolType }}</p>

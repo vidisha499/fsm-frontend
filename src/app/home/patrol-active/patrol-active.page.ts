@@ -529,7 +529,10 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
       end_lng: String(eLng),
       coords: this.routePoints.map(p => [p.lng, p.lat]), // Sir expects raw array
       patrolId: sessionId, // Used for offline tracking
-      status: 'COMPLETED' // Ensure UI shows it as completed offline
+      status: 'COMPLETED', // Ensure UI shows it as completed offline
+      patrolName: localStorage.getItem('temp_patrol_name') || 'Active Patrol',
+      method: localStorage.getItem('temp_patrol_name')?.split(' - ')[0] || 'Patrol',
+      type: localStorage.getItem('temp_patrol_name')?.split(' - ')[1] || 'Regular'
     };
 
     if (!sessionId) {
