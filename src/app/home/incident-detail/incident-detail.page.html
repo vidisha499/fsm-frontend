@@ -132,12 +132,4 @@
     </div>
   </div>
 
-  <div class="zoom-overlay" *ngIf="selectedZoomImage" (click)="closeZoom()">
-    <div class="zoom-container">
-      <button class="close-zoom" (click)="closeZoom()">
-        <i class="fas fa-times"></i>
-      </button>
-      <img [src]="selectedZoomImage" (click)="$event.stopPropagation()" />
-    </div>
-  </div>
 </ion-content>

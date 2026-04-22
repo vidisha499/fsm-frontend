@@ -360,14 +360,26 @@
             </button>
         </div>
     </div>
-</div>
+  </div>
 
-
-
-
-
-
-
-
-
+  <!-- Global Premium Photo Viewer Overlay -->
+  <div *ngIf="showViewer" class="global-photo-viewer" (click)="closeViewer()">
+    <div class="viewer-controls">
+      <button class="control-btn download" (click)="downloadViewerImage(); $event.stopPropagation()">
+        <ion-icon name="cloud-download-outline"></ion-icon>
+      </button>
+      <button class="control-btn close" (click)="closeViewer()">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+    </div>
+    <div class="image-wrapper" (click)="$event.stopPropagation()">
+      <img [src]="viewerImageUrl" 
+           [style.transform]="'scale(' + viewerZoom + ')'" 
+           (click)="toggleViewerZoom($event)"
+           class="viewer-img">
+    </div>
+    <div class="viewer-hint">
+      <p>{{ viewerZoom > 1 ? 'Tap to Zoom Out / Reset' : 'Tap Image to Zoom In' }}</p>
+    </div>
+  </div>
 </ion-app>

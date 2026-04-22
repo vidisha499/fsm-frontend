@@ -48,9 +48,9 @@
       <div class="evidence-section" *ngIf="sighting.photos?.length > 0 || sighting.photo">
         <div class="section-label">Media Evidence</div>
         <div class="photo-grid">
-          <img *ngIf="sighting.photo" [src]="sighting.photo" class="evidence-img premium-shadow">
+          <img *ngIf="sighting.photo" [src]="sighting.photo" class="evidence-img premium-shadow" (click)="openZoom(sighting.photo)">
           <ng-container *ngFor="let p of sighting.photos">
-               <img [src]="p" class="evidence-img premium-shadow">
+               <img [src]="p" class="evidence-img premium-shadow" (click)="openZoom(p)">
           </ng-container>
         </div>
       </div>

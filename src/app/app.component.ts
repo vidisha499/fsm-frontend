@@ -3,7 +3,8 @@ import { TranslateService } from '@ngx-translate/core';
 import { Platform, IonRouterOutlet, ActionSheetController, ModalController, MenuController, NavController, ToastController, LoadingController } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { LabelService } from './services/label.service';
-import { DataService } from './data.service'; // Added for refresh sync
+import { DataService } from './data.service';
+import { PhotoViewerService } from './services/photo-viewer.service';
 
 
 @Component({
@@ -43,6 +44,11 @@ export class AppComponent implements OnInit {
   passwordType: string = 'password';
   passwordIcon: string = 'eye-off';
 
+  // Global Photo Viewer State
+  showViewer: boolean = false;
+  viewerImageUrl: string | null = null;
+  viewerZoom: number = 1;
+
   constructor(
     private translate: TranslateService,
     private renderer: Renderer2,
@@ -56,7 +62,8 @@ export class AppComponent implements OnInit {
     public router: Router ,
     private loadingCtrl: LoadingController,
     private labelService: LabelService,
-    private dataService: DataService // Injected
+    private dataService: DataService,
+    private photoViewer: PhotoViewerService
   ) {
     this.renderer.removeClass(document.body, 'dark');
     this.renderer.addClass(document.body, 'light');
@@ -84,6 +91,17 @@ export class AppComponent implements OnInit {
         this.isLoadingSidebar = false;
         this.cdr.detectChanges();
       }, 1000);
+    });
+
+    // 🖼️ Global Photo Viewer Subscription
+    this.photoViewer.showViewer$.subscribe(show => {
+      this.showViewer = show;
+      this.viewerZoom = 1;
+      this.cdr.detectChanges();
+    });
+    this.photoViewer.currentImage$.subscribe(img => {
+      this.viewerImageUrl = img;
+      this.cdr.detectChanges();
     });
   }
 
@@ -424,5 +442,26 @@ async goToPage(path: string) {
   this.passwordIcon = this.passwordIcon === 'eye-off' ? 'eye' : 'eye-off';
   this.cdr.detectChanges();
 }
+
+  // --- GLOBAL VIEWER ACTIONS ---
+  closeViewer() {
+    this.photoViewer.close();
+  }
+
+  downloadViewerImage() {
+    if (this.viewerImageUrl) {
+      this.photoViewer.download(this.viewerImageUrl);
+    }
+  }
+
+  toggleViewerZoom(event: any) {
+    event.stopPropagation();
+    if (this.viewerZoom >= 3) {
+      this.viewerZoom = 1;
+    } else {
+      this.viewerZoom += 0.5;
+    }
+    this.cdr.detectChanges();
+  }
 
 }

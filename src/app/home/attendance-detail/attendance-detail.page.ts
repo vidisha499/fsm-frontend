@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { NavController } from '@ionic/angular';
 import { ActivatedRoute } from '@angular/router';
 import { DataService } from '../../data.service';
+import { PhotoViewerService } from '../../services/photo-viewer.service';
 import * as L from 'leaflet';
 
 @Component({
@@ -17,7 +18,8 @@ export class AttendanceDetailPage implements OnInit {
   constructor(
     private dataService: DataService,
     private navCtrl: NavController,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private photoViewer: PhotoViewerService
   ) { }
 
   ngOnInit() {
@@ -126,5 +128,10 @@ export class AttendanceDetailPage implements OnInit {
   // Back Button Logic (Header ke glass-btn ke liye)
   goBack() {
     this.navCtrl.back();
+  }
+
+  openZoom(photo: string) {
+    if (!photo) return;
+    this.photoViewer.open(photo);
   }
 }

@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { NavController, LoadingController, ToastController } from '@ionic/angular';
 import { DataService } from '../../data.service';
+import { PhotoViewerService } from '../../services/photo-viewer.service';
 
 @Component({
   selector: 'app-sightings-details',
@@ -21,7 +22,8 @@ export class SightingsDetailsPage implements OnInit {
     private navCtrl: NavController,
     private loadingCtrl: LoadingController,
     private toastCtrl: ToastController,
-    private dataService: DataService
+    private dataService: DataService,
+    private photoViewer: PhotoViewerService
   ) {}
 
   ngOnInit() {
@@ -251,5 +253,10 @@ export class SightingsDetailsPage implements OnInit {
 
   goBack() {
     this.navCtrl.back();
+  }
+
+  openZoom(imgUrl: string) {
+    if (!imgUrl) return;
+    this.photoViewer.open(imgUrl);
   }
 }

@@ -24,7 +24,7 @@
         <span class="badge" [class.entry]="attendance.type === 'ENTRY'">{{ attendance.type }}</span>
       </div>
       <div class="image-frame">
-        <img [src]="attendance.photo" alt="Attendance Photo">
+        <img [src]="attendance.photo" alt="Attendance Photo" (click)="openZoom(attendance.photo)">
       </div>
     </div>
 

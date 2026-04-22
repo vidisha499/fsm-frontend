@@ -8,6 +8,7 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import * as L from 'leaflet';
 import { DataService } from '../../data.service';
+import { PhotoViewerService } from '../../services/photo-viewer.service';
 
 @Component({
   selector: 'app-onsite',
@@ -58,7 +59,8 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
     private http: HttpClient,
     private cdr: ChangeDetectorRef,
     private translate: TranslateService,
-    private dataService: DataService
+    private dataService: DataService,
+    private photoViewer: PhotoViewerService
   ) {}
 
   ngOnInit() {
@@ -325,22 +327,12 @@ async submit() {
 
   // --- Image Viewer Methods ---
   openZoom(imageUrl: string) {
-    this.selectedZoomImage = imageUrl;
-    this.currentZoom = 1;
-  }
-
-  toggleZoom(event: any) {
-    event.stopPropagation();
-    if (this.currentZoom >= 2.5) {
-      this.currentZoom = 1;
-    } else {
-      this.currentZoom += 0.5;
-    }
+    if (!imageUrl) return;
+    this.photoViewer.open(imageUrl);
   }
 
   closeZoom() {
-    this.selectedZoomImage = null;
-    this.currentZoom = 1;
+    this.photoViewer.close();
   }
   async downloadImage(imageUrl: string) {
     const loader = await this.loadingCtrl.create({

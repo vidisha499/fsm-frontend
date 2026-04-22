@@ -8,6 +8,7 @@ import { environment } from 'src/environments/environment';
 import * as L from 'leaflet';
 import { TranslateService } from '@ngx-translate/core'; 
 import { DataService } from '../../data.service';
+import { PhotoViewerService } from '../../services/photo-viewer.service';
 
 @Component({
   selector: 'app-attendance',
@@ -58,7 +59,8 @@ export class AttendancePage implements OnInit, OnDestroy {
     private platform: Platform,
     private cdr: ChangeDetectorRef,
     private translate: TranslateService, // 👈 Inject TranslateService
-    private dataService: DataService
+    private dataService: DataService,
+    private photoViewer: PhotoViewerService
   ) {}
 
   ngOnInit() {

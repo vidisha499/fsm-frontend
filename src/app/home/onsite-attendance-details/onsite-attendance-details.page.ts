@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import * as L from 'leaflet';
 import { DataService } from '../../data.service';
+import { PhotoViewerService } from '../../services/photo-viewer.service';
 
 @Component({
   selector: 'app-onsite-attendance-details',
@@ -19,7 +20,8 @@ export class OnsiteAttendanceDetailsPage implements OnInit {
     private navCtrl: NavController,
     private route: ActivatedRoute,
     private http: HttpClient,
-    private dataService: DataService
+    private dataService: DataService,
+    private photoViewer: PhotoViewerService
   ) {}
 
   ngOnInit() {
@@ -126,4 +128,9 @@ export class OnsiteAttendanceDetailsPage implements OnInit {
     L.marker([lat, lng], { icon: markerIcon }).addTo(this.map);
   }
   goBack() { this.navCtrl.back(); }
+
+  openZoom(photo: string) {
+    if (!photo) return;
+    this.photoViewer.open(photo);
+  }
 }

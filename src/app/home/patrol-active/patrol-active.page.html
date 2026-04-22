@@ -137,28 +137,4 @@
   </div> 
 
   <!-- Full Screen Image Viewer Overlay -->
-  <div class="zoom-overlay" *ngIf="selectedZoomImage" (click)="closeZoom()">
-    <div class="zoomer-container">
-      <div class="viewer-actions">
-        <div class="action-btn" (click)="toggleZoom($event)">
-          <ion-icon [name]="currentZoom > 1 ? 'remove-circle-outline' : 'add-circle-outline'"></ion-icon>
-          <span class="zoom-text">{{ currentZoom }}x</span>
-        </div>
-        <div class="action-btn" (click)="downloadImage(selectedZoomImage); $event.stopPropagation()">
-          <ion-icon name="download-outline"></ion-icon>
-        </div>
-        <div class="action-btn" (click)="closeZoom()">
-          <ion-icon name="close-outline"></ion-icon>
-        </div>
-      </div>
-      
-      <div class="image-scroll-wrapper">
-        <img [src]="selectedZoomImage" 
-             [style.transform]="'scale(' + currentZoom + ')'"
-             (click)="toggleZoom($event)" />
-      </div>
-      
-      <div class="close-btn-bottom">TAP PHOTO TO ZOOM • TAP BACKGROUND TO CLOSE</div>
-    </div>
-  </div>
 </ion-content>

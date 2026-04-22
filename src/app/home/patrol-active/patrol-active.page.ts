@@ -9,6 +9,7 @@ import { environment } from 'src/environments/environment';
 import * as L from 'leaflet';
 import { ActivatedRoute } from '@angular/router';
 import { DataService } from '../../data.service';
+import { PhotoViewerService } from '../../services/photo-viewer.service';
 
 @Component({
   selector: 'app-patrol-active',
@@ -89,7 +90,8 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     private translate: TranslateService,
     private cdr: ChangeDetectorRef,
     private route: ActivatedRoute,
-    private dataService: DataService
+    private dataService: DataService,
+    private photoViewer: PhotoViewerService
   ) {}
 
   ngOnInit() {
@@ -658,22 +660,12 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
   }
 
   openZoom(imgUrl: string) {
-    this.selectedZoomImage = imgUrl;
-    this.currentZoom = 1;
-  }
-
-  toggleZoom(event: any) {
-    event.stopPropagation();
-    if (this.currentZoom >= 2.5) {
-      this.currentZoom = 1;
-    } else {
-      this.currentZoom += 0.5;
-    }
+    if (!imgUrl) return;
+    this.photoViewer.open(imgUrl);
   }
 
   closeZoom() {
-    this.selectedZoomImage = null;
-    this.currentZoom = 1;
+    this.photoViewer.close();
   }
 
   async downloadImage(imageUrl: string) {

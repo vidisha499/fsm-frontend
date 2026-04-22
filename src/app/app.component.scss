@@ -1115,3 +1115,90 @@ ion-menu {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+// --- GLOBAL PREMIUM PHOTO VIEWER ---
+.global-photo-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 100000 !important;
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(15px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease-out;
+
+  .viewer-controls {
+    position: absolute;
+    top: 40px;
+    right: 20px;
+    display: flex;
+    gap: 15px;
+    z-index: 10;
+
+    .control-btn {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      color: white;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(10px);
+      transition: all 0.2s ease;
+
+      &:active {
+        transform: scale(0.9);
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      &.close {
+        background: rgba(239, 68, 68, 0.2);
+        color: #fca5a5;
+        border-color: rgba(239, 68, 68, 0.3);
+      }
+    }
+  }
+
+  .image-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+
+    .viewer-img {
+      max-width: 95%;
+      max-height: 80%;
+      object-fit: contain;
+      border-radius: 12px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+  }
+
+  .viewer-hint {
+    position: absolute;
+    bottom: 40px;
+    width: 100%;
+    text-align: center;
+    
+    p {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      background: rgba(255, 255, 255, 0.05);
+      display: inline-block;
+      padding: 10px 24px;
+      border-radius: 30px;
+      backdrop-filter: blur(5px);
+    }
+  }
+}

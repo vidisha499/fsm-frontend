@@ -9,6 +9,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import * as L from 'leaflet'; // Import Leaflet
+import { PhotoViewerService } from '../../services/photo-viewer.service';
 
 @Component({
   selector: 'app-incident-detail',
@@ -31,7 +32,8 @@ export class IncidentDetailPage implements OnInit, OnDestroy {
     public toastCtrl: ToastController,
     private translate: TranslateService,
     private route: ActivatedRoute,
-    private http: HttpClient
+    private http: HttpClient,
+    private photoViewer: PhotoViewerService
   ) { }
 
   ngOnDestroy() {
@@ -212,8 +214,11 @@ getTranslationKey(value: string | undefined | null): string {
     });
   }
 
-  openZoom(photo: string) { this.selectedZoomImage = photo; }
-  closeZoom() { this.selectedZoomImage = null; }
+  openZoom(photo: string) { 
+    if (!photo) return;
+    this.photoViewer.open(photo); 
+  }
+  closeZoom() { this.photoViewer.close(); }
   goBack() { this.navCtrl.navigateRoot('/home/incidents'); }
 
   async presentToast(message: string, color: string) {

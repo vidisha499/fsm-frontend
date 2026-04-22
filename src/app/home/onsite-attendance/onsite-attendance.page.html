@@ -98,20 +98,5 @@
     </div>
   </div>
 
-  <!-- Zoom Overlay -->
-  <div class="zoom-overlay" [class.active]="selectedZoomImage" (click)="closeZoom()">
-    <div class="zoom-header">
-      <div class="btn" (click)="downloadImage(selectedZoomImage!); $event.stopPropagation()">
-        <ion-icon name="download-outline"></ion-icon>
-      </div>
-      <div class="btn" (click)="closeZoom()">
-        <ion-icon name="close-outline"></ion-icon>
-      </div>
-    </div>
-    <div class="zoom-body">
-      <img [src]="selectedZoomImage" (click)="$event.stopPropagation()" />
-    </div>
-    <div class="zoom-footer">TAP TO ZOOM • TAP BACKGROUND TO CLOSE</div>
-  </div>
 </ion-content>
 t>

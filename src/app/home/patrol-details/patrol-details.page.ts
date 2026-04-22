@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { NavController } from '@ionic/angular';
 import { TranslateService } from '@ngx-translate/core';
 import { DataService } from '../../data.service';
+import { PhotoViewerService } from '../../services/photo-viewer.service';
 import * as L from 'leaflet';
 
 @Component({
@@ -26,7 +27,8 @@ export class PatrolDetailsPage implements OnInit {
     private navCtrl: NavController,
     private cdr: ChangeDetectorRef,
     private translate: TranslateService, // Added
-    private dataService: DataService
+    private dataService: DataService,
+    private photoViewer: PhotoViewerService
   ) {}
 
   ngOnInit() {
@@ -441,14 +443,13 @@ getCategoryColor(category: string): string {
  
 
   openZoom(imgUrl: string) {
-  if (!imgUrl) return;
-  this.selectedZoomImage = imgUrl;
-  
-}
+    if (!imgUrl) return;
+    this.photoViewer.open(imgUrl);
+  }
 
-closeZoom() {
-  this.selectedZoomImage = null;
-}
+  closeZoom() {
+    this.photoViewer.close();
+  }
 
 viewSightingDetails(obs: any) {
   const sightingId = obs.id || `temp-${Date.now()}`;

@@ -5,6 +5,7 @@ import { Geolocation } from '@capacitor/geolocation';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { DataService } from 'src/app/data.service';
 import { HierarchyService } from 'src/app/services/hierarchy.service';
+import { PhotoViewerService } from 'src/app/services/photo-viewer.service';
 
 @Component({
   selector: 'app-events-fields',
@@ -195,6 +196,7 @@ fieldsConfig: any = {
     private cdr: ChangeDetectorRef,
     private gestureCtrl: GestureController,
     private alertCtrl: AlertController,
+    private photoViewer: PhotoViewerService
   ) {
     this.takePhoto = this.takePhoto.bind(this);
     this.selectImageSource = this.selectImageSource.bind(this);
@@ -471,23 +473,12 @@ async fetchLocation() {
 
   // --- Image Viewer / Zoom Logic ---
   openZoom(imgUrl: string) {
-    this.selectedZoomImage = imgUrl;
-    this.currentZoom = 1; // Reset zoom level
-  }
-
-  // Double tap logic or simple button toggle
-  toggleZoom(event: any) {
-    event.stopPropagation();
-    if (this.currentZoom >= 2.5) {
-      this.currentZoom = 1;
-    } else {
-      this.currentZoom += 0.5;
-    }
+    if (!imgUrl) return;
+    this.photoViewer.open(imgUrl);
   }
 
   closeZoom() {
-    this.selectedZoomImage = null;
-    this.currentZoom = 1;
+    this.photoViewer.close();
   }
 
   async downloadImage(imageUrl: string) {
