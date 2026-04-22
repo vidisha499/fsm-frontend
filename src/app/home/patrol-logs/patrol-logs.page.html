@@ -49,7 +49,7 @@
             <p class="log-date">{{ log.startTime | date:'MMM d, h:mm a' }}</p>
           </div>
         </div>
-        <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="display: flex; align-items: center; justify-content: flex-end; flex: 1;">
           <span class="status-pill" 
             [ngClass]="{
               'completed': log.status === 'COMPLETED',
@@ -58,19 +58,6 @@
             }">
             {{ log.isOffline ? 'OFFLINE' : (log.status === 'ACTIVE' ? 'ON-DUTY' : log.status) }}
           </span>
-          <!-- <ion-button fill="clear" color="danger" (click)="deleteLog(log.id, $event)" style="margin: 0;">
-            <ion-icon slot="icon-only" name="trash-outline" style="font-size: 18px;"></ion-icon>
-          </ion-button> -->
-          <ion-button *ngIf="log.status === 'COMPLETED'" 
-            fill="clear" color="primary" 
-            (click)="editPatrol(log, $event)">
-            <ion-icon slot="icon-only" name="create-outline"></ion-icon>
-          </ion-button>
-          <!-- <ion-button *ngIf="log.status === 'COMPLETED'" 
-            fill="clear" color="danger" 
-            (click)="deleteLog(log.id, $event)">
-            <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
-          </ion-button> -->
         </div>
       </div>
     </div>

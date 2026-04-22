@@ -47,11 +47,29 @@ export class EventsReportsPage implements OnInit {
 
   loadSubmittedReports(from?: string, to?: string) {
     const rangerId = this.dataService.getRangerId();
+    const companyId = this.dataService.getUserCompanyId();
     if (!rangerId) return;
 
-    let params: any = { user_id: rangerId };
-    if (from) params.date_from = from;
-    if (to) params.date_to = to;
+    let params: any = { 
+      user_id: rangerId,
+      ranger_id: rangerId,
+      company_id: companyId 
+    };
+
+    if (from) {
+      params.date_from = from;
+      params.startDate = from;
+      params.start_date = from;
+      params.from = from;
+      params.from_date = from;
+    }
+    if (to) {
+      params.date_to = to;
+      params.endDate = to;
+      params.end_date = to;
+      params.to = to;
+      params.to_date = to;
+    }
 
     this.dataService.getForestReports(params).subscribe({
       next: (res: any) => {
@@ -70,12 +88,12 @@ export class EventsReportsPage implements OnInit {
     let thumb = null;
     let photosList: string[] = [];
     
-    // Check 'photos' array
+    // 1. Check 'photos' array
     if (Array.isArray(report.photos)) {
       photosList = [...report.photos];
     }
     
-    // Check 'photo' field (could be JSON string or single URL)
+    // 2. Check 'photo' field
     if (report.photo) {
       if (typeof report.photo === 'string') {
         let cleaned = report.photo.trim();
@@ -96,7 +114,6 @@ export class EventsReportsPage implements OnInit {
               });
             }
           } catch(e) {
-             // Fallback for malformed JSON
              let stripped = cleaned.replace(/^\["?|"?]$/g, '');
              if (stripped.length > 5) photosList.push(stripped);
           }
@@ -111,21 +128,44 @@ export class EventsReportsPage implements OnInit {
       }
     }
 
-    // Filter valid URLs
-    let validPhotos = photosList.filter(p => typeof p === 'string' && p.length > 5 && !p.startsWith('['));
-    
-    // Format relative paths and fix broken absolute paths
-    validPhotos = validPhotos.map(url => {
-        // Fix for absolute URLs that are missing '/public/' which causes 404
-        if (typeof url === 'string' && url.includes('fms.pugarch.in/profilepics/')) {
+    // 3. Check report_data for photos (fallback)
+    if (photosList.length === 0 && report.report_data) {
+      try {
+        const rd = typeof report.report_data === 'string' ? JSON.parse(report.report_data) : report.report_data;
+        // Check for common photo keys
+        if (rd.photo) photosList.push(rd.photo);
+        if (rd.photos && Array.isArray(rd.photos)) photosList.push(...rd.photos);
+        
+        // Scan for ANY key containing 'photo'
+        Object.keys(rd).forEach(key => {
+          if (key.toLowerCase().includes('photo') && typeof rd[key] === 'string' && rd[key].length > 5) {
+             photosList.push(rd[key]);
+          }
+        });
+      } catch(e) {}
+    }
+
+    // Filter valid strings and format
+    let validPhotos = photosList
+      .filter(p => typeof p === 'string' && p.length > 5 && !p.startsWith('[') && !p.startsWith('{'))
+      .map(url => {
+        if (url.includes('fms.pugarch.in/profilepics/')) {
             url = url.replace('fms.pugarch.in/profilepics/', 'fms.pugarch.in/public/profilepics/');
         }
         
         if (!url.startsWith('http') && !url.startsWith('data:')) {
+            // Aggressive fallback: Check common folders used in this app
+            if (url.includes('patrol')) {
+              return `https://fms.pugarch.in/public/profilepics/patrols/${url}`;
+            }
+            // If the filename contains a folder-like structure or is just a name, try root as well
+            if (url.length < 25) {
+               return `https://fms.pugarch.in/public/profilepics/${url}`;
+            }
             return `https://fms.pugarch.in/public/profilepics/forest_reports/${url}`;
         }
         return url;
-    });
+      });
 
     if (validPhotos.length > 0) {
       thumb = validPhotos[0];
@@ -134,7 +174,9 @@ export class EventsReportsPage implements OnInit {
     return { 
       ...report, 
       displayPhoto: thumb,
-      allPhotos: validPhotos 
+      allPhotos: validPhotos,
+      // Fix date field name mapping
+      displayDate: report.created_at || report.createdAt || report.date_time || report.timestamp || new Date().toISOString()
     };
   }
 

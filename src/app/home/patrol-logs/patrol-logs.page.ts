@@ -380,34 +380,6 @@ export class PatrolLogsPage implements OnInit {
     });
     await alert.present();
   }
-  async editPatrol(log: any, event: Event) {
-    event.stopPropagation();
-    const alert = await this.alertCtrl.create({
-      header: 'Edit Patrol',
-      inputs: [
-        { name: 'method', type: 'text', placeholder: 'Method (e.g., vehicle)', value: log.method },
-        { name: 'type', type: 'text', placeholder: 'Type (e.g., Regular)', value: log.type }
-      ],
-      buttons: [
-        { text: 'Cancel', role: 'cancel' },
-        {
-          text: 'Save',
-          handler: (data) => {
-            this.dataService.updatePatrolLog(log.id, data).subscribe({
-              next: () => {
-                log.method = data.method;
-                log.type = data.type;
-                log.patrolName = `${data.method.toUpperCase()} - ${data.type.toUpperCase()}`;
-                this.presentToast('Updated successfully', 'success');
-              },
-              error: () => this.presentToast('Update failed', 'danger')
-            });
-          }
-        }
-      ]
-    });
-    await alert.present();
-  }
 
   private async processDelete(id: number) {
     this.dataService.deletePatrolLog(id).subscribe({
