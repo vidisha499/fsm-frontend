@@ -565,31 +565,6 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
       error: async err => {
         console.error('CRITICAL SYNC ERROR:', err);
         await loader.dismiss();
-
-        // 💾 OFFLINE DRAFT SAVING
-        if (!this.dataService.isOnline() || err.status === 0 || err.status === 504) {
-          this.showToast('Offline detected. Saving patrol data locally.', 'secondary');
-          const draftPayload = {
-            ...fmsPayload,
-            patrol_id: sessionId,
-            method: localStorage.getItem('temp_patrol_name') || 'Patrol',
-            startTime: localStorage.getItem('patrol_session_start_time') || new Date().toISOString()
-          };
-          this.dataService.savePatrolEndDraft(draftPayload);
-          
-          // Cleanup same as success but with a warning
-          localStorage.removeItem('active_patrol_id');
-          localStorage.removeItem('temp_patrol_name');
-          localStorage.removeItem('patrol_session_start_time');
-          localStorage.removeItem('active_patrol_route');
-          localStorage.removeItem('active_patrol_session_id');
-          if (this.timerInterval) clearInterval(this.timerInterval);
-          if (this.gpsWatchId) await Geolocation.clearWatch({ id: this.gpsWatchId });
-          
-          this.navCtrl.navigateRoot('/home/patrol-logs');
-          return;
-        }
-
         this.isSubmitting = false;
         this.isFinished = false;
         this.domCtrl.write(() => {

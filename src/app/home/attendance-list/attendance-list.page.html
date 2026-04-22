@@ -31,15 +31,14 @@
           </div>
         </div>
 
+        <!-- Sync Button for Offline Logs -->
+        <div class="sync-container animate__animated animate__pulse animate__infinite" *ngIf="allLogs && allLogs.length > 0">
+           <button class="sync-btn" (click)="syncOfflineDrafts()" *ngIf="hasOfflineLogs()">
+             <ion-icon name="sync-outline"></ion-icon>
+             <span>Sync Now</span>
+           </button>
+        </div>
       </div>
-    </div>
-
-    <!-- 💾 Sync Button Positioned Right Below Header -->
-    <div class="sync-row animate__animated animate__fadeIn" *ngIf="hasOfflineLogs()">
-      <button class="sync-pill-btn" (click)="syncOfflineDrafts()">
-        <ion-icon name="sync-outline"></ion-icon>
-        <span>Sync {{ selectedMode | titlecase }} Logs</span>
-      </button>
     </div>
 
     <div class="main-container">
@@ -74,16 +73,9 @@
               </span>
             </div>
             <h2 class="priority-title">{{ (log.createdAt || log.created_at) | date:'dd MMMM, yyyy' }}</h2>
-            
-            <div class="meta-info-row">
-              <div class="reporter-line">
-                <ion-icon name="person-outline"></ion-icon>
-                <span class="ranger-name">{{ log.name || log.rangerName || 'Ranger' }}</span>
-              </div>
-              <div class="reporter-line">
-                <ion-icon name="location-outline"></ion-icon>
-                <span class="location-name">{{ log.geofence || 'General Area' }}</span>
-              </div>
+            <div class="reporter-line">
+              <ion-icon name="location-outline"></ion-icon>
+              <span class="location-name">{{ log.geofence || 'General Area' }}</span>
             </div>
           </div>
 

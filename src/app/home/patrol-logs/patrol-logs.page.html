@@ -10,24 +10,22 @@
           <button (click)="goBack()" class="glass-btn">
             <i class="fas fa-arrow-left"></i>
           </button>
+           <div class="back-group">
+          </div>
+       
+
+
           <div class="title-meta">
-            <h1 style="color: white; margin: 0; font-size: 22px; font-weight: 800;">{{ 'LIST.TITLE' | translate }}</h1>
+            <h1>{{ 'LIST.TITLE' | translate }}</h1>
+           
           </div>
         </div>
-        
-        <button (click)="setFilterOpen(true)" class="glass-btn">
-          <ion-icon name="options-outline" style="font-size: 20px; color: white;"></ion-icon>
-        </button>
+
+        <button (click)="setFilterOpen(true)" class="glass-btn" style="margin-left: auto;">
+  <ion-icon name="options-outline" style="font-size: 20px; color: white;"></ion-icon>
+</button>
       </div>
     </div>
-  </div>
-
-  <!-- 💾 Sync Button Positioned Right Below Header -->
-  <div class="sync-row animate__animated animate__fadeIn" *ngIf="hasOfflineLogs()">
-    <button class="sync-pill-btn" (click)="syncOfflineDrafts()">
-      <ion-icon name="sync-outline"></ion-icon>
-      <span>Sync Offline Patrols</span>
-    </button>
   </div>
 
   <div class="logs-container">
@@ -43,14 +41,13 @@
           </div>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
-          <span *ngIf="log.isOffline" class="status-pill offline">OFFLINE</span>
-          <span *ngIf="!log.isOffline" class="status-pill" 
-            [ngClass]="{
-              'completed': log.status === 'COMPLETED',
-              'pending': log.status === 'ACTIVE' || log.status === 'PENDING'
-            }">
-            {{ log.status === 'ACTIVE' ? 'ON-DUTY' : log.status }}
-          </span>
+         <span class="status-pill" 
+      [ngClass]="{
+        'completed': log.status === 'COMPLETED',
+        'pending': log.status === 'ACTIVE' || log.status === 'PENDING'
+      }">
+  {{ log.status === 'ACTIVE' ? 'ON-DUTY' : log.status }}
+</span>
           <!-- <ion-button fill="clear" color="danger" (click)="deleteLog(log.id, $event)" style="margin: 0;">
             <ion-icon slot="icon-only" name="trash-outline" style="font-size: 18px;"></ion-icon>
           </ion-button> -->

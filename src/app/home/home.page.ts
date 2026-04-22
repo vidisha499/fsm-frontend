@@ -59,7 +59,6 @@ passwordType: string = 'password';
     'Hindi': 'hi',
     'Marathi': 'mr'
   };
-  public hasOfflineData: boolean = false;
 
   constructor(
     private menuCtrl: MenuController,
@@ -82,43 +81,6 @@ passwordType: string = 'password';
     this.initLanguage();
     this.loadRangerBeat();  
 // this.loadDashboardStats(); // Removed dashboard call as it doesn't exist in backend
-    this.checkOfflineStatus();
-  }
-
-  checkOfflineStatus() {
-    const events = this.dataService.getForestEventDrafts().length;
-    const beat = this.dataService.getAttendanceDrafts('beat').length;
-    const onsite = this.dataService.getAttendanceDrafts('onsite').length;
-    const patrols = this.dataService.getPatrolEndDrafts().length;
-    this.hasOfflineData = (events + beat + onsite + patrols) > 0;
-  }
-
-  async syncAll() {
-    if (!this.dataService.isOnline()) {
-      this.showToast('Still offline. Please check connection.');
-      return;
-    }
-
-    const loader = await this.loadingController.create({
-      message: 'Synchronizing Offline Data...',
-      spinner: 'crescent',
-      mode: 'ios'
-    });
-    await loader.present();
-
-    const result = await this.dataService.syncAllOfflineData();
-    await loader.dismiss();
-
-    if (result.success) {
-      if (result.count && result.count > 0) {
-        this.showToast(`Successfully synced ${result.count} records!`);
-      } else {
-        this.showToast('Everything is up to date.');
-      }
-      this.checkOfflineStatus();
-    } else {
-      this.showToast(result.message || 'Sync failed');
-    }
   }
 
   loadRangerData() {

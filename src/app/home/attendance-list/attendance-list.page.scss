@@ -152,44 +152,29 @@
         }
       }
 
-    }
-  }
-
-  /* 💾 Sync Row Styles */
-  .sync-row {
-    margin-top: 15px;
-    padding: 0 24px;
-    display: flex;
-    justify-content: flex-end;
-    position: relative;
-    z-index: 10;
-    
-    .sync-pill-btn {
-      background: #fbbf24;
-      color: #0f172a;
-      padding: 10px 18px;
-      border-radius: 50px;
-      border: none;
-      font-weight: 800;
-      font-size: 13px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      box-shadow: 0 8px 20px rgba(251, 191, 36, 0.3);
-      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      
-      ion-icon { 
-        font-size: 18px; 
-        animation: spin-slow 3s linear infinite;
+      .sync-container {
+        margin-top: 15px;
+        display: flex;
+        justify-content: center;
+        
+        .sync-btn {
+          background: rgba(251, 191, 36, 0.2);
+          border: 1px solid rgba(251, 191, 36, 0.4);
+          padding: 8px 16px;
+          border-radius: 12px;
+          color: white;
+          font-weight: 700;
+          font-size: 13px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          backdrop-filter: blur(10px);
+          
+          ion-icon { font-size: 18px; }
+          &:active { transform: scale(0.95); }
+        }
       }
-      
-      &:active { transform: scale(0.92); }
     }
-  }
-
-  @keyframes spin-slow {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
   }
 
   /* Main Content Container */
@@ -296,18 +281,10 @@
           text-overflow: ellipsis;
         }
 
-        .meta-info-row {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-          margin-top: 2px;
-        }
-
         .reporter-line {
           display: flex; align-items: center; gap: 4px; font-size: 11px; color: #94a3b8;
           ion-icon { color: var(--primary-teal); flex-shrink: 0; }
-          .location-name, .ranger-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-          .ranger-name { font-weight: 700; color: #64748b; }
+          .location-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         }
       }
 
