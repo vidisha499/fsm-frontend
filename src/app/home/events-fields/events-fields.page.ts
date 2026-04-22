@@ -305,30 +305,42 @@ fieldsConfig: any = {
   }
 
 async loadDefaultBeat() {
+  // 1. First Priority: Check localStorage (Matches Home Page behavior)
+  const cachedBeat = localStorage.getItem('assigned_beat_name');
+  if (cachedBeat && cachedBeat !== 'FETCHING...' && cachedBeat !== 'NOT ASSIGNED') {
+    this.assignedBeat = cachedBeat;
+    this.reportData['Assigned Beat'] = cachedBeat;
+    this.reportData['beat'] = cachedBeat; // Backup key
+    console.log("📍 [SYNC] Beat pre-populated from Cache:", cachedBeat);
+  }
+
+  // 2. Second Priority: Fetch from Server if Cache is missing or to refresh
   const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
   const rangerId = userData.id;
 
   if (rangerId) {
-  this.hierarchyService.getAssignedBeat(rangerId).subscribe({
-    next: (res: any) => {
-      // Sir's /getSites returns { data: [{ id, site_name, ... }] } or similar
-      const sites = Array.isArray(res) ? res : (res?.data || []);
-      if (sites.length > 0) {
-        const firstSite = sites[0];
-        const siteName = firstSite.site_name || firstSite.name || 'General';
-        this.assignedBeat = siteName;
-        this.currentSiteId = String(firstSite.id || '');
-        this.reportData['Assigned Beat'] = siteName;
-      } else {
-        this.assignedBeat = 'General';
-        this.reportData['Assigned Beat'] = 'General';
+    this.hierarchyService.getAssignedBeat(rangerId).subscribe({
+      next: (res: any) => {
+        const sites = Array.isArray(res) ? res : (res?.data || []);
+        if (sites.length > 0) {
+          const firstSite = sites[0];
+          const siteName = firstSite.site_name || firstSite.name || 'General';
+          
+          this.assignedBeat = siteName;
+          this.currentSiteId = String(firstSite.id || '');
+          this.reportData['Assigned Beat'] = siteName;
+          this.reportData['beat'] = siteName;
+          
+          localStorage.setItem('assigned_beat_name', siteName);
+        }
+      },
+      error: () => {
+        if (!this.assignedBeat || this.assignedBeat === 'Loading...') {
+          this.assignedBeat = 'General';
+          this.reportData['Assigned Beat'] = 'General';
+        }
       }
-    },
-    error: () => {
-      this.assignedBeat = 'General';
-      this.reportData['Assigned Beat'] = 'General';
-    }
-  });
+    });
   }
 }
 
