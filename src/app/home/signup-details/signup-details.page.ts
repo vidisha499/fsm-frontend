@@ -174,6 +174,13 @@ console.log("Final Payload to Database:", payload);
     this.http.post(`${environment.apiUrl}/users`, payload).subscribe({
       next: async (response: any) => {
         await loader.dismiss();
+        
+        // Cache the profile picture locally so it can be retrieved on login
+        // if the backend API strips it from the response
+        if (this.profileImage && this.mobile) {
+          localStorage.setItem(`cached_photo_${this.mobile}`, this.profileImage);
+        }
+
         this.presentToast('Registration successful! You can now log in.', 'success');
         this.navCtrl.navigateRoot('/login');
       },

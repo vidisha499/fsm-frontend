@@ -37,9 +37,9 @@
           <div class="status-indicator"></div>
         </div>
         <div class="user-detail">
-          <h3>{{ req.ranger }}</h3>
+          <h3>{{ req.ranger || req.name || req.user_name || 'Officer' }}</h3>
           <span class="time-stamp">
-            <ion-icon name="time-outline"></ion-icon> {{ req.created_at | date:'hh:mm a' }}
+            <ion-icon name="time-outline"></ion-icon> {{ (req.created_at || req.createdAt || req.date || req.timestamp) | date:'hh:mm a' }}
           </span>
         </div>
       </div>

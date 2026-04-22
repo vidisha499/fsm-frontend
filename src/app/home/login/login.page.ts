@@ -176,6 +176,43 @@ async login() {
         // Explicit keys for sidebar (AppComponent)
         localStorage.setItem('ranger_username', userData.name);
         localStorage.setItem('ranger_phone', userInfo.phone);
+        
+        console.log("Login UserData:", userData);
+
+        // Save the profile picture if it exists by checking all possible backend keys
+        let profilePicRaw = userData.profile_pic || userData.profile_Pic || userData.profilePic || 
+                            userData.photo || userData.image || userData.profile_image || 
+                            userData.avatar || userData.user_photo || '';
+                            
+        let profilePic = profilePicRaw ? String(profilePicRaw).trim() : '';
+
+        // --- FALLBACK TO LOCAL CACHE (if backend strips base64 images from login response) ---
+        if (!profilePic || profilePic === 'null' || profilePic === 'undefined') {
+          const cachedPhoto = localStorage.getItem(`cached_photo_${this.loginData.phone.trim()}`);
+          if (cachedPhoto) {
+            profilePic = cachedPhoto;
+          }
+        }
+
+        // If the backend returns a relative path or filename, prepend the correct domain
+        if (profilePic && profilePic !== 'null' && profilePic !== 'undefined' && !profilePic.startsWith('http') && !profilePic.startsWith('data:')) {
+          let cleaned = profilePic.startsWith('/') ? profilePic.substring(1) : profilePic;
+          
+          if (cleaned.includes('fms.pugarch.in')) {
+            profilePic = `https://${cleaned.replace('https://', '').replace('http://', '')}`;
+          } else if (!cleaned.includes('/')) {
+            // It's just a filename like '1234.png'
+            profilePic = `https://fms.pugarch.in/public/profilepics/${cleaned}`;
+          } else {
+            profilePic = `https://fms.pugarch.in/public/${cleaned}`;
+          }
+        }
+
+        if (profilePic && profilePic !== 'null' && profilePic !== 'undefined') {
+          localStorage.setItem('user_photo', profilePic);
+        } else {
+          localStorage.removeItem('user_photo');
+        }
 
         this.presentToast(`Welcome, ${userData.name}!`, 'success');
         

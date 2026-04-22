@@ -150,17 +150,29 @@ export class AttendanceRequestsPage implements OnInit {
         console.log("1. Raw Data from API:", res);
         
         // Data assignment - Handling both raw array and status/data object
-        let sortedData = [];
+        let sortedData: any[] = [];
         if (Array.isArray(res)) {
           sortedData = res;
-        } else if (res && res.data && Array.isArray(res.data)) {
-          sortedData = res.data;
-        } else if (res && res.status === 'SUCCESS' && Array.isArray(res.data)) {
-          sortedData = res.data;
+        } else if (res) {
+          const reqs = Array.isArray(res.requests) ? res.requests : [];
+          const onsites = Array.isArray(res.onsite) ? res.onsite : [];
+          const dataArr = Array.isArray(res.data) ? res.data : [];
+          
+          if (reqs.length > 0 || onsites.length > 0) {
+            sortedData = [...reqs, ...onsites];
+          } else if (dataArr.length > 0) {
+            sortedData = dataArr;
+          } else {
+            const firstArray = Object.values(res).find(v => Array.isArray(v)) as any[];
+            if (firstArray) sortedData = firstArray;
+          }
         }
         
-        this.pendingRequests = sortedData.sort((a: any, b: any) => {
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        this.pendingRequests = sortedData.filter((req: any) => {
+          const status = (req.status || '').toLowerCase();
+          return status === 'pending' || status === 'requested' || status === ''; 
+        }).sort((a: any, b: any) => {
+          return new Date(b.created_at || b.createdAt || b.date).getTime() - new Date(a.created_at || a.createdAt || a.date).getTime();
         });
 
         console.log("2. Assigned to variable:", this.pendingRequests.length);

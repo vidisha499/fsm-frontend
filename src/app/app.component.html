@@ -217,8 +217,8 @@
           <div class="profile-upload">
             <div class="avatar-ring">
               <div class="static-avatar">
-                <img *ngIf="profileImage" [src]="profileImage" class="user-photo">
-                <i *ngIf="!profileImage" class="fas fa-user-shield"></i>
+                <img *ngIf="userPhoto" [src]="userPhoto" class="user-photo">
+                <i *ngIf="!userPhoto" class="fas fa-user-shield"></i>
               </div>
               <div class="cam-overlay" (click)="changeProfilePicture()">
                 <i class="fas fa-camera"></i>
