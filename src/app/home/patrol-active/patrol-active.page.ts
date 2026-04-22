@@ -261,6 +261,17 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
   }
 
   async initMap() {
+    // Small delay to ensure DOM is ready for Leaflet
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Check if the map container exists
+    const mapEl = document.getElementById('map');
+    if (!mapEl) {
+      console.warn('Map container not found, retrying in 500ms...');
+      setTimeout(() => this.initMap(), 500);
+      return;
+    }
+
     try {
       let lat = 21.1458; let lng = 79.0882;
       try {

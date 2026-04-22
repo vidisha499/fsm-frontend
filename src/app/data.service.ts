@@ -134,25 +134,38 @@ export class DataService {
   startActivePatrol(payload: any) { 
     const token = localStorage.getItem('api_token');
     const fullPayload = { ...payload, api_token: token };
-    return this.http.post(`${this.baseApiUrl}/patrol/start`, fullPayload); 
+    const headers = { 'Bypass-Token': 'true' };
+    return this.http.post(`${this.baseApiUrl}/patrol/start`, fullPayload, { headers }); 
   }
   getOngoingPatrols() { 
     const token = localStorage.getItem('api_token');
-    return this.http.post(`${this.baseApiUrl}/patrol-list`, { api_token: token }); 
+    const headers = { 'Bypass-Token': 'true' };
+    return this.http.post(`${this.baseApiUrl}/patrol-list`, { api_token: token }, { headers }); 
   }
   getActivePatrols(companyId: number) { 
     const token = localStorage.getItem('api_token');
-    return this.http.post(`${this.baseApiUrl}/patrol-list`, { company_id: companyId, api_token: token }); 
+    const headers = { 'Bypass-Token': 'true' };
+    return this.http.post(`${this.baseApiUrl}/patrol-list`, { company_id: companyId, api_token: token }, { headers }); 
   }
   updatePatrolStats(patrolId: string, data: any) { 
+    if (!patrolId || patrolId === 'undefined') return new Observable(obs => {
+      obs.error('Invalid Patrol ID');
+      obs.complete();
+    });
     const token = localStorage.getItem('api_token');
     const fullPayload = { ...data, api_token: token };
-    return this.http.post(`${this.baseApiUrl}/patrol/${patrolId}/end`, fullPayload); 
+    const headers = { 'Bypass-Token': 'true' };
+    return this.http.post(`${this.baseApiUrl}/patrol/${patrolId}/end`, fullPayload, { headers }); 
   }
   uploadPatrolPhoto(patrolId: string, photoData: any) { 
+    if (!patrolId || patrolId === 'undefined') return new Observable(obs => {
+      obs.error('Invalid Patrol ID');
+      obs.complete();
+    });
     const token = localStorage.getItem('api_token');
     const fullPayload = { ...photoData, api_token: token };
-    return this.http.post(`${this.baseApiUrl}/patrol/${patrolId}/photos`, fullPayload); 
+    const headers = { 'Bypass-Token': 'true' };
+    return this.http.post(`${this.baseApiUrl}/patrol/${patrolId}/photos`, fullPayload, { headers }); 
   }
   getCompletedPatrolLogs() { return this.http.post(`${this.baseApiUrl}/patrol-logs`, {}); }
   getPatrolsByCompany(companyId: number, dateFrom?: string, dateTo?: string) {
@@ -794,16 +807,63 @@ export class DataService {
 
     // 4. Sync Patrols
     const patrolDrafts = this.getPatrolDrafts();
+    const syncedPatrolIdsMap: {[key: string]: string} = {}; // Maps sessionId -> real patrolId
+
     for (const draft of patrolDrafts) {
       try {
         if (draft.type === 'start') {
-          await this.startActivePatrol(draft).toPromise();
+          const res: any = await this.startActivePatrol(draft).toPromise();
+          const newId = res?.data?.id || res?.id;
+          if (newId && draft.sessionId) {
+            syncedPatrolIdsMap[draft.sessionId] = newId.toString();
+          }
         } else {
-          await this.updatePatrolStats(draft.patrolId, draft).toPromise();
+          // If this is an 'end' draft but missing patrolId, check if we just synced the 'start'
+          let pId = draft.patrolId;
+          if ((!pId || pId === 'undefined') && draft.sessionId) {
+            pId = syncedPatrolIdsMap[draft.sessionId];
+          }
+          
+          // FALLBACK: If still no ID, try to find any active patrol on the server
+          if (!pId || pId === 'undefined') {
+            try {
+              const ongoing: any = await this.getOngoingPatrols().toPromise();
+              const list = ongoing?.data || ongoing || [];
+              if (list.length > 0) {
+                 pId = list[0].id?.toString() || list[0].sessionId?.toString();
+                 if (pId && draft.sessionId) syncedPatrolIdsMap[draft.sessionId] = pId;
+              }
+            } catch(e) {}
+          }
+          
+          if (pId && pId !== 'undefined') {
+            await this.updatePatrolStats(pId, draft).toPromise();
+          } else {
+            console.warn("Skipping end draft: No active Patrol ID found on server or locally.");
+            continue; // Keep in draft until start is synced next time
+          }
         }
         this.deletePatrolDraft(draft.draftId);
         syncCount++;
-      } catch (e) { console.error("Sync Patrol Error", e); }
+      } catch (e: any) { 
+        // Recovery: If server says another patrol is in progress, try to get its ID to link 'end' drafts
+        if (e.status === 401 && e.error?.message?.includes('Another patrol is in progress')) {
+          try {
+            const ongoing: any = await this.getOngoingPatrols().toPromise();
+            const list = ongoing?.data || ongoing || [];
+            if (list.length > 0) {
+              const pId = list[0].id || list[0].sessionId;
+              if (pId && draft.sessionId) {
+                syncedPatrolIdsMap[draft.sessionId] = pId.toString();
+                this.deletePatrolDraft(draft.draftId);
+                syncCount++;
+                continue;
+              }
+            }
+          } catch(recoveryErr) {}
+        }
+        console.error("Sync Patrol Error", e); 
+      }
     }
 
     if (syncCount > 0) {
