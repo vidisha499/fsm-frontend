@@ -641,6 +641,30 @@ export class DataService {
     localStorage.setItem(`attendance_drafts_${mode}`, JSON.stringify(drafts));
   }
 
+  // --- PATROL OFFLINE SUPPORT ---
+  savePatrolDraft(payload: any, type: 'start' | 'end') {
+    const drafts = this.getPatrolDrafts();
+    drafts.push({
+      ...payload,
+      draftId: 'PAT-' + Date.now(),
+      type: type,
+      isOffline: true,
+      timestamp: new Date().toISOString()
+    });
+    localStorage.setItem('patrol_drafts', JSON.stringify(drafts));
+  }
+
+  getPatrolDrafts(): any[] {
+    const drafts = localStorage.getItem('patrol_drafts');
+    return drafts ? JSON.parse(drafts) : [];
+  }
+
+  deletePatrolDraft(draftId: string) {
+    let drafts = this.getPatrolDrafts();
+    drafts = drafts.filter(d => d.draftId !== draftId);
+    localStorage.setItem('patrol_drafts', JSON.stringify(drafts));
+  }
+
   deleteFieldVisit(id: string) { return this.http.post(`${this.baseApiUrl}/${id}/delete`, {}); }
   syncFieldVisits() { return this.http.post(`${this.baseApiUrl}/sync`, {}); }
 
@@ -726,5 +750,62 @@ export class DataService {
     return this.http.get(`${this.baseApiUrl}/forest-reports/configs/all`, {
       params: { companyId: companyId.toString() }
     });
+  }
+
+  // --- GLOBAL SYNC ENGINE ---
+  async syncAllDrafts(): Promise<{ success: boolean; count: number; message?: string }> {
+    if (!this.isOnline()) return { success: false, count: 0, message: 'Still Offline' };
+
+    let syncCount = 0;
+    
+    // 1. Sync Forest Events
+    const eventDrafts = this.getForestEventDrafts();
+    for (const draft of eventDrafts) {
+      try {
+        await this.submitForestEvent(draft).toPromise();
+        this.deleteForestEventDraft(draft.draftId);
+        syncCount++;
+      } catch (e) { console.error("Sync Event Error", e); }
+    }
+
+    // 2. Sync Attendance (Beat)
+    const beatDrafts = this.getAttendanceDrafts('beat');
+    for (const draft of beatDrafts) {
+      try {
+        if (draft.mode_type === 'exit') {
+          await this.markAttendanceExit(draft).toPromise();
+        } else {
+          await this.markAttendance(draft).toPromise();
+        }
+        this.deleteAttendanceDraft(draft.draftId, 'beat');
+        syncCount++;
+      } catch (e) { console.error("Sync Beat Error", e); }
+    }
+
+    // 3. Sync Attendance (Onsite)
+    const onsiteDrafts = this.getAttendanceDrafts('onsite');
+    for (const draft of onsiteDrafts) {
+      try {
+        await this.markOnsiteAttendance(draft).toPromise();
+        this.deleteAttendanceDraft(draft.draftId, 'onsite');
+        syncCount++;
+      } catch (e) { console.error("Sync Onsite Error", e); }
+    }
+
+    // 4. Sync Patrols
+    const patrolDrafts = this.getPatrolDrafts();
+    for (const draft of patrolDrafts) {
+      try {
+        if (draft.type === 'start') {
+          await this.startActivePatrol(draft).toPromise();
+        } else {
+          await this.updatePatrolStats(draft.patrolId, draft).toPromise();
+        }
+        this.deletePatrolDraft(draft.draftId);
+        syncCount++;
+      } catch (e) { console.error("Sync Patrol Error", e); }
+    }
+
+    return { success: true, count: syncCount };
   }
 }

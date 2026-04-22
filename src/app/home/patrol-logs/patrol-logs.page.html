@@ -22,13 +22,20 @@
         </div>
 
         <button (click)="setFilterOpen(true)" class="glass-btn" style="margin-left: auto;">
-  <ion-icon name="options-outline" style="font-size: 20px; color: white;"></ion-icon>
-</button>
+          <ion-icon name="options-outline" style="font-size: 20px; color: white;"></ion-icon>
+        </button>
       </div>
     </div>
   </div>
 
   <div class="logs-container">
+    <!-- Relocated Sync Button -->
+    <div class="list-sync-header" *ngIf="hasOfflineLogs()">
+      <button class="mini-sync-btn" (click)="syncAllOffline()">
+        <ion-icon name="sync-outline" class="spin-icon"></ion-icon>
+        <span>Sync Pending Patrols</span>
+      </button>
+    </div>
     <div *ngIf="patrolLogs && patrolLogs.length > 0; else noLogsTemplate" style="display: flex; flex-direction: column; gap: 12px;">
       <div class="log-entry-card" *ngFor="let log of patrolLogs" (click)="viewDetails(log)">
         <div style="display: flex; align-items: center; gap: 15px;">
@@ -41,13 +48,14 @@
           </div>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
-         <span class="status-pill" 
-      [ngClass]="{
-        'completed': log.status === 'COMPLETED',
-        'pending': log.status === 'ACTIVE' || log.status === 'PENDING'
-      }">
-  {{ log.status === 'ACTIVE' ? 'ON-DUTY' : log.status }}
-</span>
+          <span class="status-pill" 
+            [ngClass]="{
+              'completed': log.status === 'COMPLETED',
+              'pending': log.status === 'ACTIVE' || log.status === 'PENDING',
+              'offline': log.isOffline
+            }">
+            {{ log.isOffline ? 'OFFLINE' : (log.status === 'ACTIVE' ? 'ON-DUTY' : log.status) }}
+          </span>
           <!-- <ion-button fill="clear" color="danger" (click)="deleteLog(log.id, $event)" style="margin: 0;">
             <ion-icon slot="icon-only" name="trash-outline" style="font-size: 18px;"></ion-icon>
           </ion-button> -->

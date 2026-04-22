@@ -31,17 +31,20 @@
           </div>
         </div>
 
-        <!-- Sync Button for Offline Logs -->
-        <div class="sync-container animate__animated animate__pulse animate__infinite" *ngIf="allLogs && allLogs.length > 0">
-           <button class="sync-btn" (click)="syncOfflineDrafts()" *ngIf="hasOfflineLogs()">
-             <ion-icon name="sync-outline"></ion-icon>
-             <span>Sync Now</span>
-           </button>
-        </div>
       </div>
     </div>
 
     <div class="main-container">
+      <!-- Relocated Sync Button -->
+      <div class="list-sync-header" *ngIf="hasOfflineLogs()">
+        <div class="sync-row">
+          <button class="mini-sync-btn" (click)="syncOfflineDrafts()">
+            <ion-icon name="sync-outline" class="spin-icon"></ion-icon>
+            <span>Sync Pending Data</span>
+          </button>
+        </div>
+      </div>
+
       <div class="filter-active-chip" *ngIf="isFiltered">
         <ion-chip (click)="resetFilters()">
           <ion-label>Filtered Results</ion-label>

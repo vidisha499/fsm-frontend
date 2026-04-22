@@ -15,6 +15,14 @@
           <span>LIVE</span>
         </div>
       </div>
+      
+      <!-- New Manual Sync Section -->
+      <div class="sync-banner" *ngIf="hasOffline()">
+        <button (click)="syncNow()" class="sync-pill">
+          <ion-icon name="sync-outline" class="spin-icon"></ion-icon>
+          <span>Offline Data Pending - Sync Now</span>
+        </button>
+      </div>
     </div>
 
     <!-- Main Sheet Container -->

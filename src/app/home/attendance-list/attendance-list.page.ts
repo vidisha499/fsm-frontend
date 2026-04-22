@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { Router, ActivatedRoute } from '@angular/router';
 import { DataService } from '../../data.service'; 
 import { TranslateService } from '@ngx-translate/core';
+import { firstValueFrom } from 'rxjs';
 import { environment } from 'src/environments/environment';
 
 @Component({
@@ -254,43 +255,29 @@ async loadAttendanceLogs() {
 
     async syncOfflineDrafts() {
       if (!this.dataService.isOnline()) {
-        const msg = await this.translate.get('ATTENDANCE.OFFLINE_SYNC_WAIT').toPromise() || 'Still offline. Please check connection.';
+        const msg = await firstValueFrom(this.translate.get('ATTENDANCE.OFFLINE_SYNC_WAIT')) || 'Still offline. Please check connection.';
         this.presentToast(msg, 'warning');
         return;
       }
 
-      const drafts = this.dataService.getAttendanceDrafts(this.selectedMode);
-      if (drafts.length === 0) return;
-
       const loader = await this.loadingCtrl.create({
-        message: 'Syncing Offline Logs...',
+        message: 'Syncing All Offline Data...',
         spinner: 'crescent'
       });
       await loader.present();
 
-      let successCount = 0;
-      const headers = { 'Bypass-Token': 'true' };
-
-      for (const draft of drafts) {
-        try {
-          const req = this.selectedMode === 'beat' 
-            ? (draft.isEntry ? this.dataService.markOfflineEntryAttendance(draft, headers) : this.dataService.markOfflineExitAttendance(draft, headers))
-            : this.dataService.markOfflineEmergencyAttendance(draft, headers);
-          
-          await req.toPromise();
-          this.dataService.deleteAttendanceDraft(draft.draftId, this.selectedMode);
-          successCount++;
-        } catch (e) {
-          console.error("Sync failed for draft:", draft.draftId, e);
-        }
-      }
-
+      const res = await this.dataService.syncAllDrafts();
       await loader.dismiss();
-      if (successCount > 0) {
-        this.presentToast(`Successfully synced ${successCount} logs!`, 'success');
-        this.loadAttendanceLogs();
+
+      if (res.success) {
+        if (res.count && res.count > 0) {
+          this.presentToast(`Successfully synced ${res.count} items!`, 'success');
+          this.loadAttendanceLogs();
+        } else {
+          this.presentToast('Everything is already synced.', 'primary');
+        }
       } else {
-        this.presentToast('Sync failed. Will try again later.', 'danger');
+        this.presentToast(res.message || 'Sync failed. Will try again later.', 'danger');
       }
     }
 

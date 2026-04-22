@@ -527,12 +527,33 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     const fmsPayload = {
       end_lat: String(eLat),
       end_lng: String(eLng),
-      coords: this.routePoints.map(p => [p.lng, p.lat]) // Sir expects raw array
+      coords: this.routePoints.map(p => [p.lng, p.lat]), // Sir expects raw array
+      patrolId: sessionId, // Used for offline tracking
+      status: 'COMPLETED' // Ensure UI shows it as completed offline
     };
 
     if (!sessionId) {
       await loader.dismiss();
       this.showToast('No active patrol ID found', 'danger');
+      return;
+    }
+
+    if (!this.dataService.isOnline()) {
+      console.warn("Offline detected. Saving patrol end locally.");
+      this.dataService.savePatrolDraft(fmsPayload, 'end');
+      
+      await loader.dismiss();
+      localStorage.removeItem('active_patrol_id');
+      localStorage.removeItem('temp_patrol_name');
+      localStorage.removeItem('patrol_session_start_time');
+      localStorage.removeItem('active_patrol_route');
+      localStorage.removeItem('active_patrol_session_id');
+      
+      if (this.timerInterval) clearInterval(this.timerInterval);
+      if (this.gpsWatchId) await Geolocation.clearWatch({ id: this.gpsWatchId });
+      
+      this.showToast('Patrol ended offline. It will sync when online.', 'secondary');
+      this.navCtrl.navigateRoot('/home/patrol-logs');
       return;
     }
 

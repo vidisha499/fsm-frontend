@@ -120,16 +120,13 @@ export class PatrolLogsPage implements OnInit {
     
     this.dataService.getPatrolsByCompany(Number(storedCompanyId), from, to).subscribe({
       next: (res: any) => {
-        // Assume FMS returns an array of patrols
         const allLogs = Array.isArray(res) ? res : res.data || [];
-        
-        // Filter by userId if RANGER
         let filteredLogs = allLogs;
         if (userRole === 'RANGER' && userData.id) {
           filteredLogs = allLogs.filter((p: any) => p.user_id == userData.id || p.ranger_id == userData.id);
         }
 
-        this.patrolLogs = filteredLogs.map((p: any) => {
+        const fetchedLogs = filteredLogs.map((p: any) => {
           const isCompleted = p.status === 'COMPLETED' || p.status === 'SUCCESS' || !!p.end_lat || !!p.end_time || !!p.ended_at;
           const mStr = p.method || p.patrol_method || p.method_name || 'PATROL';
           const tStr = p.type || p.patrol_type || p.type_name || 'LOG';
@@ -143,14 +140,60 @@ export class PatrolLogsPage implements OnInit {
           };
         });
 
+        // Merge Offline Drafts (Deduplicated by sessionId/patrolId)
+        const rawDrafts = this.dataService.getPatrolDrafts();
+        const uniqueDraftMap = new Map();
+        rawDrafts.forEach(d => {
+          const id = d.sessionId || d.patrolId;
+          if (!uniqueDraftMap.has(id) || d.type === 'end') {
+            uniqueDraftMap.set(id, d);
+          }
+        });
+        const drafts = Array.from(uniqueDraftMap.values());
+        
+        this.patrolLogs = [...drafts, ...fetchedLogs];
+
         loader.dismiss();
         this.cdr.detectChanges();
       },
       error: async (err) => {
         console.error("LOAD ERROR:", err);
+        const drafts = this.dataService.getPatrolDrafts();
+        this.patrolLogs = drafts;
         loader.dismiss();
       }
     });
+  }
+
+  hasOfflineLogs(): boolean {
+    return this.patrolLogs && this.patrolLogs.some(l => l.isOffline);
+  }
+
+  async syncAllOffline() {
+    if (!this.dataService.isOnline()) {
+      this.presentToast('Still offline. Please check connection.', 'warning');
+      return;
+    }
+
+    const loader = await this.loadingCtrl.create({
+      message: 'Syncing All Data...',
+      spinner: 'crescent'
+    });
+    await loader.present();
+
+    const res = await this.dataService.syncAllDrafts();
+    await loader.dismiss();
+
+    if (res.success) {
+      if (res.count && res.count > 0) {
+        this.presentToast(`Synced ${res.count} items!`, 'success');
+        this.loadPatrolLogs();
+      } else {
+        this.presentToast('Everything is already synced.', 'primary');
+      }
+    } else {
+      this.presentToast(res.message || 'Sync failed', 'danger');
+    }
   }
 
   // --- SAVE / START PATROL ---
@@ -199,25 +242,47 @@ export class PatrolLogsPage implements OnInit {
       sessionId: uniqueSessionId
     };
 
+    if (!this.dataService.isOnline()) {
+      console.warn("Offline detected. Saving patrol start locally.");
+      const offlinePayload = {
+        ...payload,
+        status: 'PENDING',
+        isOffline: true,
+        patrolName: this.selectedMethod.toUpperCase(),
+        patrolType: this.selectedType.toUpperCase(),
+        startTime: new Date().toISOString()
+      };
+      this.dataService.savePatrolDraft(offlinePayload, 'start');
+      
+      localStorage.setItem('active_patrol_id', uniqueSessionId);
+      localStorage.setItem('active_patrol_session_id', uniqueSessionId);
+      localStorage.setItem('temp_patrol_name', `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`);
+      localStorage.setItem('patrol_session_start_time', offlinePayload.startTime);
+      
+      loader.dismiss();
+      this.isModalOpen = false;
+      this.presentToast('Patrol started offline.', 'secondary');
+      
+      this.navCtrl.navigateForward(['/home/patrol-active'], {
+        queryParams: { id: uniqueSessionId, patrolId: uniqueSessionId }
+      });
+      return;
+    }
+
     this.dataService.startActivePatrol(payload).subscribe({
       next: (res: any) => {
         loader.dismiss();
-        
-        // Use server's returned ID if available, else fallback to our unique session ID
         const realId = res?.id || res?.data?.id || res?.patrol?.id;
         const activeId = realId ? realId.toString() : uniqueSessionId;
         
         localStorage.setItem('active_patrol_id', activeId);
-        localStorage.setItem('active_patrol_session_id', uniqueSessionId); // Store the string ID for reporting
+        localStorage.setItem('active_patrol_session_id', uniqueSessionId);
         localStorage.setItem('temp_patrol_name', `${this.selectedMethod.toUpperCase()} - ${this.selectedType}`);
+        localStorage.setItem('patrol_session_start_time', new Date().toISOString());
         
         this.isModalOpen = false;
-        
         this.navCtrl.navigateForward(['/home/patrol-active'], {
-          queryParams: { 
-            id: activeId,
-            patrolId: activeId
-          }
+          queryParams: { id: activeId, patrolId: activeId }
         });
       },
       error: async (err) => {

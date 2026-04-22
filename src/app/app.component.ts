@@ -1,4 +1,4 @@
-import { Component, Renderer2, QueryList, ViewChildren, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, Renderer2, QueryList, ViewChildren, OnInit, ChangeDetectorRef, HostListener } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { Platform, IonRouterOutlet, ActionSheetController, ModalController, MenuController, NavController, ToastController, LoadingController } from '@ionic/angular';
 import { Router } from '@angular/router';
@@ -102,6 +102,27 @@ export class AppComponent implements OnInit {
     this.photoViewer.currentImage$.subscribe(img => {
       this.viewerImageUrl = img;
       this.cdr.detectChanges();
+    });
+
+    // 🚀 NEW: Check and Sync immediately on App Load if Online
+    if (this.dataService.isOnline()) {
+      this.dataService.syncAllDrafts();
+    }
+  }
+
+  // 🔥 NEW: Automatic Sync when Network Restored
+  @HostListener('window:online')
+  onOnline() {
+    console.log("🌐 System back online! Triggering background sync...");
+    this.dataService.syncAllDrafts().then(res => {
+      if (res.success && res.count && res.count > 0) {
+        this.toastController.create({
+          message: `Background Sync Complete: ${res.count} records uploaded.`,
+          duration: 3000,
+          color: 'success',
+          mode: 'ios'
+        }).then(t => t.present());
+      }
     });
   }
 

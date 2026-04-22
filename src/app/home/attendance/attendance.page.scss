@@ -68,6 +68,37 @@
         }
       }
     }
+
+    .sync-banner {
+      padding: 0 20px;
+      margin-top: 15px;
+      
+      .sync-pill {
+        width: 100%;
+        background: rgba(251, 191, 36, 0.2);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(251, 191, 36, 0.4);
+        border-radius: 15px;
+        padding: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        color: #fbbf24;
+        font-weight: 800;
+        font-size: 13px;
+        
+        .spin-icon {
+          font-size: 18px;
+          animation: spin 3s linear infinite;
+        }
+      }
+    }
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
 
   .card-container {

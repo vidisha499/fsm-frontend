@@ -73,6 +73,22 @@ export class AttendancePage implements OnInit, OnDestroy {
     }, 1000);
   }
 
+  hasOffline(): boolean {
+    return this.dataService.getAttendanceDrafts('beat').length > 0;
+  }
+
+  async syncNow() {
+    const loader = await this.loadingCtrl.create({ message: 'Syncing...', mode: 'ios' });
+    await loader.present();
+    const res = await this.dataService.syncAllDrafts();
+    await loader.dismiss();
+    if (res.success && res.count && res.count > 0) {
+      this.presentToast(`Synced ${res.count} items!`, 'success');
+    } else {
+      this.presentToast('No data to sync or still offline.', 'warning');
+    }
+  }
+
   async ionViewDidEnter() {
     await this.initLeafletMap();
   }
