@@ -48,7 +48,11 @@ export class PatrolLogsPage implements OnInit {
     private dataService: DataService
   ) {}
 
-  ngOnInit() { }
+  ngOnInit() { 
+    this.dataService.syncCompleted$.subscribe(() => {
+      this.loadPatrolLogs();
+    });
+  }
   
   ionViewWillEnter() { 
     this.loadPatrolLogs(); 
@@ -142,6 +146,18 @@ export class PatrolLogsPage implements OnInit {
             startTime: p.created_at || new Date().toISOString() 
           };
         });
+
+        // 💾 Merge Offline Drafts
+        const drafts = this.dataService.getPatrolEndDrafts();
+        const formattedDrafts = drafts.map(d => ({
+          ...d,
+          isOffline: true,
+          status: 'COMPLETED',
+          patrolName: (d.method || 'PATROL').toString().toUpperCase(),
+          patrolType: (d.type || 'OFFLINE').toString().toUpperCase(),
+          startTime: d.startTime || d.timestamp
+        }));
+        this.patrolLogs = [...formattedDrafts, ...this.patrolLogs];
 
         loader.dismiss();
         this.cdr.detectChanges();
@@ -297,6 +313,34 @@ export class PatrolLogsPage implements OnInit {
       },
       error: () => this.presentToast('Delete failed', 'danger')
     });
+  }
+
+  // --- 💾 OFFLINE SYNC LOGIC ---
+  hasOfflineLogs(): boolean {
+    return this.patrolLogs && this.patrolLogs.some(l => l.isOffline);
+  }
+
+  async syncOfflineDrafts() {
+    if (!this.dataService.isOnline()) {
+      this.presentToast('Still offline. Please check connection.', 'warning');
+      return;
+    }
+
+    const loader = await this.loadingCtrl.create({
+      message: 'Syncing Offline Patrols...',
+      spinner: 'crescent'
+    });
+    await loader.present();
+
+    const result = await this.dataService.syncAllOfflineData();
+    await loader.dismiss();
+
+    if (result.success) {
+      this.presentToast(`Successfully synced ${result.count} records!`, 'success');
+      this.loadPatrolLogs();
+    } else {
+      this.presentToast(result.message || 'Sync failed', 'danger');
+    }
   }
 
   // --- UI HELPERS ---

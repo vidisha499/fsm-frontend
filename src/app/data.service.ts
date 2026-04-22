@@ -14,6 +14,7 @@ export class DataService {
 
   // Bridge for Sidebar Refresh
   public loginSuccess$ = new Subject<void>();
+  public syncCompleted$ = new Subject<void>();
 
   constructor(private http: HttpClient) {}
 
@@ -619,13 +620,18 @@ export class DataService {
 
   // --- ATTENDANCE OFFLINE SUPPORT ---
   saveAttendanceDraft(payload: any, mode: 'beat' | 'onsite') {
-    const drafts = this.getAttendanceDrafts(mode);
+    let drafts = this.getAttendanceDrafts(mode);
+    
+    // Check for potential duplicate (same timestamp/location)
+    const isDuplicate = drafts.some(d => d.timestamp === payload.timestamp && d.latitude === payload.latitude);
+    if (isDuplicate) return;
+
     drafts.push({
       ...payload,
       draftId: 'ATT-' + Date.now(),
       mode: mode,
       isOffline: true,
-      timestamp: new Date().toISOString()
+      timestamp: payload.timestamp || new Date().toISOString()
     });
     localStorage.setItem(`attendance_drafts_${mode}`, JSON.stringify(drafts));
   }
@@ -639,6 +645,114 @@ export class DataService {
     let drafts = this.getAttendanceDrafts(mode);
     drafts = drafts.filter(d => d.draftId !== draftId);
     localStorage.setItem(`attendance_drafts_${mode}`, JSON.stringify(drafts));
+  }
+
+  // --- PATROL OFFLINE SUPPORT ---
+  savePatrolEndDraft(payload: any) {
+    let drafts = this.getPatrolEndDrafts();
+    drafts.push({
+      ...payload,
+      draftId: 'PAT-END-' + Date.now(),
+      isOffline: true,
+      timestamp: new Date().toISOString()
+    });
+    localStorage.setItem('patrol_end_drafts', JSON.stringify(drafts));
+  }
+
+  getPatrolEndDrafts(): any[] {
+    const drafts = localStorage.getItem('patrol_end_drafts');
+    return drafts ? JSON.parse(drafts) : [];
+  }
+
+  deletePatrolEndDraft(draftId: string) {
+    let drafts = this.getPatrolEndDrafts();
+    drafts = drafts.filter(d => d.draftId !== draftId);
+    localStorage.setItem('patrol_end_drafts', JSON.stringify(drafts));
+  }
+
+  // --- GLOBAL SYNC ENGINE ---
+  async syncAllOfflineData() {
+    if (!this.isOnline()) return { success: false, message: 'No internet connection' };
+
+    let syncCount = 0;
+    
+    // 1. Sync Forest Events
+    const eventDrafts = this.getForestEventDrafts();
+    for (const draft of eventDrafts) {
+      try {
+        await this.submitForestEvent(draft).toPromise();
+        this.deleteForestEventDraft(draft.draftId);
+        syncCount++;
+      } catch (e) { console.error('Sync Event Failed', e); }
+    }
+
+    // 2. Sync Attendance (Beat)
+    const beatDrafts = this.getAttendanceDrafts('beat');
+    for (const draft of beatDrafts) {
+      try {
+        await this.markAttendance(draft).toPromise();
+        this.deleteAttendanceDraft(draft.draftId, 'beat');
+        syncCount++;
+      } catch (e) { console.error('Sync Beat Failed', e); }
+    }
+
+    // 3. Sync Attendance (Onsite)
+    const onsiteDrafts = this.getAttendanceDrafts('onsite');
+    for (const draft of onsiteDrafts) {
+      try {
+        await this.markOnsiteAttendance(draft).toPromise();
+        this.deleteAttendanceDraft(draft.draftId, 'onsite');
+        syncCount++;
+      } catch (e) { console.error('Sync Onsite Failed', e); }
+    }
+
+    // 4. Sync Patrol Ends
+    const patrolDrafts = this.getPatrolEndDrafts();
+    for (const draft of patrolDrafts) {
+      try {
+        let patrolId = draft.patrol_id;
+        
+        // 🚀 CRITICAL: If the patrol was started offline or didn't get a numeric ID
+        // we must try to "start" it on the server first, then "end" it.
+        if (patrolId && patrolId.toString().startsWith('PATROL_')) {
+          console.log('Unsynced patrol session detected. Starting on server first...');
+          
+          const startCoord = (draft.coords && draft.coords.length > 0) ? draft.coords[0] : [0, 0];
+          const methodParts = (draft.method || 'ON FOOT - REGULAR').split(' - ');
+          
+          const startPayload = {
+            start_lat: String(startCoord[1] || 0),
+            start_lng: String(startCoord[0] || 0),
+            method: (methodParts[0] || 'on foot').toLowerCase(),
+            type: methodParts[1] || 'Regular',
+            sessionId: patrolId // Link via the same session string
+          };
+
+          try {
+            const startRes: any = await this.startActivePatrol(startPayload).toPromise();
+            const realId = startRes?.id || startRes?.data?.id || startRes?.patrol?.id || startRes?.patrolId;
+            if (realId) {
+              patrolId = realId.toString();
+              console.log('Successfully started patrol on server. New ID:', patrolId);
+            }
+          } catch (startErr) {
+            console.error('Failed to start patrol session on server during sync', startErr);
+            continue; // Skip this draft for now, try again later
+          }
+        }
+
+        // Now end the patrol using the (possibly new) patrolId
+        delete draft.patrol_id; 
+        await this.updatePatrolStats(patrolId, draft).toPromise();
+        this.deletePatrolEndDraft(draft.draftId);
+        syncCount++;
+      } catch (e) { 
+        console.error('Sync Patrol End Failed', e); 
+      }
+    }
+
+    this.syncCompleted$.next();
+    return { success: true, count: syncCount };
   }
 
   deleteFieldVisit(id: string) { return this.http.post(`${this.baseApiUrl}/${id}/delete`, {}); }

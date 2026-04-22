@@ -56,6 +56,11 @@ filterLocation: string = ''; // Location input ke liye
         this.selectedMode = 'beat';
       }
     });
+
+    // 💾 Refresh on sync
+    this.dataService.syncCompleted$.subscribe(() => {
+      this.loadAttendanceLogs();
+    });
   }
 
   // async loadTodayOnly() {

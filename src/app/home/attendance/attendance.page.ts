@@ -305,11 +305,17 @@ async submitAttendance() {
   // 6. Check Online Status
   if (!this.dataService.isOnline()) {
     console.warn("Offline detected. Saving attendance draft locally.");
+    
+    // Get Ranger Name from Storage
+    const storedName = localStorage.getItem('ranger_username') || (userData ? userData.name : 'Ranger');
+    const beatName = localStorage.getItem('assigned_beat_name') || 'Beat Area';
+
     const offlinePayload = {
       ...commonPayload,
-      isEntry: this.isEntry, // Store type for offline sync
+      name: storedName, // 👈 Explicitly save name for offline display
+      isEntry: this.isEntry,
       createdAt: new Date().toISOString(),
-      geo_name: commonPayload.geo_name || 'Offline Location'
+      geo_name: commonPayload.geo_name !== 'Unknown Location' ? commonPayload.geo_name : `[Offline] ${beatName}`
     };
     this.dataService.saveAttendanceDraft(offlinePayload, 'beat');
     

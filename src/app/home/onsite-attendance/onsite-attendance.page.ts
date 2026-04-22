@@ -226,10 +226,14 @@ async submit() {
   // 6. Check Online Status
   if (!this.dataService.isOnline()) {
     console.warn("Offline detected. Saving onsite draft locally.");
+    
+    const storedName = localStorage.getItem('ranger_username') || 'Ranger';
+    
     const offlinePayload = {
       ...onsiteData,
+      name: storedName, // 👈 Save name for list display
       createdAt: new Date().toISOString(),
-      geo_name: onsiteData.geo_name || 'Onsite Offline'
+      geo_name: onsiteData.geo_name || '[Onsite] Offline'
     };
     this.dataService.saveAttendanceDraft(offlinePayload, 'onsite');
     
