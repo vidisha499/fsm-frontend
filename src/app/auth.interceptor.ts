@@ -21,10 +21,21 @@ export class AuthInterceptor implements HttpInterceptor {
     }
 
     if (apiToken && !request.headers.has('Authorization')) {
+      const skipUrlToken = request.params.has('skip_url_token') || request.url.includes('skip_url_token');
+      
       // 1. Add api_token to URL Parameters (Standard for legacy PHP/Sir's APIs)
-      let clonedRequest = request.clone({
-        params: request.params.set('api_token', apiToken)
-      });
+      // SKIP if skip_url_token is present to avoid backend SQL bugs
+      let clonedRequest = request;
+      if (!skipUrlToken) {
+        clonedRequest = request.clone({
+          params: request.params.set('api_token', apiToken)
+        });
+      } else {
+        // Remove the helper param so it doesn't reach the server
+        clonedRequest = request.clone({
+          params: request.params.delete('skip_url_token')
+        });
+      }
 
       // 3. Add to Body for POST/PUT/PATCH (Fallback for Sir's legacy APIs)
       if (['POST', 'PUT', 'PATCH'].includes(request.method)) {

@@ -253,6 +253,14 @@ async submitAsset() {
   }
 
   initMap() {
+    // Leaflet Default Icon Fix (Resolves marker-icon-2x.png 404)
+    delete (L.Icon.Default.prototype as any)._getIconUrl;
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl: 'assets/icon/favicon.png',
+      iconUrl: 'assets/icon/favicon.png',
+      shadowUrl: 'assets/icon/favicon.png',
+    });
+
     // 1. Map Initialize
     this.map = L.map('incidentMap').setView([this.lat, this.lng], 15);
 

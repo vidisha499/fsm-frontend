@@ -290,8 +290,8 @@ export class DataService {
   getAttendanceByCompany(companyId: string) { return this.getAttendanceRequests(companyId); }
   
   markOnsiteAttendance(payload: any, headers?: any) { 
-    // Switching to markAttendance because requestEntryAttendance is giving 401 Unauthorized for Rangers
-    return this.markAttendance(payload, headers); 
+    // Reverting to requestEntryAttendance for onsite approval workflow
+    return this.requestEntryAttendance(payload, headers); 
   }
   
   getOnsiteLogsByRanger(rangerId: string, companyId: string) { 
@@ -360,12 +360,44 @@ export class DataService {
   
 
   // --- 9. ASSETS MANAGEMENT ---
-  addAsset(assetData: any): Observable<any> { return this.http.post(`${this.baseApiUrl}/asset/create`, assetData); }
-  updateAsset(id: string | number, assetData: any): Observable<any> { return this.http.put(`${this.baseApiUrl}/asset/${id}/update`, assetData); }
+  addAsset(assetData: any): Observable<any> { 
+    const formData = new FormData();
+    for (const key in assetData) {
+      if (Array.isArray(assetData[key])) {
+        assetData[key].forEach((val: any) => formData.append(`${key}[]`, val));
+      } else {
+        formData.append(key, assetData[key]);
+      }
+    }
+    return this.http.post(`${this.baseApiUrl}/asset/create`, formData); 
+  }
+  updateAsset(id: any, payload: any): Observable<any> {
+    const formData = new FormData();
+    for (const key in payload) {
+      if (payload[key] !== null && payload[key] !== undefined) {
+        formData.append(key, payload[key]);
+      }
+    }
+    // Most legacy PHP backends prefer POST for updates when sending FormData
+    return this.http.post(`${this.baseApiUrl}/asset/${id}/update`, formData);
+  }
   deleteAsset(id: string | number): Observable<any> { return this.http.post(`${this.baseApiUrl}/asset/${id}/delete`, {}); }
-  getAssets(companyId: number): Observable<any> { return this.http.post(`${this.baseApiUrl}/asset-list`, { company_id: companyId }); }
-  getMyAssets(companyId: number, userId: number): Observable<any> { return this.http.post(`${this.baseApiUrl}/asset-list`, { company_id: companyId, created_by: userId }); }
-  getAssetDetail(id: string | number): Observable<any> { return this.http.post(`${this.baseApiUrl}/asset/detail`, { id: id }); }
+  getAssets(companyId: number): Observable<any> { 
+    const formData = new FormData();
+    formData.append('company_id', companyId.toString());
+    return this.http.post(`${this.baseApiUrl}/asset-list`, formData); 
+  }
+  getMyAssets(companyId: number, userId: number): Observable<any> { 
+    const formData = new FormData();
+    formData.append('company_id', companyId.toString());
+    formData.append('created_by', userId.toString());
+    return this.http.post(`${this.baseApiUrl}/asset-list`, formData); 
+  }
+  getAssetDetail(id: string | number): Observable<any> { 
+    const formData = new FormData();
+    formData.append('id', id.toString());
+    return this.http.post(`${this.baseApiUrl}/asset/detail`, formData); 
+  }
   downloadAssetReport(payload: any) { 
     return this.http.post(`${this.baseApiUrl}/asset-report`, payload, { responseType: 'blob', observe: 'response' }); 
   }
@@ -375,12 +407,30 @@ export class DataService {
     const headers = { 'Authorization': `Bearer ${token}` };
     return this.http.get(`${this.baseApiUrl}/forest-admin-dashboard/data?type=assets&companyId=${companyId}`, { headers });
   }
-  getAssetTrend(companyId: number): Observable<any> { return this.http.get(`${this.baseApiUrl}/assets/assets-trend?company_id=${companyId}`); }
+  getAssetTrend(companyId: number): Observable<any> { 
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    formData.append('company_id', companyId.toString());
+    return this.http.post(`${this.baseApiUrl}/assets/assets-trend`, formData, { headers: { 'Bypass-Token': 'true' } }); 
+  }
   getAssetsTrend(companyId: number): Observable<any> { return this.getAssetTrend(companyId); }
-  getAssetCategories(companyId: any): Observable<any[]> { return this.http.get<any[]>(`${this.baseApiUrl}/assets/categories/${companyId}`); }
-  getAssetStatuses(companyId: number) { return this.http.get(`${this.baseApiUrl}/assets/statuses/company/${companyId}`); }
-  getCategories(companyId: any) { return this.http.get(`${this.baseApiUrl}/assets/categories/${companyId}`); }
-  getStatuses(companyId: any) { return this.http.get(`${this.baseApiUrl}/assets/statuses/${companyId}`); }
+  getAssetCategories(companyId: any): Observable<any[]> { return this.getCategories(companyId); }
+  getAssetStatuses(companyId: number): Observable<any> { return this.getStatuses(companyId); }
+  getCategories(companyId: any): Observable<any> { 
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    formData.append('company_id', companyId.toString());
+    return this.http.post(`${this.baseApiUrl}/assets/categories`, formData, { headers: { 'Bypass-Token': 'true' } }); 
+  }
+  getStatuses(companyId: any): Observable<any> { 
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    formData.append('company_id', companyId.toString());
+    return this.http.post(`${this.baseApiUrl}/assets/statuses`, formData, { headers: { 'Bypass-Token': 'true' } }); 
+  }
 
   // --- 10. ANALYTICS ---
   getAssetsAnalytics(companyId: number, startDate?: string, endDate?: string) {
@@ -422,7 +472,15 @@ export class DataService {
   }
 
   // --- 11. ALERTS & SOS ---
-  sendSOSAlert(payload: any) { return this.http.post(`${this.baseApiUrl}/alerts/sos`, payload); }
+  sendSOSAlert(payload: any) { 
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    formData.append('latitude', payload.latitude || '');
+    formData.append('longitude', payload.longitude || '');
+    formData.append('message', payload.message || 'Emergency SOS Triggered');
+    return this.http.post(`${this.baseApiUrl}/alerts/sos`, formData, { headers: { 'Bypass-Token': 'true' } }); 
+  }
   getLatestAlerts(companyId: number): Observable<any[]> { return this.http.get<any[]>(`${this.baseApiUrl}/alerts/${companyId}`); }
   getAlertsByCompany(companyId: number): Observable<any[]> { return this.http.get<any[]>(`${this.baseApiUrl}/alerts/company/${companyId}`); }
 

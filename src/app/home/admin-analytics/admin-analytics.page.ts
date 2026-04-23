@@ -583,7 +583,7 @@ setAnaCat(id: string) {
   if (id === 'assets') {
     const companyId = localStorage.getItem('company_id') || 1;
     // Database se categories fetch karo (Resorts/Safari ke liye)
-    this.dataService.get(`assets/categories/${companyId}`).subscribe((categories: any) => {
+    this.dataService.getCategories(companyId).subscribe((categories: any) => {
       this.ANA_CONFIG.assets.subs = categories.map((cat: any, idx: number) => ({
         id: cat.name.toLowerCase().replace(/\s/g, '_'),
         label: cat.name,

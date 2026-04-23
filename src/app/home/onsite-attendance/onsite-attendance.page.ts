@@ -52,7 +52,7 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
   // Configuration
   private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw'; // Re-check if this is restricted
 
-  private assignedSiteId: any = '99999';
+  private assignedSiteId: any = '0'; // Site ID not required for Onsite Attendance
 
   constructor(
     private loadingCtrl: LoadingController,
@@ -70,26 +70,64 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
   ngOnInit() {
     this.updateClock();
     this.timer = setInterval(() => this.updateClock(), 60000);
-    this.rangerName = localStorage.getItem('ranger_username') || 'Ranger';
     
-    // Fetch real site ID from hierarchy
-    const rId = Number(localStorage.getItem('ranger_id'));
-    if (rId) {
-      this.hierarchyService.getAssignedBeat(rId).subscribe({
+    // 1. Deep Scan LocalStorage for ANY assigned Site/Beat ID
+    const cId = localStorage.getItem('company_id');
+    const possibleKeys = ['site_id', 'beat_id', 'geo_id', 'assigned_site', 'ranger_site_id', 'beatId', 'siteId'];
+    for (const key of possibleKeys) {
+      const val = localStorage.getItem(key);
+      if (val && val !== '0') {
+        this.assignedSiteId = val;
+        console.log(`✅ Found site ID in ${key}:`, val);
+        break;
+      }
+    }
+
+    // 2. Check inside user_data object (Don't use .id, that's the USER ID)
+    if (!this.assignedSiteId || this.assignedSiteId === '0') {
+      const userData = localStorage.getItem('user_data');
+      if (userData) {
+        try {
+          const u = JSON.parse(userData);
+          this.assignedSiteId = u.site_id || u.beat_id || u.geo_id || '0';
+          if (this.assignedSiteId !== '0') {
+            console.log('✅ Found real site ID in user_data:', this.assignedSiteId);
+          }
+        } catch(e) {}
+      }
+    }
+
+    // 3. Robust Fallback: Fetch from Company Sites if still 0 or null
+    if ((!this.assignedSiteId || this.assignedSiteId === '0') && cId) {
+      console.log('Searching for company fallback sites...');
+      this.dataService.getSitesList(cId).subscribe({
         next: (res: any) => {
-           console.log('DEBUG: Assigned Site Response:', res);
-           const sites = res.data || (Array.isArray(res) ? res : []);
-           if (sites.length > 0) {
-             this.assignedSiteId = sites[0].id || sites[0].site_id || sites[0].geo_id || '99999';
-             console.log('✅ Found valid site ID for Onsite:', this.assignedSiteId);
-           }
+          const sites = res.data || res;
+          
+          if (Array.isArray(sites) && sites.length > 0) {
+            this.assignedSiteId = sites[0].id || sites[0].site_id || sites[0].geo_id || '0';
+          } else if (sites && typeof sites === 'object' && sites.id) {
+            this.assignedSiteId = sites.id.toString();
+          }
         },
-        error: (err: any) => console.error('DEBUG: Site Fetch Failed:', err)
+        error: () => {}
       });
     }
 
+    this.rangerName = localStorage.getItem('ranger_username') || 'Ranger';
     this.translate.get('ATTENDANCE.DETECTING').subscribe(res => {
       this.currentAddress = res;
+    });
+  }
+
+  private fetchFallbackSite(cId: string) {
+    this.dataService.getSitesList(cId).subscribe({
+      next: (sRes: any) => {
+        const cSites = sRes.data || (Array.isArray(sRes) ? sRes : []);
+        if (cSites.length > 0) {
+          this.assignedSiteId = cSites[0].id || cSites[0].site_id || '0';
+        }
+      }
     });
   }
 
@@ -244,29 +282,53 @@ async submit() {
   this.cdr.detectChanges(); 
 
   const token = localStorage.getItem('api_token');
-  const headers = { 'Bypass-Token': 'true' };
-
-  const onsiteData = {
-    api_token: token,
-    user_id: localStorage.getItem('ranger_id'),
-    geo_id: this.assignedSiteId, // Use a valid ID from the system
-    geo_name: `[Onsite] ${this.currentAddress || 'Location'}`, 
-    site_id: this.assignedSiteId, // Use a valid ID from the system
-    site_name: 'Onsite Attendance',
-    type: 'ONSITE',
-    photo: this.capturedPhoto,
-    location: `${this.currentLat},${this.currentLng}`
-  };
-
-  console.log('Submitting Onsite Attendance Payload:', onsiteData);
   
-  // 6. Check Online Status
+  // --- NEW PAYLOAD FORMAT FROM SIR ---
+  const now = new Date();
+  const fdate = now.toISOString().split('T')[0]; // YYYY-MM-DD
+  const datetime = now.toTimeString().split(' ')[0]; // HH:mm:ss
+  
+   // --- FINAL POSTMAN-COMPLIANT PAYLOAD ---
+  const formData = new FormData();
+  formData.append('entry', datetime);
+  formData.append('name', localStorage.getItem('ranger_username') || 'Ranger');
+  formData.append('date', fdate);
+  formData.append('applicant_id', localStorage.getItem('ranger_id') || '');
+  formData.append('api_token', token || '');
+  formData.append('type', 'ONSITE');
+  formData.append('remark', 'Onsite Attendance');
+  formData.append('applicant_name', localStorage.getItem('ranger_username') || 'Ranger');
+  formData.append('company_id', localStorage.getItem('company_id') || '');
+  formData.append('photo', this.capturedPhoto);
+  // --- MAGIC COMBO THAT WORKED ---
+  formData.append('geo_id', '99999'); 
+  formData.append('site_id', 'onsite'); 
+  formData.append('id', '99999'); 
+  formData.append('geo_name', '[Onsite] ' + (this.currentAddress || 'Location'));
+  formData.append('site_name', 'Onsite');
+  formData.append('applicant_role_id', localStorage.getItem('user_role') || '3');
+  formData.append('attendance_type', 'ONSITE');
+  
+  formData.append('location', `${this.currentLat},${this.currentLng}`); 
+  formData.append('lat', this.currentLat.toString());
+  formData.append('lng', this.currentLng.toString());
+
   if (!this.dataService.isOnline()) {
-    console.warn("Offline detected. Saving onsite draft locally.");
+    const offlineData = {
+      entry: datetime,
+      name: localStorage.getItem('ranger_username'),
+      date: fdate,
+      applicant_id: localStorage.getItem('ranger_id'),
+      api_token: token,
+      type: 'ONSITE',
+      geo_id: '99999',
+      photo: this.capturedPhoto,
+      location: `${this.currentLat},${this.currentLng}`
+    };
     const offlinePayload = {
-      ...onsiteData,
-      createdAt: new Date().toISOString(),
-      geo_name: onsiteData.geo_name || 'Onsite Offline'
+      ...offlineData,
+      isEntry: true,
+      createdAt: now.toISOString()
     };
     this.dataService.saveAttendanceDraft(offlinePayload, 'onsite');
     
@@ -281,54 +343,36 @@ async submit() {
   }
 
   const loader = await this.loadingCtrl.create({
-    message: 'Submitting Attendance...',
+    message: 'Marking Onsite Attendance...',
     spinner: 'crescent'
   });
   await loader.present();
 
-  // 7. Try to get a valid site ID from the hierarchy first if 99999 fails
-  this.dataService.getOnsiteLogsByRanger(String(onsiteData.user_id), String(localStorage.getItem('company_id'))).subscribe({
-    next: async () => {
-      // We don't really need the logs, but this ensures we have a valid session/token check
-      this.submitOnsiteFinal(onsiteData, loader, headers);
-    },
-    error: async () => {
-      this.submitOnsiteFinal(onsiteData, loader, headers);
-    }
-  });
-}
-
-private submitOnsiteFinal(onsiteData: any, loader: any, headers: any) {
-  this.dataService.markOnsiteAttendance(onsiteData, headers).subscribe({
+  const headers = { 'Bypass-Token': 'true' };
+  this.dataService.markAttendance(formData, headers).subscribe({
     next: async (res: any) => {
-      console.log('✅ Onsite Mark Response:', res);
-      
-      // CRITICAL: Check for server-side failure disguised as 200 OK
-      if (res && res.success === false) {
-        await loader.dismiss();
-        this.isSubmitting = false;
-        this.resetSlider();
-        this.presentToast(res.message || 'Server rejected request', 'danger');
-        return;
-      }
-
+      console.log('✅ Final Onsite Response:', res);
       await loader.dismiss();
-      const successMsg = await firstValueFrom(this.translate.get('ATTENDANCE.SUCCESS'));
-      this.presentToast(successMsg, 'success');
-      setTimeout(() => {
-        this.isSubmitting = false;
+      this.isSubmitting = false;
+      this.resetSlider();
+      
+      if (res.status === 'SUCCESS' || res.success) {
+        this.presentToast('Onsite Attendance Marked Successfully!', 'success');
         this.navCtrl.navigateRoot('/attendance-list', { queryParams: { mode: 'onsite' } });
-      }, 1500);
+      } else {
+        this.presentToast(res.message || 'Failed to mark attendance', 'danger');
+      }
     },
     error: async (err) => {
       await loader.dismiss();
-      console.error("Onsite Sync Error:", err);
       this.isSubmitting = false;
       this.resetSlider();
-      this.presentToast('Sync failed. Please try again.', 'danger');
+      console.error('❌ Final Error:', err);
+      this.presentToast('Server Error. Please try again.', 'danger');
     }
   });
 }
+
   onDragStart(event: TouchEvent) {
     if (this.isSubmitting) return;
     this.startX = event.touches[0].clientX - this.currentTranslateX;

@@ -273,13 +273,21 @@ private processLogsResponse(res: any, loader: any) {
     if (!matchesMode) return false;
 
     // 2. Date Filtering:
-    // If Onsite, show everything (don't filter by today) so user sees their history/requests
-    if (this.selectedMode === 'onsite') return true;
+    const logDate = log.createdAt ? new Date(log.createdAt).toLocaleDateString('en-CA') : '';
 
-    // If Beat, only show today
-    let logDate = '';
-    if (log.createdAt) logDate = new Date(log.createdAt).toLocaleDateString('en-CA');
-    return logDate === todayStr;
+    if (this.isFiltered) {
+      const start = new Date(this.filters.fromDate).toLocaleDateString('en-CA');
+      const end = new Date(this.filters.toDate).toLocaleDateString('en-CA');
+      const locQuery = (this.filters.location || '').toLowerCase().trim();
+      const logLoc = (log.geofence || log.location_name || '').toLowerCase();
+      
+      const isWithin = logDate >= start && logDate <= end;
+      const matchesLoc = locQuery === '' || logLoc.includes(locQuery);
+      return isWithin && matchesLoc;
+    } else {
+      // Default: Only Today
+      return logDate === todayStr;
+    }
   });
   
   loader.dismiss();
@@ -448,31 +456,35 @@ setMode(mode: 'beat' | 'onsite') {
 async applyFilters() {
   this.isFiltered = true;
 
-  // 1. Dates ko normalize karein (Sirf YYYY-MM-DD format)
-  const start = new Date(this.filters.fromDate).toISOString().split('T')[0];
-  const end = new Date(this.filters.toDate).toISOString().split('T')[0];
+  // 1. Dates ko normalize karein (Local Date YYYY-MM-DD)
+  const start = new Date(this.filters.fromDate).toLocaleDateString('en-CA');
+  const end = new Date(this.filters.toDate).toLocaleDateString('en-CA');
+  const locQuery = (this.filters.location || '').toLowerCase().trim();
 
-  console.log("Starting Filter Process...");
-  console.log("Selected Start Date:", start);
-  console.log("Selected End Date:", end);
-  console.log("Total Logs in Memory:", this.allLogs.length);
-
-  // 2. Filter logic with Logging
+  // 2. Filter logic with Mode check
   this.attendanceLogs = this.allLogs.filter(log => {
-      if (!log.createdAt) return false;
+    if (!log.createdAt) return false;
       
-    const logDate = log.createdAt.split('T')[0]; // IST adjusted date
+    const logDate = new Date(log.createdAt).toLocaleDateString('en-CA');
     const isWithin = logDate >= start && logDate <= end;
     
-    // Agar 24 tarikh ka data hai toh yahan console mein dikhega
-    if (logDate.includes('2026-02-24')) {
-      console.log("Found a 24th record! Within range?", isWithin);
-    }
+    // Mode check (Beat vs Onsite)
+    const isOnsite = log.isRequest || 
+                     String(log.site_id) === '99999' || String(log.geo_id) === '99999' ||
+                     log.site_id === 'onsite' || 
+                     !log.geo_id || log.geo_id === '0' ||
+                     (log.site_name && log.site_name.toLowerCase().includes('onsite')) ||
+                     (log.geo_name && log.geo_name.toLowerCase().includes('[onsite]'));
+    
+    const matchesMode = (this.selectedMode === 'onsite') ? isOnsite : !isOnsite;
+    
+    // Location check
+    const logLoc = (log.geofence || log.location_name || '').toLowerCase();
+    const matchesLoc = locQuery === '' || logLoc.includes(locQuery);
 
-    return isWithin;
+    return isWithin && matchesMode && matchesLoc;
   });
 
-  console.log("Results after filtering:", this.attendanceLogs.length);
   this.isModalOpen = false;
 }
 
