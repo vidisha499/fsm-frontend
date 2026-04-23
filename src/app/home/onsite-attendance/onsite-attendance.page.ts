@@ -9,6 +9,7 @@ import { environment } from 'src/environments/environment';
 import * as L from 'leaflet';
 import { DataService } from '../../data.service';
 import { PhotoViewerService } from '../../services/photo-viewer.service';
+import { HierarchyService } from '../../services/hierarchy.service';
 
 @Component({
   selector: 'app-onsite',
@@ -62,7 +63,8 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private translate: TranslateService,
     private dataService: DataService,
-    private photoViewer: PhotoViewerService
+    private photoViewer: PhotoViewerService,
+    private hierarchyService: HierarchyService
   ) {}
 
   ngOnInit() {
@@ -70,17 +72,19 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
     this.timer = setInterval(() => this.updateClock(), 60000);
     this.rangerName = localStorage.getItem('ranger_username') || 'Ranger';
     
-    // Fetch real site ID from hierarchy to avoid "No site detected" error
+    // Fetch real site ID from hierarchy
     const rId = Number(localStorage.getItem('ranger_id'));
     if (rId) {
-      this.dataService.getAttendanceByCompany(localStorage.getItem('company_id') || '0').subscribe({
+      this.hierarchyService.getAssignedBeat(rId).subscribe({
         next: (res: any) => {
-           // We try to find any valid site ID for this user or company
-           const data = res.data || res.attendance || res;
-           if (Array.isArray(data) && data.length > 0) {
-             this.assignedSiteId = data[0].site_id || data[0].geo_id || '99999';
+           console.log('DEBUG: Assigned Site Response:', res);
+           const sites = res.data || (Array.isArray(res) ? res : []);
+           if (sites.length > 0) {
+             this.assignedSiteId = sites[0].id || sites[0].site_id || sites[0].geo_id || '99999';
+             console.log('✅ Found valid site ID for Onsite:', this.assignedSiteId);
            }
-        }
+        },
+        error: (err: any) => console.error('DEBUG: Site Fetch Failed:', err)
       });
     }
 
