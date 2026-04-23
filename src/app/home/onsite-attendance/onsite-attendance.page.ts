@@ -78,9 +78,19 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
       this.hierarchyService.getAssignedBeat(rId).subscribe({
         next: (res: any) => {
            console.log('DEBUG: Assigned Site Response:', res);
-           const sites = res.data || (Array.isArray(res) ? res : []);
-           if (sites.length > 0) {
-             this.assignedSiteId = sites[0].id || sites[0].site_id || sites[0].geo_id || '99999';
+           let siteId = '99999';
+           
+           // Extract data robustly
+           const data = res.data || res.attendance || res;
+           
+           if (Array.isArray(data) && data.length > 0) {
+             siteId = data[0].site_id || data[0].geo_id || data[0].id || '99999';
+           } else if (data && typeof data === 'object') {
+             siteId = data.site_id || data.geo_id || data.id || '99999';
+           }
+           
+           if (siteId && siteId !== '99999') {
+             this.assignedSiteId = siteId;
              console.log('✅ Found valid site ID for Onsite:', this.assignedSiteId);
            }
         },
