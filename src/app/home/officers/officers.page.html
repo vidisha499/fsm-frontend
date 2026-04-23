@@ -5,9 +5,8 @@
         <button class="glass-btn" (click)="goBack()">
           <ion-icon name="arrow-back-outline"></ion-icon>
         </button>
-        <div>
+        <div class="header-title-area">
           <div class="tbar-title">Officers</div>
-          <div class="tbar-sub">{{ totalCount }} OFFICERS</div>
         </div>
       </div>
       <div class="tbar-right">
@@ -17,6 +16,13 @@
         <button class="glass-btn" (click)="doRefresh()">
           <ion-icon name="refresh-outline"></ion-icon>
         </button>
+      </div>
+    </div>
+
+    <div class="stats-overview animate__animated animate__fadeIn">
+      <div class="stat-item">
+        <span class="val">{{ totalCount }}</span>
+        <span class="lbl">TOTAL OFFICERS</span>
       </div>
     </div>
 
