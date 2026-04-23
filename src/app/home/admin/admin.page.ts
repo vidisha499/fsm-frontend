@@ -770,7 +770,48 @@ changeTimeframe(newTimeframe: string) {
             // --- A. PROCESS ASSETS ---
             if (assetList.length > 0) {
               console.log("📊 Asset Sync: Found", assetList.length, "Total Assets");
-              this.totalAssetsCount = assetList.length;
+              
+              // --- ADD FILTERING LOGIC FOR ASSETS ---
+              let filteredAssets = assetList.filter((a: any) => {
+                 const aDate = a.created_at || a.date_time || a.date || '';
+                 
+                 // Date filter
+                 let datePass = true;
+                 if (this.activeDateFilter === 'today') {
+                    datePass = aDate && (aDate.includes(todayYMD) || aDate.includes(todayDMY));
+                 } else if (this.activeDateFilter === 'week') {
+                    const rTimestamp = aDate ? new Date(aDate).getTime() : 0;
+                    const nowTS = nowL.getTime();
+                    datePass = rTimestamp > (nowTS - (7 * 24 * 60 * 60 * 1000));
+                 } else if (this.activeDateFilter === 'month') {
+                    const rTimestamp = aDate ? new Date(aDate).getTime() : 0;
+                    const nowTS = nowL.getTime();
+                    datePass = rTimestamp > (nowTS - (30 * 24 * 60 * 60 * 1000));
+                 } else if (this.activeDateFilter === 'custom') {
+                    const rTimestamp = aDate ? new Date(aDate).getTime() : 0;
+                    const fromTS = new Date(dates.from).getTime();
+                    const toTS = new Date(dates.to).getTime() + (24 * 60 * 60 * 1000) - 1; // End of day
+                    datePass = rTimestamp >= fromTS && rTimestamp <= toTS;
+                 }
+
+                 // Range filter
+                 let rangePass = true;
+                 if (this.selectedRange && this.selectedRange !== 'all') {
+                    const aRange = (a.range_name || a.range || '').toLowerCase();
+                    rangePass = aRange.includes(this.selectedRange.toLowerCase());
+                 }
+
+                 // Beat filter
+                 let beatPass = true;
+                 if (this.selectedBeat && this.selectedBeat !== 'all') {
+                    const aBeat = (a.beat_name || a.beat || '').toLowerCase();
+                    beatPass = aBeat.includes(this.selectedBeat.toLowerCase());
+                 }
+
+                 return datePass && rangePass && beatPass;
+              });
+
+              this.totalAssetsCount = filteredAssets.length;
               
               // Category Reset
               this.realNurseryCount = 0;
@@ -779,7 +820,7 @@ changeTimeframe(newTimeframe: string) {
               this.realEcoCount = 0;
               let goodCount = 0;
 
-              assetList.forEach((a: any) => {
+              filteredAssets.forEach((a: any) => {
                 const cat = (a.category || '').toLowerCase();
                 const status = (a.status || '').toLowerCase();
 
@@ -791,10 +832,11 @@ changeTimeframe(newTimeframe: string) {
                 if (status === 'good' || status === 'operational') goodCount++;
               });
 
-              this.operationalRate = assetList.length > 0 
-                ? Math.round((goodCount / assetList.length) * 100) + '%' 
+              this.operationalRate = filteredAssets.length > 0 
+                ? Math.round((goodCount / filteredAssets.length) * 100) + '%' 
                 : '100%';
             }
+
 
             // --- B. PROCESS REPORTS ---
             if (list.length > 0) {
@@ -899,7 +941,11 @@ changeTimeframe(newTimeframe: string) {
                 this.criminalCount = apiCriminal || counts.criminal;
                 this.eventsCount = apiEvents || counts.monitoring;
                 this.fireAlertsCount = apiFire || counts.fire;
-                this.totalAssetsCount = apiAssets || this.totalAssetsCount;
+                // For assets, prioritize our manually filtered count if it was processed
+                // otherwise fallback to apiAssets if needed. But usually, manual sync is better here.
+                if (assetList.length === 0) {
+                   this.totalAssetsCount = apiAssets;
+                }
 
                 // Sync Bottom Snapshot variables
                 this.criminalActivityCount = this.criminalCount;
