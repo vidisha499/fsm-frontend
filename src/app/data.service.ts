@@ -290,8 +290,8 @@ export class DataService {
   getAttendanceByCompany(companyId: string) { return this.getAttendanceRequests(companyId); }
   
   markOnsiteAttendance(payload: any, headers?: any) { 
-    // Switching to markAttendance because requestEntryAttendance is giving 401 Unauthorized for Rangers
-    return this.markAttendance(payload, headers); 
+    // Reverting to requestEntryAttendance to restore the PENDING approval workflow
+    return this.requestEntryAttendance(payload, headers); 
   }
   
   getOnsiteLogsByRanger(rangerId: string, companyId: string) { 
