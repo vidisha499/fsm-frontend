@@ -219,13 +219,12 @@ export class DataService {
   markGuardAttendanceExit() { return this.http.post(`${this.baseApiUrl}/markGuardAttendanceExit`, {}); }
   
   requestEntryAttendance(payload: any, headers: any = {}) { 
-    // Ensuring Bypass-Token is present for Sir's API
+    const token = localStorage.getItem('api_token');
     const finalHeaders = { 
       ...headers, 
-      'Bypass-Token': 'true'
+      'Bypass-Token': 'true',
+      'Authorization': `Bearer ${token}` 
     };
-    // Note: Bearer token in header sometimes causes 401 on this specific endpoint in Sir's API,
-    // so we rely on api_token in the body which is already in the payload.
     return this.http.post(`${this.baseApiUrl}/requestEntryAttendance`, payload, { headers: finalHeaders }); 
   }
   updateAttendanceRequestStatus(payload: any) { 
@@ -291,8 +290,8 @@ export class DataService {
   getAttendanceByCompany(companyId: string) { return this.getAttendanceRequests(companyId); }
   
   markOnsiteAttendance(payload: any, headers?: any) { 
-    // Reverting to requestEntryAttendance for approval workflow as requested
-    return this.requestEntryAttendance(payload, headers); 
+    // Switching to markAttendance because requestEntryAttendance is giving 401 Unauthorized for Rangers
+    return this.markAttendance(payload, headers); 
   }
   
   getOnsiteLogsByRanger(rangerId: string, companyId: string) { 
