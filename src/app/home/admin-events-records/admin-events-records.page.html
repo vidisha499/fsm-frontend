@@ -1,0 +1,98 @@
+<ion-content [fullscreen]="true">
+  <div class="premium-wrapper">
+    <div class="ambient-glow glow-1" style="background: #0ea5e9;"></div>
+    <div class="ambient-glow glow-2" style="background: #10b981;"></div>
+
+    <div class="hero-header">
+      <div class="header-overlay"></div>
+      <div class="header-content">
+        <div class="nav-bar">
+          <button (click)="goBack()" class="glass-btn">
+            <i class="fas fa-arrow-left"></i>
+          </button>
+          
+          <div class="header-title-area">
+            <h1>Events & Monitoring</h1>
+          </div>
+
+          <button (click)="setFilterOpen(true)" class="glass-btn info-btn">
+            <i class="fas fa-sliders-h"></i>
+          </button>
+
+        </div>
+        <div class="stats-overview animate__animated animate__fadeIn">
+          <div class="stat-item">
+            <span class="val">{{ submittedReports.length }}</span>
+            <span class="lbl">TOTAL EVENTS</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-container">
+      <div class="list-section">
+        <div class="report-card animate__animated animate__fadeInUp" *ngFor="let report of submittedReports" (click)="viewDetails(report)">
+          <div class="card-thumb">
+            <img *ngIf="report.displayPhoto" [src]="report.displayPhoto" />
+            <div *ngIf="!report.displayPhoto" class="placeholder-icon">
+              <i class="fas fa-paw"></i>
+            </div>
+          </div>
+
+          <div class="card-info">
+            <div class="type-tag">{{ formatTitle(report.report_type) }}</div>
+            <h3 class="beat-name">{{ report.beat || 'General Beat' }}</h3>
+            <div class="meta-row">
+              <span class="date"><i class="far fa-clock"></i> {{ formatDate(report.displayDate) }}</span>
+              <span class="status-chip success">LOGGED</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="empty-state" *ngIf="submittedReports.length === 0 && !isLoading">
+          <div class="empty-icon-circle">
+            <i class="fas fa-search-location"></i>
+          </div>
+          <h3>No events found</h3>
+          <p>No monitoring events recorded for this period.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <ion-modal [isOpen]="isFilterModalOpen" (didDismiss)="setFilterOpen(false)" class="custom-bottom-card">
+    <ng-template>
+      <div class="modal-card-content">
+        
+        <div class="modal-header">
+          <div class="title-row">
+            <ion-icon name="calendar" class="title-icon"></ion-icon>
+            <h3>Filter by Date</h3>
+          </div>
+          <p class="subtitle">Select date range to filter activity logs</p>
+        </div>
+  
+        <div class="filter-body">
+          <div class="date-row">
+            <span class="label">FROM</span>
+            <div class="date-pill">
+               <input type="date" [(ngModel)]="filterFrom" [max]="maxDate">
+            </div>
+          </div>
+  
+          <div class="date-row">
+            <span class="label">TO</span>
+            <div class="date-pill">
+               <input type="date" [(ngModel)]="filterTo" [max]="maxDate">
+            </div>
+          </div>
+        </div>
+  
+        <div class="modal-footer">
+          <button class="apply-btn" (click)="applyFilter()">Apply Filter</button>
+          <button class="clear-btn" (click)="resetFilter()">Reset All Filters</button>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
+</ion-content>

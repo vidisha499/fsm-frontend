@@ -159,7 +159,23 @@ loadChildren:() => import('./admin/admin.module').then( m => m.AdminPageModule)
   {
     path: 'events-reports',
     loadChildren: () => import('./events-reports/events-reports.module').then( m => m.EventsReportsPageModule)
+  },  {
+    path: 'admin-criminal-records',
+    loadChildren: () => import('./admin-criminal-records/admin-criminal-records.module').then( m => m.AdminCriminalRecordsPageModule)
+  },
+  {
+    path: 'admin-events-records',
+    loadChildren: () => import('./admin-events-records/admin-events-records.module').then( m => m.AdminEventsRecordsPageModule)
+  },
+  {
+    path: 'admin-fire-records',
+    loadChildren: () => import('./admin-fire-records/admin-fire-records.module').then( m => m.AdminFireRecordsPageModule)
+  },
+  {
+    path: 'admin-assets-records',
+    loadChildren: () => import('./admin-assets-records/admin-assets-records.module').then( m => m.AdminAssetsRecordsPageModule)
   }
+
 ];
 
 @NgModule({

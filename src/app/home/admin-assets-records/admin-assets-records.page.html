@@ -1,0 +1,113 @@
+<ion-content [fullscreen]="true">
+  <div class="premium-wrapper">
+    <div class="ambient-glow glow-1" style="background: #6366f1;"></div>
+    <div class="ambient-glow glow-2" style="background: #8b5cf6;"></div>
+
+    <div class="hero-header">
+      <div class="header-overlay"></div>
+      <div class="header-content">
+        <div class="nav-bar">
+          <button (click)="goBack()" class="glass-btn">
+            <i class="fas fa-arrow-left"></i>
+          </button>
+
+          <div class="header-title-area">
+            <h1>Assets & Tools</h1>
+          </div>
+
+          <button (click)="setFilterOpen(true)" class="glass-btn info-btn">
+            <i class="fas fa-sliders-h"></i>
+          </button>
+        </div>
+
+        <div class="stats-overview animate__animated animate__fadeIn">
+          <div class="stat-item">
+            <span class="val">{{ assetList.length }}</span>
+            <span class="lbl">TOTAL ASSETS</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <span class="val good">{{ goodCount }}</span>
+            <span class="lbl">OPERATIONAL</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <span class="val bad">{{ badCount }}</span>
+            <span class="lbl">NEEDS REPAIR</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-container">
+      <div class="list-section">
+        <div
+          class="report-card animate__animated animate__fadeInUp"
+          *ngFor="let asset of assetList"
+          (click)="viewDetails(asset)">
+
+          <div class="card-thumb">
+            <img *ngIf="asset.photo" [src]="asset.photo" />
+            <div *ngIf="!asset.photo" class="placeholder-icon">
+              <i class="fas fa-tools" style="color: #6366f1;"></i>
+            </div>
+          </div>
+
+          <div class="card-info">
+            <div class="type-tag">{{ asset.category_name || asset.type || 'ASSET' }}</div>
+            <h3 class="beat-name">{{ asset.name || asset.asset_name || 'Unnamed Asset' }}</h3>
+            <div class="meta-row">
+              <span class="date"><i class="far fa-clock"></i> {{ formatDate(asset.created_at) }}</span>
+              <span class="status-chip" [ngClass]="getStatusClass(asset.status || asset.condition)">
+                {{ (asset.status || asset.condition || 'UNKNOWN') | uppercase }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="empty-state" *ngIf="assetList.length === 0 && !isLoading">
+          <div class="empty-icon-circle" style="background: #f5f3ff;">
+            <i class="fas fa-shield-alt" style="color: #6366f1;"></i>
+          </div>
+          <h3>No assets found</h3>
+          <p>No assets or tools recorded for this period.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ion-modal [isOpen]="isFilterModalOpen" (didDismiss)="setFilterOpen(false)" class="custom-bottom-card">
+    <ng-template>
+      <div class="modal-card-content">
+        <div class="modal-header">
+          <div class="title-row">
+            <ion-icon name="calendar" class="title-icon"></ion-icon>
+            <h3>Filter by Date</h3>
+          </div>
+          <p class="subtitle">Select date range to filter assets</p>
+        </div>
+
+        <div class="filter-body">
+          <div class="date-row">
+            <span class="label">FROM</span>
+            <div class="date-pill">
+              <input type="date" [(ngModel)]="filterFrom" [max]="maxDate">
+            </div>
+          </div>
+
+          <div class="date-row">
+            <span class="label">TO</span>
+            <div class="date-pill">
+              <input type="date" [(ngModel)]="filterTo" [max]="maxDate">
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="apply-btn" (click)="applyFilter()">Apply Filter</button>
+          <button class="clear-btn" (click)="resetFilter()">Reset All Filters</button>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
+</ion-content>

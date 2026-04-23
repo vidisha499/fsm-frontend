@@ -2374,6 +2374,22 @@ handleApiResponse(res: any) {
     });
   }
 
+  goToCriminalRecords() {
+    this.router.navigate(['/home/admin-criminal-records']);
+  }
+
+  goToEventsRecords() {
+    this.router.navigate(['/home/admin-events-records']);
+  }
+
+  goToFireRecords() {
+    this.router.navigate(['/home/admin-fire-records']);
+  }
+
+  goToAssetsRecords() {
+    this.router.navigate(['/home/admin-assets-records']);
+  }
+
   // Aliases for template consistency
   gotoAnalytics(category?: string) { this.goAnalytics(category); }
   goToAnalytics(category?: string) { this.goAnalytics(category); }
