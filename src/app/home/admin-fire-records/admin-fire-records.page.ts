@@ -23,6 +23,9 @@ export class AdminFireRecordsPage implements OnInit {
   ) {}
 
   ngOnInit() {
+    const today = new Date().toISOString().split('T')[0];
+    this.filterFrom = today;
+    this.filterTo = today;
     this.refreshData();
   }
 
