@@ -132,40 +132,28 @@ export class DataService {
 
   // --- 7. PATROLS & SIGHTINGS ---
   startActivePatrol(payload: any) { 
-    const token = localStorage.getItem('api_token');
-    const fullPayload = { ...payload, api_token: token };
-    const headers = { 'Bypass-Token': 'true' };
-    return this.http.post(`${this.baseApiUrl}/patrol/start`, fullPayload, { headers }); 
+    return this.http.post(`${this.baseApiUrl}/patrol/start`, payload); 
   }
   getOngoingPatrols() { 
-    const token = localStorage.getItem('api_token');
-    const headers = { 'Bypass-Token': 'true' };
-    return this.http.post(`${this.baseApiUrl}/patrol-list`, { api_token: token }, { headers }); 
+    return this.http.post(`${this.baseApiUrl}/patrol-list`, {}); 
   }
   getActivePatrols(companyId: number) { 
-    const token = localStorage.getItem('api_token');
-    const headers = { 'Bypass-Token': 'true' };
-    return this.http.post(`${this.baseApiUrl}/patrol-list`, { company_id: companyId, api_token: token }, { headers }); 
+    return this.http.post(`${this.baseApiUrl}/patrol-list`, { company_id: companyId }); 
   }
   updatePatrolStats(patrolId: string, data: any) { 
-    if (!patrolId || patrolId === 'undefined') return new Observable(obs => {
-      obs.error('Invalid Patrol ID');
-      obs.complete();
-    });
-    const token = localStorage.getItem('api_token');
-    const fullPayload = { ...data, api_token: token };
-    const headers = { 'Bypass-Token': 'true' };
-    return this.http.post(`${this.baseApiUrl}/patrol/${patrolId}/end`, fullPayload, { headers }); 
+    if (!patrolId || patrolId === 'undefined' || patrolId === 'null') {
+       // Fallback for Sir's API: Try ending without ID in path but with ID in body
+       return this.http.post(`${this.baseApiUrl}/patrol/end`, data);
+    }
+    // Try both standard and potential Sir's path
+    return this.http.post(`${this.baseApiUrl}/patrol/${patrolId}/end`, data); 
   }
   uploadPatrolPhoto(patrolId: string, photoData: any) { 
     if (!patrolId || patrolId === 'undefined') return new Observable(obs => {
       obs.error('Invalid Patrol ID');
       obs.complete();
     });
-    const token = localStorage.getItem('api_token');
-    const fullPayload = { ...photoData, api_token: token };
-    const headers = { 'Bypass-Token': 'true' };
-    return this.http.post(`${this.baseApiUrl}/patrol/${patrolId}/photos`, fullPayload, { headers }); 
+    return this.http.post(`${this.baseApiUrl}/patrol/${patrolId}/photos`, photoData); 
   }
   getCompletedPatrolLogs() { return this.http.post(`${this.baseApiUrl}/patrol-logs`, {}); }
   getPatrolsByCompany(companyId: number, dateFrom?: string, dateTo?: string) {
@@ -176,9 +164,7 @@ export class DataService {
   }
   getPatrolById(id: number | string) { return this.http.post(`${this.baseApiUrl}/patrol-logs`, { id: id }); }
   saveSighting(payload: any) { 
-    const token = localStorage.getItem('api_token');
-    const fullPayload = { ...payload, api_token: token };
-    return this.http.post(`${this.baseApiUrl}/forest-reports`, fullPayload); 
+    return this.http.post(`${this.baseApiUrl}/forest-reports`, payload); 
   }
   private dataURItoBlob(dataURI: string): Blob {
     const byteString = atob(dataURI.split(',')[1]);
@@ -193,23 +179,19 @@ export class DataService {
 
   submitForestEvent(payload: any, headers?: any) {
     // Sir's precise API accepts Raw application/json mapping, NOT FormData!
-    // This allows MySQL strict types (integers, nulls) to be ingested directly without string constraint bugs.
-    const token = localStorage.getItem('api_token') || '';
-    
-    // Inject api_token and securely enforce any null fallback values expected by Laravel.
     const finalPayload = { 
       ...payload, 
-      api_token: token,
-      site_id: payload.site_id || null // Force NULL explicitly instead of '' for relational constraints
+      site_id: payload.site_id || null 
     };
 
-    const finalHeaders = headers || { 'Bypass-Token': 'true' };
-    return this.http.post(`${this.baseApiUrl}/forest-reports`, finalPayload, { headers: finalHeaders });
+    return this.http.post(`${this.baseApiUrl}/forest-reports`, finalPayload, { headers });
   }
   savePatrolLogs(payload: any) { return this.http.post(`${this.baseApiUrl}/save-patrol-logs`, payload); }
   updatePatrolLog(id: string | number, payload: any) { return this.http.put(`${this.baseApiUrl}/patrol-logs/${id}`, payload); }
   deletePatrolLog(id: string | number) { return this.http.delete(`${this.baseApiUrl}/patrol-logs/${id}`); }
-  getPatrolPhotos(sessionId: string) { return this.http.post(`${this.baseApiUrl}/patrol/${sessionId}/getphotos`, {}); }
+  getPatrolPhotos(sessionId: string) { 
+    return this.http.post(`${this.baseApiUrl}/patrol/${sessionId}/getphotos`, {}); 
+  }
   getAllMapSightings(companyId: number) { return this.http.get(`${this.baseApiUrl}/patrols/all-sightings?companyId=${companyId}`); }
   getSightingCount(companyId: number, from?: string, to?: string): Observable<number> {
     let params: any = { companyId: companyId.toString() };
@@ -246,7 +228,13 @@ export class DataService {
   
   getAttendanceRequests(companyId: string) { 
     const token = localStorage.getItem('api_token');
-    const payload = { company_id: companyId, api_token: token };
+    const rangerId = localStorage.getItem('ranger_id');
+    const payload = { 
+      company_id: companyId, 
+      api_token: token,
+      ranger_id: rangerId,
+      user_id: rangerId
+    };
     return this.http.post(`${this.baseApiUrl}/getAttendanceRequests`, payload); 
   }
 
@@ -290,32 +278,65 @@ export class DataService {
   getAttendanceByCompany(companyId: string) { return this.getAttendanceRequests(companyId); }
   
   markOnsiteAttendance(payload: any, headers?: any) { 
-    // Point onsite to requestEntryAttendance so it goes to approval queue in Sir's API
+    // Reverting to requestEntryAttendance for approval workflow
     return this.requestEntryAttendance(payload, headers); 
   }
   
   getOnsiteLogsByRanger(rangerId: string, companyId: string) { 
-    // Fix: Instead of old GET route that doesn't exist, use common monthly logs with token in body
     const token = localStorage.getItem('api_token');
-    const payload = { company_id: companyId, api_token: token, ranger_id: rangerId };
+    const now = new Date();
+    const payload = { 
+      company_id: companyId, 
+      api_token: token, 
+      ranger_id: rangerId,
+      user_id: rangerId, // Sir's API often expects user_id
+      month: now.getMonth() + 1,
+      year: now.getFullYear()
+    };
     const headers = { 'Bypass-Token': 'true' };
     return this.getUserMonthlyAttendance(payload, headers); 
   }
   getWeeklyAttendanceStats(companyId: any, rangerId?: any): Observable<number[]> {
     const token = localStorage.getItem('api_token');
     const url = `${this.baseApiUrl}/forest-admin-dashboard/data`;
-    const params: any = { type: 'attendance', companyId: companyId.toString() };
-    if (rangerId) params.ranger_id = rangerId.toString();
+    
+    // Using both camelCase and snake_case for maximum compatibility with various backend versions
+    const params: any = { 
+      type: 'attendance', 
+      companyId: companyId.toString(),
+      company_id: companyId.toString(),
+      user_id: rangerId ? rangerId.toString() : '' // Added user_id for Sir's API compatibility
+    };
+    if (rangerId) {
+      params.rangerId = rangerId.toString();
+      params.ranger_id = rangerId.toString();
+    }
     
     const headers = { 'Authorization': `Bearer ${token}` };
 
     return this.http.get<any>(url, { params, headers }).pipe(
       map(res => {
-        const data = res.data ? res.data : res;
-        return data.officerStatus?.history || data.history || [0, 0, 0, 0, 0, 0, 0];
+        // Robust mapping to handle different response structures from Sir's API
+        const data = res?.data ? res.data : res;
+        
+        // 1. Direct number array [0, 5, 2, ...]
+        if (Array.isArray(data) && (data.length === 0 || typeof data[0] === 'number')) {
+          return data.length === 7 ? data : [...data, 0, 0, 0, 0, 0, 0, 0].slice(0, 7);
+        }
+        
+        // 2. Nested history objects
+        const history = data?.officerStatus?.history || data?.history || data?.attendance_history;
+        if (Array.isArray(history)) return history;
+
+        // 3. Array of objects with count property [{count: 5}, {count: 2}, ...]
+        if (Array.isArray(data) && data.length > 0 && (data[0]?.count !== undefined || data[0]?.total !== undefined)) {
+          return data.map((item: any) => Number(item.count || item.total || 0));
+        }
+
+        return [0, 0, 0, 0, 0, 0, 0];
       }),
       catchError(err => {
-        console.warn("⚠️ Attendance API failing (500), using fallback empty data:", err);
+        console.warn("⚠️ Attendance API failing, using fallback empty data:", err);
         return of([0, 0, 0, 0, 0, 0, 0]);
       })
     );

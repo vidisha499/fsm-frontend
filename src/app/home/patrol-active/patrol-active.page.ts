@@ -283,8 +283,10 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
           lat = lp.lat; lng = lp.lng;
         }
       }
-      this.lastLatLng = L.latLng(lat, lng);
-      this.map = L.map('map', { center: [lat, lng], zoom: 17, zoomControl: false });
+      const container = document.getElementById('map');
+      if (!container || (container as any)._leaflet_id) return; // Prevent double init
+
+      this.map = L.map(container, { center: [lat, lng], zoom: 17, zoomControl: false });
       L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { subdomains: ['mt0', 'mt1', 'mt2', 'mt3'], maxZoom: 20 }).addTo(this.map);
       this.sightingMarkersLayer.addTo(this.map);
       this.marker = L.marker([lat, lng], { icon: this.locationIcon }).addTo(this.map);
@@ -296,6 +298,7 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
           this.routePoints = JSON.parse(savedRoute);
           const lls = this.routePoints.map(p => L.latLng(p.lat, p.lng));
           this.routePolyline.setLatLngs(lls);
+          this.calculateDistance();
           if (lls.length > 0) {
             this.lastLatLng = lls[lls.length - 1];
             this.map.panTo(this.lastLatLng);
@@ -354,6 +357,7 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
           localStorage.setItem('active_patrol_route', JSON.stringify(this.routePoints));
           if (this.routePolyline) this.routePolyline.addLatLng(current);
           this.lastLatLng = current;
+          this.calculateDistance();
         }
         this.cdr.detectChanges();
       }
@@ -367,6 +371,9 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     await loader.present();
     const sessionId = localStorage.getItem('active_patrol_session_id') || this.activePatrolId;
     const payload = {
+      id: sessionId,
+      patrol_id: sessionId,
+      user_id: localStorage.getItem('ranger_id'),
       end_lat: String(this.lastLatLng?.lat || 0),
       end_lng: String(this.lastLatLng?.lng || 0),
       coords: this.routePoints.map(p => [p.lng, p.lat]),
@@ -386,7 +393,12 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
           await loader.dismiss();
           this.finalizeSession();
         },
-        error: async () => { await loader.dismiss(); this.isSubmitting = false; }
+        error: async (err) => { 
+          await loader.dismiss(); 
+          this.isSubmitting = false;
+          const msg = err.error?.message || err.error?.msg || 'Failed to end patrol on server.';
+          this.showToast(msg, 'danger');
+        }
       });
     }
   }
@@ -453,6 +465,20 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     link.href = imageUrl;
     link.download = `patrol_photo_${Date.now()}.jpg`;
     link.click();
+  }
+
+  calculateDistance() {
+    if (this.routePoints.length < 2) {
+      this.totalDistanceKm = 0;
+      return;
+    }
+    let total = 0;
+    for (let i = 0; i < this.routePoints.length - 1; i++) {
+      const p1 = this.routePoints[i];
+      const p2 = this.routePoints[i+1];
+      total += L.latLng(p1.lat, p1.lng).distanceTo(L.latLng(p2.lat, p2.lng));
+    }
+    this.totalDistanceKm = total / 1000;
   }
 
   ngOnDestroy() {

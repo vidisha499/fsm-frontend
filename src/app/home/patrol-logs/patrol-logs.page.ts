@@ -280,6 +280,7 @@ export class PatrolLogsPage implements OnInit {
 
     // Update payload to match FMS `/patrol/start` POST body requirement
     const payload = { 
+      user_id: storedRangerId,
       start_lat: String(lat),
       start_lng: String(lng),
       type: this.selectedType,
@@ -334,7 +335,13 @@ export class PatrolLogsPage implements OnInit {
         loader.dismiss();
         this.isSubmitting = false;
         this.resetKnob();
-        this.presentToast('Error starting patrol', 'danger');
+        
+        const msg = err.error?.message || err.error?.msg || 'Error starting patrol';
+        if (msg.toLowerCase().includes('already') || msg.toLowerCase().includes('in progress')) {
+          this.presentToast('You already have an active patrol. Please end it first.', 'warning');
+        } else {
+          this.presentToast(msg, 'danger');
+        }
       }
     });
   }

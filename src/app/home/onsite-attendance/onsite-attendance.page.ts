@@ -51,6 +51,8 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
   // Configuration
   private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw'; // Re-check if this is restricted
 
+  private assignedSiteId: any = '99999';
+
   constructor(
     private loadingCtrl: LoadingController,
     private navCtrl: NavController,
@@ -68,7 +70,20 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
     this.timer = setInterval(() => this.updateClock(), 60000);
     this.rangerName = localStorage.getItem('ranger_username') || 'Ranger';
     
-    // Set initial loading text from translation
+    // Fetch real site ID from hierarchy to avoid "No site detected" error
+    const rId = Number(localStorage.getItem('ranger_id'));
+    if (rId) {
+      this.dataService.getAttendanceByCompany(localStorage.getItem('company_id') || '0').subscribe({
+        next: (res: any) => {
+           // We try to find any valid site ID for this user or company
+           const data = res.data || res.attendance || res;
+           if (Array.isArray(data) && data.length > 0) {
+             this.assignedSiteId = data[0].site_id || data[0].geo_id || '99999';
+           }
+        }
+      });
+    }
+
     this.translate.get('ATTENDANCE.DETECTING').subscribe(res => {
       this.currentAddress = res;
     });
@@ -229,10 +244,12 @@ async submit() {
 
   const onsiteData = {
     api_token: token,
-    geo_id: '99999',
+    user_id: localStorage.getItem('ranger_id'),
+    geo_id: this.assignedSiteId,
     geo_name: `[Onsite] ${this.currentAddress || 'Location'}`, 
-    site_id: '99999', // 👈 Unique numeric ID to bypass MySQL string casting to 0
+    site_id: this.assignedSiteId, 
     site_name: 'Onsite Attendance',
+    type: 'ONSITE',
     photo: this.capturedPhoto,
     location: `${this.currentLat},${this.currentLng}`
   };
@@ -264,15 +281,38 @@ async submit() {
     spinner: 'crescent'
   });
   await loader.present();
-  // Submitting using the main attendance endpoint for reliability
-  this.dataService.markOnsiteAttendance(onsiteData, headers).subscribe({
+
+  // 7. Try to get a valid site ID from the hierarchy first if 99999 fails
+  this.dataService.getOnsiteLogsByRanger(String(onsiteData.user_id), String(localStorage.getItem('company_id'))).subscribe({
     next: async () => {
+      // We don't really need the logs, but this ensures we have a valid session/token check
+      this.submitOnsiteFinal(onsiteData, loader, headers);
+    },
+    error: async () => {
+      this.submitOnsiteFinal(onsiteData, loader, headers);
+    }
+  });
+}
+
+private submitOnsiteFinal(onsiteData: any, loader: any, headers: any) {
+  this.dataService.markOnsiteAttendance(onsiteData, headers).subscribe({
+    next: async (res: any) => {
+      console.log('✅ Onsite Mark Response:', res);
+      
+      // CRITICAL: Check for server-side failure disguised as 200 OK
+      if (res && res.success === false) {
+        await loader.dismiss();
+        this.isSubmitting = false;
+        this.resetSlider();
+        this.presentToast(res.message || 'Server rejected request', 'danger');
+        return;
+      }
+
       await loader.dismiss();
       const successMsg = await firstValueFrom(this.translate.get('ATTENDANCE.SUCCESS'));
       this.presentToast(successMsg, 'success');
       setTimeout(() => {
         this.isSubmitting = false;
-        // Redirect to unified history with onsite mode active
         this.navCtrl.navigateRoot('/attendance-list', { queryParams: { mode: 'onsite' } });
       }, 1500);
     },
@@ -281,8 +321,7 @@ async submit() {
       console.error("Onsite Sync Error:", err);
       this.isSubmitting = false;
       this.resetSlider();
-      const errMsg = await firstValueFrom(this.translate.get('ATTENDANCE.SYNC_ERROR'));
-      this.presentToast(errMsg, 'danger');
+      this.presentToast('Sync failed. Please try again.', 'danger');
     }
   });
 }

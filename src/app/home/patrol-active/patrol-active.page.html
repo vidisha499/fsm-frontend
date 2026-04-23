@@ -7,7 +7,6 @@
     <div class="header-content">
       <div class="top-row">
         <div class="back-group">
-          <!-- <button (click)="handleEndTrip()" class="glass-btn"><i class="fas fa-arrow-left"></i></button> -->
            <button (click)="goBack()" class="glass-btn">
   <i class="fas fa-arrow-left"></i>
 </button>
@@ -15,7 +14,10 @@
             <h1>{{ 'PATROL.ACTIVE_TITLE' | translate }}</h1>
           </div>
         </div>
-        <div class="live-badge-top">
+        <div class="live-badge-top" style="display: flex; gap: 8px;">
+          <button (click)="handleEndTrip(true)" class="glass-btn" style="background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4);">
+             <i class="fas fa-stop" style="color: #ef4444;"></i>
+          </button>
           <div class="auth-badge"><i class="fas fa-satellite-dish"></i><span>{{ 'PATROL.LIVE_STATUS' | translate }}</span></div>
         </div>
       </div>

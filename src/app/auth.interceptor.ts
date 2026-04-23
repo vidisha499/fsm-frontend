@@ -21,15 +21,12 @@ export class AuthInterceptor implements HttpInterceptor {
     }
 
     if (apiToken && !request.headers.has('Authorization')) {
-      // Create request with token in URL ONLY for GET/DELETE (Reads)
-      let clonedRequest = request;
-      if (!['POST', 'PUT', 'PATCH'].includes(request.method)) {
-        clonedRequest = request.clone({
-          params: request.params.set('api_token', apiToken)
-        });
-      }
+      // 1. Add api_token to URL Parameters (Standard for legacy PHP/Sir's APIs)
+      let clonedRequest = request.clone({
+        params: request.params.set('api_token', apiToken)
+      });
 
-      // Add to body for POST/PUT/PATCH if body is a plain object or FormData
+      // 3. Add to Body for POST/PUT/PATCH (Fallback for Sir's legacy APIs)
       if (['POST', 'PUT', 'PATCH'].includes(request.method)) {
         if (clonedRequest.body && !(clonedRequest.body instanceof FormData)) {
           const body: any = clonedRequest.body;

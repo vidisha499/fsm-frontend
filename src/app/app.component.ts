@@ -3,6 +3,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { Platform, IonRouterOutlet, ActionSheetController, ModalController, MenuController, NavController, ToastController, LoadingController } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { LabelService } from './services/label.service';
+// import { DataService } from './data.service';
 import { DataService } from './data.service';
 import { PhotoViewerService } from './services/photo-viewer.service';
 

@@ -345,8 +345,28 @@ async toggleNotification(item: any) {
     });
     await t.present();
     
-    // Clear all storage for security
+    // Clear only User/Auth data, preserve active patrol data for persistence
+    const patrolKeys = [
+      'active_patrol_id', 
+      'active_patrol_route', 
+      'patrol_session_start_time', 
+      'active_patrol_session_id',
+      'active_patrol_type'
+    ];
+    
+    // Save patrol data temporarily
+    const preserved: any = {};
+    patrolKeys.forEach(k => {
+      const val = localStorage.getItem(k);
+      if (val) preserved[k] = val;
+    });
+
     localStorage.clear();
+    
+    // Restore patrol data
+    Object.keys(preserved).forEach(k => {
+      localStorage.setItem(k, preserved[k]);
+    });
     
     setTimeout(() => this.navCtrl.navigateRoot('/login'), 1000);
   }

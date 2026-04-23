@@ -1135,7 +1135,10 @@ changeTimeframe(newTimeframe: string) {
                              this.filteredRangers = [...this.rangers];
                           }
 
-                          // ⚡ GENERATE ATTENDANCE ALERTS (From both sources)
+                          // Trigger attendance chart initialization as fallback if not in res
+                          if (!res.officerStatus || !res.officerStatus.history) {
+                             this.initAttChart();
+                          }
                           const attAlerts = [
                              ...logsArray.filter((l: any) => processRecord(l)).map((log: any) => ({
                                 ...log,

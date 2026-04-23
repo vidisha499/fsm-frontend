@@ -185,71 +185,113 @@ async loadAttendanceLogs() {
   });
   await loader.present();
 
-  const request = this.selectedMode === 'beat' 
-    ? this.dataService.getAttendanceLogsByRanger(companyId)
-    : this.dataService.getOnsiteLogsByRanger(this.rangerId, companyId);
+  if (this.selectedMode === 'beat') {
+    this.dataService.getAttendanceLogsByRanger(companyId).subscribe({
+      next: (res: any) => this.processLogsResponse(res, loader),
+      error: (err) => this.handleError(err, loader)
+    });
+  } else {
+    // For Onsite: Merge Monthly Logs (Approved) and Attendance Requests (Pending)
+    const rangerId = localStorage.getItem('ranger_id') || '0';
+    
+    // Fetch both in parallel
+    const logsObs = this.dataService.getOnsiteLogsByRanger(rangerId, companyId);
+    const reqsObs = this.dataService.getAttendanceRequests(companyId);
 
-      request.subscribe({
-        next: (res: any) => {
-          // Robust array extraction for both modes
-          let logsArray: any[] = [];
-          if (Array.isArray(res)) {
-            logsArray = res;
-          } else if (res && Array.isArray(res.data)) {
-            logsArray = res.data;
-          } else if (res && Array.isArray(res.attendance)) {
-            logsArray = res.attendance;
-          } else if (res && res.data && Array.isArray(res.data.attendance)) {
-            logsArray = res.data.attendance;
-          }
+    import('rxjs').then(({ forkJoin }) => {
+      forkJoin([logsObs, reqsObs]).subscribe({
+        next: ([logsRes, reqsRes]: [any, any]) => {
+          let approvedLogs = this.extractLogsArray(logsRes);
+          let pendingReqs = this.extractLogsArray(reqsRes);
+
+          console.log('DEBUG: Raw Approved Logs:', approvedLogs);
+          console.log('DEBUG: Raw Pending Requests:', pendingReqs);
+
+          // Mark status and normalize fields
+          approvedLogs = approvedLogs.map(l => ({ ...l, status: 'APPROVED' }));
           
-          const fetchedLogs = logsArray.map((log: any) => {
-            let rawDate = '';
-            if (this.selectedMode === 'beat') {
-              rawDate = log.timestamp || log.entryDateTime || log.created_at || log.createdAt || '';
-            } else {
-              rawDate = log.created_at || log.createdAt || log.timestamp || '';
-            }
+          // Only take requests for this ranger if backend returns all
+          pendingReqs = pendingReqs.filter(r => {
+            const rId = String(r.user_id || r.ranger_id || r.rangerId || '');
+            const match = rId === rangerId;
+            if (!match && rId) console.log(`DEBUG: Filtered out req for ID ${rId} (Current: ${rangerId})`);
+            return match;
+          }).map(r => ({ ...r, status: 'PENDING', isRequest: true }));
 
-            let formattedDate = '';
-            try { if (rawDate) formattedDate = new Date(rawDate).toISOString(); } catch (e) { formattedDate = rawDate; }
-              
-            return {
-              ...log,
-              createdAt: formattedDate,
-              geofence: log.geo_name || log.geofence || 'General Area',
-              rangerName: log.name || log.rangerName || 'Ranger'
-            };
-          });
+          console.log(`✅ Loaded ${approvedLogs.length} approved and ${pendingReqs.length} pending logs.`);
 
-          // Merge Offline Drafts
-          const drafts = this.dataService.getAttendanceDrafts(this.selectedMode);
-          this.allLogs = [...drafts, ...fetchedLogs];
-
-          // Filter for today AND selected mode
-          const today = new Date().toISOString().split('T')[0];
-          this.attendanceLogs = this.allLogs.filter(log => {
-            const isToday = log.createdAt && log.createdAt.startsWith(today);
-            const isOnsite = String(log.site_id) === '99999' || String(log.geo_id) === '99999' ||
-                             log.site_id === 'onsite' || 
-                             (log.site_name && log.site_name.toLowerCase().includes('onsite')) ||
-                             (log.geo_name && log.geo_name.toLowerCase().includes('[onsite]')) ||
-                             (log.geofence && log.geofence.toLowerCase().includes('[onsite]'));
-            const matchesMode = (this.selectedMode === 'onsite') ? isOnsite : !isOnsite;
-            return isToday && matchesMode;
-          });
-          
-          loader.dismiss();
+          const combined = [...pendingReqs, ...approvedLogs];
+          this.processLogsResponse(combined, loader);
         },
-        error: (err) => {
-          console.error(err);
-          const drafts = this.dataService.getAttendanceDrafts(this.selectedMode);
-          this.allLogs = drafts;
-          this.attendanceLogs = drafts;
-          loader.dismiss();
-        }
+        error: (err) => this.handleError(err, loader)
       });
-    }
+    });
+  }
+}
+
+private extractLogsArray(res: any): any[] {
+  if (Array.isArray(res)) return res;
+  if (res && Array.isArray(res.data)) return res.data;
+  if (res && Array.isArray(res.attendance)) return res.attendance;
+  if (res && res.data && Array.isArray(res.data.attendance)) return res.data.attendance;
+  return [];
+}
+
+private processLogsResponse(res: any, loader: any) {
+  const logsArray = Array.isArray(res) ? res : this.extractLogsArray(res);
+  
+  const fetchedLogs = logsArray.map((log: any) => {
+    let rawDate = log.timestamp || log.entryDateTime || log.created_at || log.createdAt || '';
+    let formattedDate = '';
+    try { if (rawDate) formattedDate = new Date(rawDate).toISOString(); } catch (e) { formattedDate = rawDate; }
+      
+    return {
+      ...log,
+      createdAt: formattedDate,
+      geofence: log.geo_name || log.geofence || 'General Area',
+      rangerName: log.name || log.rangerName || 'Ranger',
+      status: log.status || (this.selectedMode === 'beat' ? 'COMPLETED' : 'APPROVED')
+    };
+  });
+
+  // Merge Offline Drafts
+  const drafts = this.dataService.getAttendanceDrafts(this.selectedMode);
+  this.allLogs = [...drafts, ...fetchedLogs];
+
+  // Filter logic
+  const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+  this.attendanceLogs = this.allLogs.filter(log => {
+    // 1. Determine Mode (Onsite vs Beat)
+    const isOnsite = log.isRequest || 
+                     String(log.site_id) === '99999' || String(log.geo_id) === '99999' ||
+                     log.site_id === 'onsite' || 
+                     !log.geo_id || log.geo_id === '0' ||
+                     (log.site_name && log.site_name.toLowerCase().includes('onsite')) ||
+                     (log.geo_name && log.geo_name.toLowerCase().includes('[onsite]'));
+    
+    const matchesMode = (this.selectedMode === 'onsite') ? isOnsite : !isOnsite;
+    if (!matchesMode) return false;
+
+    // 2. Date Filtering:
+    // If Onsite, show everything (don't filter by today) so user sees their history/requests
+    if (this.selectedMode === 'onsite') return true;
+
+    // If Beat, only show today
+    let logDate = '';
+    if (log.createdAt) logDate = new Date(log.createdAt).toLocaleDateString('en-CA');
+    return logDate === todayStr;
+  });
+  
+  loader.dismiss();
+}
+
+private handleError(err: any, loader: any) {
+  console.error(err);
+  const drafts = this.dataService.getAttendanceDrafts(this.selectedMode);
+  this.allLogs = drafts;
+  this.attendanceLogs = drafts;
+  loader.dismiss();
+}
 
     hasOfflineLogs(): boolean {
       return this.attendanceLogs && this.attendanceLogs.some(l => l.isOffline);

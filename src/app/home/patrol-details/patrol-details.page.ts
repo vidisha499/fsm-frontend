@@ -227,30 +227,46 @@ export class PatrolDetailsPage implements OnInit {
     return obs;
   }
 
-  calculateDistance(route: any[]): string {
-    if (!route || route.length < 2) return '0.00';
+  calculateDistance(route: any): string {
+    let routeArr: any[] = [];
+    if (typeof route === 'string') {
+      try { routeArr = JSON.parse(route); } catch(e) { return '0.00'; }
+    } else if (Array.isArray(route)) {
+      routeArr = route;
+    }
+    
+    if (routeArr.length < 2) return '0.00';
     let totalDist = 0;
-    for (let i = 0; i < route.length - 1; i++) {
-      const p1 = route[i];
-      const p2 = route[i+1];
-      // Try array format [lat, lng] or object format
+    for (let i = 0; i < routeArr.length - 1; i++) {
+      const p1 = routeArr[i];
+      const p2 = routeArr[i+1];
+      
       let lat1, lng1, lat2, lng2;
       
+      // Handle [lng, lat] vs [lat, lng] vs {lat, lng}
       if (Array.isArray(p1)) {
-        lat1 = Number(p1[0]); lng1 = Number(p1[1]);
+        if (p1[0] > 100 || p1[0] < -100) { // Likely longitude
+          lng1 = Number(p1[0]); lat1 = Number(p1[1]);
+        } else {
+          lat1 = Number(p1[0]); lng1 = Number(p1[1]);
+        }
       } else {
         lat1 = Number(p1.latitude || p1.lat); lng1 = Number(p1.longitude || p1.lng);
       }
       
       if (Array.isArray(p2)) {
-        lat2 = Number(p2[0]); lng2 = Number(p2[1]);
+        if (p2[0] > 100 || p2[0] < -100) {
+          lng2 = Number(p2[0]); lat2 = Number(p2[1]);
+        } else {
+          lat2 = Number(p2[0]); lng2 = Number(p2[1]);
+        }
       } else {
         lat2 = Number(p2.latitude || p2.lat); lng2 = Number(p2.longitude || p2.lng);
       }
       
       if (isNaN(lat1) || isNaN(lng1) || isNaN(lat2) || isNaN(lng2)) continue;
       
-      const R = 6371; // Earth's radius in km
+      const R = 6371; 
       const dLat = (lat2 - lat1) * Math.PI / 180;
       const dLng = (lng2 - lng1) * Math.PI / 180;
       const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -266,18 +282,18 @@ export class PatrolDetailsPage implements OnInit {
     const startStr = patrol.start_time || patrol.created_at || patrol.startTime;
     const endStr = patrol.end_time || patrol.ended_at || patrol.updated_at || patrol.endTime;
     
-    if (!startStr || !endStr) return '--:--';
+    if (!startStr) return '--:--';
     
     const start = new Date(startStr).getTime();
-    const end = new Date(endStr).getTime();
+    // If endStr is missing, use now() for live duration calculation
+    const end = endStr ? new Date(endStr).getTime() : Date.now();
+    
     const diffMs = end - start;
+    if (diffMs <= 0 || isNaN(diffMs)) return '0m';
     
-    // If diff is negative or 0 or invalid, maybe still active or corrupted
-    if (diffMs <= 0 || isNaN(diffMs)) return '--:--';
-    
-    const diffMins = Math.floor(diffMs / 60000);
-    const hours = Math.floor(diffMins / 60);
-    const mins = diffMins % 60;
+    const totalMins = Math.floor(diffMs / 60000);
+    const hours = Math.floor(totalMins / 60);
+    const mins = totalMins % 60;
     
     if (hours > 0) return `${hours}h ${mins}m`;
     return `${mins}m`;
