@@ -28,8 +28,13 @@
         </div>
       </div>
     </div>
+    
+    <div class="loader-container" *ngIf="isLoading" style="padding: 40px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+      <ion-spinner name="crescent" style="color: #0d9488;"></ion-spinner>
+      <p style="margin-top: 15px; color: #666; font-size: 0.9rem; font-weight: 500;">Fetching event logs...</p>
+    </div>
 
-    <div class="main-container">
+    <div class="main-container" *ngIf="!isLoading">
       <div class="list-section">
         <div class="report-card animate__animated animate__fadeInUp" *ngFor="let report of submittedReports" (click)="viewDetails(report)">
           <div class="card-thumb">

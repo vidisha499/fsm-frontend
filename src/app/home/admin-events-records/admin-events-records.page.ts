@@ -36,39 +36,30 @@ export class AdminEventsRecordsPage implements OnInit {
     const user = rawData ? JSON.parse(rawData) : null;
     const companyId = user ? Number(user.company_id || user.companyId) : 0;
 
-    let params: any = { 
-      company_id: companyId,
-      category: 'events' // 🔥 Specifically filter for events activity
-    };
-
-    if (from) {
-      params.date_from = from;
-      params.startDate = from;
-      params.start_date = from;
-      params.from = from;
-      params.from_date = from;
-    }
-    if (to) {
-      params.date_to = to;
-      params.endDate = to;
-      params.end_date = to;
-      params.to = to;
-      params.to_date = to;
-    }
-
-    this.dataService.getForestReports(params).subscribe({
+    // Fetch all reports to ensure consistency with Admin dashboard
+    this.dataService.getForestReports().subscribe({
       next: (res: any) => {
         const data = res?.data || res || [];
-        // Optional: you can filter on the client side just in case the backend returns everything
-        // But assuming the backend respects the 'category' param
-        const filteredData = data.filter((r: any) => {
-          const cat = (r.category || '').toLowerCase();
-          return cat.includes('event') || cat.includes('sight') || cat.includes('monit');
-        });
         
-        // Use the filteredData if backend filtering is weak, otherwise use data
-        // We will use filteredData to be safe, exactly like dashboard logic
-        this.submittedReports = (filteredData.length > 0 ? filteredData : data).map((r: any) => this.processPhotos(r));
+        // Robust Client-Side Filtering matching Admin Page logic
+        this.submittedReports = data.filter((r: any) => {
+          const cat = (r.category || '').toLowerCase();
+          const isEvent = cat.includes('event') || cat.includes('sight') || cat.includes('monit');
+          
+          if (!isEvent) return false;
+
+          // Date Filter logic
+          if (from && to) {
+            const rDate = r.created_at || r.date || r.date_time || '';
+            if (!rDate) return false;
+            const rTimestamp = new Date(rDate).getTime();
+            const fromTS = new Date(from).getTime();
+            const toTS = new Date(to).getTime() + (24 * 60 * 60 * 1000); // include full 'to' day
+            return rTimestamp >= fromTS && rTimestamp <= toTS;
+          }
+          return true;
+        }).map((r: any) => this.processPhotos(r));
+        
         this.isLoading = false;
       },
       error: (err) => {

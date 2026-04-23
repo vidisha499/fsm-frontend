@@ -36,30 +36,30 @@ export class AdminCriminalRecordsPage implements OnInit {
     const user = rawData ? JSON.parse(rawData) : null;
     const companyId = user ? Number(user.company_id || user.companyId) : 0;
 
-    let params: any = { 
-      company_id: companyId,
-      category: 'criminal' // 🔥 Specifically filter for criminal activity
-    };
-
-    if (from) {
-      params.date_from = from;
-      params.startDate = from;
-      params.start_date = from;
-      params.from = from;
-      params.from_date = from;
-    }
-    if (to) {
-      params.date_to = to;
-      params.endDate = to;
-      params.end_date = to;
-      params.to = to;
-      params.to_date = to;
-    }
-
-    this.dataService.getForestReports(params).subscribe({
+    // Fetch all reports to ensure we catch everything the Admin dashboard sees
+    this.dataService.getForestReports().subscribe({
       next: (res: any) => {
         const data = res?.data || res || [];
-        this.submittedReports = data.map((r: any) => this.processPhotos(r));
+        
+        // Robust Client-Side Filtering matching Admin Page logic
+        this.submittedReports = data.filter((r: any) => {
+          const cat = (r.category || '').toLowerCase();
+          const isCrim = cat.includes('crim') || cat.includes('poach') || cat.includes('mining') || cat.includes('felling') || cat.includes('encroach');
+          
+          if (!isCrim) return false;
+
+          // Date Filter logic
+          if (from && to) {
+            const rDate = r.created_at || r.date || r.date_time || '';
+            if (!rDate) return false;
+            const rTimestamp = new Date(rDate).getTime();
+            const fromTS = new Date(from).getTime();
+            const toTS = new Date(to).getTime() + (24 * 60 * 60 * 1000); // include full 'to' day
+            return rTimestamp >= fromTS && rTimestamp <= toTS;
+          }
+          return true;
+        }).map((r: any) => this.processPhotos(r));
+        
         this.isLoading = false;
       },
       error: (err) => {

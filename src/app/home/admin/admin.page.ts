@@ -137,6 +137,7 @@ export class AdminPage implements OnInit, AfterViewInit {
   rangers: any[] = [];
   private dataSubscription: any;
   allRangers: number = 0;
+  public isStatsLoading: boolean = true;
   private isFetching: boolean = false;
   public onDutyCount: number = 0;
   public onLeaveCount: number = 0;
@@ -713,6 +714,7 @@ changeTimeframe(newTimeframe: string) {
 }
 
   loadData() {
+    this.isStatsLoading = true;
     console.log('DEBUG: DataService Object ->', this.dataService);
     if (this.isFetching) return;
 
@@ -1027,8 +1029,12 @@ changeTimeframe(newTimeframe: string) {
 
                 this.updateFilteredAlerts();
             }
+            this.isStatsLoading = false;
           },
-          error: (err) => console.error("❌ Direct Sync Failure:", err)
+          error: (err) => {
+            console.error("❌ Direct Sync Failure:", err);
+            this.isStatsLoading = false;
+          }
         });
 
 

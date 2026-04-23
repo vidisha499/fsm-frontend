@@ -245,7 +245,7 @@
             <polygon points="3 11 22 2 13 21 11 13 3 11"/>
           </svg>
         </div>
-        <div class="kpi-val">{{eventsCount }}</div>
+        <div class="kpi-val">{{ eventsCount }}</div>
         <div class="kpi-lbl">Events & Monitoring</div>
         <div class="kpi-trend up">▲ Tap to analyse</div>
       </div>
@@ -257,7 +257,7 @@
             <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
           </svg>
         </div>
-        <div class="kpi-val" id="kv-fire">{{fireAlertsCount}}</div>
+        <div class="kpi-val" id="kv-fire">{{ fireAlertsCount }}</div>
         <div class="kpi-lbl">Fire Alerts</div>
         <div class="kpi-trend dn">▼ Tap to analyse</div>
       </div>
@@ -268,7 +268,7 @@
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
           </svg>
         </div>
-        <div class="kpi-val" id="kv-assets"> {{totalAssetsCount}}</div>
+        <div class="kpi-val" id="kv-assets">{{ totalAssetsCount }}</div>
         <div class="kpi-lbl">Assets & Tools</div>
         <div class="kpi-trend up">▲  {{operationalRate}}</div>
       </div>
@@ -288,6 +288,9 @@
     </div>
     <div class="card-body">
       <div style="height:140px;position:relative">
+        <div *ngIf="isStatsLoading" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.7); z-index: 10;">
+          <ion-spinner name="crescent"></ion-spinner>
+        </div>
         <canvas id="c-trend"></canvas>
       </div>
       <div class="chart-axis-labels">
