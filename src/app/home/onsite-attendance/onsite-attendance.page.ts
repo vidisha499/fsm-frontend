@@ -245,9 +245,9 @@ async submit() {
   const onsiteData = {
     api_token: token,
     user_id: localStorage.getItem('ranger_id'),
-    geo_id: this.assignedSiteId,
+    geo_id: this.assignedSiteId, // Use a valid ID from the system
     geo_name: `[Onsite] ${this.currentAddress || 'Location'}`, 
-    site_id: this.assignedSiteId, 
+    site_id: this.assignedSiteId, // Use a valid ID from the system
     site_name: 'Onsite Attendance',
     type: 'ONSITE',
     photo: this.capturedPhoto,

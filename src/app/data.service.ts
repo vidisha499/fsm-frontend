@@ -218,7 +218,15 @@ export class DataService {
   markGuardAttendance() { return this.http.post(`${this.baseApiUrl}/markGuardAttendance`, {}); }
   markGuardAttendanceExit() { return this.http.post(`${this.baseApiUrl}/markGuardAttendanceExit`, {}); }
   
-  requestEntryAttendance(payload: any, headers?: any) { return this.http.post(`${this.baseApiUrl}/requestEntryAttendance`, payload, { headers }); }
+  requestEntryAttendance(payload: any, headers: any = {}) { 
+    const token = localStorage.getItem('api_token');
+    const finalHeaders = { 
+      ...headers, 
+      'Bypass-Token': 'true',
+      'Authorization': `Bearer ${token}` 
+    };
+    return this.http.post(`${this.baseApiUrl}/requestEntryAttendance`, payload, { headers: finalHeaders }); 
+  }
   updateAttendanceRequestStatus(payload: any) { 
     const token = localStorage.getItem('api_token');
     const finalPayload = { ...payload, api_token: token };
@@ -235,7 +243,11 @@ export class DataService {
       ranger_id: rangerId,
       user_id: rangerId
     };
-    return this.http.post(`${this.baseApiUrl}/getAttendanceRequests`, payload); 
+    const headers = { 
+      'Bypass-Token': 'true',
+      'Authorization': `Bearer ${token}` 
+    };
+    return this.http.post(`${this.baseApiUrl}/getAttendanceRequests`, payload, { headers }); 
   }
 
   // --- Aliases for compatibility ---
