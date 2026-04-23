@@ -19,7 +19,7 @@ ion-header {
 .header-section {
   position: relative;
   background: url('https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&q=80&w=800') center/cover;
-  padding-top: calc(var(--ion-safe-area-top) + 15px); // Enhanced safe area protection
+  padding-top: calc(var(--ion-safe-area-top) + 25px); // Further increased for safety
   padding-bottom: 30px;
   border-bottom-left-radius: 40px;
   border-bottom-right-radius: 40px;
