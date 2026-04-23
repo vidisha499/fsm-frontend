@@ -1,41 +1,38 @@
 <ion-header class="ion-no-border">
   <div class="header-section">
-    <div class="toolbar-overlay">
-      <button class="back-btn" (click)="goBack()">
-        <ion-icon name="arrow-back-outline"></ion-icon>
-      </button>
-      <span class="page-title">Details</span>
-      <button class="top-refresh" (click)="doRefresh()">
-        <ion-icon name="refresh-outline"></ion-icon>
-      </button>
+    <div class="header-overlay"></div>
+    
+    <!-- Hero Content: Back Button + Name -->
+    <div *ngIf="officer" class="hero-content-new">
+      <div class="name-header-row">
+        <button class="back-btn-round" (click)="goBack()">
+          <ion-icon name="arrow-back-outline"></ion-icon>
+        </button>
+        <div class="name-stack">
+          <h2 class="profile-name">{{ officer.name }}</h2>
+          <p class="profile-subtitle">{{ officer.role_name }} · {{ officer.emp_code }}</p>
+        </div>
+      </div>
     </div>
 
-    <!-- Hero Profile Section -->
-    <div *ngIf="officer" class="hero-container">
-      <div class="avatar-wrapper">
+    <!-- Bottom Row: Action Buttons (Left) & Avatar (Right) -->
+    <div class="header-bottom-flex">
+      <div class="header-actions-left">
+        <button class="mini-action-btn trash" (click)="doDelete()">
+          <ion-icon name="trash-outline"></ion-icon>
+        </button>
+        <button class="mini-action-btn sync" (click)="doRefresh()">
+          <ion-icon name="refresh-outline"></ion-icon>
+        </button>
+      </div>
+
+      <!-- Avatar moved to Bottom Right -->
+      <div *ngIf="officer" class="avatar-wrapper-bottom">
         <img *ngIf="officer.photo" [src]="officer.photo" class="profile-img" (error)="officer.photo = null" />
         <div *ngIf="!officer.photo" class="profile-fallback">
           {{ getInitials(officer.name) }}
         </div>
       </div>
-      
-      <h2 class="profile-name">{{ officer.name }}</h2>
-      <p class="profile-subtitle">{{ officer.role_name }}</p>
-      <p class="profile-id">{{ officer.emp_code }}</p>
-      
-      <div class="role-badge">
-        {{ (officer.role_name || 'OFFICER') | uppercase }}
-      </div>
-    </div>
-
-    <!-- Action Float Buttons -->
-    <div class="action-float">
-      <button class="float-btn trash">
-        <ion-icon name="trash-outline"></ion-icon>
-      </button>
-      <button class="float-btn refresh" (click)="doRefresh()">
-        <ion-icon name="refresh-outline"></ion-icon>
-      </button>
     </div>
   </div>
 </ion-header>

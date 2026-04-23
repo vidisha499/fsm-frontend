@@ -175,6 +175,11 @@ export class OfficerDetailsPage implements OnInit {
     this.loadOfficerDetails();
   }
 
+  doDelete() {
+    console.log('Delete officer requested for ID:', this.officerId);
+    // Logic for delete can be added here
+  }
+
   goBack() {
     this.navCtrl.back();
   }
