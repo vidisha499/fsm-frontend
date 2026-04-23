@@ -121,9 +121,28 @@ export class SightingsDetailsPage implements OnInit {
 
   private processReportData(data: any) {
     this.reportDataFields = [];
+    
+    // 1. Add important root-level fields first
+    const rootFields = [
+      { key: 'beat', label: 'Beat' },
+      { key: 'range_name', label: 'Range' },
+      { key: 'staff_name', label: 'Reported By' },
+      { key: 'section_name', label: 'Section' },
+      { key: 'block_name', label: 'Block' }
+    ];
+
+    rootFields.forEach(f => {
+      if (this.sighting[f.key]) {
+        this.reportDataFields.push({
+          label: f.label,
+          value: this.sighting[f.key]
+        });
+      }
+    });
+
     if (!data) return;
 
-    // Convert object to array for easier *ngFor rendering
+    // 2. Convert report_data object to array for extra dynamic fields
     Object.keys(data).forEach(key => {
       let value = data[key];
       
@@ -140,10 +159,13 @@ export class SightingsDetailsPage implements OnInit {
         .replace(/_/g, ' ')
         .replace(/\b\w/g, l => l.toUpperCase());
 
-      this.reportDataFields.push({
-        label: formattedLabel,
-        value: value
-      });
+      // Avoid duplicates if already added from root
+      if (!this.reportDataFields.find(f => f.label.toLowerCase() === formattedLabel.toLowerCase())) {
+        this.reportDataFields.push({
+          label: formattedLabel,
+          value: value
+        });
+      }
     });
   }
 

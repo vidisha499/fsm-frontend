@@ -46,13 +46,21 @@
         </div>
 
         <div class="info-grid-premium">
-          <div class="info-pill">
-            <span class="lbl">INSTALL YEAR</span>
-            <span class="val">{{ asset.year || '2026' }}</span>
+          <div class="info-pill" *ngIf="asset.serial_number">
+            <span class="lbl">SERIAL NO</span>
+            <span class="val">{{ asset.serial_number }}</span>
+          </div>
+          <div class="info-pill" *ngIf="asset.user_name || asset.staff_name">
+            <span class="lbl">ASSIGNED TO</span>
+            <span class="val">{{ asset.user_name || asset.staff_name }}</span>
+          </div>
+          <div class="info-pill" *ngIf="asset.department">
+            <span class="lbl">DEPARTMENT</span>
+            <span class="val">{{ asset.department }}</span>
           </div>
           <div class="info-pill">
             <span class="lbl">ADDED ON</span>
-            <span class="val">{{ asset.created_at | date:'dd MMM, yyyy' }}</span>
+            <span class="val">{{ (asset.created_at || asset.date) | date:'dd MMM, yyyy' }}</span>
           </div>
         </div>
       </div>

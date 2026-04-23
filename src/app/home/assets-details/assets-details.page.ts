@@ -19,7 +19,14 @@ export class AssetDetailsPage implements OnInit, AfterViewInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    this.asset = this.dataService.getSelectedAsset(); 
+    // 1. Try to get data from Navigation State first (passed from drill-down lists)
+    const navigation = (window as any).history.state;
+    if (navigation && navigation.data) {
+      this.asset = navigation.data;
+    } else {
+      // 2. Fallback to DataService
+      this.asset = this.dataService.getSelectedAsset(); 
+    }
     
     // 🔥 ROBUST LOCATION PARSING
     if (this.asset && this.asset.location) {
