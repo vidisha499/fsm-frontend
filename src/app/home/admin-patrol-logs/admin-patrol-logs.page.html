@@ -37,18 +37,19 @@
       <div class="list-section">
         <div class="report-card animate__animated animate__fadeInUp" *ngFor="let log of patrolLogs" (click)="viewDetails(log)">
           <div class="card-thumb">
-            <div class="placeholder-icon">
+            <img *ngIf="log.displayPhoto" [src]="log.displayPhoto" />
+            <div *ngIf="!log.displayPhoto" class="placeholder-icon">
               <ion-icon name="trail-sign-outline" style="font-size: 24px; color: #0d9488;"></ion-icon>
             </div>
           </div>
 
           <div class="card-info">
             <div class="type-tag">{{ log.range_name || 'Forest Range' }}</div>
-            <h3 class="beat-name">{{ log.user_name || log.ranger_name || 'Unknown Officer' }}</h3>
+            <h3 class="beat-name">{{ log.displayName }}</h3>
             <div class="meta-row">
               <span class="date">
                 <ion-icon name="time-outline"></ion-icon> 
-                {{ formatDate(log.start_time || log.created_at) }}
+                {{ log.formattedDate }}
               </span>
               <span class="status-chip" [ngClass]="log.status === 'completed' ? 'success' : 'pending'">
                 {{ formatStatus(log.status) }}
