@@ -768,11 +768,15 @@ changeTimeframe(newTimeframe: string) {
         // --- 1. UNIFIED STATS MAPPING ---
         const stats = res.stats?.data || res.stats || {};
         
-        // Initial values from API summary (will be refined by manual database sync)
-        this.criminalActivityCount = Number(stats.criminal_count || stats.criminalEvents || 0);
-        this.sightingsCount = Number(stats.monitoring_count || stats.monitoringEvents || 0);
-        this.fireAlertsCount = Number(stats.fire_count || stats.fireEvents || 0);
+        // Use temporary variables for summary stats so they don't cause UI flickering
+        // The real counts are calculated below in the detailed Database Sync
+        const summaryCriminal = Number(stats.criminal_count || stats.criminalEvents || 0);
+        const summaryMonitoring = Number(stats.monitoring_count || stats.monitoringEvents || 0);
+        const summaryFire = Number(stats.fire_count || stats.fireEvents || 0);
         this.incidentsCount = Number(stats.total_incidents || stats.total_events || 0);
+
+        // Only set these if they are currently 0 (Initial Load)
+        if (this.fireAlertsCount === 0) this.fireAlertsCount = summaryFire;
 
         // --- DYNAMIC DATABASE FETCH (FORCE SYNC - Fixed for Local Time) ---
         forkJoin({
@@ -1128,7 +1132,10 @@ changeTimeframe(newTimeframe: string) {
         }
 
         // Personnel Stats (Sir's Unified API fallback)
-        this.onDutyCount = Number(stats.on_duty_count || stats.on_duty || 0);
+        // Only set if 0 to prevent flickering with detailed attendance sync
+        const summaryOnDuty = Number(stats.on_duty_count || stats.on_duty || 0);
+        if (this.onDutyCount === 0) this.onDutyCount = summaryOnDuty;
+        
         this.onLeaveCount = Number(stats.on_leave_count || stats.on_leave || 0);
         this.inactiveCount = Number(stats.inactive_count || stats.inactive || 0);
 
