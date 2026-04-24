@@ -112,10 +112,14 @@ export class AdminPatrolLogsPage implements OnInit {
 
     if (validPhotos.length > 0) thumb = validPhotos[0];
 
+    // 3. Determine Status
+    let status = log.status || (log.end_time || log.ended_at || log.endTime ? 'completed' : 'In Progress');
+
     return {
       ...log,
       displayName: name || 'Unknown Officer',
       displayPhoto: thumb,
+      displayStatus: status,
       formattedDate: this.formatDate(log.start_time || log.created_at)
     };
   }
@@ -154,7 +158,8 @@ export class AdminPatrolLogsPage implements OnInit {
   }
 
   formatStatus(status: string) {
-    if (!status) return 'In Progress';
+    if (!status || status.toLowerCase() === 'in progress' || status.toLowerCase() === 'active') return 'In Progress';
+    if (status.toLowerCase() === 'completed' || status.toLowerCase() === 'ended' || status.toLowerCase() === 'finished') return 'Completed';
     return status.charAt(0).toUpperCase() + status.slice(1);
   }
 }

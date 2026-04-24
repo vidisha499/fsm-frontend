@@ -51,8 +51,8 @@
                 <ion-icon name="time-outline"></ion-icon> 
                 {{ log.formattedDate }}
               </span>
-              <span class="status-chip" [ngClass]="log.status === 'completed' ? 'success' : 'pending'">
-                {{ formatStatus(log.status) }}
+              <span class="status-chip" [ngClass]="log.displayStatus === 'completed' ? 'success' : 'pending'">
+                {{ formatStatus(log.displayStatus) }}
               </span>
             </div>
           </div>
