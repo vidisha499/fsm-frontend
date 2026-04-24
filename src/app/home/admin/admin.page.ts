@@ -164,6 +164,7 @@ export class AdminPage implements OnInit, AfterViewInit {
   // Caching Trend Data to prevent it from disappearing
   private lastTrendLabels: string[] = [];
   private lastTrendValues: number[] = [];
+  private lastTrendState: string = '';
   isFilterCollapsed: boolean = true;
   isRefreshing: boolean = false;
   isSpinning: boolean = false;
@@ -2464,6 +2465,16 @@ handleApiResponse(res: any) {
   initTrendChart(labels: string[], values: number[]) {
     const canvas = document.getElementById('c-trend') as HTMLCanvasElement;
     if (!canvas) return;
+
+    // 🔥 FIX: Prevent flickering if data hasn't changed
+    const newDataStr = JSON.stringify({ labels, values });
+    if (this.lastTrendState === newDataStr) {
+      this.isStatsLoading = false;
+      this.cdr.detectChanges();
+      return; 
+    }
+    this.lastTrendState = newDataStr;
+    this.isStatsLoading = false; // Data is ready to render
 
     if (this._charts['c-trend']) {
       this._charts['c-trend'].destroy();
