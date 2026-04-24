@@ -216,15 +216,15 @@
         <div class="kpi-trend up">▲ {{ attendancePercent }}% Attendance</div>
       </div>
 
-       <div class="kpi-card" data-c="teal">
+       <div class="kpi-card" data-c="teal" (click)="goToPatrolLogs()">
         <div class="kpi-ico" style="background:#f0fdfa">
           <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#0d9488" stroke-width="2">
             <polygon points="3 11 22 2 13 21 11 13 3 11"/>
           </svg>
         </div>
-        <div class="kpi-val">0</div>
+        <div class="kpi-val">{{ patrolCount }}</div>
         <div class="kpi-lbl">Patrol logs</div>
-        <div class="kpi-trend up">▲ All Covered</div>
+        <div class="kpi-trend up">▲ Tap to analyse</div>
       </div> 
 
       <div class="kpi-card" data-c="rose" (click)="goToCriminalRecords()">

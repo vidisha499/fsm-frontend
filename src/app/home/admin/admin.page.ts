@@ -150,6 +150,7 @@ export class AdminPage implements OnInit, AfterViewInit {
   fireTrendData: number[] = [];
   assetsTrendData: number[] = [];
   onDutyTrendData: number[] = [];
+  patrolCount: number = 0;
   criminalActivityCount15: number = 0;
   sightingsCount15: number = 0;
   fireAlertsCount15: number = 0;
@@ -1227,6 +1228,7 @@ changeTimeframe(newTimeframe: string) {
                       this.dataService.getPatrolsByCompany(this.myCompanyId, todayYMD, todayYMD).subscribe({
                          next: (pRes: any) => {
                             const pList = pRes.data || pRes.patrols || (Array.isArray(pRes) ? pRes : []);
+                            this.patrolCount = pList.length;
                             const pAlerts = pList.map((p: any) => {
                                const uName = p.user_name || p.ranger_name || this.resolveUserName(p.user_id || p.ranger_id);
                                return {
@@ -2443,6 +2445,10 @@ handleApiResponse(res: any) {
 
   goToAssetsRecords() {
     this.router.navigate(['/home/admin-assets-records']);
+  }
+
+  goToPatrolLogs() {
+    this.router.navigate(['/home/admin-patrol-logs']);
   }
 
   // Aliases for template consistency

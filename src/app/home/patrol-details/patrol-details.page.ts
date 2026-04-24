@@ -32,6 +32,19 @@ export class PatrolDetailsPage implements OnInit {
   ) {}
 
   ngOnInit() {
+    // 1. Check for data passed via navigation state (Admin Dashboard / Logs)
+    const state = window.history.state;
+    if (state && state.data) {
+      console.log("📍 Received Patrol Data via State:", state.data);
+      this.patrol = state.data;
+      this.patrolId = String(this.patrol.id || this.patrol.patrol_id);
+      
+      // Still load details to get full route/observations if missing
+      this.loadPatrolDetails();
+      return;
+    }
+
+    // 2. Fallback to ID from URL
     const idFromUrl = this.route.snapshot.paramMap.get('id');
     if (idFromUrl) {
       this.patrolId = idFromUrl;

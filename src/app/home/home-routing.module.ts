@@ -174,6 +174,10 @@ loadChildren:() => import('./admin/admin.module').then( m => m.AdminPageModule)
   {
     path: 'admin-assets-records',
     loadChildren: () => import('./admin-assets-records/admin-assets-records.module').then( m => m.AdminAssetsRecordsPageModule)
+  },
+  {
+    path: 'admin-patrol-logs',
+    loadChildren: () => import('./admin-patrol-logs/admin-patrol-logs.module').then( m => m.AdminPatrolLogsPageModule)
   }
 
 ];
