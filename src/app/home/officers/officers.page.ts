@@ -2,6 +2,8 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { NavController } from '@ionic/angular';
 import { DataService } from 'src/app/data.service';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 @Component({
   selector: 'app-officers',
@@ -42,82 +44,85 @@ export class OfficersPage implements OnInit {
     const now = new Date();
     const todayYMD = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-    // Reverted to getAssignableUsers as per user request
-    this.dataService.getAssignableUsers({ company_id: this.myCompanyId.toString() }).subscribe({
+    // Use forkJoin to fetch from multiple endpoints to guarantee photo availability
+    forkJoin({
+      staff: this.dataService.getAssignableUsers({ company_id: this.myCompanyId.toString() }).pipe(catchError(() => of([]))),
+      attendance: this.dataService.getAttendanceLogsByRanger(this.myCompanyId.toString()).pipe(catchError(() => of([]))),
+      guards: this.dataService.getGuardsOnSite().pipe(catchError(() => of([]))),
+      guardAtt: this.dataService.getGuardAttendance().pipe(catchError(() => of([])))
+    }).subscribe({
       next: (res: any) => {
-        const staffList = res.data || res || [];
+        const staffList = res.staff.data || res.staff.users || res.staff || [];
+        const logsArray = res.attendance.data || res.attendance.attendance || (Array.isArray(res.attendance) ? res.attendance : []);
+        const guardsList = res.guards.data || res.guards.guards || res.guards || [];
+        const guardAttList = res.guardAtt.data || res.guardAtt.attendance || res.guardAtt || [];
 
-        // Now fetch today's attendance
-        this.dataService.getAttendanceLogsByRanger(this.myCompanyId.toString()).subscribe({
-          next: (attRes: any) => {
-            const logsArray = attRes.data || attRes.attendance || (Array.isArray(attRes) ? attRes : []);
+        // Add debug logs to see what the APIs actually returned
+        console.log('--- DEBUG: PROFILE PHOTO APIs ---');
+        console.log('1. getAssignableUsers (Staff List) count:', staffList.length);
+        if (staffList.length > 0) console.log('Sample Staff:', staffList[0]);
+        
+        console.log('2. getGuardsOnSite count:', guardsList.length);
+        if (guardsList.length > 0) console.log('Sample Guard:', guardsList[0]);
+        
+        console.log('3. getGuardAttendance count:', guardAttList.length);
+        if (guardAttList.length > 0) console.log('Sample GuardAtt:', guardAttList[0]);
+        console.log('---------------------------------');
 
-            // Build set of user IDs who attended today
-            logsArray.forEach((log: any) => {
-              const lDate = log.timestamp || log.entryDateTime || log.created_at || '';
-              if (lDate && lDate.includes(todayYMD)) {
-                this.todayAttendanceIds.add(log.user_id || log.staff_id || log.ranger_id);
-              }
-            });
-
-            // Map officers with duty status
-            this.allOfficers = staffList.map((u: any) => {
-              const id = u.id || u.user_id;
-              const hasAttended = this.todayAttendanceIds.has(id);
-              
-              // More comprehensive field check
-              const photoRaw = u.profile_pic || u.profile_Pic || u.image || u.photo || u.profile_image || u.avatar || u.user_photo || u.profilePic;
-              
-              return {
-                ...u,
-                id: id,
-                name: u.name || u.full_name || u.first_name || 'Staff',
-                role: u.role_name || u.designation || this.getRoleName(u.role_id),
-                site_name: u.site_name || u.beat_name || u.range_name || '',
-                photo: this.getPhotoUrl(photoRaw),
-                dutyStatus: hasAttended ? 'On Duty' : 'No Show',
-                hasAttended: hasAttended
-              };
-            });
-
-            // Sort: On Duty first, then No Show
-            this.allOfficers.sort((a, b) => {
-              if (a.hasAttended && !b.hasAttended) return -1;
-              if (!a.hasAttended && b.hasAttended) return 1;
-              return (a.name || '').localeCompare(b.name || '');
-            });
-
-            this.filteredOfficers = [...this.allOfficers];
-            this.totalCount = this.allOfficers.length;
-            this.isLoading = false;
-            this.cdr.detectChanges();
-          },
-          error: () => {
-            // If attendance fetch fails, still show officers but all as "No Show"
-            this.allOfficers = staffList.map((u: any) => {
-              const id = u.id || u.user_id;
-              const photoRaw = u.profile_pic || u.profile_Pic || u.image || u.photo || u.profile_image || u.avatar || u.user_photo || u.profilePic;
-              return {
-                ...u,
-                id: id,
-                name: u.name || u.full_name || u.first_name || 'Staff',
-                role: u.role_name || u.designation || this.getRoleName(u.role_id),
-                site_name: u.site_name || u.beat_name || u.range_name || '',
-                photo: this.getPhotoUrl(photoRaw),
-                dutyStatus: 'No Show',
-                hasAttended: false
-              };
-            });
-
-            this.filteredOfficers = [...this.allOfficers];
-            this.totalCount = this.allOfficers.length;
-            this.isLoading = false;
-            this.cdr.detectChanges();
+        // Build set of user IDs who attended today
+        this.todayAttendanceIds.clear();
+        logsArray.forEach((log: any) => {
+          const lDate = log.timestamp || log.entryDateTime || log.created_at || '';
+          if (lDate && lDate.includes(todayYMD)) {
+            this.todayAttendanceIds.add(log.user_id || log.staff_id || log.ranger_id);
           }
         });
+
+        // Map officers with duty status
+        this.allOfficers = staffList.map((u: any) => {
+          const id = u.id || u.user_id;
+          const hasAttended = this.todayAttendanceIds.has(id);
+          
+          const matchingGuard = guardsList.find((g: any) => g.id == id || g.user_id == id || g.staff_id == id) || {};
+          const matchingGuardAtt = guardAttList.find((c: any) => c.id == id || c.user_id == id || c.guard_id == id || c.staff_id == id) || {};
+          
+          // More comprehensive field check including fallback sources
+          const photoRaw = u.profile_pic || u.profile_Pic || u.image || u.photo || u.profile_image || u.avatar || u.user_photo || u.profilePic ||
+                           matchingGuard.profile_pic || matchingGuard.photo || matchingGuard.image || matchingGuard.avatar ||
+                           matchingGuardAtt.profile_pic || matchingGuardAtt.photo || matchingGuardAtt.image || matchingGuardAtt.avatar;
+          
+          if (id === staffList[0]?.id || id === staffList[0]?.user_id) {
+             console.log(`DEBUG: Mapping first user (ID: ${id}) -> photoRaw determined as:`, photoRaw);
+             console.log(`DEBUG: matchingGuard object:`, matchingGuard);
+          }
+          
+          return {
+            ...u,
+            id: id,
+            name: u.name || u.full_name || u.first_name || 'Staff',
+            role: u.role_name || u.designation || this.getRoleName(u.role_id),
+            site_name: u.site_name || u.beat_name || u.range_name || '',
+            photo: this.getPhotoUrl(photoRaw),
+            dutyStatus: hasAttended ? 'On Duty' : 'No Show',
+            hasAttended: hasAttended
+          };
+        });
+
+        // Sort: On Duty first, then No Show
+        this.allOfficers.sort((a, b) => {
+          if (a.hasAttended && !b.hasAttended) return -1;
+          if (!a.hasAttended && b.hasAttended) return 1;
+          return (a.name || '').localeCompare(b.name || '');
+        });
+
+        this.filteredOfficers = [...this.allOfficers];
+        this.totalCount = this.allOfficers.length;
+        this.isLoading = false;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Error loading officers:', err);
+        // Fallback if forkJoin entirely fails
         this.isLoading = false;
         this.cdr.detectChanges();
       }
