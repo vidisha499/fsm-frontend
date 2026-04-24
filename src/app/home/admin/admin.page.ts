@@ -134,7 +134,8 @@ export class AdminPage implements OnInit, AfterViewInit {
   infoCount: number = 0;
   momStatus: string = '0% MoM';
   isGoodTrend: boolean = true;
-  // trendChart: any;
+  inactiveCount = 0;
+  allAttendanceLogs: any[] = [];
   rangers: any[] = [];
   private dataSubscription: any;
   allRangers: number = 0;
@@ -142,7 +143,6 @@ export class AdminPage implements OnInit, AfterViewInit {
   private isFetching: boolean = false;
   public onDutyCount: number = 0;
   public onLeaveCount: number = 0;
-  public inactiveCount: number = 0;
   public incidentsCount: number = 0;
   public fireAlertsCount: number = 0;
   criminalActivityCount: number = 0;
@@ -157,6 +157,7 @@ export class AdminPage implements OnInit, AfterViewInit {
   fireAlertsCount15: number = 0;
   currentTime: string = '';
   activeTab: string = 'home';
+  public isChartLoading: boolean = false;
   activeSegment: string = 'overview';
   activeDateFilter: string = 'today';
 
@@ -563,6 +564,10 @@ segmentChanged(event: any) {
     if (this.activeSegment === 'map') {
       setTimeout(() => {
         this.initLeafletMap();
+      }, 100);
+    } else if (this.activeSegment === 'officers') {
+      setTimeout(() => {
+        this.initAttChart();
       }, 100);
     }
   }
@@ -1125,14 +1130,15 @@ changeTimeframe(newTimeframe: string) {
                              // Search for any array property in the object
                              const firstArray = Object.values(obj).find(v => Array.isArray(v)) as any[];
                              if (firstArray) return firstArray;
-                             
-                             return obj.data || obj.attendance || obj.requests || obj.requests_list || obj.items || obj.logs || (Array.isArray(obj.result) ? obj.result : []);
+                    return obj.data || obj.attendance || obj.requests || obj.requests_list || obj.items || obj.logs || (Array.isArray(obj.result) ? obj.result : []);
                           };
 
                           const logsArray = getArr(res.logs);
                           const reqArray = getArr(res.requests);
                           const onsiteArray = getArr(res.onsite);
                           
+                          this.allAttendanceLogs = [...logsArray, ...reqArray, ...onsiteArray];
+                           
                           console.log("🔍 Syncing Attendance:", { 
                             logs: logsArray.length, 
                             requests: reqArray.length, 
@@ -1975,17 +1981,64 @@ handleApiResponse(res: any) {
        return;
     }
 
+    this.isChartLoading = true;
+    this.cdr.detectChanges();
+
     const user = JSON.parse(localStorage.getItem('user_data') || '{}');
     const companyId = user.company_id ? Number(user.company_id) : 0;
     const rangerId = this.selectedRanger?.id ? Number(this.selectedRanger.id) : undefined;
 
     this.dataService.getWeeklyAttendanceStats(companyId, rangerId).subscribe({
-      next: (realData: number[]) => this.renderAttChart(realData),
+      next: (realData: number[]) => {
+        this.isChartLoading = false;
+        // 🔥 FALLBACK: If individual ranger selected and API returns zero, calculate from synced logs
+        if (this.selectedRanger && realData.every(v => v === 0)) {
+          const calculated = this.calculateIndividualStats(this.selectedRanger.id || this.selectedRanger.user_id);
+          this.renderAttChart(calculated);
+        } else {
+          this.renderAttChart(realData);
+        }
+        this.cdr.detectChanges();
+      },
       error: (err: any) => {
+        this.isChartLoading = false;
         console.error('Database Fetch Error:', err);
-        this.renderAttChart([0,0,0,0,0,0,0]);
+        const fallback = this.selectedRanger ? this.calculateIndividualStats(this.selectedRanger.id || this.selectedRanger.user_id) : [0,0,0,0,0,0,0];
+        this.renderAttChart(fallback);
+        this.cdr.detectChanges();
       },
     });
+  }
+
+  private calculateIndividualStats(rangerId: any): number[] {
+    const stats = [0, 0, 0, 0, 0, 0, 0];
+    if (!this.allAttendanceLogs || this.allAttendanceLogs.length === 0) return stats;
+
+    const now = new Date();
+    // Calculate Monday of this week
+    const currentDay = now.getDay();
+    const diffToMon = (currentDay === 0 ? -6 : 1) - currentDay;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diffToMon);
+    monday.setHours(0,0,0,0);
+
+    this.allAttendanceLogs.forEach(log => {
+      // Robust ID check
+      const logUserId = log.user_id || log.ranger_id || log.staff_id || log.guard_id;
+      if (String(logUserId) === String(rangerId)) {
+        const dateStr = log.timestamp || log.entryDateTime || log.created_at || log.date;
+        if (dateStr) {
+          const lDate = new Date(dateStr);
+          if (lDate >= monday) {
+            const dayIdx = lDate.getDay() === 0 ? 6 : lDate.getDay() - 1;
+            // Sum duration if exists, else count as 1 (presence)
+            const duration = parseFloat(log.duration_for_calc || log.duration || 0);
+            stats[dayIdx] += (duration > 0) ? duration : 1;
+          }
+        }
+      }
+    });
+    return stats;
   }
 
   private renderAttChart(realData: number[]) {

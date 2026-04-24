@@ -661,8 +661,14 @@
         <div class="card-pill" *ngIf="!selectedRanger">98% avg</div>
       </div>
 
-      <div class="card-body">
-        <div class="chart-container-with-axis">
+      <div class="card-body" style="position: relative;">
+        <!-- Chart Loader -->
+        <div *ngIf="isChartLoading" class="chart-loader">
+          <ion-spinner name="crescent" color="primary"></ion-spinner>
+          <span>Fetching data...</span>
+        </div>
+
+        <div class="chart-container-with-axis" [style.opacity]="isChartLoading ? '0.3' : '1'">
           <div class="vertical-axis-label">{{ selectedRanger ? 'Hours' : 'Officers' }}</div>
 
           <div style="flex: 1; height: 160px; position: relative;">
