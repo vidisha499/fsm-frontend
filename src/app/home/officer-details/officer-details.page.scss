@@ -2,7 +2,7 @@
 .header-section {
   position: relative;
   background: url('https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&q=80&w=800') center/cover;
-  padding: calc(var(--ion-safe-area-top) + 10px) 20px 25px;
+  padding: calc(var(--ion-safe-area-top) + 45px) 20px 25px;
   border-bottom-left-radius: 35px;
   border-bottom-right-radius: 35px;
   z-index: 10;
@@ -23,7 +23,7 @@
 }
 
 .hero-content-new {
-  margin-top: calc(var(--ion-safe-area-top) + 30px); // Pushed down further
+  margin-top: calc(var(--ion-safe-area-top) + 45px); // Pushed down further
   
   .name-header-row {
     display: flex;

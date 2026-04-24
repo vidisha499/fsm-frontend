@@ -44,6 +44,7 @@ export class AdminPage implements OnInit, AfterViewInit {
   // --- Constants ---
   readonly COLORS = {
     p: '#0d9488',
+    ps: '#0b7c71',
     rose: '#f43f5e',
     amber: '#f59e0b',
     orange: '#f97316',
@@ -1099,6 +1100,7 @@ changeTimeframe(newTimeframe: string) {
         this.inactiveCount = Number(stats.inactive_count || stats.inactive || 0);
 
         if (res.officerStatus && res.officerStatus.history) {
+           this.onDutyTrendData = res.officerStatus.history;
            this.initAttChart(res.officerStatus.history); 
         }
         
@@ -1997,49 +1999,80 @@ handleApiResponse(res: any) {
     const ctx = el.getContext('2d');
     if (!ctx) return;
 
+    // Create a premium gradient for the bars
+    const gradient = ctx.createLinearGradient(0, 0, 0, 160);
+    gradient.addColorStop(0, this.COLORS.p);
+    gradient.addColorStop(1, this.COLORS.ps);
+
+    // Ensure we have exactly 7 days of data
+    let chartData = realData.length >= 7 ? realData.slice(0, 7) : [...realData, 0, 0, 0, 0, 0, 0, 0].slice(0, 7);
+
+    // 🔥 DATA RECOVERY: If API history is zero but we know people are on duty today
+    const now = new Date();
+    const todayDay = now.getDay(); // 0-6 (Sun-Sat)
+    const todayIdx = todayDay === 0 ? 6 : todayDay - 1; // 0-6 (Mon-Sun)
+    
+    if (!this.selectedRanger && chartData[todayIdx] === 0 && this.onDutyCount > 0) {
+      chartData[todayIdx] = this.onDutyCount;
+    }
+
     this.attChart = this.mkChart('c-att', {
-      type: 'line',
+      type: 'bar',
       data: {
-        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        labels: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'],
         datasets: [
           {
             label: this.selectedRanger
               ? `${this.selectedRanger.name}'s Activity`
               : 'Total Personnel On-Duty',
-            data: realData,
-            borderColor: this.COLORS.p,
-            backgroundColor: this.mkG(ctx, this.COLORS.p, 150),
-            fill: true,
-            tension: 0.4,
-            pointRadius: 6,
-            pointBackgroundColor: '#fff',
-            pointBorderColor: this.COLORS.p,
-            pointBorderWidth: 2,
-            pointHoverRadius: 8,
-            borderWidth: 3,
+            data: chartData,
+            backgroundColor: gradient,
+            hoverBackgroundColor: this.COLORS.p,
+            borderRadius: 5,
+            borderSkipped: false,
+            barThickness: 12,
           },
         ],
       },
       options: {
         ...this.CDAX,
+        layout: {
+          padding: { right: 20, left: 0 } // Shifted left for better balance
+        },
         plugins: {
           ...this.CDAX.plugins,
-          legend: { display: false } // Keeping it clean like the other cards
+          legend: { display: false },
+          tooltip: {
+            enabled: true,
+            backgroundColor: '#1e293b',
+            titleColor: '#fff',
+            bodyColor: '#fff',
+            cornerRadius: 10,
+            padding: 12,
+            displayColors: false,
+            callbacks: {
+              label: (item: any) => `Duty: ${item.raw} ${this.selectedRanger ? 'Hrs' : 'Officers'}`
+            }
+          }
         },
         scales: {
           x: { 
             display: true, 
-            ticks: { color: '#94a3b8', font: { size: 10 } },
+            ticks: { color: '#64748b', font: { size: 9, weight: '700' } },
             grid: { display: false },
-            border: { display: true, color: this.COLORS.p, width: 2 }
+            border: { display: true, color: '#e2e8f0', width: 1 }
           },
           y: {
             display: true,
             beginAtZero: true,
-            ticks: { stepSize: 1, color: '#94a3b8', font: { size: 10 } },
-            grid: { color: 'rgba(241,245,249,0.5)' },
-            border: { display: true, color: this.COLORS.p, width: 2 },
-            suggestedMax: Math.max(...realData, 5) + 2
+            ticks: { 
+              stepSize: this.selectedRanger ? undefined : 1, 
+              color: '#94a3b8', 
+              font: { size: 9 } 
+            },
+            grid: { color: 'rgba(241,245,249,0.5)', drawBorder: false },
+            border: { display: false },
+            suggestedMax: Math.max(...chartData, 5) + 2
           },
         },
       },
