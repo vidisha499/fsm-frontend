@@ -453,7 +453,16 @@ export class AdminPage implements OnInit, AfterViewInit {
           this.cdr.detectChanges();
         }
       },
-      error: (err) => console.error('Error loading beat coverage:', err),
+      error: (err) => {
+        console.warn('⚠️ Hierarchy coverage API (Vercel) is currently unreachable or blocked by CORS. Using fallback display.');
+        if (!this.beatCoverage || this.beatCoverage.length === 0) {
+           this.beatCoverage = [
+             { label: 'seminary hills range', val: 0, color: '#0d9488' },
+             { label: 'ambazari beat', val: 0, color: '#f59e0b' }
+           ];
+        }
+        this.cdr.detectChanges();
+      },
     });
   }
 
@@ -859,9 +868,9 @@ changeTimeframe(newTimeframe: string) {
                    const rCreatedAt = r.created_at || r.date_time || '';
                    const range = r.range_name || r.range || r.region || 'General';
 
-                   // Robust Today Check using local time strings
-                   const isToday = (rCreatedAt && (rCreatedAt.includes(todayYMD) || rCreatedAt.includes(todayDMY))) || 
-                                   (rDate && (rDate.includes(todayYMD) || rDate.includes(todayDMY)));
+                   // Robust Today Check (Handles YMD, DMY, and slash separators)
+                   const isToday = (rCreatedAt && (rCreatedAt.includes(todayYMD) || rCreatedAt.includes(todayDMY) || rCreatedAt.includes(todayYMD.replace(/-/g, '/')))) || 
+                                   (rDate && (rDate.includes(todayYMD) || rDate.includes(todayDMY) || rDate.includes(todayYMD.replace(/-/g, '/'))));
 
                    // Timeframe Checks for Week/Month
                    const rFullDate = rCreatedAt || rDate;
@@ -881,11 +890,18 @@ changeTimeframe(newTimeframe: string) {
                      dateYMD = parts[0].length === 4 ? `${parts[0]}-${parts[1]}-${parts[2]}` : `${parts[2]}-${parts[1]}-${parts[0]}`;
                    }
                    
-                   // Categorization
+                   // Robust Categorization (Checks category, report_type, and type)
+                   const rType = (r.report_type || r.event_type || r.type || '').toLowerCase();
+                   const combinedText = `${cat} ${rType}`.toLowerCase();
+                    
                    let catKey = '';
-                   if (cat.includes('crim')) catKey = 'crim';
-                   else if (cat.includes('fire')) catKey = 'fire';
-                   else if (cat.includes('events') || cat.includes('sight') || cat.includes('monit')) catKey = 'events';
+                   if (combinedText.includes('fire')) {
+                      catKey = 'fire';
+                   } else if (combinedText.includes('crim') || combinedText.includes('poach') || combinedText.includes('mining') || combinedText.includes('fell') || combinedText.includes('timber') || combinedText.includes('encroach')) {
+                      catKey = 'crim';
+                   } else if (combinedText.includes('sight') || combinedText.includes('monit') || combinedText.includes('animal') || combinedText.includes('events')) {
+                      catKey = 'events';
+                   }
 
                    if (catKey && dateYMD) {
                      trendMap[catKey][dateYMD] = (trendMap[catKey][dateYMD] || 0) + 1;
@@ -1012,18 +1028,18 @@ changeTimeframe(newTimeframe: string) {
                 this.allIncidents = processedPins;
                 console.log(`📍 Map Pins for Today: ${processedPins.length}`);
                 
-                // 🔄 SYNC DASHBOARD COUNTS WITH MAP PINS
-                // Recalculate KPI counts from the actual filtered records to ensure consistency with the Map
-                this.criminalActivityCount = processedPins.filter(p => 
-                  ['illegal_felling', 'illegal_mining', 'animal_poaching', 'fire_alerts', 'sos', 'encroachment', 'timber'].includes(p.layerId)
-                ).length;
-                
-                this.sightingsCount = processedPins.filter(p => 
-                  ['animal_sighting', 'sighting', 'monitoring'].includes(p.layerId)
-                ).length;
+                // 🔄 SYNC DASHBOARD COUNTS
+                // We use the counts calculated during the full list iteration (which includes records without coordinates)
+                this.criminalCount = counts.criminal;
+                this.eventsCount = counts.monitoring;
+                this.fireAlertsCount = counts.fire;
+                this.incidentsCount = counts.criminal + counts.monitoring + counts.fire;
 
-                this.fireAlertsCount = processedPins.filter(p => p.layerId === 'fire_alerts').length;
-                this.incidentsCount = processedPins.length; // Total today
+                // Sync Bottom Snapshot variables for the Home page
+                this.criminalActivityCount = this.criminalCount;
+                this.sightingsCount = this.eventsCount;
+
+                console.log(`%c📊 Robust KPI Sync: Criminal=${this.criminalCount}, Events=${this.eventsCount}, Fire=${this.fireAlertsCount}`, 'color: #10b981; font-weight: bold;');
 
                 this.updateVisiblePins();
                 
@@ -1033,6 +1049,18 @@ changeTimeframe(newTimeframe: string) {
 
                 // --- 🚨 ALERTS & SOS PROCESSING (Enhanced with Forest Reports) ---
                 const rawAlerts = apiResponse.data?.alerts || apiResponse.alerts || apiResponse.sos || [];
+                
+                // Add fire alerts from system alerts to KPI if they are from today
+                rawAlerts.forEach((a: any) => {
+                   const aType = (a.type || a.category || a.report_type || '').toLowerCase();
+                   const aDate = a.created_at || a.date || '';
+                   const isTodayAlert = (aDate.includes(todayYMD) || aDate.includes(todayDMY) || aDate.includes(todayYMD.replace(/-/g, '/')));
+                   
+                   if (aType.includes('fire') && isTodayAlert) {
+                      this.fireAlertsCount++;
+                      this.incidentsCount++;
+                   }
+                });
                 
                 // Transform the forest reports (Today's only) into Alerts format
                 const syncAlerts = (this.allIncidents || []).map(inc => {

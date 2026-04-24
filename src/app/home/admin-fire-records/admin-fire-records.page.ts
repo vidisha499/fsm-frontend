@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { NavController, LoadingController } from '@ionic/angular';
 import { DataService } from 'src/app/data.service';
+import { forkJoin } from 'rxjs';
 
 @Component({
   selector: 'app-admin-fire-records',
@@ -39,34 +40,73 @@ export class AdminFireRecordsPage implements OnInit {
     const user = rawData ? JSON.parse(rawData) : null;
     const companyId = user ? Number(user.company_id || user.companyId) : 0;
 
-    // Fetch all reports to ensure consistency with Admin dashboard
-    this.dataService.getForestReports().subscribe({
+    // Helper for robust date parsing
+    const getTS = (d: any) => {
+      if (!d) return 0;
+      if (typeof d === 'string' && d.includes('-')) {
+        const parts = d.split(' ')[0].split('-');
+        if (parts[0].length === 2 && parts[2].length === 4) {
+          return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime();
+        }
+      }
+      return new Date(d).getTime();
+    };
+
+    console.log(`🔥 Fetching Fire Records for Company: ${companyId} | Period: ${from} to ${to}`);
+
+    // Mirroring Admin Dashboard Logic: Use forkJoin for Reports + Dashboard Stats for Alerts
+    forkJoin({
+      reports: this.dataService.getForestReports(),
+      stats: this.dataService.getDashboardStats(companyId, from, to)
+    }).subscribe({
       next: (res: any) => {
-        const data = res?.data || res || [];
-        
-        // Robust Client-Side Filtering matching Admin Page logic
-        this.submittedReports = data.filter((r: any) => {
+        console.log('✅ Reports Data:', res.reports);
+        console.log('✅ Dashboard Stats Data:', res.stats);
+
+        const reportsList = Array.isArray(res.reports) ? res.reports : (res.reports?.data || []);
+        const statsData = res.stats?.data || res.stats || {};
+        const alertsList = statsData.alerts || statsData.sos || [];
+
+        const combined = [...reportsList, ...alertsList];
+        console.log(`📦 Combined Pool: ${combined.length} records (${reportsList.length} reports, ${alertsList.length} alerts)`);
+
+        this.submittedReports = combined.filter((r: any) => {
           const cat = (r.category || '').toLowerCase();
-          const isFire = cat.includes('fire');
+          const rType = (r.report_type || r.event_type || r.type || '').toLowerCase();
+          const rDesc = (r.description || r.message || '').toLowerCase();
           
+          const isFire = cat.includes('fire') || rType.includes('fire') || rDesc.includes('fire');
           if (!isFire) return false;
 
-          // Date Filter logic
+          // Date Filter logic (Robust String-based matching)
           if (from && to) {
-            const rDate = r.created_at || r.date || r.date_time || '';
+            const rDate = r.created_at || r.date || r.date_time || r.timestamp || '';
             if (!rDate) return false;
-            const rTimestamp = new Date(rDate).getTime();
-            const fromTS = new Date(from).getTime();
-            const toTS = new Date(to).getTime() + (24 * 60 * 60 * 1000); // include full 'to' day
+            
+            // If from and to are same (Today filter), use robust string check
+            if (from === to) {
+               const ymd = from; // YYYY-MM-DD
+               const dmy = from.split('-').reverse().join('-'); // DD-MM-YYYY
+               const match = rDate.includes(ymd) || rDate.includes(dmy) || rDate.includes(ymd.replace(/-/g, '/'));
+               if (match) return true;
+            }
+
+            const rTimestamp = getTS(rDate);
+            const fromTS = new Date(from).setHours(0, 0, 0, 0);
+            const toTS = new Date(to).setHours(23, 59, 59, 999);
+            
             return rTimestamp >= fromTS && rTimestamp <= toTS;
           }
           return true;
-        }).map((r: any) => this.processPhotos(r));
+        })
+        .sort((a, b) => getTS(b.created_at || b.date) - getTS(a.created_at || a.date))
+        .map((r: any) => this.processPhotos(r));
         
+        console.log(`🎯 Final Filtered Fire Records: ${this.submittedReports.length}`);
         this.isLoading = false;
       },
       error: (err) => {
-        console.error('Failed to fetch fire records', err);
+        console.error('❌ Failed to fetch fire records', err);
         this.isLoading = false;
       }
     });
