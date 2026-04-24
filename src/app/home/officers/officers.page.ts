@@ -93,7 +93,8 @@ export class OfficersPage implements OnInit {
   }
 
   openOfficerDetail(officer: any) {
-    this.router.navigate(['/home/officer-details', officer.id]);
+    // Pass the full object via state so details page has all fields (photo, phone, email, etc.)
+    this.router.navigate(['/home/officer-details', officer.id], { state: { officerData: officer } });
   }
 
   goBack() {

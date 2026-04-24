@@ -1,5 +1,5 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { NavController, LoadingController } from '@ionic/angular';
 import { DataService } from 'src/app/data.service';
 
@@ -18,6 +18,7 @@ export class OfficerDetailsPage implements OnInit {
 
   constructor(
     private route: ActivatedRoute,
+    private router: Router,
     private navCtrl: NavController,
     private dataService: DataService,
     private cdr: ChangeDetectorRef,
@@ -30,7 +31,17 @@ export class OfficerDetailsPage implements OnInit {
     const userData = rawData ? JSON.parse(rawData) : null;
     this.myCompanyId = userData ? (userData.company_id || userData.companyId) : 1;
 
-    this.loadOfficerDetails();
+    // Check if full officer data was passed via navigation state (from officers list)
+    // history.state is reliably available in ngOnInit, unlike getCurrentNavigation()
+    const navState = history.state;
+    if (navState && navState['officerData']) {
+      this.mapOfficerData(navState['officerData']);
+      this.loadAssignedSite();
+      // Also try to get the full profile with personal details (phone, email, dob, gender)
+      this.loadFullProfile(navState['officerData'].id || navState['officerData'].user_id);
+    } else {
+      this.loadOfficerDetails();
+    }
   }
 
   async loadOfficerDetails() {
@@ -86,16 +97,18 @@ export class OfficerDetailsPage implements OnInit {
       ...found,
       id: found.id || found.user_id || found.staff_id,
       name: found.name || found.full_name || found.username || found.userName || 'N/A',
-      emp_code: found.emp_code || found.employee_code || found.empCode || ('EG-' + (found.id || found.user_id || found.staff_id)),
+      emp_code: found.emp_code || found.employee_code || found.empCode || ('EG-' + (found.user_id || found.id || found.staff_id)),
       role_name: found.role_name || found.designation || found.role || this.getRoleName(found.role_id),
       email: found.email || found.email_id || found.emailId || found.user_email || found.mail || 'N/A',
-      phone: found.phone || found.phone_no || found.phoneNo || found.contact || found.mobile || 'N/A',
+      phone: found.phone || found.phone_no || found.phoneNo || found.contact || found.mobile || found.contactNo || 'N/A',
       dob: found.dob || found.date_of_birth || found.dob_date || found.birthDate || 'N/A',
       gender: found.gender || found.sex || found.user_gender || 'N/A',
-      address: found.address || found.current_address || found.location || found.residence || 'N/A',
-      site_name: found.site_name || found.beat_name || found.range_name || 'N/A',
-      company_name: found.company_name || 'N/A',
-      created_at: found.created_at || found.joining_date || '',
+      address: found.address || found.current_address || found.residence || 'N/A',
+      site_name: found.site_name || found.geo_name || found.beat_name || found.range_name || 'N/A',
+      company_name: found.company_name || found.client_name || 'N/A',
+      created_at: found.created_at || found.joining_date || found.entryDateTime || '',
+      check_in_time: found.entry_date_time || found.entryDateTime || found.entry_time || '',
+      inOutStatus: found.inOutStatus || '',
       photo: photoRaw ? this.getPhotoUrl(photoRaw) : null
     };
     
@@ -127,6 +140,47 @@ export class OfficerDetailsPage implements OnInit {
       },
       error: () => {
         // Site info not available, that's OK
+      }
+    });
+  }
+
+  // Try to fetch the full user profile to get personal details (phone, email, DOB, gender)
+  loadFullProfile(userId: any) {
+    if (!userId) return;
+
+    const tryPatch = (profileData: any) => {
+      if (!profileData || !this.officer) return;
+      const p = profileData.data || profileData.user || profileData.ranger || profileData;
+      if (!p || typeof p !== 'object') return;
+
+      // Only patch fields that are currently N/A
+      const patch: any = {};
+      if (this.officer.phone === 'N/A') patch.phone = p.phone || p.phone_no || p.phoneNo || p.contact || p.mobile || p.contactNo || 'N/A';
+      if (this.officer.email === 'N/A') patch.email = p.email || p.email_id || p.emailId || p.user_email || p.mail || 'N/A';
+      if (this.officer.dob === 'N/A') patch.dob = p.dob || p.date_of_birth || p.dob_date || p.birthDate || 'N/A';
+      if (this.officer.gender === 'N/A') patch.gender = p.gender || p.sex || p.user_gender || 'N/A';
+      if (this.officer.address === 'N/A') patch.address = p.address || p.current_address || p.residence || 'N/A';
+      if (!this.officer.photo) {
+        const rawPhoto = p.profile_pic || p.photo || p.image || p.avatar;
+        if (rawPhoto) patch.photo = this.getPhotoUrl(rawPhoto);
+      }
+
+      const hasNewData = Object.values(patch).some(v => v !== 'N/A' && v !== undefined);
+      if (hasNewData) {
+        this.officer = { ...this.officer, ...patch };
+        this.cdr.detectChanges();
+      }
+    };
+
+    // Try getUserDetails first
+    this.dataService.getUserDetails(userId).subscribe({
+      next: tryPatch,
+      error: () => {
+        // Fallback: try getProfileById
+        this.dataService.getProfileById(userId).subscribe({
+          next: tryPatch,
+          error: () => {} // silently fail, N/A is acceptable
+        });
       }
     });
   }

@@ -46,6 +46,25 @@ export class DataService {
     formData.append('api_token', token);
     return this.http.post(`${this.baseApiUrl}/getProfile`, formData);
   }
+  // Fetch another user's profile by their ID (admin access)
+  getProfileById(userId: string | number) {
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    formData.append('user_id', String(userId));
+    formData.append('guard_id', String(userId));
+    formData.append('ranger_id', String(userId));
+    return this.http.post(`${this.baseApiUrl}/getProfile`, formData);
+  }
+  // Try getUserDetails endpoint (Sir's API variant)
+  getUserDetails(userId: string | number) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/getUserDetails`, { 
+      user_id: userId, 
+      guard_id: userId,
+      api_token: token 
+    });
+  }
   verifyOtp(phone: string, otp: string) { return this.http.post(`${this.baseApiUrl}/verifyUser`, { phoneNo: phone, otp: otp }); }
   updateProfilePic(photoBase64: string) { return this.http.post(`${this.baseApiUrl}/updateProfilePic`, { photo: photoBase64 }); }
   
