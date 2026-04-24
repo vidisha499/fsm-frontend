@@ -2,7 +2,7 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { NavController } from '@ionic/angular';
 import { DataService } from 'src/app/data.service';
-import { forkJoin, of } from 'rxjs';
+import { of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 @Component({
@@ -19,8 +19,6 @@ export class OfficersPage implements OnInit {
   myCompanyId: any;
   totalCount: number = 0;
 
-  // Attendance tracking
-  todayAttendanceIds: Set<any> = new Set();
 
   constructor(
     private router: Router,
@@ -40,80 +38,29 @@ export class OfficersPage implements OnInit {
     this.isLoading = true;
     this.cdr.detectChanges();
 
-    // First fetch attendance logs to determine who is on duty today
-    const now = new Date();
-    const todayYMD = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
-    // Use forkJoin to fetch from multiple endpoints to guarantee photo availability
-    forkJoin({
-      staff: this.dataService.getAssignableUsers({ company_id: this.myCompanyId.toString() }).pipe(catchError(() => of([]))),
-      attendance: this.dataService.getAttendanceLogsByRanger(this.myCompanyId.toString()).pipe(catchError(() => of([]))),
-      guards: this.dataService.getGuardsOnSite().pipe(catchError(() => of([]))),
-      guardAtt: this.dataService.getGuardAttendance().pipe(catchError(() => of([])))
-    }).subscribe({
+    // getGuardsOnSite returns ONLY officers who have marked attendance today,
+    // and already includes the 'photo' field — so we use it as the primary source.
+    this.dataService.getGuardsOnSite().pipe(catchError(() => of([]))).subscribe({
       next: (res: any) => {
-        const staffList = res.staff.data || res.staff.users || res.staff || [];
-        const logsArray = res.attendance.data || res.attendance.attendance || (Array.isArray(res.attendance) ? res.attendance : []);
-        const guardsList = res.guards.data || res.guards.guards || res.guards || [];
-        const guardAttList = res.guardAtt.data || res.guardAtt.attendance || res.guardAtt || [];
+        const guardsList: any[] = res.data || res.guards || res || [];
 
-        // Add debug logs to see what the APIs actually returned
-        console.log('--- DEBUG: PROFILE PHOTO APIs ---');
-        console.log('1. getAssignableUsers (Staff List) count:', staffList.length);
-        if (staffList.length > 0) console.log('Sample Staff:', staffList[0]);
-        
-        console.log('2. getGuardsOnSite count:', guardsList.length);
-        if (guardsList.length > 0) console.log('Sample Guard:', guardsList[0]);
-        
-        console.log('3. getGuardAttendance count:', guardAttList.length);
-        if (guardAttList.length > 0) console.log('Sample GuardAtt:', guardAttList[0]);
-        console.log('---------------------------------');
-
-        // Build set of user IDs who attended today
-        this.todayAttendanceIds.clear();
-        logsArray.forEach((log: any) => {
-          const lDate = log.timestamp || log.entryDateTime || log.created_at || '';
-          if (lDate && lDate.includes(todayYMD)) {
-            this.todayAttendanceIds.add(log.user_id || log.staff_id || log.ranger_id);
-          }
-        });
-
-        // Map officers with duty status
-        this.allOfficers = staffList.map((u: any) => {
-          const id = u.id || u.user_id;
-          const hasAttended = this.todayAttendanceIds.has(id);
-          
-          const matchingGuard = guardsList.find((g: any) => g.id == id || g.user_id == id || g.staff_id == id) || {};
-          const matchingGuardAtt = guardAttList.find((c: any) => c.id == id || c.user_id == id || c.guard_id == id || c.staff_id == id) || {};
-          
-          // More comprehensive field check including fallback sources
-          const photoRaw = u.profile_pic || u.profile_Pic || u.image || u.photo || u.profile_image || u.avatar || u.user_photo || u.profilePic ||
-                           matchingGuard.profile_pic || matchingGuard.photo || matchingGuard.image || matchingGuard.avatar ||
-                           matchingGuardAtt.profile_pic || matchingGuardAtt.photo || matchingGuardAtt.image || matchingGuardAtt.avatar;
-          
-          if (id === staffList[0]?.id || id === staffList[0]?.user_id) {
-             console.log(`DEBUG: Mapping first user (ID: ${id}) -> photoRaw determined as:`, photoRaw);
-             console.log(`DEBUG: matchingGuard object:`, matchingGuard);
-          }
-          
+        // Map each on-site guard to the officer display model
+        this.allOfficers = guardsList.map((g: any) => {
+          const photoRaw = g.photo || g.profile_pic || g.profile_Pic || g.image || g.avatar || g.profile_image;
           return {
-            ...u,
-            id: id,
-            name: u.name || u.full_name || u.first_name || 'Staff',
-            role: u.role_name || u.designation || this.getRoleName(u.role_id),
-            site_name: u.site_name || u.beat_name || u.range_name || '',
+            ...g,
+            id: g.user_id || g.id,
+            name: g.name || g.full_name || 'Officer',
+            role: this.getRoleName(g.role_id),
+            site_name: g.site_name || g.geo_name || g.beat_name || '',
             photo: this.getPhotoUrl(photoRaw),
-            dutyStatus: hasAttended ? 'On Duty' : 'No Show',
-            hasAttended: hasAttended
+            dutyStatus: 'On Duty',
+            hasAttended: true
           };
         });
 
-        // Sort: On Duty first, then No Show
-        this.allOfficers.sort((a, b) => {
-          if (a.hasAttended && !b.hasAttended) return -1;
-          if (!a.hasAttended && b.hasAttended) return 1;
-          return (a.name || '').localeCompare(b.name || '');
-        });
+        // Sort alphabetically by name
+        this.allOfficers.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
         this.filteredOfficers = [...this.allOfficers];
         this.totalCount = this.allOfficers.length;
@@ -122,7 +69,6 @@ export class OfficersPage implements OnInit {
       },
       error: (err) => {
         console.error('Error loading officers:', err);
-        // Fallback if forkJoin entirely fails
         this.isLoading = false;
         this.cdr.detectChanges();
       }
