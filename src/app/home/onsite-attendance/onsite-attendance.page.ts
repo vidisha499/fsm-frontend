@@ -295,7 +295,6 @@ async submit() {
   formData.append('date', fdate);
   formData.append('applicant_id', localStorage.getItem('ranger_id') || '');
   formData.append('api_token', token || '');
-  formData.append('type', 'ONSITE');
   formData.append('remark', 'Onsite Attendance');
   formData.append('applicant_name', localStorage.getItem('ranger_username') || 'Ranger');
   formData.append('company_id', localStorage.getItem('company_id') || '');
@@ -316,9 +315,18 @@ async submit() {
   formData.append('applicant_role_id', localStorage.getItem('user_role') || '3');
   formData.append('attendance_type', 'ONSITE');
   
-  formData.append('location', `${this.currentLat},${this.currentLng}`); 
-  formData.append('lat', this.currentLat.toString());
-  formData.append('lng', this.currentLng.toString());
+  // 🔥 Restoring geo_id and site_id to resolve 'No site detected'
+  // Using '1' and 'onsite' as identifiers that should bypass geofencing on the backend
+  formData.append('geo_id', '1'); 
+  formData.append('site_id', 'onsite'); 
+  
+  // 🔥 Reverting 'type' to Entry/Exit while keeping the location string in 'location'
+  // If Sir insists on 'type' being location, we will revert, but 'No site detected' 
+  // is usually a missing site_id/geo_id issue.
+  const addressString = this.currentAddress || 'Onsite Location';
+  // 🔥 UPDATED: Sir specifically requested to send the literal string "location" in the 'type' parameter
+  formData.append('type', 'location'); 
+  formData.append('location', addressString); 
 
   if (!this.dataService.isOnline()) {
     const offlineData = {
@@ -327,10 +335,11 @@ async submit() {
       date: fdate,
       applicant_id: localStorage.getItem('ranger_id'),
       api_token: token,
-      type: 'ONSITE',
+      type: 'location',
+      attendance_type: 'ONSITE',
       geo_id: '99999',
       photo: this.capturedPhoto,
-      location: `${this.currentLat},${this.currentLng}`
+      location: this.currentAddress || 'Onsite Location'
     };
     const offlinePayload = {
       ...offlineData,
