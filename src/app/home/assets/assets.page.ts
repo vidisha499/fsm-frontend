@@ -224,21 +224,27 @@ async submitAsset() {
     const loading = await this.loadingCtrl.create({ message: 'Saving Asset...' });
     await loading.present();
 
+    // Clean photos (Strip base64 prefix if present)
+    const finalPhotos = this.capturedPhotos.map(p => p.includes(',') ? p.split(',')[1] : p);
+
     // Mapping: ID se Name nikalna Neon Dashboard ke liye
     const selectedCat = this.categories.find(c => c.id == this.assetData.category_id);
     const selectedStatus = this.conditions.find(s => s.id == this.assetData.status_id);
 
     const payload = {
       name: this.assetData.name,
-      category: selectedCat ? selectedCat.name : '', // Text
-      category_id: Number(this.assetData.category_id), // ID
-      condition_status: selectedStatus ? selectedStatus.status_name : 'Good', // Text
-      status_id: Number(this.assetData.status_id), // ID
+      category: selectedCat ? (selectedCat.name || selectedCat.category_name || '') : '',
+      category_id: Number(this.assetData.category_id),
+      status: selectedStatus ? (selectedStatus.status_name || selectedStatus.name || 'Good') : 'Good',
+      status_id: Number(this.assetData.status_id),
       year: this.assetData.year,
       description: this.assetData.description,
-      location: JSON.stringify({ lat: this.lat, lng: this.lng }),
-      photos: this.capturedPhotos,
-      created_by: this.assetData.created_by
+      latitude: this.lat,
+      longitude: this.lng,
+      photo: finalPhotos.length > 0 ? `data:image/jpeg;base64,${finalPhotos[0]}` : '',
+      photos: JSON.stringify(finalPhotos.map(p => `data:image/jpeg;base64,${p}`)),
+      created_by: this.assetData.created_by,
+      company_id: this.assetData.company_id || 1
     };
 
     const request = this.isEditMode 

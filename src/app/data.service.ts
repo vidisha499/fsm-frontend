@@ -381,6 +381,9 @@ export class DataService {
   // --- 9. ASSETS MANAGEMENT ---
   addAsset(assetData: any): Observable<any> { 
     const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    
     for (const key in assetData) {
       if (Array.isArray(assetData[key])) {
         assetData[key].forEach((val: any) => formData.append(`${key}[]`, val));
@@ -388,23 +391,34 @@ export class DataService {
         formData.append(key, assetData[key]);
       }
     }
-    return this.http.post(`${this.baseApiUrl}/asset/create`, formData); 
+    return this.http.post(`${this.baseApiUrl}/asset/create`, formData, {
+      headers: { 'Bypass-Token': 'true' }
+    }); 
   }
   updateAsset(id: any, payload: any): Observable<any> {
     const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+
     for (const key in payload) {
       if (payload[key] !== null && payload[key] !== undefined) {
         formData.append(key, payload[key]);
       }
     }
-    // Most legacy PHP backends prefer POST for updates when sending FormData
-    return this.http.post(`${this.baseApiUrl}/asset/${id}/update`, formData);
+    return this.http.post(`${this.baseApiUrl}/asset/${id}/update`, formData, {
+      headers: { 'Bypass-Token': 'true' }
+    });
   }
   deleteAsset(id: string | number): Observable<any> { return this.http.post(`${this.baseApiUrl}/asset/${id}/delete`, {}); }
   getAssets(companyId: number): Observable<any> { 
     const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
     formData.append('company_id', companyId.toString());
-    return this.http.post(`${this.baseApiUrl}/asset-list`, formData); 
+    
+    return this.http.post(`${this.baseApiUrl}/asset-list`, formData, {
+      headers: { 'Bypass-Token': 'true' }
+    }); 
   }
   getMyAssets(companyId: number, userId: number): Observable<any> { 
     const formData = new FormData();

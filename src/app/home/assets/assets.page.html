@@ -104,7 +104,7 @@
     <i class="fas fa-chart-line"></i>
     <select class="styled-select" [(ngModel)]="assetData.status_id">
       <option *ngFor="let st of conditions" [value]="st.id">
-        {{ st.status_name }}
+        {{ st.status_name || st.name || 'Select Status' }}
       </option>
     </select>
   </div>
