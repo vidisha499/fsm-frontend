@@ -281,7 +281,7 @@ events: {
             
             const getVal = (labelMatch: string) => {
               const found = dataArr.find((d: any) => (d.label || '').toLowerCase().includes(labelMatch));
-              return found ? found.count : 0;
+              return found ? (found.count || found.value || 0) : 0;
             };
 
             const vals = [
@@ -289,19 +289,19 @@ events: {
               getVal('negligence'),
               getVal('intentional'),
               dataArr.filter((d: any) => !['natural', 'negligence', 'intentional'].some(x => (d.label || '').toLowerCase().includes(x)))
-                .reduce((acc: number, val: any) => acc + val.count, 0)
+                .reduce((acc: number, val: any) => acc + (val.count || val.value || 0), 0)
             ];
 
-            // Show placeholder if no data yet
             const hasData = vals.some(v => v > 0);
+            
             return this.mkChart(id, { 
               type: "doughnut", 
               data: { 
-                labels: ["Natural", "Negligence", "Intentional", "Unknown"],
+                labels: hasData ? ["Natural", "Negligence", "Intentional", "Unknown"] : ["No Records Today"],
                 datasets: [{ 
-                  data: hasData ? vals : [1, 1, 1, 1],
-                  backgroundColor: ['#16a34a', '#f59e0b', '#ef4444', '#64748b'],
-                  borderWidth: 2,
+                  data: hasData ? vals : [1],
+                  backgroundColor: hasData ? ['#16a34a', '#f59e0b', '#ef4444', '#64748b'] : ['#e2e8f0'],
+                  borderWidth: hasData ? 2 : 0,
                   borderColor: '#ffffff'
                 }] 
               }, 
@@ -310,11 +310,12 @@ events: {
                 maintainAspectRatio: false,
                 plugins: {
                   legend: {
-                    display: true,
+                    display: hasData,
                     position: 'bottom',
-                    labels: { usePointStyle: true, boxWidth: 10, font: { size: 10 } }
+                    labels: { usePointStyle: true, padding: 15, boxWidth: 10, font: { size: 10, weight: '600' } }
                   }
-                }
+                },
+                cutout: '65%'
               }
             });
           }
@@ -980,8 +981,14 @@ async updateUIData() {
 
           if (list.length > 0) {
             list.forEach((r: any) => {
+              // 🧪 CRITICAL SYNC: report_data is stored as JSON string in DB. Must parse for extraction.
+              let rData = r.report_data || {};
+              if (typeof rData === 'string' && rData.startsWith('{')) {
+                try { rData = JSON.parse(rData); } catch (e) { rData = {}; }
+              }
+
               const cat = (r.category || '').toLowerCase();
-              const type = (r.report_type || r.report_data?.report_type || '').toLowerCase();
+              const type = (r.report_type || rData?.report_type || '').toLowerCase();
               const rDateStr = r.date || r.created_at || r.date_time || '';
               const rRaw = JSON.stringify(r).toLowerCase();
 
@@ -1024,8 +1031,8 @@ async updateUIData() {
                 const thirtyDaysAgo = new Date();
                 thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
                 if (d >= thirtyDaysAgo) {
-                  if (!mTrendData[subId]) mTrendData[subId] = {};
-                  mTrendData[subId][dateYMD] = (mTrendData[subId][dateYMD] || 0) + 1;
+                   if (!mTrendData[subId]) mTrendData[subId] = {};
+                   mTrendData[subId][dateYMD] = (mTrendData[subId][dateYMD] || 0) + 1;
                 }
               }
 
@@ -1033,7 +1040,7 @@ async updateUIData() {
 
               if (subId) {
                 mSubCounts[subId] = (mSubCounts[subId] || 0) + 1;
-                const rawSp = r.species || r.plant_species || r.animal_species || r.tree_species || r.report_data?.species || 'Others';
+                const rawSp = r.species || r.plant_species || r.animal_species || r.tree_species || rData?.species || 'Others';
                 const species = this.toTitleCase(rawSp);
                 
                 if (!mSpeciesData[subId]) {
@@ -1047,18 +1054,17 @@ async updateUIData() {
                 mRangeData[subId][range] = (mRangeData[subId][range] || 0) + 1;
 
                 if (subId === 'encroach') {
-                  const eType = (r.encroachment_type || r.report_data?.encroachment_type || '').toLowerCase();
+                  const eType = (r.encroachment_type || rData?.encroachment_type || '').toLowerCase();
                   if (eType.includes('agri')) mEncroachData['Agriculture']++;
                   else if (eType.includes('const') || eType.includes('house')) mEncroachData['Construction']++;
                   else mEncroachData['Other']++;
                 }
                 
                 if (subId === 'storage') {
-                  const sType = (r.storage_type || r.report_data?.storage_type || '').toLowerCase();
-                  const qty = Number(r.qty_cmt || r.volume || r.report_data?.qty_cmt || r.report_data?.volume || r.amount || 1) || 1;
+                  const sType = (r.storage_type || rData?.storage_type || '').toLowerCase();
+                  const qty = Number(r.qty_cmt || r.volume || rData?.qty_cmt || rData?.volume || r.amount || 1) || 1;
                   const isGodown = sType.includes('godown') || sType.includes('indoor') || sType.includes('warehouse') || sType.includes('room');
                   
-                  // Fuzzy species matching to ensure data maps to the correct baseline labels
                   let matchedKey = 'Others';
                   for (const sName of SPECIES) {
                     if (species.trim().toLowerCase() === sName.trim().toLowerCase() || 
@@ -1075,21 +1081,21 @@ async updateUIData() {
                 }
 
                 if (subId === 'poaching') {
-                  const gender = (r.gender || r.report_data?.gender || 'Unknown').toLowerCase();
+                  const gender = (r.gender || rData?.gender || 'Unknown').toLowerCase();
                   if (!mPoachingData[species]) mPoachingData[species] = { male: 0, female: 0 };
                   if (gender.includes('male') && !gender.includes('female')) mPoachingData[species].male++;
                   else if (gender.includes('female')) mPoachingData[species].female++;
-                  else mPoachingData[species].male++; // Default to male for incident if unknown but logged
+                  else mPoachingData[species].male++; 
                 }
 
                 if (subId === 'fire_incidents') {
-                  const fType = (r.fire_cause || r.report_data?.fire_cause || 'Unknown').toLowerCase();
+                  const fType = (r.fire_cause || rData?.fire_cause || 'Unknown').toLowerCase();
                   const key = this.toTitleCase(fType);
                   mFireCauses[key] = (mFireCauses[key] || 0) + 1;
                 }
 
                 if (subId === 'water') {
-                  const wType = (r.source_type || r.report_data?.source_type || 'Others').toLowerCase();
+                  const wType = (r.source_type || rData?.source_type || 'Others').toLowerCase();
                   let key = 'Others';
                   if (wType.includes('chek') || wType.includes('check')) key = 'Check Dam';
                   else if (wType.includes('stop dam')) key = 'Stop Dam';
