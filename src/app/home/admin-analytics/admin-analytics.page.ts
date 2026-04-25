@@ -583,17 +583,20 @@ setAnaCat(id: string) {
   if (id === 'assets') {
     const companyId = localStorage.getItem('company_id') || 1;
     // Database se categories fetch karo (Resorts/Safari ke liye)
-    this.dataService.getCategories(companyId).subscribe((categories: any) => {
-      this.ANA_CONFIG.assets.subs = categories.map((cat: any, idx: number) => ({
-        id: cat.name.toLowerCase().replace(/\s/g, '_'),
-        label: cat.name,
+    this.dataService.getCategories(companyId).subscribe((res: any) => {
+      // Robust extraction of categories array
+      const catList = Array.isArray(res) ? res : (res?.data || res?.categories || []);
+      
+      this.ANA_CONFIG.assets.subs = catList.map((cat: any, idx: number) => ({
+        id: cat.name ? cat.name.toLowerCase().replace(/\s/g, '_') : 'cat_' + idx,
+        label: cat.name || 'Unknown',
         emoji: "🛡️", 
         icon: cat.icon_name || 'shield-checkmark-outline',
         color: PALETTE[idx % PALETTE.length] || COLORS.p, // Assign color from palette
         val: 0,
         charts: [{ 
-          id: "ch-" + cat.id, 
-          title: cat.name + " Status", 
+          id: "ch-" + (cat.id || idx), 
+          title: (cat.name || 'Asset') + " Status", 
           render: (chartId: string, ch: any) => {
             const current = this.displayProgList.find(s => s.label === cat.name);
             return this.renderGenericChart(chartId, cat.name, current?.val || 0, ch);
@@ -601,7 +604,8 @@ setAnaCat(id: string) {
         }]
       }));
       this.activeSubId = this.ANA_CONFIG.assets.subs[0]?.id;
-      this.updateUIData(); // Data load karne ke liye
+      this.fetchRealAssetData(); // Force immediate count sync for top cards
+      this.updateUIData(); // Sync other dashboard counts
     });
   } else {
     // Baaki tabs (Criminal, Fire) ke liye wahi purana logic
@@ -627,37 +631,69 @@ renderGenericChart(chartId: string, label: string, currentVal: number, chData?: 
     const labels = chData.statusDistribution.map((d: any) => d.label);
     const data = chData.statusDistribution.map((d: any) => d.value);
     
+    // Status-specific color mapping for premium look
+    const colorMap: any = {
+      'Operational': COLORS.green,
+      'Available': COLORS.teal,
+      'Under Cleaning': COLORS.blue,
+      'Maintenance Required': COLORS.amber,
+      'Out of Service': COLORS.orange,
+      'Damaged': COLORS.red,
+      'Unknown': COLORS.sl
+    };
+    const bgColors = labels.map((l: string) => colorMap[l] || COLORS.ind);
+
     return this.mkChart(chartId, {
       type: 'doughnut',
       data: {
         labels: labels,
         datasets: [{ 
           data: data, 
-          backgroundColor: [COLORS.teal, COLORS.amber, COLORS.rose, COLORS.blue, COLORS.ind] 
+          backgroundColor: bgColors,
+          borderWidth: 2,
+          borderColor: '#ffffff'
         }]
       },
       options: {
         ...CDAX,
         plugins: {
-          legend: { display: true, position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
+          legend: { 
+            display: true, 
+            position: 'bottom', 
+            labels: { 
+              usePointStyle: true,
+              padding: 15,
+              boxWidth: 8, 
+              font: { size: 10, weight: '600' } 
+            } 
+          }
         }
       }
     });
   }
 
-  // 2. Fallback Logic (Mock status)
-  const maintenance = currentVal > 0 ? Math.ceil(currentVal * 0.15) : 2; 
+  // 2. Fallback Logic (Placeholder for zero data)
+  const isZero = currentVal === 0;
+  const dispVal = isZero ? [1] : [currentVal, Math.ceil(currentVal * 0.1)];
+  const dispLabels = isZero ? ['No Data Today'] : ['Operational', 'Maintenance'];
+  const dispColors = isZero ? ['#e2e8f0'] : [COLORS.teal, COLORS.amber];
 
   return this.mkChart(chartId, {
     type: 'doughnut',
     data: {
-      labels: ['Operational', 'Maintenance'],
+      labels: dispLabels,
       datasets: [{ 
-        data: [currentVal, maintenance], 
-        backgroundColor: [COLORS.teal, COLORS.amber] 
-      }]
+        data: dispVal, 
+        backgroundColor: dispColors,
+        borderWidth: 0
+      }] 
     },
-    options: CDAX
+    options: {
+      ...CDAX,
+      plugins: {
+        legend: { display: !isZero, position: 'bottom' }
+      }
+    }
   });
 }
 
@@ -1177,9 +1213,10 @@ async updateUIData() {
              }
           };
 
-          // Generate Display List
-          this.destroyCharts();
-          this.displayProgList = cat.subs.map((s: any) => {
+          // Generate Display List (Skip for assets as fetchRealAssetData handles it)
+          if (this.activeTab !== 'assets') {
+            this.destroyCharts();
+            this.displayProgList = cat.subs.map((s: any) => {
             let apiData = res.data ? (res.data[s.id] || res.data[s.id.toLowerCase()]) : (res[s.id] || res[s.id.toLowerCase()]);
             const manualVal = this.manualSubCounts[s.id] || 0;
             const apiVal = (typeof apiData === 'number') ? apiData : (apiData?.val || 0);
@@ -1203,9 +1240,10 @@ async updateUIData() {
           // Calculate visual percentages
           const vals = this.displayProgList.map(item => item.val);
           const visualMax = Math.max(...vals, 50);
-          this.displayProgList.forEach(item => {
-            item.pct = Math.round((item.val / visualMax) * 100);
-          });
+            this.displayProgList.forEach(item => {
+              item.pct = Math.round((item.val / visualMax) * 100);
+            });
+          }
           
           // FORCED RE-RENDER: Ensure view updates after manual aggregation finishes
           this.cdr.detectChanges();
@@ -1531,27 +1569,93 @@ fetchRealAssetData() {
   const user = storageData ? JSON.parse(storageData) : {};
   const companyId = Number(user.company_id || user.companyId || 1);
 
-  this.dataService.getAssetStats(companyId).subscribe((res: any) => {
-    console.log("🛠️ Real Asset Data:", res);
-    
-    // 1. Update individual counts for standard categories
-    this.realNurseryCount = res.nursery || 0;
-    this.realPlantationCount = res.plantations || 0;
-    this.realOfficeCount = res.offices || 0;
-    this.realEcoCount = res.ecoSites || 0;
+  // Fetch all assets directly for 100% accuracy
+  this.dataService.getAssets(companyId).subscribe({
+    next: (res: any) => {
+      const list = Array.isArray(res) ? res : (res.data || []);
+      console.log("🛠️ Real-time Asset List Sync:", list.length, "assets found");
 
-    // 2. Dynamically update ALL sub-category values in ANA_CONFIG
-    if (this.ANA_CONFIG.assets && this.ANA_CONFIG.assets.subs) {
-      this.ANA_CONFIG.assets.subs.forEach((s: any) => {
-        // Match by ID (nursery, plantations, etc.) or by sanitized category name
-        const count = res[s.id] || res[s.id.toLowerCase()] || 0;
-        s.val = count;
+      // Reset counts
+      const counts: { [key: string]: number } = {};
+      const statusData: { [key: string]: { [key: string]: number } } = {};
+
+      list.forEach((a: any) => {
+        const cat = (a.category || '').toLowerCase().trim();
+        const rawStatus = (a.status || a.condition || '').toLowerCase().trim().replace(/_/g, ' ');
+        const aDate = a.created_at || a.date || a.updated_at || '';
+        
+        // Filter by date (Default to 'today' as requested by user)
+        if (!this.isDateInTimeframe(aDate, this.activeDateFilter)) return;
+
+        // Count by category
+        counts[cat] = (counts[cat] || 0) + 1;
+        
+        // Robust mapping to user-requested status labels
+        if (!statusData[cat]) statusData[cat] = {};
+        
+        let sKey = 'Unknown';
+        if (rawStatus.includes('operational') || rawStatus.includes('good') || rawStatus.includes('working')) sKey = 'Operational';
+        else if (rawStatus.includes('out of service')) sKey = 'Out of Service';
+        else if (rawStatus.includes('maintenance')) sKey = 'Maintenance Required';
+        else if (rawStatus.includes('damaged') || rawStatus.includes('broken')) sKey = 'Damaged';
+        else if (rawStatus.includes('available')) sKey = 'Available';
+        else if (rawStatus.includes('cleaning')) sKey = 'Under Cleaning';
+        
+        statusData[cat][sKey] = (statusData[cat][sKey] || 0) + 1;
       });
-    }
 
-    // 3. Refresh display list
-    // this.setAnaCat('assets'); // REMOVED: This was forcing the tab switch incorrectly
-    this.cdr.detectChanges(); 
+      // 1. Update Global Header Stats (Filtered by Today/Timeframe)
+      const filteredList = list.filter((a: any) => {
+        const aDate = a.created_at || a.date || '';
+        return this.isDateInTimeframe(aDate, this.activeDateFilter);
+      });
+
+      this.realNurseryCount = filteredList.filter((a: any) => (a.category || '').toLowerCase().includes('nursery')).length;
+      this.realPlantationCount = filteredList.filter((a: any) => (a.category || '').toLowerCase().includes('plantation')).length;
+      this.realOfficeCount = filteredList.filter((a: any) => (a.category || '').toLowerCase().includes('office')).length;
+      this.realEcoCount = filteredList.filter((a: any) => (a.category || '').toLowerCase().includes('eco')).length;
+
+      // 2. Update Sub-category List (The items in the overview card)
+      if (this.ANA_CONFIG.assets && this.ANA_CONFIG.assets.subs) {
+        this.ANA_CONFIG.assets.subs.forEach((s: any) => {
+          const sLabel = s.label.toLowerCase().trim();
+          // Find matching count from our aggregated list
+          const match = Object.keys(counts).find(k => k.includes(sLabel) || sLabel.includes(k));
+          s.val = match ? counts[match] : 0;
+
+          // Inject multi-status distribution for the doughnut charts
+          const sStatus = statusData[match || ''];
+          if (s.charts && s.charts[0]) {
+            if (sStatus && Object.keys(sStatus).length > 0) {
+              s.charts[0].statusDistribution = Object.keys(sStatus).map(k => ({
+                label: k,
+                value: sStatus[k]
+              }));
+            } else {
+              s.charts[0].statusDistribution = [];
+            }
+          }
+        });
+      }
+
+      // 3. Sync displayProgList which UI actually binds to
+      if (this.activeTab === 'assets') {
+        this.displayProgList = this.ANA_CONFIG.assets.subs.map((s: any) => ({
+          ...s,
+          pct: Math.min(Math.round((s.val / 20) * 100), 100) // Progress relative to 20 assets target
+        }));
+      }
+
+      this.cdr.detectChanges(); 
+      
+      // Trigger chart re-render if we are on the assets tab
+      if (this.activeTab === 'assets' && this.activeSubId) {
+        setTimeout(() => this.setAnaSub(this.activeSubId), 300);
+      }
+    },
+    error: (err) => {
+      console.warn("Failed to fetch real-time asset data, counts might be zero", err);
+    }
   });
 }
 
