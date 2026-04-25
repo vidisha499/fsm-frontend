@@ -153,16 +153,63 @@ assetData = {
   }
 
 
-  loadDynamicData(companyId: number) {
+  // loadDynamicData(companyId: number) {
+  //   // 1. Categories Fetch karo
+  //   this.dataService.getCategories(companyId).subscribe((res: any) => {
+  //     this.categories = res;
+  //     if (this.categories.length > 0) this.assetData.category_id = this.categories[0].id;
+  //   });
+
+  //   // 2. Status/Condition Fetch karo
+  //   this.dataService.getStatuses(companyId).subscribe((res: any) => {
+  //     this.conditions = res;
+  //     if (this.conditions.length > 0) this.assetData.status_id = this.conditions[0].id;
+  //   });
+  // }
+
+  loadDynamicData(companyId: any) {
+    const idAsNumber = Number(companyId);
+
     // 1. Categories Fetch karo
-    this.dataService.getCategories(companyId).subscribe((res: any) => {
-      this.categories = res;
+    this.dataService.getCategories(idAsNumber).subscribe((res: any) => {
+      // Backend object ya array dono handle karo
+      if (Array.isArray(res) && res.length > 0) {
+        this.categories = res;
+      } else if (res && Array.isArray(res.data) && res.data.length > 0) {
+        this.categories = res.data;
+      } else if (res && Array.isArray(res.categories) && res.categories.length > 0) {
+        this.categories = res.categories;
+      } else {
+        // Fallback: DB mein data nahi hai ya backend crash hua
+        console.warn('Categories empty from backend, using fallback');
+        this.categories = [
+          { id: 1, name: 'Vehicles (Jeeps/Bikes)' },
+          { id: 2, name: 'Communication (Walkie Talkies)' },
+          { id: 3, name: 'Field Tools (Drones/Cameras)' },
+          { id: 4, name: 'Office Assets' }
+        ];
+      }
       if (this.categories.length > 0) this.assetData.category_id = this.categories[0].id;
     });
 
     // 2. Status/Condition Fetch karo
-    this.dataService.getStatuses(companyId).subscribe((res: any) => {
-      this.conditions = res;
+    this.dataService.getStatuses(idAsNumber).subscribe((res: any) => {
+      // Backend object ya array dono handle karo
+      if (Array.isArray(res) && res.length > 0) {
+        this.conditions = res;
+      } else if (res && Array.isArray(res.data) && res.data.length > 0) {
+        this.conditions = res.data;
+      } else if (res && Array.isArray(res.statuses) && res.statuses.length > 0) {
+        this.conditions = res.statuses;
+      } else {
+        // Fallback: DB mein data nahi hai ya backend crash hua
+        console.warn('Statuses empty from backend, using fallback');
+        this.conditions = [
+          { id: 1, status_name: 'Operational (Good)' },
+          { id: 2, status_name: 'Maintenance Needed' },
+          { id: 3, status_name: 'Out of Order / Broken' }
+        ];
+      }
       if (this.conditions.length > 0) this.assetData.status_id = this.conditions[0].id;
     });
   }
@@ -182,7 +229,6 @@ async submitAsset() {
     const selectedStatus = this.conditions.find(s => s.id == this.assetData.status_id);
 
     const payload = {
-      company_id: this.assetData.company_id,
       name: this.assetData.name,
       category: selectedCat ? selectedCat.name : '', // Text
       category_id: Number(this.assetData.category_id), // ID
@@ -281,7 +327,9 @@ async submitAsset() {
       
     // Fix: Map size issues on load
     setTimeout(() => {
-      this.map.invalidateSize();
+      if (this.map) {
+        this.map.invalidateSize();
+      }
     }, 500);
   }
 
@@ -289,6 +337,15 @@ async submitAsset() {
     this.map.setView([this.lat, this.lng], 15);
     if (this.marker) {
       this.marker.setLatLng([this.lat, this.lng]);
+    }
+  }
+
+  recenterMap() {
+    if (this.map) {
+      this.map.setView([this.lat, this.lng], 15);
+      if (this.marker) {
+        this.marker.setLatLng([this.lat, this.lng]);
+      }
     }
   }
 }

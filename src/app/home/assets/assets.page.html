@@ -44,11 +44,21 @@
 
 
         
-        <div class="map-preview-container animate__animated animate__fadeIn">
-          <div id="incidentMap" style="height: 180px; width: 100%; border-radius: 15px; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 8px;"></div>
-          <div class="location-status" style="padding-left: 5px; margin-bottom: 15px;">
-            <small style="color: #64748b;"><i class="fas fa-map-marker-alt"></i> {{ lat }}, {{ lng }}</small>
-          </div>
+        <!-- Asset Location Section matching Attendance -->
+        <div class="section-label">
+          <span>ASSET LOCATION</span>
+        </div>
+        <div class="map-container animate__animated animate__fadeIn">
+          <div id="incidentMap"></div>
+          <button class="recenter-btn" (click)="recenterMap()">
+            <ion-icon name="locate-outline"></ion-icon>
+          </button>
+        </div>
+
+        <div class="location-status" style="margin-top: -15px; margin-bottom: 20px; padding-left: 5px;">
+          <small style="color: #64748b; font-weight: 700; font-size: 11px;">
+            <i class="fas fa-map-marker-alt" style="color: #0d9488;"></i> {{ lat }}, {{ lng }}
+          </small>
         </div>
 
 

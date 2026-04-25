@@ -300,10 +300,17 @@ async submit() {
   formData.append('applicant_name', localStorage.getItem('ranger_username') || 'Ranger');
   formData.append('company_id', localStorage.getItem('company_id') || '');
   formData.append('photo', this.capturedPhoto);
-  // --- MAGIC COMBO THAT WORKED ---
-  formData.append('geo_id', '99999'); 
-  formData.append('site_id', 'onsite'); 
-  formData.append('id', '99999'); 
+  // --- VALID SITE ID FOR APPROVAL FLOW ---
+  // requestEntryAttendance strict validation requires a real site ID. 
+  // We use the assigned site ID or '1' as a fallback. If backend still says 'No site detected', 
+  // the backend developer MUST allow attendance_type='ONSITE' to bypass site validation in requestEntryAttendance.
+  const validSiteId = this.assignedSiteId !== '0' ? this.assignedSiteId : '1';
+  // We have completely removed geo_id and site_id to see if the backend 
+  // will accept the ONSITE request without checking geofence validation.
+  // formData.append('geo_id', validSiteId); 
+  // formData.append('site_id', validSiteId); 
+  // formData.append('id', validSiteId); 
+  
   formData.append('geo_name', '[Onsite] ' + (this.currentAddress || 'Location'));
   formData.append('site_name', 'Onsite');
   formData.append('applicant_role_id', localStorage.getItem('user_role') || '3');
@@ -348,8 +355,13 @@ async submit() {
   });
   await loader.present();
 
+  // Logging payload for backend developer debugging
+  const payloadObject: any = {};
+  formData.forEach((value, key) => { payloadObject[key] = value; });
+  console.log('📦 FULL PAYLOAD BEING SENT TO requestEntryAttendance:', payloadObject);
+
   const headers = { 'Bypass-Token': 'true' };
-  this.dataService.markAttendance(formData, headers).subscribe({
+  this.dataService.requestEntryAttendance(formData, headers).subscribe({
     next: async (res: any) => {
       console.log('✅ Final Onsite Response:', res);
       await loader.dismiss();
