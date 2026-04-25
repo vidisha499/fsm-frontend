@@ -19,33 +19,49 @@ export class AssetDetailsPage implements OnInit, AfterViewInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    // 1. Try to get data from Navigation State first (passed from drill-down lists)
     const navigation = (window as any).history.state;
     if (navigation && navigation.data) {
       this.asset = navigation.data;
     } else {
-      // 2. Fallback to DataService
-      this.asset = this.dataService.getSelectedAsset(); 
-    }
-    
-    // 🔥 ROBUST LOCATION PARSING
-    if (this.asset && this.asset.location) {
-      try {
-        const loc = typeof this.asset.location === 'string' 
-          ? JSON.parse(this.asset.location) 
-          : this.asset.location;
-          
-        if (loc.lat) this.asset.latitude = loc.lat;
-        if (loc.lng) this.asset.longitude = loc.lng;
-      } catch (e) {
-        console.warn('Failed to parse asset location string:', e);
-      }
+      this.asset = this.dataService.getSelectedAsset();
     }
 
-    // Fallback mapping for various API formats
     if (this.asset) {
-      this.asset.latitude = this.asset.latitude || this.asset.lat;
-      this.asset.longitude = this.asset.longitude || this.asset.lng;
+      console.log('📊 Raw asset from API:', JSON.stringify(this.asset));
+
+      // Try to parse location JSON field
+      if (this.asset.location) {
+        try {
+          const loc = typeof this.asset.location === 'string'
+            ? JSON.parse(this.asset.location)
+            : this.asset.location;
+          if (loc.lat) this.asset.latitude = loc.lat;
+          if (loc.lng) this.asset.longitude = loc.lng;
+        } catch (e) {}
+      }
+
+      // Normalize all possible coordinate field names
+      this.asset.latitude  = this.asset.latitude  || this.asset.lat  || null;
+      this.asset.longitude = this.asset.longitude || this.asset.lng || null;
+
+      // Validate — reject non-numeric values like 'Detecting...'
+      const lat = parseFloat(this.asset.latitude);
+      const lng = parseFloat(this.asset.longitude);
+      this.asset.hasValidLocation = !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
+      if (this.asset.hasValidLocation) {
+        this.asset.latitude  = lat;
+        this.asset.longitude = lng;
+      }
+
+      // Normalize condition from all possible field names
+      this.asset.displayCondition =
+        this.asset.condition ||
+        this.asset.condition_status ||
+        this.asset.status_name ||
+        this.asset.status ||
+        'Unknown';
+      console.log('🏷️ Resolved condition:', this.asset.displayCondition);
+
     }
   }
 
@@ -77,15 +93,11 @@ export class AssetDetailsPage implements OnInit, AfterViewInit, OnDestroy {
     this.navCtrl.back();
   }
 
-  // ionViewDidEnter use karein ngOnInit ki jagah map ke liye
-ionViewDidEnter() {
-  if (this.asset && this.asset.latitude) {
-    // Thoda zyada delay dein taaki transition smooth ho
-    setTimeout(() => {
-      this.initDynamicMap();
-    }, 500); 
+  ionViewDidEnter() {
+    if (this.asset?.hasValidLocation) {
+      setTimeout(() => this.initDynamicMap(), 500);
+    }
   }
-}
 
 initDynamicMap() {
   if (!this.asset || !this.asset.latitude || !this.asset.longitude) return;

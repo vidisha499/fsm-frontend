@@ -91,7 +91,7 @@
   <div class="input-wrapper">
     <i class="fas fa-th-large"></i>
     <select class="styled-select" [(ngModel)]="assetData.category_id">
-      <option *ngFor="let cat of categories" [value]="cat.id">
+      <option *ngFor="let cat of categories" [ngValue]="cat.id">
         {{ cat.name }}
       </option>
     </select>
@@ -102,9 +102,9 @@
   <label class="input-label condition-lbl">Condition</label>
   <div class="input-wrapper">
     <i class="fas fa-chart-line"></i>
-    <select class="styled-select" [(ngModel)]="assetData.status_id">
-      <option *ngFor="let st of conditions" [value]="st.id">
-        {{ st.status_name || st.name || 'Select Status' }}
+    <select class="styled-select" name="condition" [(ngModel)]="assetData.condition">
+      <option *ngFor="let st of conditions" [value]="st.status_name || st.name">
+        {{ st.status_name || st.name || 'Select Condition' }}
       </option>
     </select>
   </div>

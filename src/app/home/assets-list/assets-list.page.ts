@@ -17,6 +17,7 @@ export class AssetsListPage implements OnInit {
   allAssets: any[] = []; // Database se aaya hua pura data
   assets: any[] = [];    // Filtered data jo screen par dikhega
   isModalOpen = false;
+  isLoading = true;      // ✅ Loader state
   companyId: any;
 
   filters = {
@@ -61,11 +62,7 @@ openAssetDetails(asset: any) {
  
 
   async loadAssets() {
-  const loading = await this.loadingCtrl.create({
-    message: 'Fetching your assets...',
-    spinner: 'crescent'
-  });
-  await loading.present();
+  this.isLoading = true; // ✅ Show skeleton loader
 
   const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
   const userId = userData.id; // User ki apni ID
@@ -77,10 +74,10 @@ openAssetDetails(asset: any) {
       const list = Array.isArray(data) ? data : (data.data || []);
       this.allAssets = list;
       this.assets = [...this.allAssets];
-      loading.dismiss();
+      this.isLoading = false; // ✅ Hide loader
     },
     error: (err) => {
-      loading.dismiss();
+      this.isLoading = false; // ✅ Hide loader on error
       this.presentToast('Error loading your assets');
     }
   });

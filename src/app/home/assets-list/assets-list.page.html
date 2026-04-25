@@ -86,7 +86,31 @@
 
       <p class="list-label">Online Assets</p>
 
-      <!-- <div class="glass-card animate__animated animate__fadeInUp" *ngFor="let asset of assets; let i = index" [style.animation-delay]="i * 0.1 + 's'"> -->
+      <!-- Skeleton Loader -->
+      <div *ngIf="isLoading" class="skeleton-container" style="padding-top: 10px;">
+        <div class="glass-card animate__animated animate__pulse animate__infinite" *ngFor="let i of [1,2,3]" style="margin-bottom: 15px; padding: 15px; border-radius: 16px; background: rgba(255, 255, 255, 0.6);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <div style="display: flex; align-items: center; gap: 10px; width: 70%;">
+              <ion-skeleton-text animated style="width: 40px; height: 40px; border-radius: 12px; margin: 0;"></ion-skeleton-text>
+              <ion-skeleton-text animated style="width: 60%; height: 20px; border-radius: 6px; margin: 0;"></ion-skeleton-text>
+            </div>
+            <ion-skeleton-text animated style="width: 30px; height: 30px; border-radius: 50%; margin: 0;"></ion-skeleton-text>
+          </div>
+          <div>
+            <ion-skeleton-text animated style="width: 100%; height: 14px; border-radius: 4px; margin-bottom: 8px;"></ion-skeleton-text>
+            <ion-skeleton-text animated style="width: 80%; height: 14px; border-radius: 4px; margin-bottom: 8px;"></ion-skeleton-text>
+            <ion-skeleton-text animated style="width: 90%; height: 14px; border-radius: 4px; margin-bottom: 0;"></ion-skeleton-text>
+          </div>
+        </div>
+      </div>
+
+      <!-- No Data State -->
+      <div *ngIf="!isLoading && assets.length === 0" class="no-data-premium" style="text-align: center; padding: 40px 20px; color: #94a3b8;">
+        <ion-icon name="cube-outline" style="font-size: 48px; color: #cbd5e1; margin-bottom: 10px; display: block;"></ion-icon>
+        <p style="font-size: 14px; font-weight: 500;">No assets found.</p>
+      </div>
+
+      <div *ngIf="!isLoading && assets.length > 0">
         <div class="glass-card animate__animated animate__fadeInUp" 
      *ngFor="let asset of assets; let i = index" 
      [style.animation-delay]="i * 0.1 + 's'"
@@ -114,7 +138,7 @@
           <div class="detail-item">
             <i class="fas fa-chart-line condition-icon"></i>
             <span class="lbl">Condition:</span>
-            <span class="val highlight">{{ asset.condition_status || asset.condition || 'N/A' }}</span>
+            <span class="val highlight">{{ asset.condition || asset.condition_status || 'N/A' }}</span>
           </div>
           <div class="detail-item">
             <i class="fas fa-calendar-alt year-icon"></i>
@@ -128,6 +152,7 @@
              <span class="value-text">{{ asset.created_at | date:'dd MMM, yyyy' }}</span>
           </div>
         </div>
+      </div>
       </div>
     </div>
   </div>

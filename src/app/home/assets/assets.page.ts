@@ -32,14 +32,15 @@ export class AssetsPage implements OnInit {
   conditions: any[] = [];
  
 
-  // Form Model (Values match your UI inputs)
+  // Form Model
 assetData = {
-    company_id: null,
-    created_by: null,
+    company_id: null as any,
+    created_by: null as any,
     client: 'PugArch Technology Pvt Ltd',
     name: '',
-    category_id: null, // ID store karne ke liye
-    status_id: null,   // ID store karne ke liye
+    category: '',
+    category_id: null as any,
+    condition: '',   // Empty string initially — set by first condition from API
     year: 2026,
     description: ''
   };
@@ -55,11 +56,8 @@ assetData = {
     this.getLoggedUserInfo();
     this.checkEditMode();
     await this.getCurrentLocation();
-
-    // Login hone ke baad hi data mangwao
-    if (this.assetData.company_id) {
-      this.loadDynamicData(this.assetData.company_id);
-    }
+    // Always load categories & conditions regardless of company_id
+    this.loadDynamicData(this.assetData.company_id || 1);
   }
 
   checkEditMode() {
@@ -74,8 +72,9 @@ assetData = {
         created_by: selectedAsset.created_by,
         client: selectedAsset.client || 'PugArch Technology Pvt Ltd',
         name: selectedAsset.name,
+        category: selectedAsset.category || '',
         category_id: selectedAsset.category_id,
-        status_id: selectedAsset.status_id,
+        condition: selectedAsset.condition || selectedAsset.status || 'Good',
         year: selectedAsset.year,
         description: selectedAsset.description || ''
       };
@@ -172,7 +171,6 @@ assetData = {
 
     // 1. Categories Fetch karo
     this.dataService.getCategories(idAsNumber).subscribe((res: any) => {
-      // Backend object ya array dono handle karo
       if (Array.isArray(res) && res.length > 0) {
         this.categories = res;
       } else if (res && Array.isArray(res.data) && res.data.length > 0) {
@@ -180,7 +178,6 @@ assetData = {
       } else if (res && Array.isArray(res.categories) && res.categories.length > 0) {
         this.categories = res.categories;
       } else {
-        // Fallback: DB mein data nahi hai ya backend crash hua
         console.warn('Categories empty from backend, using fallback');
         this.categories = [
           { id: 1, name: 'Vehicles (Jeeps/Bikes)' },
@@ -189,12 +186,16 @@ assetData = {
           { id: 4, name: 'Office Assets' }
         ];
       }
-      if (this.categories.length > 0) this.assetData.category_id = this.categories[0].id;
+      // Auto-select first if not already set
+      if (this.categories.length > 0 && !this.assetData.category_id) {
+        this.assetData.category_id = this.categories[0].id;
+        this.assetData.category = this.categories[0].name || '';
+      }
     });
 
-    // 2. Status/Condition Fetch karo
+    // 2. Conditions Fetch karo
     this.dataService.getStatuses(idAsNumber).subscribe((res: any) => {
-      // Backend object ya array dono handle karo
+      console.log('🔍 RAW Statuses API Response:', JSON.stringify(res));
       if (Array.isArray(res) && res.length > 0) {
         this.conditions = res;
       } else if (res && Array.isArray(res.data) && res.data.length > 0) {
@@ -202,20 +203,25 @@ assetData = {
       } else if (res && Array.isArray(res.statuses) && res.statuses.length > 0) {
         this.conditions = res.statuses;
       } else {
-        // Fallback: DB mein data nahi hai ya backend crash hua
         console.warn('Statuses empty from backend, using fallback');
         this.conditions = [
-          { id: 1, status_name: 'Operational (Good)' },
-          { id: 2, status_name: 'Maintenance Needed' },
-          { id: 3, status_name: 'Out of Order / Broken' }
+          { name: 'Good' },
+          { name: 'Needs Repair' },
+          { name: 'Poor' },
+          { name: 'Not in Use' }
         ];
       }
-      if (this.conditions.length > 0) this.assetData.status_id = this.conditions[0].id;
+      console.log('✅ Parsed conditions:', JSON.stringify(this.conditions));
+      // Set first condition ONLY if user hasn't selected anything yet
+      if (this.conditions.length > 0 && !this.assetData.condition) {
+        const firstName = this.conditions[0].status_name || this.conditions[0].name || 'Good';
+        this.assetData.condition = firstName;
+        console.log('📌 Auto-selected condition:', firstName);
+      }
     });
   }
 
-  // --- 4. SUBMIT USING DATASERVICE ---
-async submitAsset() {
+  async submitAsset() {
     if (!this.assetData.name || !this.assetData.category_id) {
       this.presentToast('Please fill all required fields');
       return;
@@ -224,28 +230,50 @@ async submitAsset() {
     const loading = await this.loadingCtrl.create({ message: 'Saving Asset...' });
     await loading.present();
 
-    // Clean photos (Strip base64 prefix if present)
+    // Clean photos
     const finalPhotos = this.capturedPhotos.map(p => p.includes(',') ? p.split(',')[1] : p);
 
-    // Mapping: ID se Name nikalna Neon Dashboard ke liye
+    // Category name resolve karo
     const selectedCat = this.categories.find(c => c.id == this.assetData.category_id);
-    const selectedStatus = this.conditions.find(s => s.id == this.assetData.status_id);
+    const categoryName = selectedCat ? (selectedCat.name || selectedCat.category_name || '') : (this.assetData.category || '');
+
+    // Safe condition fallback — use first loaded condition, NOT hardcoded 'Good'
+    const finalCondition = this.assetData.condition ||
+      (this.conditions.length > 0 ? (this.conditions[0].status_name || this.conditions[0].name) : 'Operational');
+
+    console.log('📤 Submitting condition:', this.assetData.condition);
+    console.log('📤 Full assetData:', JSON.stringify(this.assetData));
+
+    // GPS validation — don't send 'Detecting...' string
+    const validLat = (typeof this.lat === 'number' && !isNaN(this.lat)) ? this.lat : null;
+    const validLng = (typeof this.lng === 'number' && !isNaN(this.lng)) ? this.lng : null;
+
+    // Find status_id from conditions array by matching selected condition name
+    const selectedStatus = this.conditions.find(
+      (s: any) => (s.status_name || s.name) === this.assetData.condition
+    );
+    const statusId = selectedStatus ? selectedStatus.id : null;
+    console.log('📤 Matched status_id:', statusId, 'for condition:', this.assetData.condition);
 
     const payload = {
       name: this.assetData.name,
-      category: selectedCat ? (selectedCat.name || selectedCat.category_name || '') : '',
+      category: categoryName,
       category_id: Number(this.assetData.category_id),
-      status: selectedStatus ? (selectedStatus.status_name || selectedStatus.name || 'Good') : 'Good',
-      status_id: Number(this.assetData.status_id),
+      condition: finalCondition,
+      status: finalCondition,
+      status_id: statusId,
       year: this.assetData.year,
       description: this.assetData.description,
-      latitude: this.lat,
-      longitude: this.lng,
+      location: (validLat && validLng) ? JSON.stringify({ lat: validLat, lng: validLng }) : '',
+      latitude: validLat,
+      longitude: validLng,
       photo: finalPhotos.length > 0 ? `data:image/jpeg;base64,${finalPhotos[0]}` : '',
       photos: JSON.stringify(finalPhotos.map(p => `data:image/jpeg;base64,${p}`)),
       created_by: this.assetData.created_by,
       company_id: this.assetData.company_id || 1
     };
+    console.log('📤 Final payload condition:', finalCondition, '| location:', payload.location);
+
 
     const request = this.isEditMode 
       ? this.dataService.updateAsset(this.editingId, payload)

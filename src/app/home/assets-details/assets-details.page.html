@@ -31,8 +31,8 @@
       <div class="glass-card animate__animated animate__fadeInUp">
         <div class="card-accent"></div>
         
-        <div class="status-badge" [ngClass]="(asset.condition_status || asset.condition)?.toLowerCase()">
-          {{ asset.condition_status || asset.condition || 'Operational' }}
+        <div class="status-badge" [ngClass]="asset.displayCondition?.toLowerCase()">
+          {{ asset.displayCondition || 'Unknown' }}
         </div>
 
         <div class="card-header-main">
@@ -59,8 +59,20 @@
             <span class="val">{{ asset.department }}</span>
           </div>
           <div class="info-pill">
+            <span class="lbl">CONDITION</span>
+            <span class="val">{{ asset.displayCondition || '—' }}</span>
+          </div>
+          <div class="info-pill" *ngIf="asset.year">
+            <span class="lbl">YEAR</span>
+            <span class="val">{{ asset.year }}</span>
+          </div>
+          <div class="info-pill">
             <span class="lbl">ADDED ON</span>
             <span class="val">{{ (asset.created_at || asset.date) | date:'dd MMM, yyyy' }}</span>
+          </div>
+          <div class="info-pill" *ngIf="asset.description">
+            <span class="lbl">DESCRIPTION</span>
+            <span class="val">{{ asset.description }}</span>
           </div>
         </div>
       </div>
@@ -72,13 +84,18 @@
           <ion-icon name="map-outline"></ion-icon> Asset Location
         </p>
         
-    <div class="map-container-wrapper">
-  <!-- ID ko bilkul unique rakhein -->
+    <div class="map-container-wrapper" *ngIf="asset?.hasValidLocation">
   <div id="assetDetailMap" class="detail-map" style="height: 250px; width: 100%; display: block;"></div>
-  
-  <div class="coords-footer" *ngIf="asset?.latitude">
+  <div class="coords-footer">
     {{ asset.latitude }}, {{ asset.longitude }}
   </div>
+</div>
+
+<div *ngIf="!asset?.hasValidLocation"
+     style="padding: 30px; text-align: center; color: #94a3b8; font-size: 13px; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+  <ion-icon name="location-outline" style="font-size: 32px; color: #cbd5e1;"></ion-icon>
+  <span style="font-weight: 600;">Location Not Recorded</span>
+  <span style="font-size: 11px;">GPS was unavailable when this asset was saved.</span>
 </div>
       </div>
 
