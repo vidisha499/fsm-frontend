@@ -66,14 +66,14 @@
   <div class="item-text"><span>Admin Dashboard</span></div>
 </a> -->
 
-<a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('category')" [class.active]="router.url.includes('category')">
+<!-- <a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('category')" [class.active]="router.url.includes('category')">
   <div class="icon-box purple">
     <i class="fas fa-sitemap"></i>
   </div>
   <div class="item-text">
     <span>Manage Hierarchy</span>
   </div>
-</a>
+</a> -->
 
 <a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('geofences')" [class.active]="router.url.includes('geofences')">
   <div class="icon-box orange"><i class="fas fa-draw-polygon"></i></div>
@@ -85,15 +85,15 @@
   <div class="item-text"><span>Task Management</span></div>
 </a>
 
-<a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('dynamic-forms')" [class.active]="router.url.includes('dynamic-forms')">
+<!-- <a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('dynamic-forms')" [class.active]="router.url.includes('dynamic-forms')">
   <div class="icon-box indigo"><i class="fas fa-edit"></i></div>
   <div class="item-text"><span>Change Forms</span></div>
-</a>
+</a> -->
 
-<a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('dynamic-labels')" [class.active]="router.url.includes('dynamic-labels')">
+<!-- <a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('dynamic-labels')" [class.active]="router.url.includes('dynamic-labels')">
   <div class="icon-box azure"><i class="fas fa-font"></i></div>
   <div class="item-text"><span>{{ 'label_dynamic' | dynamicLabel }}</span></div>
-</a>
+</a> -->
 
 <!-- Ye sirf tab dikhega jab user Ranger hoga -->
 <!-- <a *ngIf="userRole === 'ranger'" class="menu-item" (click)="goToPage('ranger-dashboard')">
