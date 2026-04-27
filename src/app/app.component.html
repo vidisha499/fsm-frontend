@@ -18,20 +18,28 @@
           </div>
 
           <ng-container *ngIf="!isLoadingSidebar">
-            <div class="avatar-box">
-              <img *ngIf="userPhoto" [src]="userPhoto" alt="User">
-              
-              <div *ngIf="!userPhoto" 
-                   class="letter-placeholder" 
-                   [style.background-color]="getAvatarColor(rangerName)">
-                {{ getFirstLetter(rangerName) }}
-              </div>
+            <div style="display: flex; flex-direction: column; width: 100%;">
+              <div style="display: flex; align-items: center; gap: 15px;">
+                <div class="avatar-box">
+                  <img *ngIf="userPhoto" [src]="userPhoto" alt="User">
+                  
+                  <div *ngIf="!userPhoto" 
+                       class="letter-placeholder" 
+                       [style.background-color]="getAvatarColor(rangerName)">
+                    {{ getFirstLetter(rangerName) }}
+                  </div>
 
-              <div class="status-indicator"></div>
-            </div>
-            <div class="user-info">
-              <h2>{{ rangerName }}</h2>
-              <p>{{ rangerDivision }}</p> 
+                  <div class="status-indicator"></div>
+                </div>
+                <div class="user-info">
+                  <h2>{{ rangerName }}</h2>
+                  <p>{{ rangerDivision }}</p> 
+                </div>
+              </div>
+              
+              <div *ngIf="companyName" style="margin-top: 15px; font-size: 13px; color: #ffffff; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; width: 100%;">
+                <i class="fas fa-building" style="margin-right: 5px;"></i>Company Name: {{ companyName }}
+              </div>
             </div>
           </ng-container>
         </div>

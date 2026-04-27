@@ -137,10 +137,10 @@ applyFrontendLogic() {
     
     // Mode check (Beat vs Onsite)
     const isOnsite = String(log.site_id) === '99999' || String(log.geo_id) === '99999' ||
-                     log.site_id === 'onsite' || 
-                     (log.site_name && log.site_name.toLowerCase().includes('onsite')) ||
-                     (log.geo_name && log.geo_name.toLowerCase().includes('[onsite]')) ||
-                     (log.geofence && log.geofence.toLowerCase().includes('[onsite]'));
+                      log.site_id === 'onsite' || 
+                      (log.site_name && String(log.site_name).toLowerCase().includes('onsite')) ||
+                      (log.geo_name && String(log.geo_name).toLowerCase().includes('[onsite]')) ||
+                      (log.geofence && String(log.geofence).toLowerCase().includes('[onsite]'));
     const matchesMode = (this.selectedMode === 'onsite') ? isOnsite : !isOnsite;
 
     let isMatchLocation = true;
@@ -179,57 +179,53 @@ async loadAttendanceLogs() {
   const companyId = localStorage.getItem('company_id');
   if (!companyId) return;
 
-  const loader = await this.loadingCtrl.create({
-    message: `Fetching ${this.selectedMode === 'beat' ? 'Beat' : 'Onsite'} Logs...`,
-    spinner: 'crescent'
-  });
-  await loader.present();
-
-  if (this.selectedMode === 'beat') {
-    this.dataService.getAttendanceLogsByRanger(companyId).subscribe({
-      next: (res: any) => this.processLogsResponse(res, loader),
-      error: (err) => this.handleError(err, loader)
+    const loader = await this.loadingCtrl.create({
+      message: `Fetching ${this.selectedMode === 'beat' ? 'Beat' : 'Onsite'} Logs...`,
+      spinner: 'crescent'
     });
-  } else {
-    // For Onsite: Merge Monthly Logs (Approved) and Attendance Requests (Pending)
-    const rangerId = localStorage.getItem('ranger_id') || '0';
-    
-    // Fetch both in parallel
-    const logsObs = this.dataService.getOnsiteLogsByRanger(rangerId, companyId);
-    const reqsObs = this.dataService.getAttendanceRequests(companyId);
+    await loader.present();
 
-    import('rxjs').then(({ forkJoin }) => {
-      forkJoin([logsObs, reqsObs]).subscribe({
-        next: ([logsRes, reqsRes]: [any, any]) => {
-          let approvedLogs = this.extractLogsArray(logsRes);
-          let pendingReqs = this.extractLogsArray(reqsRes);
-
-          console.log('DEBUG: Raw Approved Logs:', approvedLogs);
-          console.log('DEBUG: Raw Pending Requests:', pendingReqs);
-
-          // Mark status and normalize fields
-          approvedLogs = approvedLogs.map(l => ({ ...l, status: 'APPROVED' }));
-          
-          // Only take requests for this ranger if backend returns all
-          pendingReqs = pendingReqs.filter(r => {
-            const rId = String(r.user_id || r.ranger_id || r.rangerId || '');
-            const match = rId === rangerId;
-            if (!match && rId) console.log(`DEBUG: Filtered out req for ID ${rId} (Current: ${rangerId})`);
-            return match;
-          }).map(r => ({ ...r, status: 'PENDING', isRequest: true }));
-
-          console.log(`✅ Loaded ${approvedLogs.length} approved and ${pendingReqs.length} pending logs.`);
-
-          const combined = [...pendingReqs, ...approvedLogs];
-          this.processLogsResponse(combined, loader);
-        },
+    if (this.selectedMode === 'beat') {
+      this.dataService.getAttendanceLogsByRanger(companyId).subscribe({
+        next: (res: any) => this.processLogsResponse(res, loader),
         error: (err) => this.handleError(err, loader)
       });
-    });
-  }
-}
+    } else {
+      // For Onsite: Merge Monthly Logs (Approved) and Attendance Requests (Pending)
+      const rangerId = localStorage.getItem('ranger_id') || '0';
+      
+      const logsObs = this.dataService.getOnsiteLogsByRanger(rangerId, companyId);
+      const reqsObs = this.dataService.getAttendanceRequests(companyId);
 
-private extractLogsArray(res: any): any[] {
+      import('rxjs').then(({ forkJoin }) => {
+        forkJoin([logsObs, reqsObs]).subscribe({
+          next: ([logsRes, reqsRes]: [any, any]) => {
+            let approvedLogs = this.extractLogsArray(logsRes);
+            let pendingReqs = this.extractLogsArray(reqsRes);
+
+            // Mark status and normalize fields
+            approvedLogs = approvedLogs.map((l: any) => ({ ...l, status: 'approved' }));
+            
+            pendingReqs = pendingReqs.filter((r: any) => {
+              const rId = String(r.guard_id || r.user_id || r.ranger_id || r.rangerId || '');
+              return rId === rangerId;
+            }).map((r: any) => {
+              const rawStatus = String(r.status || 'pending').toLowerCase();
+              return { ...r, status: rawStatus, isRequest: true };
+            });
+
+            console.log(`✅ Loaded ${approvedLogs.length} approved and ${pendingReqs.length} pending logs.`);
+
+            const combined = [...pendingReqs, ...approvedLogs];
+            this.processLogsResponse(combined, loader);
+          },
+          error: (err) => this.handleError(err, loader)
+        });
+      });
+    }
+  }
+
+  private extractLogsArray(res: any): any[] {
   if (Array.isArray(res)) return res;
   if (res && Array.isArray(res.data)) return res.data;
   if (res && Array.isArray(res.attendance)) return res.attendance;
@@ -238,19 +234,40 @@ private extractLogsArray(res: any): any[] {
 }
 
 private processLogsResponse(res: any, loader: any) {
-  const logsArray = Array.isArray(res) ? res : this.extractLogsArray(res);
+  const rawArray = Array.isArray(res) ? res : this.extractLogsArray(res);
+  
+  // De-duplicate logs to prevent showing the same record twice
+  const uniqueMap = new Map();
+  rawArray.forEach((log: any) => {
+    const uniqueId = String(log.id || log.attendance_id || log.request_id || (String(log.time || '') + String(log.date || '')));
+    if (!uniqueMap.has(uniqueId)) {
+      uniqueMap.set(uniqueId, log);
+    } else {
+      // If duplicate, prefer the one from requests if it contains status/isRequest flag
+      if (log.isRequest) uniqueMap.set(uniqueId, log);
+    }
+  });
+
+  const logsArray = Array.from(uniqueMap.values());
   
   const fetchedLogs = logsArray.map((log: any) => {
     let rawDate = log.timestamp || log.entryDateTime || log.created_at || log.createdAt || '';
     let formattedDate = '';
     try { if (rawDate) formattedDate = new Date(rawDate).toISOString(); } catch (e) { formattedDate = rawDate; }
       
+    const isOnsite = log.isRequest || 
+                     String(log.site_id) === '99999' || String(log.geo_id) === '99999' ||
+                     log.site_id === 'onsite' || 
+                     !log.geo_id || log.geo_id === '0' ||
+                     (log.site_name && String(log.site_name).toLowerCase().includes('onsite')) ||
+                     (log.geo_name && String(log.geo_name).toLowerCase().includes('[onsite]'));
+
     return {
       ...log,
       createdAt: formattedDate,
-      geofence: log.geo_name || log.geofence || 'General Area',
-      rangerName: log.name || log.rangerName || 'Ranger',
-      status: log.status || (this.selectedMode === 'beat' ? 'COMPLETED' : 'APPROVED')
+      geofence: isOnsite ? (log.location || log.address || log.geo_name || log.geofence || 'Onsite') : (log.geo_name || log.geofence || 'General Area'),
+      rangerName: log.name || log.rangerName || log.guard_name || 'Ranger',
+      status: String(log.status || (this.selectedMode === 'beat' ? 'completed' : 'approved')).toLowerCase()
     };
   });
 

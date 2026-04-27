@@ -163,6 +163,7 @@ async login() {
           phone: userData.contact || userData.mobile || userData.phone || '',
           role_id: userRole,
           company_id: userData.company_id,
+          company_name: userData.company_name || (userData.company ? userData.company.name : '') || userData.client_name || '',
           api_token: userData.api_token
         };
 

@@ -38,40 +38,83 @@ export class OfficersPage implements OnInit {
     this.isLoading = true;
     this.cdr.detectChanges();
 
-    // getGuardsOnSite returns ONLY officers who have marked attendance today,
-    // and already includes the 'photo' field — so we use it as the primary source.
-    this.dataService.getGuardsOnSite().pipe(catchError(() => of([]))).subscribe({
-      next: (res: any) => {
-        const guardsList: any[] = res.data || res.guards || res || [];
+    const companyIdStr = this.myCompanyId.toString();
 
-        // Map each on-site guard to the officer display model
-        this.allOfficers = guardsList.map((g: any) => {
-          const photoRaw = g.photo || g.profile_pic || g.profile_Pic || g.image || g.avatar || g.profile_image;
-          return {
-            ...g,
-            id: g.user_id || g.id,
-            name: g.name || g.full_name || 'Officer',
-            role: this.getRoleName(g.role_id),
-            site_name: g.site_name || g.geo_name || g.beat_name || '',
-            photo: this.getPhotoUrl(photoRaw),
-            dutyStatus: 'On Duty',
-            hasAttended: true
+    // Fetch from all attendance sources to ensure nobody is missed
+    import('rxjs').then(({ forkJoin, of }) => {
+      forkJoin({
+        logs: this.dataService.getAttendanceLogsByRanger(companyIdStr).pipe(catchError(() => of([]))),
+        requests: this.dataService.getAttendanceRequests(companyIdStr).pipe(catchError(() => of([]))),
+        onsite: this.dataService.getGuardsOnSite().pipe(catchError(() => of([])))
+      }).subscribe({
+        next: (res: any) => {
+          const getArr = (obj: any) => {
+            if (Array.isArray(obj)) return obj;
+            if (!obj) return [];
+            const firstArray = Object.values(obj).find(v => Array.isArray(v)) as any[];
+            if (firstArray) return firstArray;
+            return obj.data || obj.attendance || obj.requests || obj.requests_list || obj.items || obj.logs || (Array.isArray(obj.result) ? obj.result : []);
           };
-        });
 
-        // Sort alphabetically by name
-        this.allOfficers.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+          const logsArray = getArr(res.logs);
+          const reqArray = getArr(res.requests);
+          const onsiteArray = getArr(res.onsite);
 
-        this.filteredOfficers = [...this.allOfficers];
-        this.totalCount = this.allOfficers.length;
-        this.isLoading = false;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error('Error loading officers:', err);
-        this.isLoading = false;
-        this.cdr.detectChanges();
-      }
+          const nowL = new Date();
+          const todayYMD = `${nowL.getFullYear()}-${String(nowL.getMonth() + 1).padStart(2, '0')}-${String(nowL.getDate()).padStart(2, '0')}`;
+          const todayDMY = `${String(nowL.getDate()).padStart(2, '0')}-${String(nowL.getMonth() + 1).padStart(2, '0')}-${nowL.getFullYear()}`;
+          const todayISO = nowL.toISOString().split('T')[0];
+
+          const activeOfficersMap = new Map<string, any>();
+
+          const processRecord = (record: any) => {
+            const rDate = (record.timestamp || record.entryDateTime || record.created_at || record.date || '').toString();
+            if (!rDate) return;
+
+            const isToday = rDate.includes(todayYMD) || rDate.includes(todayDMY) || rDate.includes(todayISO) || rDate.toLowerCase().includes('today');
+            
+            const status = String(record.status || '').toLowerCase();
+            const isRejected = status === 'rejected' || status === 'failed';
+
+            if (isToday && !isRejected) {
+              const uId = record.guard_id || record.guardId || record.user_id || record.userId || record.staff_id || record.ranger_id || record.added_by || record.created_by;
+              
+              if (uId && !activeOfficersMap.has(uId.toString())) {
+                const photoRaw = record.photo || record.profile_pic || record.profile_Pic || record.image || record.avatar || record.profile_image;
+                
+                activeOfficersMap.set(uId.toString(), {
+                  ...record, // Keep original data for details page
+                  id: uId.toString(),
+                  name: record.name || record.full_name || record.guard_name || record.user_name || record.ranger_name || 'Officer',
+                  role: this.getRoleName(record.role_id),
+                  site_name: record.site_name || record.geo_name || record.beat_name || record.location_name || '',
+                  company_name: record.company_name || (record.company ? record.company.name : '') || record.client_name || '',
+                  photo: this.getPhotoUrl(photoRaw),
+                  dutyStatus: 'On Duty',
+                  hasAttended: true
+                });
+              }
+            }
+          };
+
+          logsArray.forEach(processRecord);
+          reqArray.forEach(processRecord);
+          onsiteArray.forEach(processRecord);
+
+          this.allOfficers = Array.from(activeOfficersMap.values());
+          this.allOfficers.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+          this.filteredOfficers = [...this.allOfficers];
+          this.totalCount = this.allOfficers.length;
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          console.error('Error unifying officers:', err);
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        }
+      });
     });
   }
 
