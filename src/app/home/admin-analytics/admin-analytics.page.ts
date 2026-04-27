@@ -40,6 +40,7 @@ const CDAX: any = {
 })
 export class AdminAnalyticsPage implements OnInit, OnDestroy {
   // State variables
+  isInitialLoading: boolean = true;
   animalSpecies: string[] = ['Sloth Bear', 'Leopard', 'Hyena', 'Jackal', 'Wild Bear', 'Spotted Deer', 'Sambar', 'Others'];
   companyId: any;
   activeTab: string = 'criminal';
@@ -797,14 +798,14 @@ private mkChart(id: string, config: any) {
   }
 
   doRefresh() {
-    this.isRefreshing = true;
-    this.updateUIData(); // Global counts naye karo
+    this.isInitialLoading = true; // Use premium loader
+    this.updateUIData(); 
     this.fetchRealAssetData();
     
     setTimeout(() => { 
-      this.isRefreshing = false; 
-      this.setAnaSub(this.activeSubId); // Active sub refresh karo
-    }, 800);
+      this.isInitialLoading = false; 
+      this.setAnaSub(this.activeSubId); 
+    }, 1200);
   }
 
 
@@ -817,22 +818,13 @@ onFilterChange() {
   });
 
   // 1. UI Status update
-  this.isRefreshing = true;
+  this.isInitialLoading = true; // Trigger premium blurred loader
   this.destroyCharts(); // Purane charts clean karein
   this.cdr.detectChanges();
 
-  // 2. Data Fetch (Ensure karein ki ye Promise ya Observable handle kare)
-  // Hum updateUIData() ko call kar rahe hain jo internally subscribe karta hai
+  // 2. Data Fetch
   this.updateUIData(); 
-
-  // Note: updateUIData ke andar humne already setTimeout aur renderSubCharts lagaya hai,
-  // isliye yahan double mehnat ki zaroori nahi hai. 
-  
-  // Bas ek safety check ke liye Refreshing spinner ko 1 second baad band karein
-  setTimeout(() => {
-    this.isRefreshing = false;
-    this.cdr.detectChanges();
-  }, 1000);
+  this.fetchRealAssetData();
 }
 
 getIconColor(label: string): string {
@@ -1265,6 +1257,7 @@ async updateUIData() {
           this.currentSubCharts = currentSub?.charts || [];
 
           this.isRefreshing = false;
+          this.isInitialLoading = false; 
           setTimeout(() => {
             this.renderSubCharts();
             this.cdr.detectChanges();
@@ -1273,6 +1266,7 @@ async updateUIData() {
         error: (err) => {
           console.error("❌ Analytics Direct Sync Failure:", err);
           this.isRefreshing = false;
+          this.isInitialLoading = false;
           this.cdr.detectChanges();
         }
       });

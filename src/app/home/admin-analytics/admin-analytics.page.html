@@ -1,5 +1,22 @@
 <ion-content [fullscreen]="true">
-    <div class="screen" id="s-analytics">
+    <!-- Premium Global Loader with Blurred Background -->
+    <div class="global-loader" *ngIf="isInitialLoading">
+      <div class="loader-content">
+        <div class="loader-circle"></div>
+        <div class="loader-logo">
+          <ion-icon name="analytics-outline"></ion-icon>
+        </div>
+        <div class="loader-text">
+          <h2>Analyzing Data</h2>
+          <p>Syncing deep forest insights...</p>
+        </div>
+        <div class="loading-bar">
+          <div class="bar-fill"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="s-analytics" [class.is-blur]="isInitialLoading">
       
 
       <div class="toolbar">
