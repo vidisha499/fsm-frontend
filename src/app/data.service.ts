@@ -236,9 +236,10 @@ export class DataService {
     const payload = {
       api_token: token,
       id: String(id),
-      patrol_id: String(id) // Fallback for different backend versions
+      patrol_id: String(id)
     };
-    return this.http.post(`${this.baseApiUrl}/patrol-logs`, payload); 
+    // Use patrol-list as it contains both ongoing and completed patrols in Sir's API
+    return this.http.post(`${this.baseApiUrl}/patrol-list`, payload); 
   }
   saveSighting(payload: any) { 
     return this.http.post(`${this.baseApiUrl}/forest-reports`, payload); 

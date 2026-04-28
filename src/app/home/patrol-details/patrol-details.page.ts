@@ -44,89 +44,141 @@ export class PatrolDetailsPage implements OnInit {
       return;
     }
 
-    // 2. Fallback to ID from URL
-    const idFromUrl = this.route.snapshot.paramMap.get('id');
-    if (idFromUrl) {
-      this.patrolId = idFromUrl;
-      this.loadPatrolDetails();
-    }
+    this.route.paramMap.subscribe(params => {
+      const id = params.get('id');
+      if (id) {
+        this.patrolId = id;
+        this.loadPatrolDetails();
+      }
+    });
   }
 
   loadPatrolDetails() {
+    // Reset current data to avoid stale UI
+    this.patrol = { observationData: [] };
+
     this.dataService.getPatrolById(String(this.patrolId)).subscribe({
       next: (res: any) => { 
-        console.log("📍 Full Patrol Details Response:", res);
+        console.log(`📍 Response for ID ${this.patrolId}:`, res);
         
-        let data = res;
-        // Handle Sir's paginated response format: { data: [ ... ] }
-        if (res && res.data && Array.isArray(res.data)) {
-          if (res.data.length > 0) {
-            data = res.data[0];
-          } else if (res.data.length === 0 && res.total === 0) {
-            console.warn("No patrol found for this ID on server.");
+        let data = null;
+        const allLogs = Array.isArray(res) ? res : (res?.data || []);
+        
+        if (Array.isArray(allLogs)) {
+          // Strict search for the requested ID in the list
+          data = allLogs.find((p: any) => 
+            String(p.id) === String(this.patrolId) || 
+            String(p.patrol_id) === String(this.patrolId) ||
+            String(p.sessionId) === String(this.patrolId)
+          );
+          
+          // Fallback if not found in list but list has items
+          if (!data && allLogs.length > 0) {
+             console.warn("Exact ID match not found in list, taking first item as fallback.");
+             data = allLogs[0];
           }
+        } else {
+          data = res;
         }
 
-        // Try to get photos from the main response first
-        let rawPhotos = data.patrol_photos || data.patrolPhotos || data.photos || data.photo || [];
-        if (typeof rawPhotos === 'string') {
-          try { rawPhotos = JSON.parse(rawPhotos); } catch(e) { rawPhotos = [rawPhotos]; }
+        if (data) {
+          this.processPatrolData(data);
+        } else {
+          console.warn("Patrol not found by ID. Attempting fallback list search...");
+          this.dataService.getOngoingPatrols().subscribe({
+            next: (listRes: any) => {
+              const list = listRes.data || listRes || [];
+              const match = list.find((p: any) => 
+                String(p.id) === String(this.patrolId) || 
+                String(p.patrol_id) === String(this.patrolId) ||
+                String(p.sessionId) === String(this.patrolId)
+              );
+              if (match) {
+                console.log("📍 Found match in fallback list:", match);
+                this.processPatrolData(match);
+              } else {
+                console.error("No patrol found even in fallback list.");
+              }
+            }
+          });
         }
-        if (!Array.isArray(rawPhotos)) rawPhotos = [];
-        
-        let processedPhotos = rawPhotos.map((p: any) => {
-          let url = p.photo || p.url || p;
-          if (typeof url === 'string' && !url.startsWith('http') && !url.startsWith('data:')) {
-             return `https://fms.pugarch.in/public/profilepics/patrols/${url}`;
-          }
-          return url;
-        });
-
-        this.patrol = {
-          ...data,
-          photos: processedPhotos,
-          patrolPhotos: processedPhotos
-        };
-
-        // Fallback property mapping and parsing
-        let routeVal = this.patrol.route || this.patrol.coords || this.patrol.path || this.patrol.polyline || [];
-        if (typeof routeVal === 'string') {
-          try { routeVal = JSON.parse(routeVal); } catch(e) { routeVal = []; }
-        }
-        this.patrol.route = Array.isArray(routeVal) ? routeVal : [];
-
-        this.patrol.start_time = this.patrol.start_time || this.patrol.start_lat_time || this.patrol.created_at || this.patrol.startTime;
-        this.patrol.end_time = this.patrol.end_time || this.patrol.end_lat_time || this.patrol.ended_at || this.patrol.endTime;
-
-        // Calculate distance if missing or 0
-        const calcDist = this.calculateDistance(this.patrol.route);
-        this.patrol.distanceKm = (calcDist !== '0.00') ? calcDist : (this.patrol.distanceKm || this.patrol.distance || '0.00');
-
-        // Calculate duration if missing
-        this.patrol.duration = this.calculateDuration(this.patrol);
-        
-        // Calculate Speed
-        this.patrol.avgSpeed = this.calculateSpeed(this.patrol.distanceKm, this.patrol.duration);
-
-        // Ensure startTime is set for the Date field
-        if (!this.patrol.startTime) {
-           this.patrol.startTime = this.patrol.start_time || new Date().toISOString();
-        }
-
-        // Parse existing observations if any
-        if (this.patrol.observationData && this.patrol.observationData.length > 0) {
-          this.patrol.observationData = this.patrol.observationData.map((obs: any) => this.processObservationPhoto(obs));
-        }
-
-        // Fetch observations if not included in patrol details response
-        if (!this.patrol.observationData || this.patrol.observationData.length === 0) {
-          this.fetchObservations();
-        }
-
-        setTimeout(() => this.initMap(), 500);
       },
       error: (err: any) => console.error("Load failed", err)
     });
+  }
+
+  processPatrolData(data: any) {
+    // Try to get photos from the main response first
+    let rawPhotos = data.patrol_photos || data.patrolPhotos || data.photos || data.photo || [];
+    if (typeof rawPhotos === 'string') {
+      try { rawPhotos = JSON.parse(rawPhotos); } catch(e) { rawPhotos = [rawPhotos]; }
+    }
+    if (!Array.isArray(rawPhotos)) rawPhotos = [];
+    
+    let processedPhotos = rawPhotos.map((p: any) => {
+      let url = p.photo || p.url || p;
+      if (typeof url === 'string' && !url.startsWith('http') && !url.startsWith('data:')) {
+          return `https://fms.pugarch.in/public/profilepics/patrols/${url}`;
+      }
+      return url;
+    });
+
+    this.patrol = {
+      ...data,
+      photos: processedPhotos,
+      patrolPhotos: processedPhotos
+    };
+
+    // Fallback property mapping and parsing
+    let routeVal = this.patrol.route || this.patrol.coords || this.patrol.path || this.patrol.polyline || [];
+    if (typeof routeVal === 'string') {
+      try { routeVal = JSON.parse(routeVal); } catch(e) { routeVal = []; }
+    }
+    this.patrol.route = Array.isArray(routeVal) ? routeVal : [];
+
+    // 🚀 NEW FALLBACK: If active patrol and server has no route yet, check localStorage
+    if (this.patrol.route.length === 0) {
+      const localId = localStorage.getItem('active_patrol_id');
+      const localSessionId = localStorage.getItem('active_patrol_session_id');
+      if (this.patrolId === localId || this.patrolId === localSessionId) {
+        const localRoute = localStorage.getItem('active_patrol_route');
+        if (localRoute) {
+          try { this.patrol.route = JSON.parse(localRoute); } catch(e) {}
+        }
+      }
+    }
+
+    this.patrol.start_time = this.patrol.start_time || this.patrol.start_lat_time || this.patrol.created_at || this.patrol.startTime;
+    this.patrol.end_time = this.patrol.end_time || this.patrol.end_lat_time || this.patrol.ended_at || this.patrol.endTime;
+
+    // Calculate distance if missing or 0
+    const calcDist = this.calculateDistance(this.patrol.route);
+    let rawDist = (calcDist !== '0.00') ? calcDist : (this.patrol.distanceKm || this.patrol.distance || this.patrol.distance_km || this.patrol.total_distance || '0.00');
+    // Ensure formatting to 2 decimal places even for fallback values
+    this.patrol.distanceKm = !isNaN(Number(rawDist)) ? Number(rawDist).toFixed(2) : '0.00';
+
+    // Calculate duration if missing
+    this.patrol.duration = this.calculateDuration(this.patrol);
+    
+    // Calculate Speed
+    this.patrol.avgSpeed = this.calculateSpeed(this.patrol.distanceKm, this.patrol.duration);
+
+    // Ensure startTime is set for the Date field
+    if (!this.patrol.startTime) {
+        this.patrol.startTime = this.patrol.start_time || new Date().toISOString();
+    }
+
+    // Parse existing observations if any
+    if (this.patrol.observationData && this.patrol.observationData.length > 0) {
+      this.patrol.observationData = this.patrol.observationData.map((obs: any) => this.processObservationPhoto(obs));
+    }
+
+    // Fetch observations if not included in patrol details response
+    if (!this.patrol.observationData || this.patrol.observationData.length === 0) {
+      this.fetchObservations();
+    }
+
+    setTimeout(() => this.initMap(), 500);
   }
 
   fetchObservations() {
@@ -134,40 +186,58 @@ export class PatrolDetailsPage implements OnInit {
       next: (res: any) => {
         const reports = Array.isArray(res) ? res : (res?.data || []);
         const sessionIds: string[] = [];
-        if (this.patrol.id) sessionIds.push(String(this.patrol.id));
-        if (this.patrol.session_id) sessionIds.push(String(this.patrol.session_id));
-        if (this.patrol.sessionId) sessionIds.push(String(this.patrol.sessionId));
-        if (this.patrolId) sessionIds.push(String(this.patrolId));
+        const validId = (id: any) => id && id !== '0' && id !== 0 && id !== 'null';
+        
+        if (validId(this.patrol.id)) sessionIds.push(String(this.patrol.id));
+        if (validId(this.patrol.session_id)) sessionIds.push(String(this.patrol.session_id));
+        if (validId(this.patrol.sessionId)) sessionIds.push(String(this.patrol.sessionId));
+        if (validId(this.patrolId)) sessionIds.push(String(this.patrolId));
 
-        const startTime = new Date(this.patrol.start_time || this.patrol.startTime || this.patrol.created_at).getTime();
-        const endTime = this.patrol.end_time || this.patrol.ended_at ? new Date(this.patrol.end_time || this.patrol.ended_at).getTime() : Date.now() + 10000;
+        const startStr = this.patrol.start_time || this.patrol.startTime || this.patrol.created_at;
+        const endStr = this.patrol.end_time || this.patrol.ended_at;
+        
+        const startTime = new Date(startStr).getTime();
+        // If completed, use end_time. If active, use now.
+        const endTime = endStr ? new Date(endStr).getTime() : Date.now();
         const userId = Number(this.patrol.user_id || this.patrol.ranger_id);
 
+        console.log(`🔍 Filtering Sightings for User: ${userId}, Range: ${startStr} to ${endStr || 'NOW'}`);
+        console.log(`🎯 Valid Session IDs:`, sessionIds);
+
         const patrolObs = reports.filter((r: any) => {
-          const rPatrolId = r.patrol_id ? String(r.patrol_id) : null;
-          const rSessionId = r.session_id ? String(r.session_id) : null;
+          const rPatrolId = (r.patrol_id && r.patrol_id !== '0' && r.patrol_id !== 0) ? String(r.patrol_id) : null;
+          const rSessionId = (r.session_id && r.session_id !== '0' && r.session_id !== 0) ? String(r.session_id) : null;
           
-          // 1. Direct ID Match
+          // 1. Direct ID Match (Priority)
           const isIdMatch = (rPatrolId && sessionIds.includes(rPatrolId)) || 
                            (rSessionId && sessionIds.includes(rSessionId));
           if (isIdMatch) return true;
 
-          // 2. Time-Range Match (Fallback for patrol_id: 0)
-          if (!rPatrolId || rPatrolId === '0') {
-             const rUserId = Number(r.user_id);
-             const rTime = new Date(r.created_at || r.timestamp).getTime();
-             
-             // If it's the same user and within patrol time window
-             if (rUserId === userId && rTime >= (startTime - 30000) && rTime <= (endTime + 30000)) {
-               return true;
-             }
-          }
-          return false;
+          // 2. Explicit Rejection: If it has a different ID, it's not ours
+          if (rPatrolId || rSessionId) return false;
+
+          // 3. Time-Range Match (Only if NO ID exists on report)
+          const rUserId = Number(r.user_id || r.ranger_id || 0);
+          if (rUserId !== userId) return false;
+
+          const rTime = new Date(r.created_at || r.timestamp || r.date_time).getTime();
+          if (isNaN(rTime) || isNaN(startTime)) return false;
+
+          // If start_time is just a date (00:00:00), the window is too wide. 
+          // We only fallback to time-match if we have a proper timestamp.
+          const isFullTimestamp = String(startStr).includes(':');
+          if (!isFullTimestamp) return false;
+
+          return rTime >= startTime && rTime <= (endTime + 1000); // 1s grace period
         });
+        
+        console.log(`✅ Found ${patrolObs.length} matching observations.`);
         
         if (patrolObs.length > 0) {
           this.patrol.observationData = patrolObs.map((obs: any) => this.processObservationPhoto(obs));
-          this.initMap(); // Re-init map to show markers
+          this.initMap(); 
+        } else {
+          this.patrol.observationData = [];
         }
       },
       error: (err) => console.error("Error fetching observations:", err)
@@ -273,6 +343,8 @@ export class PatrolDetailsPage implements OnInit {
       }
       
       if (isNaN(lat1) || isNaN(lng1) || isNaN(lat2) || isNaN(lng2)) continue;
+      // Skip points at [0,0] which cause massive distance errors
+      if ((lat1 === 0 && lng1 === 0) || (lat2 === 0 && lng2 === 0)) continue;
       
       const R = 6371; 
       const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -281,31 +353,38 @@ export class PatrolDetailsPage implements OnInit {
                 Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
                 Math.sin(dLng/2) * Math.sin(dLng/2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      totalDist += R * c;
+      const segmentDist = R * c;
+      
+      // Sanity Check: If a single segment is > 2km, it's almost certainly a GPS glitch
+      if (segmentDist < 2) {
+        totalDist += segmentDist;
+      } else {
+        console.warn("Skipping glitchy segment of", segmentDist, "km");
+      }
     }
     return totalDist.toFixed(2);
   }
 
   calculateDuration(patrol: any): string {
-    const startStr = patrol.start_time || patrol.created_at || patrol.startTime;
-    const endStr = patrol.end_time || patrol.ended_at || patrol.updated_at || patrol.endTime;
+    const startStr = patrol.start_time || patrol.startTime || patrol.created_at || patrol.started_at || patrol.start_at || patrol.date_time || patrol.timestamp;
+    const endStr = patrol.end_time || patrol.ended_at || patrol.updated_at || patrol.endTime || patrol.end_at || patrol.finished_at;
     
-    if (!startStr) return '--:--';
+    console.log(`⏱️ Calculating duration for Patrol ${patrol.id || patrol.sessionId}:`, { startStr, endStr });
+
+    if (!startStr) return '00:00:00';
     
     const start = new Date(startStr).getTime();
     const end = endStr ? new Date(endStr).getTime() : Date.now();
     
     const diffMs = end - start;
-    if (diffMs <= 0 || isNaN(diffMs)) return '0m';
+    if (isNaN(diffMs) || diffMs < 0) return '00:00:00';
     
     const totalSecs = Math.floor(diffMs / 1000);
-    const hours = Math.floor(totalSecs / 3600);
-    const mins = Math.floor((totalSecs % 3600) / 60);
-    const secs = totalSecs % 60;
+    const h = Math.floor(totalSecs / 3600).toString().padStart(2, '0');
+    const m = Math.floor((totalSecs % 3600) / 60).toString().padStart(2, '0');
+    const s = (totalSecs % 60).toString().padStart(2, '0');
     
-    if (hours > 0) return `${hours}h ${mins}m`;
-    if (mins > 0) return `${mins}m ${secs}s`;
-    return `${secs}s`;
+    return `${h}:${m}:${s}`;
   }
 
   calculateSpeed(distanceKm: string | number, durationStr: string): string {

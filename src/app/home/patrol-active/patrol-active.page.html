@@ -118,12 +118,6 @@
                 <span class="log-type">{{ log.displayTitle }}</span>
               </div>
               <span class="log-meta">Recorded during current patrol</span>
-              
-              <div class="log-thumbnails" *ngIf="log.photo">
-                <div *ngFor="let p of parsePhotos(log.photo)" class="mini-thumb-wrapper">
-                  <img [src]="p.photo" class="mini-thumb" (click)="openZoom(p.photo); $event.stopPropagation()">
-                </div>
-              </div>
             </div>
 
             <div class="log-right">

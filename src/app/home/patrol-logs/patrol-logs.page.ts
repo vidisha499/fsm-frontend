@@ -153,7 +153,7 @@ export class PatrolLogsPage implements OnInit {
             status: isCompleted ? 'COMPLETED' : (p.status || 'PENDING'),
             patrolName: mStr.toString().toUpperCase(),
             patrolType: tStr.toString().toUpperCase(),
-            startTime: p.created_at || new Date().toISOString() 
+            startTime: p.start_time || p.startTime || p.created_at || p.timestamp || p.date_time || new Date().toISOString() 
           };
         });
 

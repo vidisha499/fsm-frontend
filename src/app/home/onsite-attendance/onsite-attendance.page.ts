@@ -373,9 +373,9 @@ async submit() {
   console.log('📦 FULL PAYLOAD BEING SENT TO requestEntryAttendance:', payloadObject);
 
   const headers = { 'Bypass-Token': 'true' };
-  this.dataService.markOfflineEmergencyAttendance(formData, headers).subscribe({
+  this.dataService.requestEntryAttendance(formData, headers).subscribe({
     next: async (res: any) => {
-      console.log('✅ Final Onsite (Emergency) Response:', res);
+      console.log('✅ Final Onsite Response:', res);
       await loader.dismiss();
       this.isSubmitting = false;
       this.resetSlider();
@@ -392,8 +392,8 @@ async submit() {
       await loader.dismiss();
       this.isSubmitting = false;
       this.resetSlider();
-      console.error('❌ Emergency API Error:', err);
-      this.presentToast('Server Error (Emergency API). Please try again.', 'danger');
+      console.error('❌ Onsite API Error:', err);
+      this.presentToast('Server Error. Please try again.', 'danger');
     }
   });
 }

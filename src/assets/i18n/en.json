@@ -106,5 +106,13 @@
     "LOADING": "Loading...",
     "UNSPECIFIED": "Unspecified",
     "SPOTTED": "spotted"
+  },
+  "PATROL": {
+    "ACTIVE_TITLE": "Active Patrol",
+    "DURATION": "Duration",
+    "DISTANCE": "Distance",
+    "SLIDE_TO_END": "Slide to End Patrol",
+    "ENDED": "Patrol Ended",
+    "CAMERA": "Camera"
   }
 }

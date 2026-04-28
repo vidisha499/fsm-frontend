@@ -350,7 +350,20 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
   async startTracking() {
     this.gpsWatchId = await Geolocation.watchPosition({ enableHighAccuracy: true, maximumAge: 3000 }, position => {
       if (position && this.map) {
-        const current = L.latLng(position.coords.latitude, position.coords.longitude);
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        
+        // Skip invalid/zero coordinates
+        if (lat === 0 && lng === 0) return;
+        
+        const current = L.latLng(lat, lng);
+        
+        // Sanity Check: If jump is more than 1km in a single update, it's likely a GPS glitch
+        if (this.lastLatLng && this.lastLatLng.distanceTo(current) > 1000) {
+          console.warn("⚠️ Ignoring impossible GPS jump:", this.lastLatLng.distanceTo(current), "meters");
+          return;
+        }
+
         if (this.marker) this.marker.setLatLng(current);
         if (!this.lastLatLng || this.lastLatLng.distanceTo(current) > 10) {
           this.routePoints.push({ lat: current.lat, lng: current.lng });
@@ -388,12 +401,16 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
       await loader.dismiss();
       this.finalizeSession();
     } else {
+      // Use numeric ID for photo uploads as backend requires it for model lookup
+      const numericId = this.activePatrolId || localStorage.getItem('active_patrol_id');
+      
       this.dataService.updatePatrolStats(sessionId, payload).subscribe({
         next: async () => {
-          // Sync photos one by one, but don't let it block session finalization if one fails
+          // Sync photos one by one
           for (const photo of this.capturedPhotos) {
             try {
-              await firstValueFrom(this.dataService.uploadPatrolPhoto(sessionId, { photo }));
+              // Use numericId here if available, fallback to sessionId
+              await firstValueFrom(this.dataService.uploadPatrolPhoto(numericId || sessionId, { photo }));
             } catch (photoErr) {
               console.error('Photo sync failed:', photoErr);
             }
@@ -488,9 +505,12 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     for (let i = 0; i < this.routePoints.length - 1; i++) {
       const p1 = this.routePoints[i];
       const p2 = this.routePoints[i+1];
+      // Skip invalid points at [0,0]
+      if ((p1.lat === 0 && p1.lng === 0) || (p2.lat === 0 && p2.lng === 0)) continue;
+      
       total += L.latLng(p1.lat, p1.lng).distanceTo(L.latLng(p2.lat, p2.lng));
     }
-    this.totalDistanceKm = total / 1000;
+    this.totalDistanceKm = Number((total / 1000).toFixed(2));
   }
 
   ngOnDestroy() {

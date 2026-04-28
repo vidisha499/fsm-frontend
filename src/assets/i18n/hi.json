@@ -88,5 +88,13 @@
     "LOADING": "लोड हो रहा है...",
     "UNSPECIFIED": "अनिर्दिष्ट",
     "SPOTTED": "देखा गया"
+  },
+  "PATROL": {
+    "ACTIVE_TITLE": "सक्रिय गश्ती",
+    "DURATION": "अवधि",
+    "DISTANCE": "दूरी",
+    "SLIDE_TO_END": "गश्ती समाप्त करने के लिए स्लाइड करें",
+    "ENDED": "गश्ती समाप्त",
+    "CAMERA": "कैमरा"
   }
 }
