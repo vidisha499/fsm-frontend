@@ -97,6 +97,7 @@
     "ACTIVE": "ACTIVE",
     "DISTANCE": "DISTANCE",
     "DURATION": "DURATION",
+    "SPEED": "SPEED",
     "DATE": "DATE",
     "ROUTE_TITLE": "Route Map",
     "PATROL_PHOTOS": "Patrol Evidence Gallery",

@@ -180,19 +180,16 @@ export class DataService {
 
   // --- 7. PATROLS & SIGHTINGS (Aligned with Postman) ---
   startActivePatrol(payload: any) { 
-    const formData = new FormData();
     const token = localStorage.getItem('api_token') || '';
-    formData.append('api_token', token);
-    for (const key in payload) {
-      formData.append(key, String(payload[key]));
-    }
-    return this.http.post(`${this.baseApiUrl}/patrol/start`, formData); 
+    const finalPayload = {
+      api_token: token,
+      ...payload
+    };
+    return this.http.post(`${this.baseApiUrl}/patrol/start`, finalPayload); 
   }
   getOngoingPatrols() { 
-    const formData = new FormData();
     const token = localStorage.getItem('api_token') || '';
-    formData.append('api_token', token);
-    return this.http.post(`${this.baseApiUrl}/patrol-list`, formData); 
+    return this.http.post(`${this.baseApiUrl}/patrol-list`, { api_token: token }); 
   }
   getActivePatrols(companyId: number) { 
     const formData = new FormData();
@@ -202,22 +199,22 @@ export class DataService {
     return this.http.post(`${this.baseApiUrl}/patrol-list`, formData); 
   }
   updatePatrolStats(patrolId: string, data: any) { 
-    const formData = new FormData();
+    // Aligned with official Postman collection: POST /patrol/{{sessionId}}/end
     const token = localStorage.getItem('api_token') || '';
-    formData.append('api_token', token);
-    formData.append('patrol_id', patrolId);
-    for (const key in data) {
-      formData.append(key, String(data[key]));
-    }
-    return this.http.post(`${this.baseApiUrl}/patrol/end`, formData); 
+    const payload = {
+      api_token: token,
+      ...data
+    };
+    return this.http.post(`${this.baseApiUrl}/patrol/${patrolId}/end`, payload); 
   }
   uploadPatrolPhoto(patrolId: string, photoData: any) { 
-    const formData = new FormData();
+    // Aligned with official Postman collection: POST /patrol/{{sessionId}}/photos
     const token = localStorage.getItem('api_token') || '';
-    formData.append('api_token', token);
-    formData.append('patrol_id', patrolId);
-    if (photoData.photo) formData.append('photo', photoData.photo);
-    return this.http.post(`${this.baseApiUrl}/patrol/photos`, formData); 
+    const payload = {
+      api_token: token,
+      photo: photoData.photo
+    };
+    return this.http.post(`${this.baseApiUrl}/patrol/${patrolId}/photos`, payload); 
   }
   getCompletedPatrolLogs() { 
     const formData = new FormData();
@@ -235,11 +232,13 @@ export class DataService {
     return this.http.post(`${this.baseApiUrl}/patrol-list`, formData);
   }
   getPatrolById(id: number | string) { 
-    const formData = new FormData();
     const token = localStorage.getItem('api_token') || '';
-    formData.append('api_token', token);
-    formData.append('id', String(id));
-    return this.http.post(`${this.baseApiUrl}/patrol-logs`, formData); 
+    const payload = {
+      api_token: token,
+      id: String(id),
+      patrol_id: String(id) // Fallback for different backend versions
+    };
+    return this.http.post(`${this.baseApiUrl}/patrol-logs`, payload); 
   }
   saveSighting(payload: any) { 
     return this.http.post(`${this.baseApiUrl}/forest-reports`, payload); 

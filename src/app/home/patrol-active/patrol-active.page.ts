@@ -370,25 +370,33 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     const loader = await this.loadingCtrl.create({ message: 'Syncing Final Patrol Data...', mode: 'ios' });
     await loader.present();
     const sessionId = localStorage.getItem('active_patrol_session_id') || this.activePatrolId;
+    if (!sessionId) {
+      this.showToast('Session ID not found!', 'danger');
+      this.isSubmitting = false;
+      await loader.dismiss();
+      return;
+    }
+
     const payload = {
-      id: sessionId,
-      patrol_id: sessionId,
-      user_id: localStorage.getItem('ranger_id'),
-      end_lat: String(this.lastLatLng?.lat || 0),
-      end_lng: String(this.lastLatLng?.lng || 0),
-      coords: this.routePoints.map(p => [p.lng, p.lat]),
-      status: 'COMPLETED'
+      end_lat: Number(this.lastLatLng?.lat || 0),
+      end_lng: Number(this.lastLatLng?.lng || 0),
+      coords: this.routePoints.map(p => [Number(p.lng), Number(p.lat)])
     };
 
     if (!this.dataService.isOnline()) {
-      this.dataService.savePatrolDraft(payload, 'end');
+      this.dataService.savePatrolDraft({ ...payload, patrol_id: sessionId }, 'end');
       await loader.dismiss();
       this.finalizeSession();
     } else {
-      this.dataService.updatePatrolStats(sessionId!, payload).subscribe({
+      this.dataService.updatePatrolStats(sessionId, payload).subscribe({
         next: async () => {
+          // Sync photos one by one, but don't let it block session finalization if one fails
           for (const photo of this.capturedPhotos) {
-            await firstValueFrom(this.dataService.uploadPatrolPhoto(this.activePatrolId!, { photo }));
+            try {
+              await firstValueFrom(this.dataService.uploadPatrolPhoto(sessionId, { photo }));
+            } catch (photoErr) {
+              console.error('Photo sync failed:', photoErr);
+            }
           }
           await loader.dismiss();
           this.finalizeSession();
@@ -396,8 +404,12 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
         error: async (err) => { 
           await loader.dismiss(); 
           this.isSubmitting = false;
+          console.error('End patrol failed:', err);
           const msg = err.error?.message || err.error?.msg || 'Failed to end patrol on server.';
           this.showToast(msg, 'danger');
+          
+          // Fallback: If it's a 404/500 but we really want to close it locally
+          // this.finalizeSession(); // Un-comment if you want to force close even on error
         }
       });
     }

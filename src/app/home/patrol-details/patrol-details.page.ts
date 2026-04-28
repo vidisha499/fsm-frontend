@@ -54,16 +54,25 @@ export class PatrolDetailsPage implements OnInit {
 
   loadPatrolDetails() {
     this.dataService.getPatrolById(String(this.patrolId)).subscribe({
-      next: (data: any) => { 
-        // Try to get photos from the main response first
-        let rawPhotos = data.patrol_photos || data.patrolPhotos || data.photos || data.photo || [];
-        if (!Array.isArray(rawPhotos)) {
-          try {
-            rawPhotos = JSON.parse(rawPhotos);
-          } catch(e) {
-            rawPhotos = [rawPhotos];
+      next: (res: any) => { 
+        console.log("📍 Full Patrol Details Response:", res);
+        
+        let data = res;
+        // Handle Sir's paginated response format: { data: [ ... ] }
+        if (res && res.data && Array.isArray(res.data)) {
+          if (res.data.length > 0) {
+            data = res.data[0];
+          } else if (res.data.length === 0 && res.total === 0) {
+            console.warn("No patrol found for this ID on server.");
           }
         }
+
+        // Try to get photos from the main response first
+        let rawPhotos = data.patrol_photos || data.patrolPhotos || data.photos || data.photo || [];
+        if (typeof rawPhotos === 'string') {
+          try { rawPhotos = JSON.parse(rawPhotos); } catch(e) { rawPhotos = [rawPhotos]; }
+        }
+        if (!Array.isArray(rawPhotos)) rawPhotos = [];
         
         let processedPhotos = rawPhotos.map((p: any) => {
           let url = p.photo || p.url || p;
@@ -79,43 +88,29 @@ export class PatrolDetailsPage implements OnInit {
           patrolPhotos: processedPhotos
         };
 
-        // If no photos found, try fallback endpoint
-        if (processedPhotos.length === 0 && this.patrolId) {
-          this.dataService.getPatrolPhotos(this.patrolId).subscribe({
-            next: (photoRes: any) => {
-              const extraPhotos = Array.isArray(photoRes) ? photoRes : (photoRes.data || []);
-              if (extraPhotos.length > 0) {
-                const moreProcessed = extraPhotos.map((p: any) => {
-                  let url = p.photo || p;
-                  if (typeof url === 'string' && !url.startsWith('http') && !url.startsWith('data:')) {
-                     return `https://fms.pugarch.in/public/profilepics/patrols/${url}`;
-                  }
-                  return url;
-                });
-                this.patrol.photos = moreProcessed;
-                this.patrol.patrolPhotos = moreProcessed;
-                this.cdr.detectChanges();
-              }
-            },
-            error: (err) => console.log('Fallback photos API failed or not available:', err)
-          });
+        // Fallback property mapping and parsing
+        let routeVal = this.patrol.route || this.patrol.coords || this.patrol.path || this.patrol.polyline || [];
+        if (typeof routeVal === 'string') {
+          try { routeVal = JSON.parse(routeVal); } catch(e) { routeVal = []; }
         }
+        this.patrol.route = Array.isArray(routeVal) ? routeVal : [];
 
-        // Calculate distance if missing
-        if (!this.patrol.distanceKm && !this.patrol.distance) {
-          this.patrol.distanceKm = this.calculateDistance(this.patrol.route);
-        } else {
-          this.patrol.distanceKm = this.patrol.distanceKm || this.patrol.distance || '0.00';
-        }
+        this.patrol.start_time = this.patrol.start_time || this.patrol.start_lat_time || this.patrol.created_at || this.patrol.startTime;
+        this.patrol.end_time = this.patrol.end_time || this.patrol.end_lat_time || this.patrol.ended_at || this.patrol.endTime;
+
+        // Calculate distance if missing or 0
+        const calcDist = this.calculateDistance(this.patrol.route);
+        this.patrol.distanceKm = (calcDist !== '0.00') ? calcDist : (this.patrol.distanceKm || this.patrol.distance || '0.00');
 
         // Calculate duration if missing
-        if (!this.patrol.duration) {
-          this.patrol.duration = this.calculateDuration(this.patrol);
-        }
+        this.patrol.duration = this.calculateDuration(this.patrol);
         
+        // Calculate Speed
+        this.patrol.avgSpeed = this.calculateSpeed(this.patrol.distanceKm, this.patrol.duration);
+
         // Ensure startTime is set for the Date field
         if (!this.patrol.startTime) {
-           this.patrol.startTime = this.patrol.start_time || this.patrol.created_at || this.patrol.timestamp || new Date().toISOString();
+           this.patrol.startTime = this.patrol.start_time || new Date().toISOString();
         }
 
         // Parse existing observations if any
@@ -298,18 +293,45 @@ export class PatrolDetailsPage implements OnInit {
     if (!startStr) return '--:--';
     
     const start = new Date(startStr).getTime();
-    // If endStr is missing, use now() for live duration calculation
     const end = endStr ? new Date(endStr).getTime() : Date.now();
     
     const diffMs = end - start;
     if (diffMs <= 0 || isNaN(diffMs)) return '0m';
     
-    const totalMins = Math.floor(diffMs / 60000);
-    const hours = Math.floor(totalMins / 60);
-    const mins = totalMins % 60;
+    const totalSecs = Math.floor(diffMs / 1000);
+    const hours = Math.floor(totalSecs / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
+    const secs = totalSecs % 60;
     
     if (hours > 0) return `${hours}h ${mins}m`;
-    return `${mins}m`;
+    if (mins > 0) return `${mins}m ${secs}s`;
+    return `${secs}s`;
+  }
+
+  calculateSpeed(distanceKm: string | number, durationStr: string): string {
+    const dist = parseFloat(String(distanceKm));
+    if (isNaN(dist) || dist <= 0) return '0.0';
+    
+    let totalHours = 0;
+    if (durationStr.includes('h')) {
+      const parts = durationStr.split('h');
+      totalHours += parseFloat(parts[0]);
+      if (parts[1].includes('m')) {
+        totalHours += parseFloat(parts[1].split('m')[0]) / 60;
+      }
+    } else if (durationStr.includes('m')) {
+      const parts = durationStr.split('m');
+      totalHours += parseFloat(parts[0]) / 60;
+      if (parts[1].includes('s')) {
+        totalHours += parseFloat(parts[1].replace('s', '')) / 3600;
+      }
+    } else if (durationStr.includes('s')) {
+      totalHours += parseFloat(durationStr.replace('s', '')) / 3600;
+    }
+    
+    if (totalHours <= 0) return '0.0';
+    const speed = dist / totalHours;
+    return speed > 40 ? '0.0' : speed.toFixed(1); // Filter out GPS jumps
   }
 
 initMap() {

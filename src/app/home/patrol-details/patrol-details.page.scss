@@ -109,13 +109,47 @@
 
 // Stats & Map
 .stats-grid {
-  display: flex; justify-content: space-around;
+  display: flex; 
+  justify-content: space-around;
+  align-items: center;
+
+  &.four-cols {
+    justify-content: space-between;
+    padding: 0 5px;
+  }
+
   .stat-box {
     text-align: center;
-    .label { font-size: 9px; font-weight: 800; color: #94a3b8; letter-spacing: 1px; }
-    .value { font-size: 16px; font-weight: 800; color: var(--dark-slate); display: block; margin-top: 4px; }
+    flex: 1;
+
+    .label { 
+      font-size: 8px; 
+      font-weight: 800; 
+      color: #94a3b8; 
+      letter-spacing: 0.5px; 
+      text-transform: uppercase;
+    }
+    .value { 
+      font-size: 13px; 
+      font-weight: 800; 
+      color: var(--dark-slate); 
+      display: block; 
+      margin-top: 4px;
+      white-space: nowrap;
+
+      small {
+        font-size: 9px;
+        color: #64748b;
+        margin-left: 2px;
+      }
+    }
   }
-  .v-divider { width: 1px; height: 30px; background: #f1f5f9; }
+  .v-divider { 
+    width: 1px; 
+    height: 22px; 
+    background: #f1f5f9;
+    margin: 0 4px;
+  }
 }
 
 .card-divider { border: 0; border-top: 1px solid #f1f5f9; margin: 20px 0; }

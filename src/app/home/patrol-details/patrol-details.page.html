@@ -30,7 +30,7 @@
     </div>
 
     <div class="main-card">
-      <div class="stats-grid">
+      <div class="stats-grid four-cols">
         <div class="stat-box">
           <span class="label">{{ 'DETAILS.DISTANCE' | translate }}</span>
           <span class="value">{{ patrol.distanceKm || '0.00' }} <small>KM</small></span>
@@ -39,6 +39,11 @@
         <div class="stat-box">
           <span class="label">{{ 'DETAILS.DURATION' | translate }}</span>
           <span class="value">{{ patrol.duration || '--:--' }}</span>
+        </div>
+        <div class="v-divider"></div>
+        <div class="stat-box">
+          <span class="label">{{ 'DETAILS.SPEED' | translate }}</span>
+          <span class="value">{{ patrol.avgSpeed || '0.0' }} <small>KM/H</small></span>
         </div>
         <div class="v-divider"></div>
         <div class="stat-box">
