@@ -58,6 +58,18 @@ export class AdminAssetsRecordsPage implements OnInit {
           raw = Object.values(raw).filter((v: any) => v && typeof v === 'object');
         }
 
+        // Filter for 'today' if no specific date range is set
+        if (!from && !to) {
+          const now = new Date();
+          const todayYMD = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+          const todayDMY = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`;
+          
+          raw = raw.filter((a: any) => {
+            const aDate = a.created_at || a.date_time || a.date || '';
+            return aDate && (aDate.includes(todayYMD) || aDate.includes(todayDMY));
+          });
+        }
+
         this.assetList = raw;
         this.computeCounts();
         this.isLoading = false;

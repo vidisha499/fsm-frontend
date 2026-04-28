@@ -88,6 +88,20 @@
           </div>
         </div>
 
+        <!-- Remarks Section -->
+        <div class="remarks-container">
+          <div class="section-label">
+            <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
+            <span>REMARKS / REASON</span>
+          </div>
+          <ion-textarea 
+            [(ngModel)]="onsiteRemark" 
+            placeholder="Why are you marking onsite? (e.g. Out of range, Network issue, Onsite duty)" 
+            rows="3" 
+            class="custom-textarea">
+          </ion-textarea>
+        </div>
+
         <!-- Slider from Image -->
         <div class="action-slider">
           <div class="slider-handle" 

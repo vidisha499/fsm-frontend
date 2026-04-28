@@ -42,6 +42,7 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
   public currentLat: number = 20.1013;
   public currentLng: number = 77.1337;
   public currentDateTime: string = '';
+  public onsiteRemark: string = '';
   
   // State Variables
   public isSubmitting: boolean = false;
@@ -295,7 +296,7 @@ async submit() {
   formData.append('date', fdate);
   formData.append('applicant_id', localStorage.getItem('ranger_id') || '');
   formData.append('api_token', token || '');
-  formData.append('remark', 'Onsite Attendance');
+  formData.append('remark', this.onsiteRemark || 'Onsite Attendance');
   formData.append('applicant_name', localStorage.getItem('ranger_username') || 'Ranger');
   formData.append('company_id', localStorage.getItem('company_id') || '');
   formData.append('photo', this.capturedPhoto);
