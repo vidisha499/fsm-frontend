@@ -193,16 +193,22 @@ async initLeafletMap() {
   }
 
   async updateAddress(lat: number, lng: number) {
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${this.googleApiKey}`;
-    try {
-      const data: any = await firstValueFrom(this.http.get(url));
-      if (data.status === 'OK' && data.results.length > 0) {
-        this.currentAddress = data.results[0].formatted_address;
-      } else {
+    // Backend API getGuardGeofence throws 500 error, so we display the assigned geofence name.
+    if (this.siteName && this.siteName !== 'Forest Area') {
+      this.currentAddress = this.siteName;
+    } else {
+      // Fallback to Google Maps only if siteName is missing
+      const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${this.googleApiKey}`;
+      try {
+        const data: any = await firstValueFrom(this.http.get(url));
+        if (data.status === 'OK' && data.results.length > 0) {
+          this.currentAddress = data.results[0].formatted_address;
+        } else {
+          this.currentAddress = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        }
+      } catch (err) {
         this.currentAddress = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
       }
-    } catch (err) {
-      this.currentAddress = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
     }
     this.cdr.detectChanges();
   }
