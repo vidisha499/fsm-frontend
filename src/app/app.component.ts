@@ -6,7 +6,7 @@ import { LabelService } from './services/label.service';
 // import { DataService } from './data.service';
 import { DataService } from './data.service';
 import { PhotoViewerService } from './services/photo-viewer.service';
-
+import * as L from 'leaflet';
 
 @Component({
   selector: 'app-root',
@@ -71,6 +71,59 @@ export class AppComponent implements OnInit {
     
     this.initLanguage();
     this.initializeApp();
+    this.initGlobalMapFullscreen();
+  }
+
+  // Inject a Fullscreen Control into EVERY Leaflet map globally
+  initGlobalMapFullscreen() {
+    L.Map.addInitHook(function (this: any) {
+      const map = this as L.Map;
+      
+      const FullscreenControl = L.Control.extend({
+        options: { position: 'topright' },
+        onAdd: function(m: any) {
+          const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom-fullscreen');
+          const btn = L.DomUtil.create('a', '', container);
+          
+          btn.innerHTML = '<i class="fas fa-expand"></i>';
+          btn.href = '#';
+          btn.title = 'Toggle Fullscreen';
+          btn.style.display = 'flex';
+          btn.style.alignItems = 'center';
+          btn.style.justifyContent = 'center';
+          btn.style.fontSize = '16px';
+          btn.style.color = '#333';
+          btn.style.width = '34px';
+          btn.style.height = '34px';
+          btn.style.backgroundColor = 'white';
+          btn.style.textDecoration = 'none';
+          
+          let isFullscreen = false;
+          
+          L.DomEvent.on(btn, 'click', function(e) {
+            L.DomEvent.stopPropagation(e);
+            L.DomEvent.preventDefault(e);
+            
+            const mapContainer = m.getContainer();
+            isFullscreen = !isFullscreen;
+            
+            if (isFullscreen) {
+              mapContainer.classList.add('map-fullscreen-mode');
+              btn.innerHTML = '<i class="fas fa-compress"></i>';
+            } else {
+              mapContainer.classList.remove('map-fullscreen-mode');
+              btn.innerHTML = '<i class="fas fa-expand"></i>';
+            }
+            
+            setTimeout(() => { m.invalidateSize(); }, 200);
+          });
+          
+          return container;
+        }
+      });
+      
+      map.addControl(new FullscreenControl());
+    });
   }
 
   ngOnInit() {
