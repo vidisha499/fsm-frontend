@@ -148,12 +148,20 @@ export class PatrolLogsPage implements OnInit {
           
           if (!tStr || tStr === '') tStr = 'LOG';
 
+          const start = p.start_time || p.started_at || p.created_at || p.date_time || new Date().toISOString();
+          const end = p.end_time || p.ended_at || p.updated_at || p.endTime;
+          
+          // ⏱️ NEW: Prioritize duration from server if available
+          const serverDuration = p.duration || p.total_time || p.time_spent || p.duration_str;
+
           return {
             ...p,
             status: isCompleted ? 'COMPLETED' : (p.status || 'PENDING'),
             patrolName: mStr.toString().toUpperCase(),
             patrolType: tStr.toString().toUpperCase(),
-            startTime: p.start_time || p.startTime || p.created_at || p.timestamp || p.date_time || new Date().toISOString() 
+            startTime: start,
+            // Use server duration if it exists, otherwise it will be calculated in UI or pipe
+            duration: serverDuration || null 
           };
         });
 

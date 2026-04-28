@@ -80,7 +80,20 @@ passwordType: string = 'password';
     this.loadRangerData();
     this.initLanguage();
     this.loadRangerBeat();  
-// this.loadDashboardStats(); // Removed dashboard call as it doesn't exist in backend
+
+    // 🚀 NEW: Listen for Real-time Profile Updates
+    this.dataService.userProfileUpdated$.subscribe((freshData: any) => {
+      console.log("🔄 Dashboard Sync: Profile Update Received!");
+      this.rangerName = freshData.name || freshData.username || this.rangerName;
+      this.rangerPhone = freshData.contact || freshData.phone || this.rangerPhone;
+      
+      if (freshData.profile_pic) {
+        this.profileImage = freshData.profile_pic.includes('data:image') 
+          ? freshData.profile_pic 
+          : `data:image/jpeg;base64,${freshData.profile_pic}`;
+      }
+      this.cdr.detectChanges();
+    });
   }
 
   loadRangerData() {

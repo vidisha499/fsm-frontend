@@ -74,8 +74,7 @@ export class PatrolDetailsPage implements OnInit {
           
           // Fallback if not found in list but list has items
           if (!data && allLogs.length > 0) {
-             console.warn("Exact ID match not found in list, taking first item as fallback.");
-             data = allLogs[0];
+             console.warn("Exact ID match not found in list.");
           }
         } else {
           data = res;
@@ -392,7 +391,18 @@ export class PatrolDetailsPage implements OnInit {
     if (isNaN(dist) || dist <= 0) return '0.0';
     
     let totalHours = 0;
-    if (durationStr.includes('h')) {
+    
+    // Check for HH:MM:SS format first (00:00:00)
+    if (durationStr.includes(':')) {
+      const parts = durationStr.split(':');
+      if (parts.length === 3) {
+        totalHours = parseInt(parts[0]) + (parseInt(parts[1]) / 60) + (parseInt(parts[2]) / 3600);
+      } else if (parts.length === 2) {
+        totalHours = (parseInt(parts[0]) / 60) + (parseInt(parts[1]) / 3600);
+      }
+    } 
+    // Fallback for "1h 20m" type formats
+    else if (durationStr.includes('h')) {
       const parts = durationStr.split('h');
       totalHours += parseFloat(parts[0]);
       if (parts[1].includes('m')) {
@@ -404,8 +414,6 @@ export class PatrolDetailsPage implements OnInit {
       if (parts[1].includes('s')) {
         totalHours += parseFloat(parts[1].replace('s', '')) / 3600;
       }
-    } else if (durationStr.includes('s')) {
-      totalHours += parseFloat(durationStr.replace('s', '')) / 3600;
     }
     
     if (totalHours <= 0) return '0.0';

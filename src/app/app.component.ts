@@ -25,7 +25,9 @@ export class AppComponent implements OnInit {
   userPhoto: string = ''; 
   profileImage: string | null = null;
   userRole: string = '';
+  isSuperAdmin: boolean = false; // 🚀 NEW: Identify Super Admin (Role 1)
   isLoadingSidebar: boolean = false; // Added for loader UI
+  menuFeatures: any = {}; // 🚀 NEW: Store dynamic menu permissions
 
 
   showLanguageModal: boolean = false;
@@ -162,7 +164,16 @@ export class AppComponent implements OnInit {
     // 🚀 NEW: Check and Sync immediately on App Load if Online
     if (this.dataService.isOnline()) {
       this.dataService.syncAllDrafts();
+      this.loadUserData(); // Initial Sync
     }
+
+    // 🔄 AUTOMATIC BACKGROUND SYNC: Check for profile changes every 5 minutes
+    setInterval(() => {
+      if (this.dataService.isOnline()) {
+        console.log("🕒 Background Profile Sync Triggered...");
+        this.loadUserData();
+      }
+    }, 5 * 60 * 1000); 
   }
 
   // 🔥 NEW: Automatic Sync when Network Restored
@@ -198,6 +209,16 @@ export class AppComponent implements OnInit {
   //   }
   //   this.cdr.detectChanges();
   // }
+  // 🛠️ Check if a specific menu feature is allowed
+  isFeatureEnabled(key: string): boolean {
+    // If we haven't loaded features yet or key is missing, default to FALSE for security
+    // This ensures Guards don't see Admin options by accident
+    if (!this.menuFeatures || Object.keys(this.menuFeatures).length === 0) {
+      return false;
+    }
+    // If key exists, return its value. If not, default to FALSE (hide)
+    return this.menuFeatures[key] === true;
+  }
 
 loadUserData() {
   let rawRole = localStorage.getItem('user_role');
@@ -213,84 +234,89 @@ loadUserData() {
   }
 
   // Fallback role detection
-  if (!rawRole) {
-    const userData = localStorage.getItem('user_data');
-    if (userData) {
-      try {
-        const user = JSON.parse(userData);
-        rawRole = user.role_id?.toString();
-      } catch (e) {
-        console.error("Error parsing user_data for role:", e);
-      }
-    }
+  if (!rawRole && parsedUser) {
+    rawRole = parsedUser.role_id?.toString();
   }
 
   // Final fallback to Ranger
   rawRole = rawRole || '4';
+  const roleNum = Number(rawRole);
   
-  if (rawRole == '1' || rawRole == '2') {
-    this.userRole = 'admin';
-  } else {
-    this.userRole = 'ranger';
+  this.isSuperAdmin = (roleNum === 1);
+  // Roles 1 (SuperAdmin), 2 (Admin), and 3 (Manager) get Admin-level sidebar access
+  this.userRole = (roleNum === 1 || roleNum === 2 || roleNum === 3) ? 'admin' : 'ranger';
+
+  // 1. Initial Load from Cache
+  this.rangerName = localStorage.getItem('ranger_username') || (parsedUser ? parsedUser.name : 'User');
+  this.rangerPhone = localStorage.getItem('ranger_phone') || (parsedUser ? (parsedUser.phone || parsedUser.contact) : '');
+  this.companyName = parsedUser?.company_name || parsedUser?.client_name || '';
+  
+  const savedFeatures = localStorage.getItem('menu_features');
+  if (savedFeatures) {
+    try { this.menuFeatures = JSON.parse(savedFeatures); } catch(e) {}
   }
 
-  console.log("Mapped Role for HTML:", this.userRole);
-  
-  // Try implicit keys first, then fallback to user_data object
-  this.rangerName = localStorage.getItem('ranger_username') || '';
-  this.rangerPhone = localStorage.getItem('ranger_phone') || '';
-  
-  if (parsedUser) {
-    this.companyName = parsedUser.company_name || (parsedUser.company ? parsedUser.company.name : '') || parsedUser.client_name || '';
-    
-    // Fallback: If no company name is found, fetch it dynamically
-    if (!this.companyName && parsedUser.company_id && parsedUser.id) {
-      this.dataService.getUserDetails(parsedUser.id, parsedUser.company_id).subscribe({
-        next: (res: any) => {
-          if (res.status === 'success' || res.status === 'SUCCESS' || res.data) {
-            const data = res.data || res;
-            this.companyName = data.company_name || (data.company ? data.company.name : '') || data.client_name || '';
-            // If still empty after API call, at least show the ID
-            if (!this.companyName) {
-              this.companyName = `Company ID: ${parsedUser.company_id}`;
-            } else {
-              // Update local storage so we don't have to fetch it every time
-              parsedUser.company_name = this.companyName;
-              localStorage.setItem('user_data', JSON.stringify(parsedUser));
-            }
-            this.cdr.detectChanges();
+  // 2. 🚀 LIVE SYNC: Fetch latest from server if online
+  if (this.dataService.isOnline() && parsedUser?.id && parsedUser?.company_id) {
+    this.dataService.getUserDetails(parsedUser.id, parsedUser.company_id).subscribe({
+      next: (res: any) => {
+        if (res && (res.status === 'success' || res.status === 'SUCCESS' || res.data)) {
+          const fresh = res.data || res;
+          
+          // Update properties
+          this.rangerName = fresh.name || fresh.username || fresh.ranger_name || this.rangerName;
+          this.rangerPhone = fresh.contact || fresh.phone || fresh.mobile || this.rangerPhone;
+          this.companyName = fresh.company_name || fresh.client_name || (fresh.company ? fresh.company.name : '') || this.companyName;
+          
+          // Update localStorage for consistency
+          localStorage.setItem('ranger_username', this.rangerName);
+          localStorage.setItem('ranger_phone', this.rangerPhone);
+          
+          if (parsedUser) {
+            parsedUser.name = this.rangerName;
+            parsedUser.contact = this.rangerPhone;
+            parsedUser.company_name = this.companyName;
+            localStorage.setItem('user_data', JSON.stringify(parsedUser));
           }
-        },
-        error: () => {
-          this.companyName = `Company ID: ${parsedUser.company_id}`;
+
+          if (fresh.profile_pic) {
+            localStorage.setItem('user_photo', fresh.profile_pic);
+            this.userPhoto = fresh.profile_pic;
+          }
+
+          // 🛠️ FEATURE PERMISSIONS: Parse dynamic menu options
+          if (fresh.features && Array.isArray(fresh.features)) {
+            const featMap: any = {};
+            fresh.features.forEach((f: any) => {
+              const rawKey = f.key || f.slug || f.name || '';
+              if (rawKey) {
+                const key = rawKey.toLowerCase().replace(/\s+/g, '_');
+                // Check multiple possible status fields
+                featMap[key] = (f.is_checked == 1 || f.status == 1 || f.enabled == 1 || f.is_enabled == 1 || f.checked == true);
+              }
+            });
+            
+            console.log(`🔍 [USER SYNC] Current Role ID: ${roleNum} (${this.userRole.toUpperCase()})`);
+            console.log("🛠️ [FEATURES PERMISSIONS]:", featMap); // Debugging ke liye 
+            
+            this.menuFeatures = featMap;
+            localStorage.setItem('menu_features', JSON.stringify(featMap));
+          } else {
+            console.warn("⚠️ No features found in API response for Role:", roleNum);
+          }
+
+          // 📢 Notify all components (Dashboards) to refresh
+          this.dataService.userProfileUpdated$.next(fresh);
+          
           this.cdr.detectChanges();
         }
-      });
-    } else if (!this.companyName && parsedUser.company_id) {
-      this.companyName = `Company ID: ${parsedUser.company_id}`;
-    }
+      },
+      error: (err) => console.warn("Profile Sync Silent Error:", err)
+    });
   }
-  
-  if (!this.rangerName || !this.rangerPhone) {
-    if (parsedUser) {
-      this.rangerName = this.rangerName || parsedUser.name || 'User';
-      this.rangerPhone = this.rangerPhone || parsedUser.phone || parsedUser.contact || '';
-    }
-  }
-
-  // Final fallback
-  this.rangerName = this.rangerName || 'User';
 
   this.userPhoto = localStorage.getItem('user_photo') || ''; 
-  this.rangerDivision = localStorage.getItem('ranger_division') || 'Washim Division 4.2';
-
-  // Database se aane wala value 
-  const dbDivision = localStorage.getItem('ranger_division');
-  if (dbDivision && dbDivision !== 'undefined') {
-    this.rangerDivision = dbDivision;
-  } else {
-    this.rangerDivision = this.userRole === '2' ? 'COMPANY ADMIN' : 'RANGER UNIT';
-  }
+  this.rangerDivision = localStorage.getItem('ranger_division') || (this.userRole === 'admin' ? 'ADMIN UNIT' : 'RANGER UNIT');
 
   this.cdr.detectChanges();
 }
@@ -496,6 +522,12 @@ async goToPage(path: string) {
       // Data local storage mein save karein
       localStorage.setItem('ranger_username', this.rangerName);
       localStorage.setItem('ranger_phone', this.rangerPhone);
+
+      // Notify other components
+      this.dataService.userProfileUpdated$.next({
+        name: this.rangerName,
+        contact: this.rangerPhone
+      });
       
       this.isSubmitting = false;
       this.currentTranslateX = 0;

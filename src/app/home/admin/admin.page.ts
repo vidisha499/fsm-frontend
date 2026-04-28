@@ -14,7 +14,8 @@ import { Chart, registerables, ChartConfiguration } from 'chart.js';
 import { DataService } from 'src/app/data.service';
 import { AdminDataService } from 'src/app/services/admin-data';
 import { HierarchyService } from 'src/app/services/hierarchy.service';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import * as L from 'leaflet';
 Chart.register(...registerables);
 
@@ -583,6 +584,14 @@ segmentChanged(event: any) {
   }
 
   ionViewWillEnter() {
+    const userRole = localStorage.getItem('user_role');
+    // 🛡️ Strict Security: Redirect to Home if not Superadmin (Role 1)
+    if (userRole !== '1') {
+      console.warn("🚫 Access Denied: Admin Dashboard is restricted to Superadmin only.");
+      this.navCtrl.navigateRoot('/home');
+      return;
+    }
+
     this.loadData();
     const navigation = this.router.getCurrentNavigation();
     if (navigation?.extras.state && navigation.extras.state['openSegment']) {
@@ -1152,9 +1161,9 @@ changeTimeframe(newTimeframe: string) {
              
                     // 🔥 NEW: Unified Attendance Sync (Logs + Pending Requests + OnSite)
                     forkJoin({
-                       logs: this.dataService.getAttendanceLogsByRanger(this.myCompanyId.toString()),
-                       requests: this.dataService.getAttendanceRequests(this.myCompanyId.toString()),
-                       onsite: this.dataService.getGuardsOnSite()
+                       logs: this.dataService.getAttendanceLogsByRanger(this.myCompanyId.toString()).pipe(catchError(() => of([]))),
+                       requests: this.dataService.getAttendanceRequests(this.myCompanyId.toString()).pipe(catchError(() => of([]))),
+                       onsite: this.dataService.getGuardsOnSite(this.myCompanyId.toString()).pipe(catchError(() => of([])))
                     }).subscribe({
                        next: (res: any) => {
                           console.log("DEBUG: Syncing Attendance for Company ID:", this.myCompanyId);

@@ -59,7 +59,7 @@
         <div class="icon-box blue"><i class="fas fa-calendar-check"></i></div>
         <div class="item-text"><span>{{ 'MENU.ATTENDANCE_REQ' | translate }}</span></div>
       </a> -->
-      <a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('attendance-requests')">
+      <a *ngIf="isFeatureEnabled('attendance_request') || isFeatureEnabled('attendance')" class="menu-item" (click)="goToPage('attendance-requests')">
   <div class="icon-box amber"><i class="fas fa-user-check"></i></div>
   <div class="item-text"><span>{{ 'MENU.ATTENDANCE_REQ' | translate }}</span></div>
 </a>
@@ -83,12 +83,12 @@
   </div>
 </a> -->
 
-<a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('geofences')" [class.active]="router.url.includes('geofences')">
+<a *ngIf="isFeatureEnabled('know_your_area') || isFeatureEnabled('geofences')" class="menu-item" (click)="goToPage('geofences')" [class.active]="router.url.includes('geofences')">
   <div class="icon-box orange"><i class="fas fa-draw-polygon"></i></div>
   <div class="item-text"><span>Geofences & Sites</span></div>
 </a>
 
-<a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('tasks')" [class.active]="router.url.includes('tasks')">
+<a *ngIf="isFeatureEnabled('task_management') || isFeatureEnabled('tasks')" class="menu-item" (click)="goToPage('tasks')" [class.active]="router.url.includes('tasks')">
   <div class="icon-box" style="background: rgba(16, 185, 129, 0.15); color: #10b981;"><i class="fas fa-tasks"></i></div>
   <div class="item-text"><span>Task Management</span></div>
 </a>
@@ -110,13 +110,13 @@
 </a> -->
 
 <!-- Assets List dono ko dikh rahi hai toh rehne do -->
-<a class="menu-item" (click)="goToPage('assets-list')" [class.active]="router.url === '/home/assets-list'">
+<a *ngIf="isFeatureEnabled('asset_management') || isFeatureEnabled('assets')" class="menu-item" (click)="goToPage('assets-list')" [class.active]="router.url === '/home/assets-list'">
   <div class="icon-box red"><i class="fas fa-boxes"></i></div>
   <div class="item-text"><span>{{ 'MENU.ASSETS' | translate }}</span></div>
 </a>
 
 <!-- Forest Events Dashboard (New Addition) -->
-<a class="menu-item" (click)="goToPage('forest-events')" [class.active]="router.url.includes('forest-events')">
+<a *ngIf="isFeatureEnabled('forest_events') || isFeatureEnabled('forest_event')" class="menu-item" (click)="goToPage('forest-events')" [class.active]="router.url.includes('forest-events')">
   <div class="icon-box green-tint">
     <i class="fas fa-shield-virus"></i>
   </div>
@@ -125,7 +125,7 @@
   </div>
 </a>
 
-<a class="menu-item" (click)="goToPage('reports')" [class.active]="router.url.includes('reports')">
+<a *ngIf="isFeatureEnabled('patrol_report') || isFeatureEnabled('reports')" class="menu-item" (click)="goToPage('reports')" [class.active]="router.url.includes('reports')">
   <div class="icon-box blue-tint">
     <i class="fas fa-file-contract"></i>
   </div>
@@ -134,17 +134,17 @@
   </div>
 </a>
 
-      <a class="menu-item" (click)="goToPage('daily-updates')" [class.active]="router.url.includes('daily-updates')">
+      <a *ngIf="isFeatureEnabled('daily_updates')" class="menu-item" (click)="goToPage('daily-updates')" [class.active]="router.url.includes('daily-updates')">
         <div class="icon-box purple"><i class="fas fa-newspaper"></i></div>
         <div class="item-text"><span>{{ 'MENU.DAILY_UPDATES' | translate }}</span></div>
       </a>
 
-      <a class="menu-item" (click)="goToPage('chat')" [class.active]="router.url.includes('chat')">
+      <a *ngIf="isFeatureEnabled('chat') || isFeatureEnabled('communication')" class="menu-item" (click)="goToPage('chat')" [class.active]="router.url.includes('chat')">
         <div class="icon-box indigo"><i class="fas fa-comments"></i></div>
         <div class="item-text"><span>Communication</span></div>
       </a>
 
-      <a class="menu-item" (click)="goToPage('client-visits')" [class.active]="router.url.includes('client-visits')">
+      <a *ngIf="isFeatureEnabled('client_visits') || isFeatureEnabled('field_visits')" class="menu-item" (click)="goToPage('client-visits')" [class.active]="router.url.includes('client-visits')">
         <div class="icon-box indigo"><i class="fas fa-briefcase"></i></div>
         <div class="item-text"><span>{{ 'label_client' | dynamicLabel }} Visits</span></div>
       </a>

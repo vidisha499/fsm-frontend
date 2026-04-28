@@ -35,7 +35,7 @@ export class GeofencesPage implements OnInit {
 
     // Include company_id and for rangers, also include user_id to filter for the logged-in user
     const payload: any = { api_token: apiToken, company_id: companyId };
-    if (userRole !== '1' && userRole !== '2') {
+    if (userRole !== '1' && userRole !== '2' && userRole !== '3') {
       payload.user_id = rangerId;
     }
 
@@ -55,7 +55,7 @@ export class GeofencesPage implements OnInit {
         }
 
         // Additional Frontend Privacy Guard: Double-check that non-admins only see their own data
-        if (userRole !== '1' && userRole !== '2' && rangerId) {
+        if (userRole !== '1' && userRole !== '2' && userRole !== '3' && rangerId) {
           this.sites = this.sites.filter(s => 
             String(s.user_id) === String(rangerId) || 
             String(s.ranger_id) === String(rangerId) ||
@@ -72,9 +72,8 @@ export class GeofencesPage implements OnInit {
 
   goBack() {
     const roleId = localStorage.getItem('user_role');
-    // If role is 1 (Super Admin) or 2 (Admin), go to Admin dashboard
-    // Otherwise go to home (Ranger/Supervisor)
-    if (roleId === '1' || roleId === '2') {
+    // If role is 1 (Super Admin), 2 (Admin), or 3 (Manager), go to Admin dashboard
+    if (roleId === '1' || roleId === '2' || roleId === '3') {
       this.navCtrl.navigateRoot('/admin');
     } else {
       this.navCtrl.navigateRoot('/home');

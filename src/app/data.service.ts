@@ -14,6 +14,7 @@ export class DataService {
   // Bridge for Sidebar Refresh
   public loginSuccess$ = new Subject<void>();
   public syncCompleted$ = new Subject<void>();
+  public userProfileUpdated$ = new Subject<any>(); // 🚀 NEW: Notify all dashboards when profile changes
 
   constructor(private http: HttpClient) {}
 
@@ -59,10 +60,11 @@ export class DataService {
   // Try getUserDetails endpoint (Sir's API variant)
   getUserDetails(userId: string | number, companyId: string | number) {
     const formData = new FormData();
+    const token = localStorage.getItem('api_token');
+    
+    // Aligned with Sir's expected payload
     formData.append('user_id', String(userId));
     formData.append('company_id', String(companyId));
-    
-    const token = localStorage.getItem('api_token');
     if (token) formData.append('api_token', token);
     
     return this.http.post(`${this.baseApiUrl}/getUserDetails`, formData);
@@ -357,7 +359,16 @@ export class DataService {
   allAttendanceGroupByGeoname() { return this.http.post(`${this.baseApiUrl}/allAttendanceGroupByGeoname`, {}); }
   getAttendanceFlag() { return this.http.post(`${this.baseApiUrl}/getAttendanceFlag`, {}); }
   
-  getGuardsOnSite() { return this.http.post(`${this.baseApiUrl}/getGuardsOnSite`, {}); }
+  getGuardsOnSite(companyId?: string) { 
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    const cId = companyId || localStorage.getItem('company_id') || '';
+    
+    formData.append('api_token', token);
+    formData.append('company_id', cId);
+    
+    return this.http.post(`${this.baseApiUrl}/getGuardsOnSite`, formData); 
+  }
   getGuardAttendance() { return this.http.post(`${this.baseApiUrl}/getGuardAttendance`, {}); }
   
   markOfflineEntryAttendance(payload: any, headers?: any) { return this.http.post(`${this.baseApiUrl}/markOfflineEntryAttendance`, payload, { headers }); }

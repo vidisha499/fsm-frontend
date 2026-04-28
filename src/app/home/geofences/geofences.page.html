@@ -56,10 +56,10 @@
               <span class="type-text">STATION</span>
               <span class="log-date">{{ site.created_at ? (site.created_at | date:'shortDate') : 'Active' }}</span>
             </div>
-            <h2 class="item-title">{{ site.site_name || 'Forest Site' }}</h2>
+            <h2 class="item-title">{{ site.name || site.site_name || site.location_name || site.title || 'Forest Site' }}</h2>
             <div class="meta-line">
               <ion-icon name="location-outline"></ion-icon>
-              <span>{{ site.address || 'Location assigned' }}</span>
+              <span>{{ site.address || site.location || site.area || 'Location assigned' }}</span>
             </div>
           </div>
 
