@@ -109,6 +109,28 @@
             display: flex; align-items: center; gap: 4px;
           }
         }
+        .status-badge {
+          margin-left: auto;
+          padding: 6px 10px;
+          border-radius: 12px;
+          font-size: 10px;
+          font-weight: 800;
+          text-transform: uppercase;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          
+          &.pending {
+            background: rgba(251, 191, 36, 0.1);
+            color: var(--accent-gold);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+          }
+          &.approved {
+            background: rgba(13, 148, 136, 0.1);
+            color: var(--primary-teal);
+            border: 1px solid rgba(13, 148, 136, 0.2);
+          }
+        }
       }
 
       .info-grid {

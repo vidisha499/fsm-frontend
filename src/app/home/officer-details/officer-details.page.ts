@@ -173,7 +173,7 @@ export class OfficerDetailsPage implements OnInit {
     };
 
     // Try getUserDetails first
-    this.dataService.getUserDetails(userId).subscribe({
+    this.dataService.getUserDetails(userId, this.myCompanyId).subscribe({
       next: tryPatch,
       error: () => {
         // Fallback: try getProfileById

@@ -21,6 +21,7 @@ export class AppComponent implements OnInit {
   rangerName: string = 'Ranger';
   rangerDivision: string = 'Washim Division 4.2';
   rangerPhone: string = '';
+  companyName: string = '';
   userPhoto: string = ''; 
   profileImage: string | null = null;
   userRole: string = '';
@@ -238,6 +239,37 @@ loadUserData() {
   // Try implicit keys first, then fallback to user_data object
   this.rangerName = localStorage.getItem('ranger_username') || '';
   this.rangerPhone = localStorage.getItem('ranger_phone') || '';
+  
+  if (parsedUser) {
+    this.companyName = parsedUser.company_name || (parsedUser.company ? parsedUser.company.name : '') || parsedUser.client_name || '';
+    
+    // Fallback: If no company name is found, fetch it dynamically
+    if (!this.companyName && parsedUser.company_id && parsedUser.id) {
+      this.dataService.getUserDetails(parsedUser.id, parsedUser.company_id).subscribe({
+        next: (res: any) => {
+          if (res.status === 'success' || res.status === 'SUCCESS' || res.data) {
+            const data = res.data || res;
+            this.companyName = data.company_name || (data.company ? data.company.name : '') || data.client_name || '';
+            // If still empty after API call, at least show the ID
+            if (!this.companyName) {
+              this.companyName = `Company ID: ${parsedUser.company_id}`;
+            } else {
+              // Update local storage so we don't have to fetch it every time
+              parsedUser.company_name = this.companyName;
+              localStorage.setItem('user_data', JSON.stringify(parsedUser));
+            }
+            this.cdr.detectChanges();
+          }
+        },
+        error: () => {
+          this.companyName = `Company ID: ${parsedUser.company_id}`;
+          this.cdr.detectChanges();
+        }
+      });
+    } else if (!this.companyName && parsedUser.company_id) {
+      this.companyName = `Company ID: ${parsedUser.company_id}`;
+    }
+  }
   
   if (!this.rangerName || !this.rangerPhone) {
     if (parsedUser) {

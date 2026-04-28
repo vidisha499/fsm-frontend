@@ -602,8 +602,11 @@ toggleEdit() {
       else if (path === 'settings') this.currentPage = 'settings';
       else if (path === 'login') {
         const lang = localStorage.getItem('app_language_code');
+        
         localStorage.clear();
+        
         if (lang) localStorage.setItem('app_language_code', lang);
+        
         this.router.navigate(['/login']);
       } else {
         this.router.navigate(['/', path], { queryParams });

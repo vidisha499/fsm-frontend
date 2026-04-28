@@ -37,11 +37,20 @@
           <div class="status-indicator"></div>
         </div>
         <div class="user-detail">
-          <h3>{{ req.ranger || req.name || req.user_name || 'Officer' }}</h3>
+          <h3>{{ req.displayName }}</h3>
           <span class="time-stamp">
-            <ion-icon name="time-outline"></ion-icon> {{ (req.created_at || req.createdAt || req.date || req.timestamp) | date:'hh:mm a' }}
+            <ion-icon name="time-outline"></ion-icon> {{ req.displayTime }}
           </span>
         </div>
+        <div class="status-badge" [ngClass]="(req.status || 'pending').toLowerCase()">
+          <ion-icon [name]="req.status === 'approved' ? 'checkmark-circle-outline' : 'alert-circle-outline'"></ion-icon>
+          {{ (req.status || 'Pending') | uppercase }}
+        </div>
+      </div>
+
+      <div style="font-size: 10px; color: #94a3b8; margin: -5px 0 10px 5px; line-height: 1.2;">
+        ID: #{{ req.id }} | Status: {{ req.status }}<br>
+        Rem: {{ req.remark }}
       </div>
 
       <div class="info-grid">
@@ -49,16 +58,16 @@
           <label>Location</label>
           <div class="val-box">
             <ion-icon name="location"></ion-icon>
-            <span>{{ req.geofence || 'Site Location' }}</span>
+            <span>{{ req.displayLocation }}</span>
           </div>
         </div>
       </div>
 
       <div class="action-grid">
-        <button class="btn-approve" (click)="updateStatus(req.id, 'approved')">
+        <button *ngIf="(req.status || '').toLowerCase() !== 'approved'" class="btn-approve" (click)="approveRequest(req)">
           <ion-icon name="checkmark-circle"></ion-icon> Approve
         </button>
-        <button class="btn-reject" (click)="updateStatus(req.id, 'rejected')">
+        <button class="btn-reject" (click)="rejectRequest(req)">
           <ion-icon name="close-circle"></ion-icon> Reject
         </button>
       </div>

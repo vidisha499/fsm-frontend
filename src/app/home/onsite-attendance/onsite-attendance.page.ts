@@ -327,6 +327,8 @@ async submit() {
   // 🔥 UPDATED: Sir specifically requested to send the literal string "location" in the 'type' parameter
   formData.append('type', 'location'); 
   formData.append('location', addressString); 
+  formData.append('status', 'Pending'); // Force pending state for approval workflow
+  formData.append('attendance_type', 'ONSITE');
 
   if (!this.dataService.isOnline()) {
     const offlineData = {
@@ -370,14 +372,15 @@ async submit() {
   console.log('📦 FULL PAYLOAD BEING SENT TO requestEntryAttendance:', payloadObject);
 
   const headers = { 'Bypass-Token': 'true' };
-  this.dataService.requestEntryAttendance(formData, headers).subscribe({
+  this.dataService.markOfflineEmergencyAttendance(formData, headers).subscribe({
     next: async (res: any) => {
-      console.log('✅ Final Onsite Response:', res);
+      console.log('✅ Final Onsite (Emergency) Response:', res);
       await loader.dismiss();
       this.isSubmitting = false;
       this.resetSlider();
       
-      if (res.status === 'SUCCESS' || res.success) {
+      // Checking for both SUCCESS status and general success flag
+      if (res.status === 'SUCCESS' || res.success || res.message?.toLowerCase().includes('success')) {
         this.presentToast('Onsite Attendance Marked Successfully!', 'success');
         this.navCtrl.navigateRoot('/attendance-list', { queryParams: { mode: 'onsite' } });
       } else {
@@ -388,8 +391,8 @@ async submit() {
       await loader.dismiss();
       this.isSubmitting = false;
       this.resetSlider();
-      console.error('❌ Final Error:', err);
-      this.presentToast('Server Error. Please try again.', 'danger');
+      console.error('❌ Emergency API Error:', err);
+      this.presentToast('Server Error (Emergency API). Please try again.', 'danger');
     }
   });
 }

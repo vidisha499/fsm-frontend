@@ -57,13 +57,15 @@ export class DataService {
     return this.http.post(`${this.baseApiUrl}/getProfile`, formData);
   }
   // Try getUserDetails endpoint (Sir's API variant)
-  getUserDetails(userId: string | number) {
-    const token = localStorage.getItem('api_token') || '';
-    return this.http.post(`${this.baseApiUrl}/getUserDetails`, { 
-      user_id: userId, 
-      guard_id: userId,
-      api_token: token 
-    });
+  getUserDetails(userId: string | number, companyId: string | number) {
+    const formData = new FormData();
+    formData.append('user_id', String(userId));
+    formData.append('company_id', String(companyId));
+    
+    const token = localStorage.getItem('api_token');
+    if (token) formData.append('api_token', token);
+    
+    return this.http.post(`${this.baseApiUrl}/getUserDetails`, formData);
   }
   verifyOtp(phone: string, otp: string) { return this.http.post(`${this.baseApiUrl}/verifyUser`, { phoneNo: phone, otp: otp }); }
   updateProfilePic(photoBase64: string) { return this.http.post(`${this.baseApiUrl}/updateProfilePic`, { photo: photoBase64 }); }
@@ -135,53 +137,110 @@ export class DataService {
   getRangersByCompany(companyId: string) { return this.http.get(`${this.baseApiUrl}/rangers/company/${companyId}`); }
   getUsersByCompany(companyId: any) { return this.http.get(`${this.baseApiUrl}/users/company/${companyId}`); }
 
-  // --- 6. INCIDENTS ---
+  // --- 6. INCIDENTS (Aligned with Postman) ---
   getIncidentsByRanger() {
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
     const id = this.getRangerId();
-    return this.http.get(`${this.baseApiUrl}/incidents/my-reports/${id}`);
+    formData.append('api_token', token);
+    formData.append('ranger_id', id || '');
+    return this.http.post(`${this.baseApiUrl}/getIncidence`, formData);
   }
   reportNewIncident(incidentData: any) { 
-    const token = localStorage.getItem('api_token');
-    const fullPayload = { ...incidentData, api_token: token };
-    return this.http.post(`${this.baseApiUrl}/reportIncidence`, fullPayload); 
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    
+    for (const key in incidentData) {
+      if (key === 'images' && Array.isArray(incidentData[key])) {
+        incidentData[key].forEach((img: any) => formData.append('images[]', img));
+      } else {
+        formData.append(key, String(incidentData[key]));
+      }
+    }
+    return this.http.post(`${this.baseApiUrl}/reportIncidence`, formData); 
   }
-  getIncidentsByCompany(companyId: string) { return this.http.post(`${this.baseApiUrl}/getIncidence`, { company_id: companyId }); }
-  getIncidentsForMap(companyId: number) { return this.http.get<any[]>(`${this.baseApiUrl}/incidents/company/${companyId}`); }
-  getIncidentTrend(companyId: number): Observable<any> { return this.http.get(`${this.baseApiUrl}/incidents/trend/${companyId}`); }
+  getIncidentsByCompany(companyId: string) { 
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    formData.append('company_id', companyId);
+    return this.http.post(`${this.baseApiUrl}/getIncidence`, formData); 
+  }
+  getIncidentsForMap(companyId: number) { 
+    return this.getIncidentsByCompany(String(companyId));
+  }
+  getIncidentTrend(companyId: number): Observable<any> { 
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    formData.append('company_id', String(companyId));
+    return this.http.post(`${this.baseApiUrl}/incidents/trend/${companyId}`, formData); 
+  }
 
-  // --- 7. PATROLS & SIGHTINGS ---
+  // --- 7. PATROLS & SIGHTINGS (Aligned with Postman) ---
   startActivePatrol(payload: any) { 
-    return this.http.post(`${this.baseApiUrl}/patrol/start`, payload); 
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    for (const key in payload) {
+      formData.append(key, String(payload[key]));
+    }
+    return this.http.post(`${this.baseApiUrl}/patrol/start`, formData); 
   }
   getOngoingPatrols() { 
-    return this.http.post(`${this.baseApiUrl}/patrol-list`, {}); 
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    return this.http.post(`${this.baseApiUrl}/patrol-list`, formData); 
   }
   getActivePatrols(companyId: number) { 
-    return this.http.post(`${this.baseApiUrl}/patrol-list`, { company_id: companyId }); 
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    formData.append('company_id', String(companyId));
+    return this.http.post(`${this.baseApiUrl}/patrol-list`, formData); 
   }
   updatePatrolStats(patrolId: string, data: any) { 
-    if (!patrolId || patrolId === 'undefined' || patrolId === 'null') {
-       // Fallback for Sir's API: Try ending without ID in path but with ID in body
-       return this.http.post(`${this.baseApiUrl}/patrol/end`, data);
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    formData.append('patrol_id', patrolId);
+    for (const key in data) {
+      formData.append(key, String(data[key]));
     }
-    // Try both standard and potential Sir's path
-    return this.http.post(`${this.baseApiUrl}/patrol/${patrolId}/end`, data); 
+    return this.http.post(`${this.baseApiUrl}/patrol/end`, formData); 
   }
   uploadPatrolPhoto(patrolId: string, photoData: any) { 
-    if (!patrolId || patrolId === 'undefined') return new Observable(obs => {
-      obs.error('Invalid Patrol ID');
-      obs.complete();
-    });
-    return this.http.post(`${this.baseApiUrl}/patrol/${patrolId}/photos`, photoData); 
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    formData.append('patrol_id', patrolId);
+    if (photoData.photo) formData.append('photo', photoData.photo);
+    return this.http.post(`${this.baseApiUrl}/patrol/photos`, formData); 
   }
-  getCompletedPatrolLogs() { return this.http.post(`${this.baseApiUrl}/patrol-logs`, {}); }
+  getCompletedPatrolLogs() { 
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    return this.http.post(`${this.baseApiUrl}/patrol-logs`, formData); 
+  }
   getPatrolsByCompany(companyId: number, dateFrom?: string, dateTo?: string) {
-    let payload: any = { company_id: companyId };
-    if (dateFrom) payload.date_from = dateFrom;
-    if (dateTo) payload.date_to = dateTo;
-    return this.http.post(`${this.baseApiUrl}/patrol-list`, payload);
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    formData.append('company_id', String(companyId));
+    if (dateFrom) formData.append('date_from', dateFrom);
+    if (dateTo) formData.append('date_to', dateTo);
+    return this.http.post(`${this.baseApiUrl}/patrol-list`, formData);
   }
-  getPatrolById(id: number | string) { return this.http.post(`${this.baseApiUrl}/patrol-logs`, { id: id }); }
+  getPatrolById(id: number | string) { 
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    formData.append('id', String(id));
+    return this.http.post(`${this.baseApiUrl}/patrol-logs`, formData); 
+  }
   saveSighting(payload: any) { 
     return this.http.post(`${this.baseApiUrl}/forest-reports`, payload); 
   }
@@ -246,27 +305,40 @@ export class DataService {
     };
     return this.http.post(`${this.baseApiUrl}/requestEntryAttendance`, payload, { headers: finalHeaders }); 
   }
-  updateAttendanceRequestStatus(payload: any) { 
-    const token = localStorage.getItem('api_token');
-    const finalPayload = { ...payload, api_token: token };
-    return this.http.post(`${this.baseApiUrl}/updateAttendanceRequestStatus`, finalPayload); 
+  updateAttendanceRequestStatus(payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    const id = payload.id || payload.attendance_id || payload.request_id || payload.recordId;
+    const companyId = payload.company_id || localStorage.getItem('company_id');
+
+    // Aligned with Postman collection: Uses 'recordId' and 'formdata' mode
+    const formData = new FormData();
+    formData.append('recordId', String(id));
+    formData.append('company_id', String(companyId));
+    formData.append('api_token', token);
+    
+    // Logic fields
+    formData.append('status', payload.status || 'approved');
+    formData.append('remark', payload.remark || 'Onsite Attendance');
+    
+    // Contextual fields for safety
+    if (payload.guard_id) formData.append('guard_id', String(payload.guard_id));
+    if (payload.role_id) formData.append('role_id', String(payload.role_id));
+
+    const headers = { 
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json'
+    };
+
+    return this.http.post(`${this.baseApiUrl}/updateAttendanceRequestStatus`, formData, { headers }); 
   }
   requestExitAttendance(payload: any) { return this.http.post(`${this.baseApiUrl}/requestExitAttendance`, payload); }
   
   getAttendanceRequests(companyId: string) { 
-    const token = localStorage.getItem('api_token');
-    const rangerId = localStorage.getItem('ranger_id');
-    const payload = { 
-      company_id: companyId, 
-      api_token: token,
-      ranger_id: rangerId,
-      user_id: rangerId
-    };
-    const headers = { 
-      'Bypass-Token': 'true',
-      'Authorization': `Bearer ${token}` 
-    };
-    return this.http.post(`${this.baseApiUrl}/getAttendanceRequests`, payload, { headers }); 
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    formData.append('company_id', companyId);
+    return this.http.post(`${this.baseApiUrl}/getAttendanceRequests`, formData); 
   }
 
   // --- Aliases for compatibility ---
@@ -290,7 +362,7 @@ export class DataService {
   
   markOfflineEntryAttendance(payload: any, headers?: any) { return this.http.post(`${this.baseApiUrl}/markOfflineEntryAttendance`, payload, { headers }); }
   markOfflineExitAttendance(payload: any, headers?: any) { return this.http.post(`${this.baseApiUrl}/markOfflineExitAttendance`, payload, { headers }); }
-  markOfflineEmergencyAttendance(payload: any, headers?: any) { return this.http.post(`${this.baseApiUrl}/markOfflineEmergencyAttendance`, payload, { headers }); }
+  markOfflineEmergencyAttendance(payload: any, headers?: any) { return this.http.post(`${this.baseApiUrl}/uploadOfflineAttendanceRequest`, payload, { headers }); }
   
   applyWeekoff(payload: any) { return this.http.post(`${this.baseApiUrl}/applyWeekoff`, payload); }
   getWeekoff(payload: any) { return this.http.post(`${this.baseApiUrl}/getWeekoff`, payload); }
@@ -954,111 +1026,106 @@ export class DataService {
     });
   }
 
+  private isSyncing = false;
+
   // --- GLOBAL SYNC ENGINE ---
   async syncAllDrafts(): Promise<{ success: boolean; count: number; message?: string }> {
     if (!this.isOnline()) return { success: false, count: 0, message: 'Still Offline' };
+    if (this.isSyncing) {
+      console.log("🔄 Sync already in progress, skipping duplicate call...");
+      return { success: false, count: 0, message: 'Sync in progress' };
+    }
 
+    this.isSyncing = true;
+    console.log("🚀 STARTING GLOBAL SYNC...");
     let syncCount = 0;
     
-    // 1. Sync Forest Events
-    const eventDrafts = this.getForestEventDrafts();
-    for (const draft of eventDrafts) {
-      try {
-        await this.submitForestEvent(draft).toPromise();
-        this.deleteForestEventDraft(draft.draftId);
-        syncCount++;
-      } catch (e) { console.error("Sync Event Error", e); }
-    }
+    try {
+      // 1. Sync Forest Events
+      const eventDrafts = this.getForestEventDrafts();
+      for (const draft of eventDrafts) {
+        try {
+          await this.submitForestEvent(draft).toPromise();
+          this.deleteForestEventDraft(draft.draftId);
+          syncCount++;
+        } catch (e) { console.error("Sync Event Error", e); }
+      }
 
-    // 2. Sync Attendance (Beat)
-    const beatDrafts = this.getAttendanceDrafts('beat');
-    for (const draft of beatDrafts) {
-      try {
-        if (draft.mode_type === 'exit') {
-          await this.markAttendanceExit(draft).toPromise();
-        } else {
-          await this.markAttendance(draft).toPromise();
-        }
-        this.deleteAttendanceDraft(draft.draftId, 'beat');
-        syncCount++;
-      } catch (e) { console.error("Sync Beat Error", e); }
-    }
-
-    // 3. Sync Attendance (Onsite)
-    const onsiteDrafts = this.getAttendanceDrafts('onsite');
-    for (const draft of onsiteDrafts) {
-      try {
-        await this.markOnsiteAttendance(draft).toPromise();
-        this.deleteAttendanceDraft(draft.draftId, 'onsite');
-        syncCount++;
-      } catch (e) { console.error("Sync Onsite Error", e); }
-    }
-
-    // 4. Sync Patrols
-    const patrolDrafts = this.getPatrolDrafts();
-    const syncedPatrolIdsMap: {[key: string]: string} = {}; // Maps sessionId -> real patrolId
-
-    for (const draft of patrolDrafts) {
-      try {
-        if (draft.type === 'start') {
-          const res: any = await this.startActivePatrol(draft).toPromise();
-          const newId = res?.data?.id || res?.id;
-          if (newId && draft.sessionId) {
-            syncedPatrolIdsMap[draft.sessionId] = newId.toString();
+      // 2. Sync Attendance (Beat)
+      const beatDrafts = this.getAttendanceDrafts('beat');
+      for (const draft of beatDrafts) {
+        try {
+          if (draft.mode_type === 'exit') {
+            await this.markAttendanceExit(draft).toPromise();
+          } else {
+            await this.markAttendance(draft).toPromise();
           }
-        } else {
-          // If this is an 'end' draft but missing patrolId, check if we just synced the 'start'
-          let pId = draft.patrolId;
-          if ((!pId || pId === 'undefined') && draft.sessionId) {
-            pId = syncedPatrolIdsMap[draft.sessionId];
+          this.deleteAttendanceDraft(draft.draftId, 'beat');
+          syncCount++;
+        } catch (e) { console.error("Sync Beat Error", e); }
+      }
+
+      // 3. Sync Attendance (Onsite)
+      const onsiteDrafts = this.getAttendanceDrafts('onsite');
+      for (const draft of onsiteDrafts) {
+        try {
+          await this.markOnsiteAttendance(draft).toPromise();
+          this.deleteAttendanceDraft(draft.draftId, 'onsite');
+          syncCount++;
+        } catch (e) { console.error("Sync Onsite Error", e); }
+      }
+
+      // 4. Sync Patrols
+      const patrolDrafts = this.getPatrolDrafts();
+      const syncedPatrolIdsMap: {[key: string]: string} = {};
+
+      for (const draft of patrolDrafts) {
+        try {
+          if (draft.type === 'start') {
+            const res: any = await this.startActivePatrol(draft).toPromise();
+            const newId = res?.data?.id || res?.id;
+            if (newId && draft.sessionId) {
+              syncedPatrolIdsMap[draft.sessionId] = newId.toString();
+            }
+          } else {
+            const pId = draft.patrol_id || (draft.sessionId ? syncedPatrolIdsMap[draft.sessionId] : null);
+            if (pId && pId !== 'undefined') {
+              await this.updatePatrolStats(pId, draft).toPromise();
+            } else {
+              console.warn("Skipping end draft: No active Patrol ID found on server or locally.");
+              continue;
+            }
           }
-          
-          // FALLBACK: If still no ID, try to find any active patrol on the server
-          if (!pId || pId === 'undefined') {
+          this.deletePatrolDraft(draft.draftId);
+          syncCount++;
+        } catch (e: any) { 
+          if (e.status === 401 && e.error?.message?.includes('Another patrol is in progress')) {
             try {
               const ongoing: any = await this.getOngoingPatrols().toPromise();
               const list = ongoing?.data || ongoing || [];
               if (list.length > 0) {
-                 pId = list[0].id?.toString() || list[0].sessionId?.toString();
-                 if (pId && draft.sessionId) syncedPatrolIdsMap[draft.sessionId] = pId;
+                const pId = list[0].id || list[0].sessionId;
+                if (pId && draft.sessionId) {
+                  syncedPatrolIdsMap[draft.sessionId] = pId.toString();
+                  this.deletePatrolDraft(draft.draftId);
+                  syncCount++;
+                  continue;
+                }
               }
-            } catch(e) {}
+            } catch(recoveryErr) {}
           }
-          
-          if (pId && pId !== 'undefined') {
-            await this.updatePatrolStats(pId, draft).toPromise();
-          } else {
-            console.warn("Skipping end draft: No active Patrol ID found on server or locally.");
-            continue; // Keep in draft until start is synced next time
-          }
+          console.error("Sync Patrol Error", e); 
         }
-        this.deletePatrolDraft(draft.draftId);
-        syncCount++;
-      } catch (e: any) { 
-        // Recovery: If server says another patrol is in progress, try to get its ID to link 'end' drafts
-        if (e.status === 401 && e.error?.message?.includes('Another patrol is in progress')) {
-          try {
-            const ongoing: any = await this.getOngoingPatrols().toPromise();
-            const list = ongoing?.data || ongoing || [];
-            if (list.length > 0) {
-              const pId = list[0].id || list[0].sessionId;
-              if (pId && draft.sessionId) {
-                syncedPatrolIdsMap[draft.sessionId] = pId.toString();
-                this.deletePatrolDraft(draft.draftId);
-                syncCount++;
-                continue;
-              }
-            }
-          } catch(recoveryErr) {}
-        }
-        console.error("Sync Patrol Error", e); 
       }
-    }
 
-    if (syncCount > 0) {
-      this.syncCompleted$.next();
-    }
+      if (syncCount > 0) {
+        this.syncCompleted$.next();
+      }
 
-    return { success: true, count: syncCount };
+      return { success: true, count: syncCount };
+    } finally {
+      this.isSyncing = false;
+      console.log("🏁 GLOBAL SYNC FINISHED.");
+    }
   }
 }

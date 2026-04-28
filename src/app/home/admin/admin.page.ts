@@ -1182,10 +1182,10 @@ changeTimeframe(newTimeframe: string) {
                           });
 
                           const activeIds = new Set<string>();
-                          const todayISO = new Date().toISOString().split('T')[0]; // "2026-04-21"
+                          const todayISO = new Date().toISOString().split('T')[0];
                           
                           const processRecord = (record: any) => {
-                             const rDate = (record.timestamp || record.entryDateTime || record.created_at || '').toString();
+                             const rDate = (record.timestamp || record.entryDateTime || record.created_at || record.date || '').toString();
                              if (!rDate) return false;
 
                              const isToday = rDate.includes(todayYMD) || 
@@ -1193,36 +1193,44 @@ changeTimeframe(newTimeframe: string) {
                                             rDate.includes(todayISO) ||
                                             rDate.toLowerCase().includes('today');
 
-                             if (isToday) {
-                                const uId = record.user_id || record.staff_id || record.ranger_id || record.added_by || record.created_by || record.id || record.userId;
-                                if (uId) activeIds.add(uId.toString());
-                                return true;
+                             // Count as On-Duty if today and NOT rejected
+                             const status = String(record.status || '').toLowerCase();
+                             const isRejected = status === 'rejected' || status === 'failed';
+                             
+                             // If it's an approved Onsite request or a standard log, it counts
+                             if (isToday && !isRejected) {
+                                const uId = record.guard_id || record.guardId || record.user_id || record.userId || record.staff_id || record.ranger_id || record.added_by || record.created_by;
+                                if (uId) {
+                                  activeIds.add(uId.toString());
+                                  return true;
+                                }
                              }
                              return false;
                           };
 
-                          logsArray.forEach(processRecord);
-                          reqArray.forEach(processRecord);
-                          onsiteArray.forEach(processRecord);
+                           logsArray.forEach(processRecord);
+                           reqArray.forEach(processRecord);
+                           onsiteArray.forEach(processRecord);
 
-                          // 🔥 Aggressive Count Recovery
-                          const filteredCount = activeIds.size;
-                          const pendingCount = reqArray.length;
-                          const onsiteCount = onsiteArray.length;
-                          const apiCount = Number(stats.on_duty_count || stats.on_duty || 0);
+                           // 🔥 Aggressive Count Recovery
+                           const filteredCount = activeIds.size;
+                           const pendingCount = reqArray.length;
+                           const onsiteCount = onsiteArray.length;
+                           const apiCount = Number(stats.on_duty_count || stats.on_duty || 0);
 
-                          this.onDutyCount = Math.max(filteredCount, apiCount, onsiteCount);
-                          this.allRangers = staffList.length || Number(stats.total_staff || stats.total_users || this.allRangers || 0);
-                          this.inactiveCount = Math.max(0, this.allRangers - this.onDutyCount);
+                           // Ensure unique count: Only count one attendance per officer per day
+                           this.onDutyCount = filteredCount || apiCount;
+                           this.allRangers = staffList.length || Number(stats.total_staff || stats.total_users || this.allRangers || 0);
+                           this.inactiveCount = Math.max(0, this.allRangers - this.onDutyCount);
 
-                          if (staffList.length > 0) {
-                             this.rangers = staffList.map((u: any) => {
-                                const sId = (u.id || u.user_id || u.staff_id || u.ranger_id || '').toString();
-                                const isWorking = sId ? activeIds.has(sId) : false;
+                           if (staffList.length > 0) {
+                              this.rangers = staffList.map((u: any) => {
+                                 const sId = (u.id || u.user_id || u.staff_id || u.ranger_id || '').toString();
+                                 const isWorking = sId ? activeIds.has(sId) : false;
                                 return {
                                     id: sId,
                                     name: u.name || u.full_name || 'Staff',
-                                    status: isWorking ? 1 : (pendingCount > 0 && filteredCount === 0 ? 1 : 0), // Fallback status
+                                    status: isWorking ? 1 : 0, 
                                     role_id: 4,
                                     range_name: u.range_name || u.beat_name || 'Forest Division'
                                 };

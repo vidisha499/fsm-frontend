@@ -170,12 +170,37 @@ export class AttendanceRequestsPage implements OnInit {
         
         this.pendingRequests = sortedData.filter((req: any) => {
           const status = (req.status || '').toLowerCase();
-          return status === 'pending' || status === 'requested' || status === ''; 
+          const remark = (req.remark || '').toLowerCase();
+          
+          // 1. Show all pending or requested items
+          if (status === 'pending' || status === 'requested' || status === '' || status === 'success') {
+            return true;
+          }
+
+          // 2. Auto-approved requests stay in the list (so admin can still Reject them if needed)
+          // 3. Manually approved requests (remark: 'onsite attendance') will now disappear from this list
+          if (status === 'approved') {
+            return remark !== 'onsite attendance'; 
+          }
+
+          return false;
+        }).map((req: any) => {
+          // --- 📍 DIRECT DATABASE MAPPING ---
+          // Just ensure it's lowercase for our UI checks
+          req.status = (req.status || 'pending').toLowerCase();
+          
+          req.displayName = req.guard_name || 'Officer';
+          req.displayLocation = req.location || 'Current Location';
+          req.displayTime = req.time || 'N/A';
+          req.pipeDate = req.entryDateTime || req.timestamp || req.date; 
+
+          return req;
         }).sort((a: any, b: any) => {
-          return new Date(b.created_at || b.createdAt || b.date).getTime() - new Date(a.created_at || a.createdAt || a.date).getTime();
+          return new Date(b.pipeDate).getTime() - new Date(a.pipeDate).getTime();
         });
 
-        console.log("2. Assigned to variable:", this.pendingRequests.length);
+        console.log("2. Total Pending Requests:", this.pendingRequests.length);
+        console.log("3. UI Mapping Done for:", this.pendingRequests.length, "items");
 
         // --- CRITICAL FIX START ---
         setTimeout(() => {
@@ -194,21 +219,40 @@ export class AttendanceRequestsPage implements OnInit {
     });
   }
 
-  async updateStatus(id: number, newStatus: string) {
-    const loader = await this.loadingCtrl.create({ message: `Processing...` });
-    await loader.present();
+  approveRequest(req: any) {
+    const payload = {
+      ...req,
+      status: 'approved',
+      remark: 'Onsite Attendance'
+    };
 
-    // DataService ka hi function use karein taaki clean rahe
-    this.dataService.updateOnsiteStatus(id, newStatus as any).subscribe({
-      next: () => {
-        loader.dismiss();
-        this.presentToast(`Attendance ${newStatus} successfully!`, 'success');
-        this.loadRequests(); // Refresh the list
+    this.dataService.updateAttendanceRequestStatus(payload).subscribe({
+      next: (res: any) => {
+        console.log('✅ Update Success:', res);
+        this.presentToast('Attendance Approved Successfully', 'success');
+        this.loadRequests();
       },
-      error: (err) => {
-        console.error("Update Error:", err);
-        loader.dismiss();
-        this.presentToast('Failed to update status', 'danger');
+      error: (err: any) => {
+        console.error('❌ Update Error:', err);
+        this.presentToast('Failed to approve attendance', 'danger');
+      }
+    });
+  }
+
+  rejectRequest(req: any) {
+    const payload = {
+      ...req,
+      status: 'rejected',
+      remark: 'Rejected by Admin'
+    };
+
+    this.dataService.updateAttendanceRequestStatus(payload).subscribe({
+      next: (res: any) => {
+        this.presentToast('Attendance Rejected Successfully', 'warning');
+        this.loadRequests();
+      },
+      error: (err: any) => {
+        this.presentToast('Failed to reject attendance', 'danger');
       }
     });
   }
