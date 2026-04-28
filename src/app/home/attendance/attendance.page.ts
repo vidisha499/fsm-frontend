@@ -41,7 +41,7 @@ export class AttendancePage implements OnInit, OnDestroy {
   public currentZoom: number = 1; // 🔍 Zoom level state
   public capturedPhoto: string = ''; 
   public rangerName: string = '';
-  public rangerRegion: string = '';
+  public siteName: string = '';
   public currentAddress: string = ''; // Will show translated placeholder in HTML
 
   public currentLat: number = 20.1013; 
@@ -65,7 +65,17 @@ export class AttendancePage implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.rangerName = localStorage.getItem('ranger_username') || 'Ranger';
-    this.rangerRegion = localStorage.getItem('ranger_region') || 'Washim';
+    
+    // Fetch Assigned Beat or Site name
+    let site = localStorage.getItem('assigned_beat_name');
+    if (!site) {
+      try {
+        const u = JSON.parse(localStorage.getItem('user_data') || '{}');
+        site = u.site_name || u.beat_name || u.geo_name;
+      } catch (e) {}
+    }
+    this.siteName = site || 'Forest Area';
+    
     this.attendance = { created_at: new Date() };
 
     setInterval(() => {
@@ -308,7 +318,7 @@ async submitAttendance() {
     geo_id: '1', // Hardcoded as per Postman example, ideally comes from getGuardGeofence
     geo_name: this.currentAddress || 'Unknown Location',
     site_id: 'beat', // 👈 Distinguishes from 'onsite' in history filter
-    site_name: this.rangerRegion || 'Forest Area',
+    site_name: this.siteName,
     photo: this.capturedPhoto,
     location: `${this.currentLat},${this.currentLng}`
   };

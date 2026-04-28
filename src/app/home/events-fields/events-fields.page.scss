@@ -23,7 +23,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 40px; // Back button aur Heading ko kaafi upar shift kiya
+    margin-top: 10px; // Reduced to prevent overlap with card
   }
 
   .title-group {
@@ -51,7 +51,7 @@
 
 .content-body {
   padding: 20px;
-  margin-top: -95px; // Card ko header ke upar aur overlap kiya
+  margin-top: -60px; // Reduced from -95px so it doesn't overlap header text
   position: relative;
   z-index: 10;
 }
