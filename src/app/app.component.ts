@@ -206,8 +206,15 @@ export class AppComponent implements OnInit {
   // }
 
 loadUserData() {
+  console.log("🟢 Step 1: Checking localStorage for existing token/session...");
   let rawRole = localStorage.getItem('user_role');
   const data = localStorage.getItem('user_data');
+  const token = localStorage.getItem('api_token');
+  
+  if (token) {
+    console.log("🟢 Step 2: Active session found! Using token for background sync.");
+  }
+
   let parsedUser: any = null;
   
   if (data) {
@@ -251,10 +258,12 @@ loadUserData() {
     
     // 🔥 ALWAYS fetch latest DB data to sync with local storage (Phone/Password change sync)
     if (parsedUser.id && parsedUser.company_id) {
+      console.log("🟢 Step 3: Fetching latest profile data silently from backend (/getUserDetails)...");
       this.dataService.getUserDetails(parsedUser.id, parsedUser.company_id).subscribe({
         next: (res: any) => {
           if (res.status === 'success' || res.status === 'SUCCESS' || res.data) {
             const data = res.data || res;
+            console.log("🟢 Step 4: Profile synced successfully! Updating localStorage with new data:", data);
             
             // Sync all vital details from DB to LocalStorage
             parsedUser.name = data.name || parsedUser.name;
@@ -274,7 +283,8 @@ loadUserData() {
             this.cdr.detectChanges();
           }
         },
-        error: () => {
+        error: (err) => {
+          console.log("🔴 Profile sync failed or token invalid. HTTP Error:", err.status);
           if (!this.companyName) {
             this.companyName = `Company ID: ${parsedUser.company_id}`;
             this.cdr.detectChanges();

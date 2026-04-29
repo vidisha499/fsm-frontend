@@ -64,7 +64,8 @@ export class AuthInterceptor implements HttpInterceptor {
     return nextObs.pipe(
       catchError((error: HttpErrorResponse) => {
         if (error.status === 401) {
-          console.error("AuthInterceptor: 401 Unauthorized detected. Forcing logout.");
+          console.error("🔴 Step 5 (Auth Trap): 401 Unauthorized received! Token is expired or invalid.");
+          console.error("🔴 Step 6 (Logout): Clearing localStorage and forcing redirect to /login...");
           localStorage.clear();
           this.router.navigate(['/login']);
         }
