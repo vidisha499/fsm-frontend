@@ -579,10 +579,19 @@ async goToPage(path: string) {
   }
 
   async logout() {
+    console.log("🟠 User initiated manual logout...");
     await this.menu.close();
     const lang = localStorage.getItem('app_language_code');
+    
+    console.log("🟠 Clearing all sensitive data from localStorage...");
     localStorage.clear();
-    if (lang) localStorage.setItem('app_language_code', lang);
+    
+    if (lang) {
+      console.log("🟠 Preserving user language preference:", lang);
+      localStorage.setItem('app_language_code', lang);
+    }
+    
+    console.log("🟠 Memory wiped successfully. Redirecting to /login...");
     this.navCtrl.navigateRoot('/login');
   }
 
