@@ -43,6 +43,20 @@ export class LoginPage implements OnInit, OnDestroy {
     // Initial checks if needed
   }
 
+  ionViewWillEnter() {
+    // Persistent login check: Prevent showing login page if already logged in
+    const token = localStorage.getItem('api_token');
+    const role = localStorage.getItem('user_role');
+    
+    if (token) {
+      if (role === '1' || role === '2') {
+        this.navCtrl.navigateRoot('/admin');
+      } else {
+        this.navCtrl.navigateRoot('/home');
+      }
+    }
+  }
+
   ngOnDestroy() {
     if (this.timerInterval) clearInterval(this.timerInterval);
     if (this.loginSub) this.loginSub.unsubscribe();
@@ -168,11 +182,6 @@ async login() {
         };
 
         // --- DATA STORAGE ---
-        // ✅ Clear stale role/feature cache from previous session first
-        // Without this, if a different role user logs in they'd see wrong menu items
-        localStorage.removeItem('menu_features');
-        localStorage.removeItem('user_designation');
-        
         localStorage.setItem('user_data', JSON.stringify(userInfo));
         localStorage.setItem('api_token', userData.api_token);
         localStorage.setItem('user_role', userRole.toString());

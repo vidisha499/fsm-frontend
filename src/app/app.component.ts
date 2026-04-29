@@ -25,10 +25,7 @@ export class AppComponent implements OnInit {
   userPhoto: string = ''; 
   profileImage: string | null = null;
   userRole: string = '';
-  isSuperAdmin: boolean = false; // 🚀 NEW: Identify Super Admin (Role 1)
   isLoadingSidebar: boolean = false; // Added for loader UI
-  userDesignation: string = ''; 
-  menuFeatures: any = {}; // 🚀 NEW: Store dynamic menu permissions
 
 
   showLanguageModal: boolean = false;
@@ -165,16 +162,7 @@ export class AppComponent implements OnInit {
     // 🚀 NEW: Check and Sync immediately on App Load if Online
     if (this.dataService.isOnline()) {
       this.dataService.syncAllDrafts();
-      this.loadUserData(); // Initial Sync
     }
-
-    // 🔄 AUTOMATIC BACKGROUND SYNC: Check for profile changes every 5 minutes
-    setInterval(() => {
-      if (this.dataService.isOnline()) {
-        console.log("🕒 Background Profile Sync Triggered...");
-        this.loadUserData();
-      }
-    }, 5 * 60 * 1000); 
   }
 
   // 🔥 NEW: Automatic Sync when Network Restored
@@ -210,41 +198,6 @@ export class AppComponent implements OnInit {
   //   }
   //   this.cdr.detectChanges();
   // }
-  // 🛠️ Check if a specific menu feature is allowed
-  // Maps our internal sidebar keys → all possible server API key names
-  // ✅ Sir's EXACT server 'value' keys mapped to our sidebar keys
-  private readonly featureAliasMap: { [key: string]: string[] } = {
-    'attendance':         ['attendance', 'mark_attendance'],
-    'attendance_request': ['attendance_request', 'emergency_attendance', 'emergency-attendance',
-                           'attendance_requests', 'attendance_approval'],
-    'asset_management':  ['asset_management', 'asset-management', 'assets', 'asset'],
-    'forest_events':     ['forest_events', 'forest-events', 'incidence', 'incidents', 'events'],
-    'patrol_report':     ['patrol_report', 'patrol-report', 'patrol_list', 'patrol-list',
-                           'tour', 'reports', 'report'],
-    'daily_updates':     ['daily_updates', 'dailyupdates', 'updates', 'daily_update'],
-    'chat':              ['chat', 'communication', 'messaging'],
-    'communication':     ['communication', 'chat', 'messaging'],
-    'client_visits':     ['client_visits', 'visits', 'visitor', 'visitors', 'field_visit', 'field-visit'],
-    'field_visits':      ['field_visits', 'field_visit', 'field-visit', 'visits', 'visitor'],
-    'know_your_area':    ['know_your_area', 'boundary_hierarchy', 'boundary-hierarchy',
-                           'geofencing', 'geofence', 'geofences'],
-    'plantations':       ['plantations', 'plantation_list', 'plantation-list', 'plantation'],
-    'location_tracker':  ['location_tracker', 'track', 'tracking', 'live_tracking'],
-  };
-
-  isFeatureEnabled(key: string): boolean {
-    // If features not yet loaded → hide everything (security default)
-    if (!this.menuFeatures || Object.keys(this.menuFeatures).length === 0) {
-      return false;
-    }
-
-    // 1. Direct key match (server key === sidebar key)
-    if (this.menuFeatures[key] === true) return true;
-
-    // 2. Alias match — try all server key variants for this sidebar key
-    const aliases = this.featureAliasMap[key] || [];
-    return aliases.some(alias => this.menuFeatures[alias] === true);
-  }
 
 loadUserData() {
   let rawRole = localStorage.getItem('user_role');
@@ -260,163 +213,100 @@ loadUserData() {
   }
 
   // Fallback role detection
-  if (!rawRole && parsedUser) {
-    rawRole = parsedUser.role_id?.toString();
+  if (!rawRole) {
+    const userData = localStorage.getItem('user_data');
+    if (userData) {
+      try {
+        const user = JSON.parse(userData);
+        rawRole = user.role_id?.toString();
+      } catch (e) {
+        console.error("Error parsing user_data for role:", e);
+      }
+    }
   }
 
   // Final fallback to Ranger
   rawRole = rawRole || '4';
-  const roleNum = Number(rawRole);
   
-  this.isSuperAdmin = (roleNum === 1);
-  // ✅ FIX: Only roles 1 (SuperAdmin) and 2 (Admin) get admin access — role 3 is Guard/Ranger
-  this.userRole = (roleNum === 1 || roleNum === 2) ? 'admin' : 'ranger';
-  // Load cached designation (will be overwritten by live server data below)
-  this.userDesignation = localStorage.getItem('user_designation') || '';
-
-  // 1. Initial Load from Cache
-  this.rangerName = localStorage.getItem('ranger_username') || (parsedUser ? parsedUser.name : 'User');
-  this.rangerPhone = localStorage.getItem('ranger_phone') || (parsedUser ? (parsedUser.phone || parsedUser.contact) : '');
-  this.companyName = parsedUser?.company_name || parsedUser?.client_name || '';
-  
-  const savedFeatures = localStorage.getItem('menu_features');
-  if (savedFeatures) {
-    try { this.menuFeatures = JSON.parse(savedFeatures); } catch(e) {}
+  if (rawRole == '1' || rawRole == '2') {
+    this.userRole = 'admin';
+  } else {
+    this.userRole = 'ranger';
   }
 
-  // 2. 🚀 LIVE SYNC: Fetch latest from server if online
-  if (this.dataService.isOnline() && parsedUser?.id && parsedUser?.company_id) {
-    this.dataService.getUserDetails(parsedUser.id, parsedUser.company_id).subscribe({
-      next: (res: any) => {
-        if (res && (res.status === 'success' || res.status === 'SUCCESS' || res.data)) {
-          const fresh = res.data || res;
-          
-          console.log("📥 [RAW SERVER DATA]:", fresh); 
-
-          // Update properties
-          this.rangerName = fresh.name || fresh.username || fresh.ranger_name || this.rangerName;
-          this.rangerPhone = fresh.contact || fresh.phone || fresh.mobile || this.rangerPhone;
-          this.companyName = fresh.company_name || fresh.client_name || (fresh.company ? fresh.company.name : '') || this.companyName;
-          
-          // 🚀 ALWAYS update role and designation from server data (not just inside features block)
-          const freshRole = fresh.role_id || fresh.role || fresh.roleId || roleNum;
-          const updatedRoleNum = Number(freshRole);
-          
-          this.isSuperAdmin = (updatedRoleNum === 1);
-          // ✅ FIX: role_id 3 does NOT mean admin — use server designation as source of truth
-          // Only role 1 (SuperAdmin) and role 2 (Admin) get admin access
-          this.userRole = (updatedRoleNum === 1 || updatedRoleNum === 2) ? 'admin' : 'ranger';
-          localStorage.setItem('user_role', updatedRoleNum.toString());
-
-          // ✅ FIX: ALWAYS use server designation — never guess from role number
-          // Server mein 'designation' field hoga: 'Forest Guard', 'Ranger', 'Super Admin' etc.
-          if (fresh.designation && fresh.designation !== 'null' && fresh.designation.trim() !== '') {
-            this.userDesignation = fresh.designation.trim().toUpperCase();
-          } else if (fresh.role_name && fresh.role_name !== 'null' && fresh.role_name.trim() !== '') {
-            this.userDesignation = fresh.role_name.trim().toUpperCase();
-          } else {
-            // Fallback based on role_id
-            if (updatedRoleNum === 1) this.userDesignation = 'SUPER ADMIN';
-            else if (updatedRoleNum === 2) this.userDesignation = 'ADMIN';
-            else this.userDesignation = 'FOREST GUARD'; // role 3, 4, or anything else
-          }
-
-          console.log(`🔍 [USER SYNC] Server Role ID: ${updatedRoleNum} | userRole: ${this.userRole.toUpperCase()} | Designation: ${this.userDesignation}`);
-
-          // Update localStorage for consistency
-          localStorage.setItem('ranger_username', this.rangerName);
-          localStorage.setItem('ranger_phone', this.rangerPhone);
-          localStorage.setItem('user_designation', this.userDesignation);
-          
-          if (parsedUser) {
-            parsedUser.name = this.rangerName;
-            parsedUser.contact = this.rangerPhone;
-            parsedUser.company_name = this.companyName;
-            parsedUser.role_id = updatedRoleNum;
-            localStorage.setItem('user_data', JSON.stringify(parsedUser));
-          }
-
-          if (fresh.profile_pic) {
-            localStorage.setItem('user_photo', fresh.profile_pic);
-            this.userPhoto = fresh.profile_pic;
-          }
-
-          // 🛠️ FEATURE PERMISSIONS: Parse dynamic menu options using Sir's is_checked field
-          if (fresh.features && Array.isArray(fresh.features)) {
-            
-            // 🔍 Log raw structure to understand Sir's API format
-            console.log("🔍 [RAW FEATURES STRUCTURE - first item]:", JSON.stringify(fresh.features[0]));
-            console.log("🔍 [RAW FEATURES COUNT]:", fresh.features.length);
-
-            const featMap: any = {};
-
-            // Check if features array is role-wise (each item has role_id)
-            const isRoleWise = fresh.features.some((f: any) => f.role_id !== undefined || f.roleId !== undefined);
-
-            let featuresToProcess = fresh.features;
-
-            if (isRoleWise) {
-              // ✅ Sir's API: features are per role — filter to ONLY current user's role
-              const currentRoleId = updatedRoleNum;
-              featuresToProcess = fresh.features.filter((f: any) => {
-                const fRole = Number(f.role_id || f.roleId);
-                return fRole === currentRoleId;
-              });
-              console.log(`🎯 [ROLE-WISE FEATURES] Filtered for role_id ${currentRoleId}: ${featuresToProcess.length} features`);
+  console.log("Mapped Role for HTML:", this.userRole);
+  
+  // Try implicit keys first, then fallback to user_data object
+  this.rangerName = localStorage.getItem('ranger_username') || '';
+  this.rangerPhone = localStorage.getItem('ranger_phone') || '';
+  
+  if (parsedUser) {
+    this.companyName = parsedUser.company_name || (parsedUser.company ? parsedUser.company.name : '') || parsedUser.client_name || '';
+    
+    // Fallback: If no company name is found, fetch it dynamically
+    if (!this.companyName && parsedUser.company_id && parsedUser.id) {
+      this.dataService.getUserDetails(parsedUser.id, parsedUser.company_id).subscribe({
+        next: (res: any) => {
+          if (res.status === 'success' || res.status === 'SUCCESS' || res.data) {
+            const data = res.data || res;
+            this.companyName = data.company_name || (data.company ? data.company.name : '') || data.client_name || '';
+            // If still empty after API call, at least show the ID
+            if (!this.companyName) {
+              this.companyName = `Company ID: ${parsedUser.company_id}`;
             } else {
-              // Features are already user-specific (no role_id needed)
-              console.log("📋 [USER-SPECIFIC FEATURES] Using all features directly");
+              // Update local storage so we don't have to fetch it every time
+              parsedUser.company_name = this.companyName;
+              localStorage.setItem('user_data', JSON.stringify(parsedUser));
             }
-
-            featuresToProcess.forEach((f: any) => {
-              // ✅ Sir's API exact format: {name:"Attendance", value:"attendance", checked:true, icon:"calendar", type:"module"}
-              // 'value' is the machine key, 'name' is just the display label
-              const rawKey = f.value || f.key || f.slug || f.feature_name || f.module || '';
-              
-              // 🔍 Log EACH feature so we can see exact names from Sir's API
-              console.log(`  📌 Feature: value="${f.value}" | name="${f.name}" | checked=${f.checked} | is_checked=${f.is_checked}`);
-              
-              if (rawKey) {
-                const key = rawKey.toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_');
-                // ✅ Sir's PRIMARY field: 'checked' (boolean) — confirmed from raw response
-                // Fallback to is_checked, status, enabled for other API variants
-                const isEnabled = (f.checked === true  || f.checked == 1  ||
-                                   f.is_checked === true || f.is_checked == 1 ||
-                                   f.status == 1 || f.enabled == 1 || f.is_enabled == 1);
-                // ✅ BUG FIX: Don't let false overwrite true
-                // Sir's API has duplicate value="emergency-attendance": first=true, second=false
-                // We keep true if ANY occurrence is true
-                featMap[key] = featMap[key] === true ? true : isEnabled;
-              }
-            });
-
-            
-            console.log("🛠️ [FEATURES PERMISSIONS - FINAL]:", featMap); 
-            
-            this.menuFeatures = featMap;
-            localStorage.setItem('menu_features', JSON.stringify(featMap));
-
-          } else {
-            console.warn("⚠️ No features found in API response for Role:", updatedRoleNum);
+            this.cdr.detectChanges();
           }
-
-          // 📢 Notify all components (Dashboards) to refresh
-          this.dataService.userProfileUpdated$.next(fresh);
-          
+        },
+        error: () => {
+          this.companyName = `Company ID: ${parsedUser.company_id}`;
           this.cdr.detectChanges();
         }
-      },
-      error: (err) => console.warn("Profile Sync Silent Error:", err)
-    });
+      });
+    } else if (!this.companyName && parsedUser.company_id) {
+      this.companyName = `Company ID: ${parsedUser.company_id}`;
+    }
+  }
+  
+  if (!this.rangerName || !this.rangerPhone) {
+    if (parsedUser) {
+      this.rangerName = this.rangerName || parsedUser.name || 'User';
+      this.rangerPhone = this.rangerPhone || parsedUser.phone || parsedUser.contact || '';
+    }
   }
 
+  // Final fallback
+  this.rangerName = this.rangerName || 'User';
+
   this.userPhoto = localStorage.getItem('user_photo') || ''; 
-  this.rangerDivision = localStorage.getItem('ranger_division') || (this.userRole === 'admin' ? 'ADMIN UNIT' : 'RANGER UNIT');
+  this.rangerDivision = localStorage.getItem('ranger_division') || 'Washim Division 4.2';
+
+  // Database se aane wala value 
+  const dbDivision = localStorage.getItem('ranger_division');
+  if (dbDivision && dbDivision !== 'undefined') {
+    this.rangerDivision = dbDivision;
+  } else {
+    this.rangerDivision = this.userRole === '2' ? 'COMPANY ADMIN' : 'RANGER UNIT';
+  }
 
   this.cdr.detectChanges();
 }
   initializeApp() {
     document.body.classList.toggle('dark', false);
+
+    // 🚀 NEW: Persistent Auto-Login Check
+    const token = localStorage.getItem('api_token');
+    const role = localStorage.getItem('user_role');
+    if (token) {
+      if (role === '1' || role === '2') {
+        this.navCtrl.navigateRoot('/admin');
+      } else {
+        this.navCtrl.navigateRoot('/home');
+      }
+    }
 
     this.platform.ready().then(() => {
       this.platform.backButton.subscribeWithPriority(9999, async () => {
@@ -617,12 +507,6 @@ async goToPage(path: string) {
       // Data local storage mein save karein
       localStorage.setItem('ranger_username', this.rangerName);
       localStorage.setItem('ranger_phone', this.rangerPhone);
-
-      // Notify other components
-      this.dataService.userProfileUpdated$.next({
-        name: this.rangerName,
-        contact: this.rangerPhone
-      });
       
       this.isSubmitting = false;
       this.currentTranslateX = 0;
