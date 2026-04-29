@@ -33,7 +33,7 @@
                 </div>
                 <div class="user-info">
                   <h2>{{ rangerName }}</h2>
-                  <p>{{ rangerDivision }}</p> 
+                  <p class="user-role">{{ userDesignation || 'FOREST GUARD' }}</p>
                 </div>
               </div>
               
@@ -52,87 +52,50 @@
       
       <a class="menu-item" (click)="goToPage('home')" [class.active]="router.url.includes('home')">
         <div class="icon-box emerald"><i class="fas fa-th-large"></i></div>
-        <div class="item-text"><span>{{ 'MENU.DASHBOARD' | translate }}</span></div>
+        <div class="item-text"><span>Dashboard</span></div>
       </a>
 
-      <!-- <a class="menu-item" (click)="goToPage('attendance')" [class.active]="router.url.includes('attendance')">
+      <a *ngIf="isFeatureEnabled('attendance')" class="menu-item" (click)="goToPage('attendance')">
         <div class="icon-box blue"><i class="fas fa-calendar-check"></i></div>
-        <div class="item-text"><span>{{ 'MENU.ATTENDANCE_REQ' | translate }}</span></div>
+        <div class="item-text"><span>Mark Attendance</span></div>
+      </a>
+
+
+      <!-- Attendance Requests: approval page — Admin/Manager only (Guards can submit but not manage) -->
+      <a *ngIf="isFeatureEnabled('attendance_request') && userRole === 'admin'" class="menu-item" (click)="goToPage('attendance-requests')">
+        <div class="icon-box amber"><i class="fas fa-user-check"></i></div>
+        <div class="item-text"><span>Attendance Requests</span></div>
+      </a>
+
+      <a *ngIf="isFeatureEnabled('asset_management')" class="menu-item" (click)="goToPage('assets-list')" [class.active]="router.url === '/home/assets-list'">
+        <div class="icon-box red"><i class="fas fa-boxes"></i></div>
+        <div class="item-text"><span>Asset Management</span></div>
+      </a>
+
+      <a *ngIf="isFeatureEnabled('forest_events')" class="menu-item" (click)="goToPage('forest-events')" [class.active]="router.url.includes('forest-events')">
+        <div class="icon-box green-tint"><i class="fas fa-shield-virus"></i></div>
+        <div class="item-text"><span>Forest Events Dashboard</span></div>
+      </a>
+
+      <!-- <a *ngIf="isFeatureEnabled('know_your_area')" class="menu-item" (click)="goToPage('geofences')" [class.active]="router.url.includes('geofences')">
+        <div class="icon-box orange"><i class="fas fa-draw-polygon"></i></div>
+        <div class="item-text"><span>Know Your Area</span></div>
+      </a>
+
+      <a *ngIf="isFeatureEnabled('plantations')" class="menu-item" (click)="goToPage('plantations')" [class.active]="router.url.includes('plantations')">
+        <div class="icon-box green"><i class="fas fa-leaf"></i></div>
+        <div class="item-text"><span>Plantations</span></div>
       </a> -->
-      <a *ngIf="isFeatureEnabled('attendance_request') || isFeatureEnabled('attendance')" class="menu-item" (click)="goToPage('attendance-requests')">
-  <div class="icon-box amber"><i class="fas fa-user-check"></i></div>
-  <div class="item-text"><span>{{ 'MENU.ATTENDANCE_REQ' | translate }}</span></div>
-</a>
-<!-- 
-  <a class="menu-item" (click)="goToPage('assets-list')" [class.active]="router.url === '/home/assets-list'">
-  <div class="icon-box red"><i class="fas fa-boxes"></i></div>
-  <div class="item-text"><span>{{ 'MENU.ASSETS' | translate }}</span></div>
-</a> -->
-<!-- Ye sirf tab dikhega jab user Admin hoga
-<a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('admin-dashboard')">
-  <div class="icon-box blue"><i class="fas fa-chart-line"></i></div>
-  <div class="item-text"><span>Admin Dashboard</span></div>
-</a> -->
 
-<!-- <a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('category')" [class.active]="router.url.includes('category')">
-  <div class="icon-box purple">
-    <i class="fas fa-sitemap"></i>
-  </div>
-  <div class="item-text">
-    <span>Manage Hierarchy</span>
-  </div>
-</a> -->
+      <a *ngIf="isFeatureEnabled('attendance')" class="menu-item" (click)="goToPage('onsite-attendance')">
+        <div class="icon-box blue-tint"><i class="fas fa-map-marker-alt"></i></div>
+        <div class="item-text"><span>On Site/Beat Attendance</span></div>
+      </a>
 
-<a *ngIf="isFeatureEnabled('know_your_area') || isFeatureEnabled('geofences')" class="menu-item" (click)="goToPage('geofences')" [class.active]="router.url.includes('geofences')">
-  <div class="icon-box orange"><i class="fas fa-draw-polygon"></i></div>
-  <div class="item-text"><span>Geofences & Sites</span></div>
-</a>
-
-<a *ngIf="isFeatureEnabled('task_management') || isFeatureEnabled('tasks')" class="menu-item" (click)="goToPage('tasks')" [class.active]="router.url.includes('tasks')">
-  <div class="icon-box" style="background: rgba(16, 185, 129, 0.15); color: #10b981;"><i class="fas fa-tasks"></i></div>
-  <div class="item-text"><span>Task Management</span></div>
-</a>
-
-<!-- <a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('dynamic-forms')" [class.active]="router.url.includes('dynamic-forms')">
-  <div class="icon-box indigo"><i class="fas fa-edit"></i></div>
-  <div class="item-text"><span>Change Forms</span></div>
-</a> -->
-
-<!-- <a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('dynamic-labels')" [class.active]="router.url.includes('dynamic-labels')">
-  <div class="icon-box azure"><i class="fas fa-font"></i></div>
-  <div class="item-text"><span>{{ 'label_dynamic' | dynamicLabel }}</span></div>
-</a> -->
-
-<!-- Ye sirf tab dikhega jab user Ranger hoga -->
-<!-- <a *ngIf="userRole === 'ranger'" class="menu-item" (click)="goToPage('ranger-dashboard')">
-  <div class="icon-box green"><i class="fas fa-map-marked-alt"></i></div>
-  <div class="item-text"><span>Ranger Dashboard</span></div>
-</a> -->
-
-<!-- Assets List dono ko dikh rahi hai toh rehne do -->
-<a *ngIf="isFeatureEnabled('asset_management') || isFeatureEnabled('assets')" class="menu-item" (click)="goToPage('assets-list')" [class.active]="router.url === '/home/assets-list'">
-  <div class="icon-box red"><i class="fas fa-boxes"></i></div>
-  <div class="item-text"><span>{{ 'MENU.ASSETS' | translate }}</span></div>
-</a>
-
-<!-- Forest Events Dashboard (New Addition) -->
-<a *ngIf="isFeatureEnabled('forest_events') || isFeatureEnabled('forest_event')" class="menu-item" (click)="goToPage('forest-events')" [class.active]="router.url.includes('forest-events')">
-  <div class="icon-box green-tint">
-    <i class="fas fa-shield-virus"></i>
-  </div>
-  <div class="item-text">
-    <span>Forest Events Dashboard</span>
-  </div>
-</a>
-
-<a *ngIf="isFeatureEnabled('patrol_report') || isFeatureEnabled('reports')" class="menu-item" (click)="goToPage('reports')" [class.active]="router.url.includes('reports')">
-  <div class="icon-box blue-tint">
-    <i class="fas fa-file-contract"></i>
-  </div>
-  <div class="item-text">
-    <span>{{ 'label_report' | dynamicLabel }}</span>
-  </div>
-</a>
+      <a *ngIf="isFeatureEnabled('patrol_report')" class="menu-item" (click)="goToPage('reports')" [class.active]="router.url.includes('reports')">
+        <div class="icon-box blue-tint"><i class="fas fa-file-contract"></i></div>
+        <div class="item-text"><span>Reports</span></div>
+      </a>
 
       <a *ngIf="isFeatureEnabled('daily_updates')" class="menu-item" (click)="goToPage('daily-updates')" [class.active]="router.url.includes('daily-updates')">
         <div class="icon-box purple"><i class="fas fa-newspaper"></i></div>
@@ -171,7 +134,7 @@
     </nav>
 
     <div class="menu-footer">
-      <span class="version-tag">{{ 'COMMON.SYSTEM_TAG' | translate }} v1.2.1</span>
+      <span class="version-tag">Forest Management System v1.6.3</span>
     </div>
   </div>
 </ion-menu>

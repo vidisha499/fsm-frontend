@@ -168,6 +168,11 @@ async login() {
         };
 
         // --- DATA STORAGE ---
+        // ✅ Clear stale role/feature cache from previous session first
+        // Without this, if a different role user logs in they'd see wrong menu items
+        localStorage.removeItem('menu_features');
+        localStorage.removeItem('user_designation');
+        
         localStorage.setItem('user_data', JSON.stringify(userInfo));
         localStorage.setItem('api_token', userData.api_token);
         localStorage.setItem('user_role', userRole.toString());
