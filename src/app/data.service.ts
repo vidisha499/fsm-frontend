@@ -67,7 +67,9 @@ export class DataService {
     formData.append('company_id', String(companyId));
     if (token) formData.append('api_token', token);
     
-    return this.http.post(`${this.baseApiUrl}/getUserDetails`, formData);
+    return this.http.post(`${this.baseApiUrl}/getUserDetails`, formData, {
+      headers: { 'Bypass-Token': 'true' }
+    });
   }
   verifyOtp(phone: string, otp: string) { return this.http.post(`${this.baseApiUrl}/verifyUser`, { phoneNo: phone, otp: otp }); }
   updateProfilePic(photoBase64: string) { return this.http.post(`${this.baseApiUrl}/updateProfilePic`, { photo: photoBase64 }); }

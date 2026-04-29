@@ -25,6 +25,7 @@ export class AppComponent implements OnInit {
   userPhoto: string = ''; 
   profileImage: string | null = null;
   userRole: string = '';
+  userDesignation: string = '';
   isLoadingSidebar: boolean = false; // Added for loader UI
 
 
@@ -165,6 +166,11 @@ export class AppComponent implements OnInit {
     }
   }
 
+  isFeatureEnabled(feature: string): boolean {
+    // Basic implementation for feature flagging. You can connect this to real logic.
+    return true;
+  }
+
   // 🔥 NEW: Automatic Sync when Network Restored
   @HostListener('window:online')
   onOnline() {
@@ -243,27 +249,36 @@ loadUserData() {
   if (parsedUser) {
     this.companyName = parsedUser.company_name || (parsedUser.company ? parsedUser.company.name : '') || parsedUser.client_name || '';
     
-    // Fallback: If no company name is found, fetch it dynamically
-    if (!this.companyName && parsedUser.company_id && parsedUser.id) {
+    // 🔥 ALWAYS fetch latest DB data to sync with local storage (Phone/Password change sync)
+    if (parsedUser.id && parsedUser.company_id) {
       this.dataService.getUserDetails(parsedUser.id, parsedUser.company_id).subscribe({
         next: (res: any) => {
           if (res.status === 'success' || res.status === 'SUCCESS' || res.data) {
             const data = res.data || res;
-            this.companyName = data.company_name || (data.company ? data.company.name : '') || data.client_name || '';
-            // If still empty after API call, at least show the ID
-            if (!this.companyName) {
-              this.companyName = `Company ID: ${parsedUser.company_id}`;
-            } else {
-              // Update local storage so we don't have to fetch it every time
-              parsedUser.company_name = this.companyName;
-              localStorage.setItem('user_data', JSON.stringify(parsedUser));
-            }
+            
+            // Sync all vital details from DB to LocalStorage
+            parsedUser.name = data.name || parsedUser.name;
+            parsedUser.phone = data.contact || data.mobile || data.phone || parsedUser.phone;
+            parsedUser.company_name = data.company_name || (data.company ? data.company.name : '') || data.client_name || parsedUser.company_name;
+            
+            // Update LocalStorage objects
+            localStorage.setItem('user_data', JSON.stringify(parsedUser));
+            localStorage.setItem('ranger_username', parsedUser.name);
+            localStorage.setItem('ranger_phone', parsedUser.phone);
+            
+            // Update UI properties
+            this.companyName = parsedUser.company_name;
+            this.rangerName = parsedUser.name;
+            this.rangerPhone = parsedUser.phone;
+            
             this.cdr.detectChanges();
           }
         },
         error: () => {
-          this.companyName = `Company ID: ${parsedUser.company_id}`;
-          this.cdr.detectChanges();
+          if (!this.companyName) {
+            this.companyName = `Company ID: ${parsedUser.company_id}`;
+            this.cdr.detectChanges();
+          }
         }
       });
     } else if (!this.companyName && parsedUser.company_id) {
@@ -468,11 +483,13 @@ async goToPage(path: string) {
     if (container) {
       this.maxSlide = container.clientWidth - 64; 
     }
-    this.startX = event.touches[0].clientX - this.currentTranslateX;
+    if (event.touches && event.touches.length > 0) {
+      this.startX = event.touches[0].clientX - this.currentTranslateX;
+    }
   }
 
   onDragMove(event: any) {
-    if (this.isSubmitting || !this.isEditMode) return;
+    if (this.isSubmitting || !this.isEditMode || !event.touches || event.touches.length === 0) return;
 
     let diff = event.touches[0].clientX - this.startX;
 
