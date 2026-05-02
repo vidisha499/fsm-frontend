@@ -196,7 +196,6 @@ export class DataService {
 
   // --- 7. PATROLS & SIGHTINGS (Aligned with Postman) ---
   startActivePatrol(payload: any) { 
-<<<<<<< Updated upstream
     const token = localStorage.getItem('api_token') || '';
     const finalPayload = {
       api_token: token,
@@ -260,87 +259,6 @@ export class DataService {
   }
   saveSighting(payload: any) { 
     return this.http.post(`${this.baseApiUrl}/forest-reports`, payload); 
-=======
-    const token = localStorage.getItem('api_token');
-    const headers = { 
-      'Authorization': `Bearer ${token}`,
-      'Bypass-Token': 'true'
-    };
-    const fullPayload = { ...payload, api_token: token };
-    console.log('DEBUG: Starting Patrol with Payload:', fullPayload);
-    console.log('DEBUG: Starting Patrol with Headers:', headers);
-    return this.http.post(`${this.baseApiUrl}/patrol/start`, fullPayload, { headers }); 
-  }
-  getOngoingPatrols() { 
-    const token = localStorage.getItem('api_token');
-    const headers = { 
-      'Authorization': `Bearer ${token}`,
-      'Bypass-Token': 'true'
-    };
-    return this.http.post(`${this.baseApiUrl}/patrol-list`, { api_token: token }, { headers }); 
-  }
-  getActivePatrols(companyId: number) { 
-    const token = localStorage.getItem('api_token');
-    const headers = { 
-      'Authorization': `Bearer ${token}`,
-      'Bypass-Token': 'true'
-    };
-    return this.http.post(`${this.baseApiUrl}/patrol-list`, { company_id: companyId, api_token: token }, { headers }); 
-  }
-  updatePatrolStats(patrolId: string, data: any) { 
-    const token = localStorage.getItem('api_token');
-    const headers = { 
-      'Authorization': `Bearer ${token}`,
-      'Bypass-Token': 'true'
-    };
-    const fullPayload = { ...data, api_token: token };
-    return this.http.post(`${this.baseApiUrl}/patrol/${patrolId}/end`, fullPayload, { headers }); 
-  }
-  uploadPatrolPhoto(patrolId: string, photoData: any) { 
-    const token = localStorage.getItem('api_token');
-    const headers = { 
-      'Authorization': `Bearer ${token}`,
-      'Bypass-Token': 'true'
-    };
-    const fullPayload = { ...photoData, api_token: token };
-    return this.http.post(`${this.baseApiUrl}/patrol/${patrolId}/photos`, fullPayload, { headers }); 
-  }
-  getCompletedPatrolLogs() { 
-    const token = localStorage.getItem('api_token');
-    const headers = { 
-      'Authorization': `Bearer ${token}`,
-      'Bypass-Token': 'true'
-    };
-    return this.http.post(`${this.baseApiUrl}/patrol-logs`, { api_token: token }, { headers }); 
-  }
-  getPatrolsByCompany(companyId: number, dateFrom?: string, dateTo?: string) {
-    const token = localStorage.getItem('api_token');
-    const headers = { 
-      'Authorization': `Bearer ${token}`,
-      'Bypass-Token': 'true'
-    };
-    let payload: any = { company_id: companyId, api_token: token };
-    if (dateFrom) payload.date_from = dateFrom;
-    if (dateTo) payload.date_to = dateTo;
-    return this.http.post(`${this.baseApiUrl}/patrol-list`, payload, { headers });
-  }
-  getPatrolById(id: number | string) { 
-    const token = localStorage.getItem('api_token');
-    const headers = { 
-      'Authorization': `Bearer ${token}`,
-      'Bypass-Token': 'true'
-    };
-    return this.http.post(`${this.baseApiUrl}/patrol-logs`, { id: id, api_token: token }, { headers }); 
-  }
-  saveSighting(payload: any) { 
-    const token = localStorage.getItem('api_token');
-    const headers = { 
-      'Authorization': `Bearer ${token}`,
-      'Bypass-Token': 'true'
-    };
-    const fullPayload = { ...payload, api_token: token };
-    return this.http.post(`${this.baseApiUrl}/forest-reports`, fullPayload, { headers }); 
->>>>>>> Stashed changes
   }
   private dataURItoBlob(dataURI: string): Blob {
     const byteString = atob(dataURI.split(',')[1]);
@@ -362,47 +280,11 @@ export class DataService {
 
     return this.http.post(`${this.baseApiUrl}/forest-reports`, finalPayload, { headers });
   }
-<<<<<<< Updated upstream
   savePatrolLogs(payload: any) { return this.http.post(`${this.baseApiUrl}/save-patrol-logs`, payload); }
   updatePatrolLog(id: string | number, payload: any) { return this.http.put(`${this.baseApiUrl}/patrol-logs/${id}`, payload); }
   deletePatrolLog(id: string | number) { return this.http.delete(`${this.baseApiUrl}/patrol-logs/${id}`); }
   getPatrolPhotos(sessionId: string) { 
     return this.http.post(`${this.baseApiUrl}/patrol/${sessionId}/getphotos`, {}); 
-=======
-  savePatrolLogs(payload: any) { 
-    const token = localStorage.getItem('api_token');
-    const headers = { 
-      'Authorization': `Bearer ${token}`,
-      'Bypass-Token': 'true'
-    };
-    const finalPayload = { ...payload, api_token: token };
-    return this.http.post(`${this.baseApiUrl}/save-patrol-logs`, finalPayload, { headers }); 
-  }
-  updatePatrolLog(id: string | number, payload: any) { 
-    const token = localStorage.getItem('api_token');
-    const headers = { 
-      'Authorization': `Bearer ${token}`,
-      'Bypass-Token': 'true'
-    };
-    const finalPayload = { ...payload, api_token: token };
-    return this.http.put(`${this.baseApiUrl}/patrol-logs/${id}`, finalPayload, { headers }); 
-  }
-  deletePatrolLog(id: string | number) { 
-    const token = localStorage.getItem('api_token');
-    const headers = { 
-      'Authorization': `Bearer ${token}`,
-      'Bypass-Token': 'true'
-    };
-    return this.http.delete(`${this.baseApiUrl}/patrol-logs/${id}`, { headers }); 
-  }
-  getPatrolPhotos(sessionId: string) { 
-    const token = localStorage.getItem('api_token');
-    const headers = { 
-      'Authorization': `Bearer ${token}`,
-      'Bypass-Token': 'true'
-    };
-    return this.http.post(`${this.baseApiUrl}/patrol/${sessionId}/getphotos`, { api_token: token }, { headers }); 
->>>>>>> Stashed changes
   }
   getAllMapSightings(companyId: number) { return this.http.get(`${this.baseApiUrl}/patrols/all-sightings?companyId=${companyId}`); }
   getSightingCount(companyId: number, from?: string, to?: string): Observable<number> {

@@ -344,19 +344,11 @@ export class PatrolLogsPage implements OnInit {
         this.isSubmitting = false;
         this.resetKnob();
         
-<<<<<<< Updated upstream
         const msg = err.error?.message || err.error?.msg || 'Error starting patrol';
         if (msg.toLowerCase().includes('already') || msg.toLowerCase().includes('in progress')) {
           this.presentToast('You already have an active patrol. Please end it first.', 'warning');
         } else {
           this.presentToast(msg, 'danger');
-=======
-        if (err.status === 401) {
-          this.presentToast('Session expired. Please log in again.', 'danger');
-          this.navCtrl.navigateRoot('/login');
-        } else {
-          this.presentToast('Error starting patrol: ' + (err.error?.message || 'Server error'), 'danger');
->>>>>>> Stashed changes
         }
       }
     });

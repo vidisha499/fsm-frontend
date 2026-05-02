@@ -57,7 +57,6 @@ export class OfficersPage implements OnInit {
 
     const companyIdStr = this.myCompanyId.toString();
 
-<<<<<<< Updated upstream
     // Fetch from all attendance sources to ensure nobody is missed
     import('rxjs').then(({ forkJoin, of }) => {
       forkJoin({
@@ -73,18 +72,11 @@ export class OfficersPage implements OnInit {
             if (firstArray) return firstArray;
             return obj.data || obj.attendance || obj.requests || obj.requests_list || obj.items || obj.logs || (Array.isArray(obj.result) ? obj.result : []);
           };
-=======
-    // Reverting to getAssignableUsers as per user's "Sir's API" preference
-    this.dataService.getAssignableUsers({ company_id: this.myCompanyId.toString() }).subscribe({
-      next: (res: any) => {
-        const staffList = res.data || res || [];
->>>>>>> Stashed changes
 
           const logsArray = getArr(res.logs);
           const reqArray = getArr(res.requests);
           const onsiteArray = getArr(res.onsite);
 
-<<<<<<< Updated upstream
           const nowL = new Date();
           const todayYMD = `${nowL.getFullYear()}-${String(nowL.getMonth() + 1).padStart(2, '0')}-${String(nowL.getDate()).padStart(2, '0')}`;
           const todayDMY = `${String(nowL.getDate()).padStart(2, '0')}-${String(nowL.getMonth() + 1).padStart(2, '0')}-${nowL.getFullYear()}`;
@@ -116,7 +108,7 @@ export class OfficersPage implements OnInit {
                 const photoRaw = record.photo || record.profile_pic || record.profile_Pic || record.image || record.avatar || record.profile_image;
                 
                 activeOfficersMap.set(uId.toString(), {
-                  ...record, // Keep original data for details page
+                  ...record,
                   id: uId.toString(),
                   name: record.name || record.full_name || record.guard_name || record.user_name || record.ranger_name || 'Officer',
                   role: this.getRoleName(record.role_id),
@@ -126,68 +118,17 @@ export class OfficersPage implements OnInit {
                   dutyStatus: 'On Duty',
                   hasAttended: true
                 });
-=======
-            console.log('DEBUG: Full Data for First 3 Officers:', staffList.slice(0, 3));
-            
-            // Build set of user IDs who attended today
-            logsArray.forEach((log: any) => {
-              const lDate = log.timestamp || log.entryDateTime || log.created_at || '';
-              if (lDate && lDate.includes(todayYMD)) {
-                this.todayAttendanceIds.add(log.user_id || log.staff_id || log.ranger_id);
->>>>>>> Stashed changes
               }
             }
           };
 
-<<<<<<< Updated upstream
           logsArray.forEach(processRecord);
           reqArray.forEach(processRecord);
           onsiteArray.forEach(processRecord);
-=======
-            // Get current user ID to handle "Self Photo" fallback
-            const currentUserId = localStorage.getItem('ranger_id');
-
-            // Map officers with duty status
-            this.allOfficers = staffList.map((u: any) => {
-              const id = (u.id || u.user_id || '').toString();
-              const hasAttended = this.todayAttendanceIds.has(id);
-              
-              // 1. Extract raw photo from API (with EXHAUSTIVE fallback)
-              let photoRaw = u.profile_pic || u.profile_Pic || u.image || u.photo || u.profile_image || u.avatar || u.user_photo || u.profilePic || 
-                             u.user?.profile_pic || u.user?.profile_Pic || u.user?.image || u.user?.photo || u.user?.avatar ||
-                             u.pic || u.profile_picture || u.thumbnail || u.user_image;
-              
-              // 2. Self-Photo Fallback: If this is ME, and API photo is missing, use my local session photo
-              if ((!photoRaw || photoRaw === 'null') && id === currentUserId) {
-                photoRaw = localStorage.getItem('user_photo');
-              }
-
-              // 3. Cached-Photo Fallback: Check if we have a locally cached photo for this contact number
-              const contact = u.contact || u.phone || u.mobile;
-              if ((!photoRaw || photoRaw === 'null') && contact) {
-                const cached = localStorage.getItem(`cached_photo_${contact}`);
-                if (cached) photoRaw = cached;
-              }
-
-              const finalPhoto = this.getPhotoUrl(photoRaw);
-              
-              return {
-                ...u,
-                id: id,
-                name: u.name || u.full_name || u.first_name || 'Staff',
-                role: u.role_name || u.designation || this.getRoleName(u.role_id),
-                site_name: u.site_name || u.beat_name || u.range_name || '',
-                photo: finalPhoto,
-                dutyStatus: hasAttended ? 'On Duty' : 'No Show',
-                hasAttended: hasAttended
-              };
-            });
->>>>>>> Stashed changes
 
           this.allOfficers = Array.from(activeOfficersMap.values());
           this.allOfficers.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
-<<<<<<< Updated upstream
           this.filteredOfficers = [...this.allOfficers];
           this.totalCount = this.allOfficers.length;
           this.isLoading = false;
@@ -199,49 +140,6 @@ export class OfficersPage implements OnInit {
           this.cdr.detectChanges();
         }
       });
-=======
-            this.filteredOfficers = [...this.allOfficers];
-            this.totalCount = this.allOfficers.length;
-            this.isLoading = false;
-            this.cdr.detectChanges();
-          },
-          error: () => {
-            // If attendance fetch fails, still show officers but all as "No Show"
-            this.allOfficers = staffList.map((u: any) => {
-              const id = u.id || u.user_id;
-              const photoRaw = u.profile_pic || u.profile_Pic || u.image || u.photo || u.profile_image || u.avatar || u.user_photo || u.profilePic;
-              return {
-                ...u,
-                id: id,
-                name: u.name || u.full_name || u.first_name || 'Staff',
-                role: u.role_name || u.designation || this.getRoleName(u.role_id),
-                site_name: u.site_name || u.beat_name || u.range_name || '',
-                photo: this.getPhotoUrl(photoRaw),
-                dutyStatus: 'No Show',
-                hasAttended: false
-              };
-            });
-
-            this.filteredOfficers = [...this.allOfficers];
-            this.totalCount = this.allOfficers.length;
-            this.isLoading = false;
-            this.cdr.detectChanges();
-
-            // 🔥 Progressive Fetch Fallback
-            this.allOfficers.forEach((officer, index) => {
-              if (!officer.photo || officer.photo === '') {
-                this.fetchMissingPhoto(officer, index);
-              }
-            });
-          }
-        });
-      },
-      error: (err) => {
-        console.error('Error loading officers:', err);
-        this.isLoading = false;
-        this.cdr.detectChanges();
-      }
->>>>>>> Stashed changes
     });
   }
 
