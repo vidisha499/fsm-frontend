@@ -67,7 +67,9 @@ export class DataService {
     formData.append('company_id', String(companyId));
     if (token) formData.append('api_token', token);
     
-    return this.http.post(`${this.baseApiUrl}/getUserDetails`, formData);
+    return this.http.post(`${this.baseApiUrl}/getUserDetails`, formData, {
+      headers: { 'Bypass-Token': 'true' }
+    });
   }
   verifyOtp(phone: string, otp: string) { return this.http.post(`${this.baseApiUrl}/verifyUser`, { phoneNo: phone, otp: otp }); }
   updateProfilePic(photoBase64: string) { return this.http.post(`${this.baseApiUrl}/updateProfilePic`, { photo: photoBase64 }); }
@@ -135,9 +137,21 @@ export class DataService {
     return this.http.post(`${this.baseApiUrl}/changePassword`, formData);
   }
 
-  getRangerProfile(id: string) { return this.http.get(`${this.baseApiUrl}/rangers/${id}`); }
-  getRangersByCompany(companyId: string) { return this.http.get(`${this.baseApiUrl}/rangers/company/${companyId}`); }
-  getUsersByCompany(companyId: any) { return this.http.get(`${this.baseApiUrl}/users/company/${companyId}`); }
+  getRangerProfile(id: string) { 
+    const token = localStorage.getItem('api_token');
+    const headers = { 'Authorization': `Bearer ${token}` };
+    return this.http.get(`${this.baseApiUrl}/rangers/${id}`, { headers }); 
+  }
+  getRangersByCompany(companyId: string) { 
+    const token = localStorage.getItem('api_token');
+    const headers = { 'Authorization': `Bearer ${token}` };
+    return this.http.get(`${this.baseApiUrl}/rangers/company/${companyId}`, { headers }); 
+  }
+  getUsersByCompany(companyId: any) { 
+    const token = localStorage.getItem('api_token');
+    const headers = { 'Authorization': `Bearer ${token}` };
+    return this.http.get(`${this.baseApiUrl}/users/company/${companyId}`, { headers }); 
+  }
 
   // --- 6. INCIDENTS (Aligned with Postman) ---
   getIncidentsByRanger() {
@@ -182,6 +196,7 @@ export class DataService {
 
   // --- 7. PATROLS & SIGHTINGS (Aligned with Postman) ---
   startActivePatrol(payload: any) { 
+<<<<<<< Updated upstream
     const token = localStorage.getItem('api_token') || '';
     const finalPayload = {
       api_token: token,
@@ -245,6 +260,87 @@ export class DataService {
   }
   saveSighting(payload: any) { 
     return this.http.post(`${this.baseApiUrl}/forest-reports`, payload); 
+=======
+    const token = localStorage.getItem('api_token');
+    const headers = { 
+      'Authorization': `Bearer ${token}`,
+      'Bypass-Token': 'true'
+    };
+    const fullPayload = { ...payload, api_token: token };
+    console.log('DEBUG: Starting Patrol with Payload:', fullPayload);
+    console.log('DEBUG: Starting Patrol with Headers:', headers);
+    return this.http.post(`${this.baseApiUrl}/patrol/start`, fullPayload, { headers }); 
+  }
+  getOngoingPatrols() { 
+    const token = localStorage.getItem('api_token');
+    const headers = { 
+      'Authorization': `Bearer ${token}`,
+      'Bypass-Token': 'true'
+    };
+    return this.http.post(`${this.baseApiUrl}/patrol-list`, { api_token: token }, { headers }); 
+  }
+  getActivePatrols(companyId: number) { 
+    const token = localStorage.getItem('api_token');
+    const headers = { 
+      'Authorization': `Bearer ${token}`,
+      'Bypass-Token': 'true'
+    };
+    return this.http.post(`${this.baseApiUrl}/patrol-list`, { company_id: companyId, api_token: token }, { headers }); 
+  }
+  updatePatrolStats(patrolId: string, data: any) { 
+    const token = localStorage.getItem('api_token');
+    const headers = { 
+      'Authorization': `Bearer ${token}`,
+      'Bypass-Token': 'true'
+    };
+    const fullPayload = { ...data, api_token: token };
+    return this.http.post(`${this.baseApiUrl}/patrol/${patrolId}/end`, fullPayload, { headers }); 
+  }
+  uploadPatrolPhoto(patrolId: string, photoData: any) { 
+    const token = localStorage.getItem('api_token');
+    const headers = { 
+      'Authorization': `Bearer ${token}`,
+      'Bypass-Token': 'true'
+    };
+    const fullPayload = { ...photoData, api_token: token };
+    return this.http.post(`${this.baseApiUrl}/patrol/${patrolId}/photos`, fullPayload, { headers }); 
+  }
+  getCompletedPatrolLogs() { 
+    const token = localStorage.getItem('api_token');
+    const headers = { 
+      'Authorization': `Bearer ${token}`,
+      'Bypass-Token': 'true'
+    };
+    return this.http.post(`${this.baseApiUrl}/patrol-logs`, { api_token: token }, { headers }); 
+  }
+  getPatrolsByCompany(companyId: number, dateFrom?: string, dateTo?: string) {
+    const token = localStorage.getItem('api_token');
+    const headers = { 
+      'Authorization': `Bearer ${token}`,
+      'Bypass-Token': 'true'
+    };
+    let payload: any = { company_id: companyId, api_token: token };
+    if (dateFrom) payload.date_from = dateFrom;
+    if (dateTo) payload.date_to = dateTo;
+    return this.http.post(`${this.baseApiUrl}/patrol-list`, payload, { headers });
+  }
+  getPatrolById(id: number | string) { 
+    const token = localStorage.getItem('api_token');
+    const headers = { 
+      'Authorization': `Bearer ${token}`,
+      'Bypass-Token': 'true'
+    };
+    return this.http.post(`${this.baseApiUrl}/patrol-logs`, { id: id, api_token: token }, { headers }); 
+  }
+  saveSighting(payload: any) { 
+    const token = localStorage.getItem('api_token');
+    const headers = { 
+      'Authorization': `Bearer ${token}`,
+      'Bypass-Token': 'true'
+    };
+    const fullPayload = { ...payload, api_token: token };
+    return this.http.post(`${this.baseApiUrl}/forest-reports`, fullPayload, { headers }); 
+>>>>>>> Stashed changes
   }
   private dataURItoBlob(dataURI: string): Blob {
     const byteString = atob(dataURI.split(',')[1]);
@@ -266,11 +362,47 @@ export class DataService {
 
     return this.http.post(`${this.baseApiUrl}/forest-reports`, finalPayload, { headers });
   }
+<<<<<<< Updated upstream
   savePatrolLogs(payload: any) { return this.http.post(`${this.baseApiUrl}/save-patrol-logs`, payload); }
   updatePatrolLog(id: string | number, payload: any) { return this.http.put(`${this.baseApiUrl}/patrol-logs/${id}`, payload); }
   deletePatrolLog(id: string | number) { return this.http.delete(`${this.baseApiUrl}/patrol-logs/${id}`); }
   getPatrolPhotos(sessionId: string) { 
     return this.http.post(`${this.baseApiUrl}/patrol/${sessionId}/getphotos`, {}); 
+=======
+  savePatrolLogs(payload: any) { 
+    const token = localStorage.getItem('api_token');
+    const headers = { 
+      'Authorization': `Bearer ${token}`,
+      'Bypass-Token': 'true'
+    };
+    const finalPayload = { ...payload, api_token: token };
+    return this.http.post(`${this.baseApiUrl}/save-patrol-logs`, finalPayload, { headers }); 
+  }
+  updatePatrolLog(id: string | number, payload: any) { 
+    const token = localStorage.getItem('api_token');
+    const headers = { 
+      'Authorization': `Bearer ${token}`,
+      'Bypass-Token': 'true'
+    };
+    const finalPayload = { ...payload, api_token: token };
+    return this.http.put(`${this.baseApiUrl}/patrol-logs/${id}`, finalPayload, { headers }); 
+  }
+  deletePatrolLog(id: string | number) { 
+    const token = localStorage.getItem('api_token');
+    const headers = { 
+      'Authorization': `Bearer ${token}`,
+      'Bypass-Token': 'true'
+    };
+    return this.http.delete(`${this.baseApiUrl}/patrol-logs/${id}`, { headers }); 
+  }
+  getPatrolPhotos(sessionId: string) { 
+    const token = localStorage.getItem('api_token');
+    const headers = { 
+      'Authorization': `Bearer ${token}`,
+      'Bypass-Token': 'true'
+    };
+    return this.http.post(`${this.baseApiUrl}/patrol/${sessionId}/getphotos`, { api_token: token }, { headers }); 
+>>>>>>> Stashed changes
   }
   getAllMapSightings(companyId: number) { return this.http.get(`${this.baseApiUrl}/patrols/all-sightings?companyId=${companyId}`); }
   getSightingCount(companyId: number, from?: string, to?: string): Observable<number> {
@@ -1010,7 +1142,15 @@ export class DataService {
   updateForestTask(taskId: string, payload: any) { return this.http.post(`${this.baseApiUrl}/forest-tasks/${taskId}/update`, payload); }
   getForestTaskReminders(payload: any) { return this.http.post(`${this.baseApiUrl}/forest-tasks/reminders`, payload); }
   bulkDeleteForestTasks(payload: any) { return this.http.post(`${this.baseApiUrl}/forest-tasks/bulk-delete`, payload); }
-  getAssignableUsers(payload: any) { return this.http.post(`${this.baseApiUrl}/assignable-users`, payload); }
+  getAssignableUsers(payload: any) { 
+    const token = localStorage.getItem('api_token');
+    const headers = { 
+      'Authorization': `Bearer ${token}`,
+      'Bypass-Token': 'true'
+    };
+    const fullPayload = { ...payload, api_token: token };
+    return this.http.post(`${this.baseApiUrl}/assignable-users`, fullPayload, { headers }); 
+  }
 
   getForestKPIs(companyId: number, range: string, category: string): Observable<any> {
     const params = { companyId, range, category, timeframe: range };

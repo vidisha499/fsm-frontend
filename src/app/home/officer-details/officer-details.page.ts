@@ -91,7 +91,23 @@ export class OfficerDetailsPage implements OnInit {
   }
 
   mapOfficerData(found: any) {
-    const photoRaw = found.profile_pic || found.profile_Pic || found.image || found.photo || found.profile_image || found.avatar || found.user_photo || found.profilePic;
+    let photoRaw = found.profile_pic || found.profile_Pic || found.image || found.photo || found.profile_image || found.avatar || found.user_photo || found.profilePic;
+    
+    // Fallback logic
+    const currentUserId = localStorage.getItem('ranger_id');
+    const officerIdStr = (found.id || found.user_id || found.staff_id || '').toString();
+    
+    // 1. Self-photo fallback
+    if ((!photoRaw || photoRaw === 'null') && officerIdStr === currentUserId) {
+      photoRaw = localStorage.getItem('user_photo');
+    }
+
+    // 2. Cached-photo fallback
+    const contact = found.contact || found.phone || found.mobile || found.phone_no;
+    if ((!photoRaw || photoRaw === 'null') && contact) {
+      const cached = localStorage.getItem(`cached_photo_${contact}`);
+      if (cached) photoRaw = cached;
+    }
     
     this.officer = {
       ...found,
@@ -188,7 +204,33 @@ export class OfficerDetailsPage implements OnInit {
   getPhotoUrl(photoPath: any): string {
     if (!photoPath || photoPath === 'null' || photoPath === 'undefined') return '';
     
-    let url = String(photoPath).trim();
+    let url = '';
+    if (typeof photoPath === 'string') {
+      url = photoPath.trim();
+      // Handle JSON strings
+      if (url.startsWith('[') || url.startsWith('"{')) {
+        try {
+          const parsed = JSON.parse(url.replace(/^"|"$/g, '').replace(/\\"/g, '"'));
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            url = parsed[0].photo || parsed[0].url || parsed[0].path || parsed[0] || '';
+          } else if (typeof parsed === 'object' && parsed !== null) {
+            url = parsed.photo || parsed.url || parsed.path || '';
+          }
+        } catch (e) {
+          console.warn('Failed to parse photo JSON:', url);
+        }
+      }
+    } else if (typeof photoPath === 'object' && photoPath !== null) {
+      url = photoPath.photo || photoPath.url || photoPath.path || '';
+    }
+
+    if (!url || typeof url !== 'string' || url.length < 5) return '';
+
+    // Fix for absolute URLs that are missing '/public/'
+    if (url.includes('fms.pugarch.in/profilepics/') && !url.includes('/public/')) {
+        url = url.replace('fms.pugarch.in/profilepics/', 'fms.pugarch.in/public/profilepics/');
+    }
+
     if (url.startsWith('http')) return url;
     if (url.startsWith('data:')) return url;
     
@@ -200,7 +242,12 @@ export class OfficerDetailsPage implements OnInit {
       return `https://${cleaned.replace('https://', '').replace('http://', '')}`;
     }
 
-    // Try standard public path
+    // If it already has a directory path
+    if (cleaned.includes('/')) {
+      return `https://fms.pugarch.in/public/${cleaned}`;
+    }
+
+    // Try standard public path if it's just a filename
     return `https://fms.pugarch.in/public/profilepics/${cleaned}`;
   }
 

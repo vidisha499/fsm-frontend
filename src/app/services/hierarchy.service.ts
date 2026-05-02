@@ -114,7 +114,7 @@ export class HierarchyService {
     const payload = { 
       api_token: apiToken,
       company_id: companyId,
-      user_id: rangerId // geofences.page.ts suggests this works for filtering
+      user_id: rangerId
     };
 
     console.log('🔄 Fetching Assigned Site from /getSites for Role:', userRole, 'ID:', rangerId);

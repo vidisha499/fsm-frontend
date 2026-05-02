@@ -338,6 +338,7 @@ async toggleNotification(item: any) {
 
 
   async logout() {
+    console.log("🟠 User initiated manual logout from Admin Settings...");
     const t = await this.toast.create({
       message: 'Signing out...',
       duration: 1000,
@@ -345,29 +346,20 @@ async toggleNotification(item: any) {
     });
     await t.present();
     
-    // Clear only User/Auth data, preserve active patrol data for persistence
-    const patrolKeys = [
-      'active_patrol_id', 
-      'active_patrol_route', 
-      'patrol_session_start_time', 
-      'active_patrol_session_id',
-      'active_patrol_type'
-    ];
+    // Save language preference before clearing
+    const lang = localStorage.getItem('app_language_code');
     
-    // Save patrol data temporarily
-    const preserved: any = {};
-    patrolKeys.forEach(k => {
-      const val = localStorage.getItem(k);
-      if (val) preserved[k] = val;
-    });
-
+    // WIPE ALL MEMORY (Proper Logout)
+    console.log("🟠 Clearing all sensitive data from localStorage...");
     localStorage.clear();
     
-    // Restore patrol data
-    Object.keys(preserved).forEach(k => {
-      localStorage.setItem(k, preserved[k]);
-    });
+    // Restore only language setting
+    if (lang) {
+      console.log("🟠 Preserving user language preference:", lang);
+      localStorage.setItem('app_language_code', lang);
+    }
     
+    console.log("🟠 Memory wiped successfully. Redirecting to /login...");
     setTimeout(() => this.navCtrl.navigateRoot('/login'), 1000);
   }
  
