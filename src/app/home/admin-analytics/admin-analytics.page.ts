@@ -89,7 +89,9 @@ endDate: string = '';    // Ye missing tha
     { id: 'criminal', label: '🌲 Criminal' },
     { id: 'events', label: '🐾 Events' },
     { id: 'fire', label: '🔥 Fire' },
+    { id: 'patrol', label: '👮 Patrol' },
     { id: 'assets', label: '🛡️ Assets' }
+
   ];
 
   manualSubCounts: any = {};
@@ -374,94 +376,120 @@ events: {
 },
 
     assets: {
-  label: "🛡️ Forest Assets",
-  subs: [
-    { 
-      id: "nursery", 
-      label: "Nursery", 
-      emoji: "🌱", 
-      color: COLORS.green, 
-      val: this.realNurseryCount, 
-      charts: [
+      label: "🛡️ Forest Assets",
+      subs: [
         { 
-          title: "Nursery Health Status", 
-          id: "ac-n1", 
-          render: (id: string) => this.mkChart(id, { 
-            type: "pie", 
-            data: { 
-              labels: ["Healthy", "Maintenance", "New"], 
-              datasets: [{ data: [this.realNurseryCount, 5, 2], backgroundColor: PALETTE }] 
-            }, 
-            options: CDAX 
-          }) 
+          id: "nursery", 
+          label: "Nursery", 
+          emoji: "🌱", 
+          color: COLORS.green, 
+          val: this.realNurseryCount, 
+          charts: [
+            { 
+              title: "Nursery Health Status", 
+              id: "ac-n1", 
+              render: (id: string) => this.mkChart(id, { 
+                type: "pie", 
+                data: { 
+                  labels: ["Healthy", "Maintenance", "New"], 
+                  datasets: [{ data: [this.realNurseryCount, 5, 2], backgroundColor: PALETTE }] 
+                }, 
+                options: CDAX 
+              }) 
+            }
+          ]
+        },
+        { 
+          id: "plantations", 
+          label: "Plantations", 
+          emoji: "🌳", 
+          color: COLORS.p, 
+          val: this.realPlantationCount, 
+          charts: [
+            { 
+              title: "Plantation Growth", 
+              id: "ac-pl1", 
+              render: (id: string) => this.mkChart(id, { 
+                type: "bar", 
+                data: { 
+                  labels: ["Teak", "Bamboo", "Sandalwood"], 
+                  datasets: [{ label: "Count", data: [this.realPlantationCount, 15, 10], backgroundColor: COLORS.p }] 
+                }, 
+                options: CDAX 
+              }) 
+            }
+          ]
+        },
+        { 
+          id: "offices", 
+          label: "Offices/Govt", 
+          emoji: "🏢", 
+          color: COLORS.blue, 
+          val: this.realOfficeCount, 
+          charts: [
+            { 
+              title: "Office Distribution", 
+              id: "ac-off1", 
+              render: (id: string) => this.mkChart(id, { 
+                type: "doughnut", 
+                data: { 
+                  labels: ["Main Office", "Range Office", "Chowki"], 
+                  datasets: [{ data: [this.realOfficeCount, 3, 8], backgroundColor: [COLORS.blue, COLORS.teal, COLORS.ind] }] 
+                }, 
+                options: CDAX 
+              }) 
+            }
+          ]
+        },
+        { 
+          id: "ecoTourism", 
+          label: "Eco Tourism", 
+          emoji: "🏞️", 
+          color: COLORS.teal, 
+          val: this.realEcoCount, 
+          charts: [
+            { 
+              title: "Visitor Activity", 
+              id: "ac-eco1", 
+              render: (id: string) => this.mkChart(id, { 
+                type: "line", 
+                data: { 
+                  labels: ["Mon", "Tue", "Wed", "Thu", "Fri"], 
+                  datasets: [{ label: "Visitors", data: [this.realEcoCount, 20, 15, 30, 50], borderColor: COLORS.teal, fill: false }] 
+                }, 
+                options: CDAX 
+              }) 
+            }
+          ]
         }
       ]
     },
-    { 
-      id: "plantations", 
-      label: "Plantations", 
-      emoji: "🌳", 
-      color: COLORS.p, 
-      val: this.realPlantationCount, 
-      charts: [
-        { 
-          title: "Plantation Growth", 
-          id: "ac-pl1", 
-          render: (id: string) => this.mkChart(id, { 
-            type: "bar", 
-            data: { 
-              labels: ["Teak", "Bamboo", "Sandalwood"], 
-              datasets: [{ label: "Count", data: [this.realPlantationCount, 15, 10], backgroundColor: COLORS.p }] 
-            }, 
-            options: CDAX 
-          }) 
-        }
-      ]
-    },
-    { 
-      id: "offices", 
-      label: "Offices/Govt", 
-      emoji: "🏢", 
-      color: COLORS.blue, 
-      val: this.realOfficeCount, 
-      charts: [
-        { 
-          title: "Office Distribution", 
-          id: "ac-off1", 
-          render: (id: string) => this.mkChart(id, { 
-            type: "doughnut", 
-            data: { 
-              labels: ["Main Office", "Range Office", "Chowki"], 
-              datasets: [{ data: [this.realOfficeCount, 3, 8], backgroundColor: [COLORS.blue, COLORS.teal, COLORS.ind] }] 
-            }, 
-            options: CDAX 
-          }) 
-        }
-      ]
-    },
-    { 
-      id: "ecoTourism", 
-      label: "Eco Tourism", 
-      emoji: "🏞️", 
-      color: COLORS.teal, 
-      val: this.realEcoCount, 
-      charts: [
-        { 
-          title: "Visitor Activity", 
-          id: "ac-eco1", 
-          render: (id: string) => this.mkChart(id, { 
-            type: "line", 
-            data: { 
-              labels: ["Mon", "Tue", "Wed", "Thu", "Fri"], 
-              datasets: [{ label: "Visitors", data: [this.realEcoCount, 20, 15, 30, 50], borderColor: COLORS.teal, fill: false }] 
-            }, 
-            options: CDAX 
-          }) 
+
+    patrol: {
+      label: "👮 Patrol Analytics",
+      subs: [
+        {
+          id: "patrol_logs",
+          label: "Patrol Activity",
+          emoji: "👮",
+          color: COLORS.blue,
+          val: 0,
+          charts: [
+            { 
+              title: "Patrol Distribution", 
+              id: "pa-c1", 
+              render: (id: string, obj: any) => this.renderHorizontalBarChart(id, obj.dynamicData || []) 
+            },
+            { 
+              title: "Patrol Trend", 
+              id: "pa-t1", 
+              render: (id: string, obj: any) => this.renderLineChart(id, obj.dynamicData || [], COLORS.blue) 
+            }
+          ]
         }
       ]
     }
-  ]
-}
+
   };
   
 
@@ -741,6 +769,14 @@ private mkChart(id: string, config: any) {
   private destroyCharts() {
     this.chartInstances.forEach(c => c.destroy());
     this.chartInstances.clear();
+  }
+
+  resetAnalyticsFilters() {
+    this.selectedRange = 'all';
+    this.selectedBeat = 'all';
+    this.activeDateFilter = 'today';
+    this.selectedTimeframe = 'today';
+    this.onFilterChange();
   }
 
   private rnd(len: number, max: number, min: number = 0) {
@@ -1361,16 +1397,19 @@ setAnaSub(id: string) {
     'wild_animal': 'animal',
     'water': 'water',
     'compensation': 'compensation',
-    'fire_incidents': 'fire'
+    'fire_incidents': 'fire',
+    'patrol_logs': 'patrol'
   };
+
 
   // Map frontend sub IDs to database category
   const subToCategory: any = {
     'felling': 'crimes', 'transport': 'crimes', 'storage': 'crimes',
     'poaching': 'crimes', 'encroach': 'crimes', 'mining': 'crimes',
     'jfmc': 'events', 'wild_animal': 'events', 'water': 'events',
-    'compensation': 'events', 'fire_incidents': 'fire'
+    'compensation': 'events', 'fire_incidents': 'fire', 'patrol_logs': 'patrol'
   };
+
 
   const companyId = Number(localStorage.getItem('company_id') || '1');
   const reportType = subToReportType[id] || id;

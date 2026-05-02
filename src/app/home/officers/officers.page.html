@@ -10,8 +10,8 @@
         </div>
       </div>
       <div class="tbar-right">
-        <button class="glass-btn" (click)="doRefresh()">
-          <ion-icon name="funnel-outline"></ion-icon>
+        <button class="glass-btn info-btn" (click)="setFilterOpen(true)">
+          <i class="fas fa-sliders-h"></i>
         </button>
         <button class="glass-btn" (click)="doRefresh()">
           <ion-icon name="refresh-outline"></ion-icon>
@@ -39,6 +39,63 @@
 </ion-header>
 
 <ion-content class="officers-content">
+
+  <ion-modal [isOpen]="isFilterModalOpen" (didDismiss)="setFilterOpen(false)" class="custom-bottom-card">
+    <ng-template>
+      <div class="modal-card-content">
+        <div class="modal-header">
+          <div class="title-row">
+            <ion-icon name="filter" class="title-icon"></ion-icon>
+            <h3>Filter Officers</h3>
+          </div>
+          <p class="subtitle">Select range and beat to filter</p>
+        </div>
+
+        <div class="filter-body">
+          <div class="date-row">
+            <span class="label">RANGE</span>
+            <div class="date-pill">
+               <select [(ngModel)]="selectedRange" (change)="onRangeFilterChange()">
+                 <option value="all">All Ranges</option>
+                 <option *ngFor="let range of allRanges" [value]="range">{{ range }}</option>
+               </select>
+            </div>
+          </div>
+  
+          <div class="date-row">
+            <span class="label">BEAT</span>
+            <div class="date-pill">
+               <select [(ngModel)]="selectedBeat">
+                 <option value="all">All Beats</option>
+                 <option *ngFor="let beat of displayBeats" [value]="beat">{{ beat }}</option>
+               </select>
+            </div>
+          </div>
+
+          <div class="date-row">
+            <span class="label">FROM</span>
+            <div class="date-pill">
+              <input type="date" [(ngModel)]="filterFrom" [max]="maxDate">
+            </div>
+          </div>
+
+          <div class="date-row">
+            <span class="label">TO</span>
+            <div class="date-pill">
+              <input type="date" [(ngModel)]="filterTo" [max]="maxDate">
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <div class="footer-btn-row">
+            <button class="reset-btn" (click)="resetFilter()">Reset</button>
+            <button class="apply-btn" (click)="applyFilter()">Apply Filter</button>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
 
   <!-- Loading -->
   <div class="loading-container" *ngIf="isLoading">

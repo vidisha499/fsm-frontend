@@ -81,41 +81,31 @@
         <select
           class="fselect"
           [(ngModel)]="selectedRange"
-          (change)="doRefresh()"
+          (change)="onRangeFilterChange()"
         >
           <option value="all">All Ranges</option>
-          <option value="north">seminary hills range</option>
-          <!-- <option value="south">South Valley</option>
-          <option value="east">East Plateau</option> -->
+          <option *ngFor="let range of allRanges" [value]="range">{{ range }}</option>
         </select>
 
         <select class="fselect" [(ngModel)]="selectedBeat" (change)="doRefresh()">
           <option value="all">All Beats</option>
-          <option value="alpha">ambazari beat</option>
-          <option value="beta">gorewada beat</option>
-          <option value="buffer">rajbhavan beat</option>
-           <option value="buffer">friends colony beat</option>
+          <option *ngFor="let beat of displayBeats" [value]="beat">{{ beat }}</option>
         </select>
 
         <button
           class="refresh-btn"
           [class.spinning]="isRefreshing"
           (click)="doRefresh()"
+          title="Refresh Data"
         >
-          <svg
-            width="13"
-            height="13"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            stroke-width="2.5"
-          >
-            <polyline points="23 4 23 10 17 10" />
-            <polyline points="1 20 1 14 7 14" />
-            <path
-              d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
-            />
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
           </svg>
+        </button>
+
+        <button class="dash-reset-btn" (click)="resetAllFilters()">
+          Reset
         </button>
       </div>
 
@@ -150,10 +140,21 @@
         </div>
       </div>
 
-      <div class="custom-dates" *ngIf="activeDateFilter === 'custom'">
-        <input type="date" [(ngModel)]="dateFrom" (change)="doRefresh()" />
-        <span>to</span>
-        <input type="date" [(ngModel)]="dateTo" (change)="doRefresh()" />
+      <div class="custom-dates-wrap" *ngIf="activeDateFilter === 'custom'">
+        <div class="date-input-box">
+          <div class="dib-hdr">
+            <ion-icon name="calendar-outline"></ion-icon>
+            <label>FROM</label>
+          </div>
+          <input type="date" [(ngModel)]="dateFrom" [max]="todayDate" (change)="doRefresh()" />
+        </div>
+        <div class="date-input-box">
+          <div class="dib-hdr">
+            <ion-icon name="calendar-outline"></ion-icon>
+            <label>TO</label>
+          </div>
+          <input type="date" [(ngModel)]="dateTo" [max]="todayDate" (change)="doRefresh()" />
+        </div>
       </div>
     </div>
 
@@ -225,6 +226,7 @@
         <div class="kpi-val">{{ patrolCount }}</div>
         <div class="kpi-lbl">Patrol logs</div>
         <div class="kpi-trend up">▲ Tap to analyse</div>
+
       </div> 
 
       <div class="kpi-card" data-c="rose" (click)="goToCriminalRecords()">
@@ -235,7 +237,8 @@
         </div>
         <div class="kpi-val" id="kv-crim">{{ criminalCount }}</div>
         <div class="kpi-lbl">Criminal Activity</div>
-        <div class="kpi-trend dn">▼ Tap to analyse</div>
+        <div class="kpi-trend dn" (click)="goAnalytics('criminal'); $event.stopPropagation()">▼ Tap to analyse</div>
+
       </div>
 
 
@@ -247,7 +250,8 @@
         </div>
         <div class="kpi-val">{{ eventsCount }}</div>
         <div class="kpi-lbl">Events & Monitoring</div>
-        <div class="kpi-trend up">▲ Tap to analyse</div>
+        <div class="kpi-trend up" (click)="goAnalytics('events'); $event.stopPropagation()">▲ Tap to analyse</div>
+
       </div>
     
 
@@ -259,7 +263,8 @@
         </div>
         <div class="kpi-val" id="kv-fire">{{ fireAlertsCount }}</div>
         <div class="kpi-lbl">Fire Alerts</div>
-        <div class="kpi-trend dn">▼ Tap to analyse</div>
+        <div class="kpi-trend dn" (click)="goAnalytics('fire'); $event.stopPropagation()">▼ Tap to analyse</div>
+
       </div>
 
       <div class="kpi-card" data-c="ind" (click)="goToAssetsRecords()">

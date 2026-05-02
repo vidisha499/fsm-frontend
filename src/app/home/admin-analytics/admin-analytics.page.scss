@@ -103,6 +103,20 @@
 .date-chips{display:flex;gap:5px;width:100%;}
 .dchip{flex:1;padding:6px 4px;border-radius:7px;border:1.5px solid var(--bord);background:var(--surf2);font-family:var(--fn);font-size:9px;font-weight:700;color:var(--tx3);cursor:pointer;transition:all .2s;text-align:center;letter-spacing:.02em;}
 .dchip.active{background:var(--p);color:#fff;border-color:var(--p);box-shadow:0 2px 8px rgba(13,148,136,.25);}
+
+.ana-reset-btn {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid var(--bord);
+  border-radius: 7px;
+  padding: 0 10px;
+  font-family: var(--fn);
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  &:active { background: #e2e8f0; transform: scale(0.95); }
+}
 .custom-dates{display:flex;gap:6px;width:100%;align-items:center;}
 .custom-dates input{flex:1;background:var(--surf2);border:1px solid var(--bord);border-radius:7px;padding:6px 8px;font-family:var(--fn);font-size:10px;color:var(--tx);outline:none;}
 .custom-dates input:focus{border-color:var(--p);}

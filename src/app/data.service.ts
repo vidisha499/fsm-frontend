@@ -724,6 +724,29 @@ export class DataService {
   deleteGeofenceMultiGuard(payload: any) { return this.http.post(`${this.baseApiUrl}/deleteGeofenceMultiGuard`, payload); }
   getClientSites(payload: any) { return this.http.post(`${this.baseApiUrl}/getClientSites`, payload); }
   getSites(payload: any) { return this.http.post(`${this.baseApiUrl}/getSites`, payload); }
+
+  getHierarchyForFilters(companyId: string): Observable<{ranges: string[], beats: any[]}> {
+    const apiToken = localStorage.getItem('api_token') || '';
+    return this.getSites({ api_token: apiToken, company_id: companyId }).pipe(
+      map((res: any) => {
+        const data = res?.data || res || [];
+        const sites = Array.isArray(data) ? data : [];
+        const rangeSet = new Set<string>();
+        const beatArray: any[] = [];
+        sites.forEach((s: any) => {
+          const rName = s.client_name || s.range_name || s.range || s.division_name || s.division || 'General Range';
+          const bName = s.name || s.beat_name || s.beat || s.site_name || s.site;
+          if (rName) rangeSet.add(rName);
+          if (bName) beatArray.push({ name: bName, parentName: rName });
+        });
+        return {
+          ranges: Array.from(rangeSet).sort(),
+          beats: beatArray
+        };
+      })
+    );
+  }
+
   getTrackSites(payload: any) { return this.http.post(`${this.baseApiUrl}/getTrackSites`, payload); }
   assignSupervisorsToSites(payload: any) { return this.http.post(`${this.baseApiUrl}/assignSupervisorsToSites`, payload); }
   deleteSiteFromSupervisor(payload: any) { return this.http.post(`${this.baseApiUrl}/deleteSiteFromSupervisor`, payload); }

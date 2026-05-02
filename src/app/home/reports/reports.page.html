@@ -266,8 +266,7 @@
           <span class="label">CLIENT / RANGE</span>
           <ion-select interface="popover" placeholder="Select" [(ngModel)]="selectedClient" class="compact-select">
             <ion-select-option value="all">All Rangers</ion-select-option>
-            <ion-select-option value="range_a">seminary hills range</ion-select-option>
-            <ion-select-option value="range_b">hingna range</ion-select-option>
+            <ion-select-option *ngFor="let site of sites" [value]="site.id">{{ site.site_name || site.name || site.beat_name }}</ion-select-option>
           </ion-select>
         </div>
 
@@ -306,7 +305,6 @@
         
         <div class="footer-actions-text">
           <button class="reset-btn-text" (click)="resetFilters()">Reset Filters</button>
-          <span class="divider">|</span>
           <button class="clear-btn-text" (click)="isModalOpen = false">Cancel</button>
         </div>
       </div>

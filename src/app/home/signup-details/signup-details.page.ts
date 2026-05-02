@@ -4,6 +4,8 @@ import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { HttpClient } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import { NavController, ToastController, LoadingController,  } from '@ionic/angular';
+import { DataService } from 'src/app/data.service';
+
 
 @Component({
   selector: 'app-signup-details',
@@ -33,7 +35,8 @@ confirmPasswordIcon: string = 'eye-off';
     private http: HttpClient,
     private navCtrl: NavController,
     private toastCtrl: ToastController,
-    private loadingCtrl: LoadingController
+    private loadingCtrl: LoadingController,
+    private dataService: DataService
   ) { }
 
 //   ngOnInit() {
@@ -153,30 +156,35 @@ ngOnInit() {
     await loader.present();
     console.log("Verified Data Check:", this.verifiedData);
 
-    // 2. Payload Construction
-// signup-details.page.ts mein
-const payload = {
-  name: `${this.firstName} ${this.lastName}`.trim(),
-  contact: this.mobile,
-  email: this.email,
-  password: this.password,
-  dob: this.dob,                // 👈 Ye ab DB mein jayega
-  profile_pic: this.profileImage, // 👈 Ye ab DB mein jayega
-  // 🔥 YAHAN FIX HAI: Dono cases check karo aur Number() force karo
-  role_id: Number(this.verifiedData?.role_id || this.verifiedData?.roleId || 4), 
-  company_id: Number(this.verifiedData?.company_id || this.verifiedData?.companyId),// Ensure this is coming from your verification data
-  status: 1
-};
+    // 2. Payload Construction using FormData
+    const formData = new FormData();
+    formData.append('name', `${this.firstName} ${this.lastName}`.trim());
+    formData.append('contact', this.mobile);
+    formData.append('email', this.email);
+    formData.append('password', this.password);
+    formData.append('dob', this.dob);
+    
+    // Role and Company IDs
+    const roleId = this.verifiedData?.role_id || this.verifiedData?.roleId || 4;
+    const companyId = this.verifiedData?.company_id || this.verifiedData?.companyId;
+    
+    formData.append('role_id', String(roleId));
+    formData.append('company_id', String(companyId));
+    formData.append('status', '1');
 
-console.log("Final Payload to Database:", payload);
+    // Handle profile photo
+    if (this.profileImage) {
+      formData.append('profile_pic', this.profileImage);
+    }
 
-    // 3. API Call
-    this.http.post(`${environment.apiUrl}/users`, payload).subscribe({
+    console.log("Final Registration Request to /addRegistration");
+
+    // 3. API Call via DataService
+    this.dataService.addRegistration(formData).subscribe({
       next: async (response: any) => {
         await loader.dismiss();
         
-        // Cache the profile picture locally so it can be retrieved on login
-        // if the backend API strips it from the response
+        // Cache the profile picture locally
         if (this.profileImage && this.mobile) {
           localStorage.setItem(`cached_photo_${this.mobile}`, this.profileImage);
         }
@@ -186,13 +194,11 @@ console.log("Final Payload to Database:", payload);
       },
       error: async (err) => {
         await loader.dismiss();
-        console.error('Signup Error:', err);
+        console.error('Registration Error:', err);
 
         let errorMsg = 'Registration failed. Please try again.';
         if (err.status === 409) {
           errorMsg = 'This mobile number or email is already registered.';
-        } else if (err.status === 413) {
-          errorMsg = 'Photo file size is too large. Try a lower resolution.';
         } else if (err.error?.message) {
           errorMsg = err.error.message;
         }

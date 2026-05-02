@@ -185,26 +185,26 @@
 
     /* Side-by-Side Mini Buttons & Text Actions */
     .modal-footer-dual-row {
-      margin-top: 25px;
+      margin-top: 20px;
       
       .button-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr; // 50-50 side-by-side
-        gap: 12px;
-        margin-bottom: 20px;
+        grid-template-columns: 1fr; 
+        gap: 10px;
+        margin-bottom: 15px;
       }
 
       .export-btn-mini {
         padding: 14px 10px;
         border-radius: 15px;
         font-weight: 800;
-        font-size: 13px;
+        font-size: 14px;
         border: none;
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1);
         transition: 0.2s;
 
         i { font-size: 15px; }
@@ -218,38 +218,36 @@
       /* Reset and Cancel Row */
       .footer-actions-text {
         display: flex;
+        flex-direction: column;
         justify-content: center;
         align-items: center;
-        gap: 12px;
+        gap: 10px;
 
         .reset-btn-text {
-          background: transparent;
+          background: #f1f5f9;
           color: #64748b;
           font-weight: 700;
-          font-size: 13px;
-          border: none;
-          padding: 8px;
-          
-          &:active { opacity: 0.6; }
-        }
-
-        .divider {
-          color: #cbd5e1;
-          font-weight: 300;
           font-size: 14px;
+          border: none;
+          padding: 14px;
+          border-radius: 15px;
+          width: 100%;
+          
+          &:active { opacity: 0.8; }
         }
 
         .clear-btn-text {
-          background: transparent;
+          background: #fef2f2;
           color: #ef4444;
           font-weight: 700;
-          font-size: 13px;
+          font-size: 14px;
           border: none;
-          padding: 8px;
-          text-decoration: underline;
-          text-underline-offset: 4px;
+          padding: 14px;
+          border-radius: 15px;
+          width: 100%;
+          text-decoration: none;
 
-          &:active { opacity: 0.6; }
+          &:active { opacity: 0.8; }
         }
       }
     }

@@ -17,6 +17,13 @@ export class AdminPatrolLogsPage implements OnInit {
   maxDate: string = new Date().toISOString().split('T')[0];
   rangers: any[] = [];
 
+  // Hierarchy Filters
+  public allRanges: string[] = [];
+  public allBeats: any[] = [];
+  public displayBeats: string[] = [];
+  public selectedRange: string = 'all';
+  public selectedBeat: string = 'all';
+
   constructor(
     private navCtrl: NavController,
     private dataService: DataService,
@@ -27,6 +34,7 @@ export class AdminPatrolLogsPage implements OnInit {
     const today = new Date().toISOString().split('T')[0];
     this.filterFrom = today;
     this.filterTo = today;
+    this.loadHierarchy();
     this.loadRangers();
     this.refreshData();
   }
@@ -64,7 +72,19 @@ export class AdminPatrolLogsPage implements OnInit {
     this.dataService.getPatrolsByCompany(companyId, from || this.filterFrom, to || this.filterTo).subscribe({
       next: (res: any) => {
         const rawLogs = res?.data || res?.patrols || (Array.isArray(res) ? res : []);
-        this.patrolLogs = rawLogs.map((log: any) => this.processPatrolLog(log));
+        
+        // Client-side Hierarchy Filtering
+        this.patrolLogs = rawLogs.filter((log: any) => {
+          const rBeat = (log.beat_name || log.site_name || log.location || '').toLowerCase();
+          const beatObj = this.allBeats.find(b => b.name.toLowerCase() === rBeat);
+          const rRange = beatObj ? beatObj.parentName : 'General Range';
+          
+          const matchesRange = this.selectedRange === 'all' || rRange === this.selectedRange;
+          const matchesBeat = this.selectedBeat === 'all' || rBeat === this.selectedBeat.toLowerCase();
+
+          return matchesRange && matchesBeat;
+        }).map((log: any) => this.processPatrolLog(log));
+        
         this.isLoading = false;
       },
       error: (err) => {
@@ -124,6 +144,38 @@ export class AdminPatrolLogsPage implements OnInit {
     };
   }
 
+  loadHierarchy() {
+    const rawData = localStorage.getItem('user_data');
+    const user = rawData ? JSON.parse(rawData) : null;
+    const companyId = user ? (user.company_id || user.companyId) : '1';
+
+    this.dataService.getHierarchyForFilters(companyId.toString()).subscribe({
+      next: (h) => {
+        this.allRanges = h.ranges;
+        this.allBeats = h.beats;
+        this.updateVisibleBeats();
+      },
+      error: (err) => console.error('❌ Hierarchy fetch failed:', err)
+    });
+  }
+
+  updateVisibleBeats() {
+    if (this.selectedRange === 'all') {
+      this.displayBeats = Array.from(new Set(this.allBeats.map(b => b.name))).sort();
+    } else {
+      this.displayBeats = this.allBeats
+        .filter(b => b.parentName === this.selectedRange)
+        .map(b => b.name)
+        .sort();
+    }
+  }
+
+  onRangeFilterChange() {
+    this.selectedBeat = 'all';
+    this.updateVisibleBeats();
+    this.refreshData();
+  }
+
   viewDetails(log: any) {
     this.navCtrl.navigateForward(['/home/patrol-details'], {
       state: { data: log }
@@ -144,6 +196,9 @@ export class AdminPatrolLogsPage implements OnInit {
     const today = new Date().toISOString().split('T')[0];
     this.filterFrom = today;
     this.filterTo = today;
+    this.selectedRange = 'all';
+    this.selectedBeat = 'all';
+    this.updateVisibleBeats();
     this.applyFilter();
   }
 

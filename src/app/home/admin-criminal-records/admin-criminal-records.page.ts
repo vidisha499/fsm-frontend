@@ -16,6 +16,13 @@ export class AdminCriminalRecordsPage implements OnInit {
   filterTo: string = '';
   maxDate: string = new Date().toISOString().split('T')[0];
 
+  // Hierarchy Filters
+  public allRanges: string[] = [];
+  public allBeats: any[] = [];
+  public displayBeats: string[] = [];
+  public selectedRange: string = 'all';
+  public selectedBeat: string = 'all';
+
   constructor(
     private navCtrl: NavController,
     private dataService: DataService,
@@ -26,6 +33,7 @@ export class AdminCriminalRecordsPage implements OnInit {
     const today = new Date().toISOString().split('T')[0];
     this.filterFrom = today;
     this.filterTo = today;
+    this.loadHierarchy();
     this.refreshData();
   }
 
@@ -51,16 +59,28 @@ export class AdminCriminalRecordsPage implements OnInit {
           
           if (!isCrim) return false;
 
-          // Date Filter logic
+          // 1. Date Filter
+          let matchesDate = true;
           if (from && to) {
             const rDate = r.created_at || r.date || r.date_time || '';
-            if (!rDate) return false;
-            const rTimestamp = new Date(rDate).getTime();
-            const fromTS = new Date(from).getTime();
-            const toTS = new Date(to).getTime() + (24 * 60 * 60 * 1000); // include full 'to' day
-            return rTimestamp >= fromTS && rTimestamp <= toTS;
+            if (!rDate) matchesDate = false;
+            else {
+              const rTimestamp = new Date(rDate).getTime();
+              const fromTS = new Date(from).getTime();
+              const toTS = new Date(to).getTime() + (24 * 60 * 60 * 1000);
+              matchesDate = rTimestamp >= fromTS && rTimestamp <= toTS;
+            }
           }
-          return true;
+
+          // 2. Hierarchy Filter
+          const rBeat = (r.beat_name || r.site_name || r.location || '').toLowerCase();
+          const beatObj = this.allBeats.find(b => b.name.toLowerCase() === rBeat);
+          const rRange = beatObj ? beatObj.parentName : 'General Range';
+          
+          const matchesRange = this.selectedRange === 'all' || rRange === this.selectedRange;
+          const matchesBeat = this.selectedBeat === 'all' || rBeat === this.selectedBeat.toLowerCase();
+
+          return matchesDate && matchesRange && matchesBeat;
         }).map((r: any) => this.processPhotos(r));
         
         this.isLoading = false;
@@ -158,6 +178,38 @@ export class AdminCriminalRecordsPage implements OnInit {
     };
   }
 
+  loadHierarchy() {
+    const rawData = localStorage.getItem('user_data');
+    const user = rawData ? JSON.parse(rawData) : null;
+    const companyId = user ? (user.company_id || user.companyId) : '1';
+
+    this.dataService.getHierarchyForFilters(companyId.toString()).subscribe({
+      next: (h) => {
+        this.allRanges = h.ranges;
+        this.allBeats = h.beats;
+        this.updateVisibleBeats();
+      },
+      error: (err) => console.error('❌ Hierarchy fetch failed:', err)
+    });
+  }
+
+  updateVisibleBeats() {
+    if (this.selectedRange === 'all') {
+      this.displayBeats = Array.from(new Set(this.allBeats.map(b => b.name))).sort();
+    } else {
+      this.displayBeats = this.allBeats
+        .filter(b => b.parentName === this.selectedRange)
+        .map(b => b.name)
+        .sort();
+    }
+  }
+
+  onRangeFilterChange() {
+    this.selectedBeat = 'all';
+    this.updateVisibleBeats();
+    this.refreshData();
+  }
+
   viewDetails(report: any) {
     this.navCtrl.navigateForward(['/home/sightings-details'], {
       state: { data: report }
@@ -177,6 +229,9 @@ export class AdminCriminalRecordsPage implements OnInit {
   resetFilter() {
     this.filterFrom = '';
     this.filterTo = '';
+    this.selectedRange = 'all';
+    this.selectedBeat = 'all';
+    this.updateVisibleBeats();
     this.applyFilter();
   }
 

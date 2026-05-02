@@ -16,6 +16,13 @@ export class AdminAssetsRecordsPage implements OnInit {
   filterTo: string = '';
   maxDate: string = new Date().toISOString().split('T')[0];
 
+  // Hierarchy Filters
+  public allRanges: string[] = [];
+  public allBeats: any[] = [];
+  public displayBeats: string[] = [];
+  public selectedRange: string = 'all';
+  public selectedBeat: string = 'all';
+
   goodCount: number = 0;
   badCount: number = 0;
 
@@ -26,6 +33,7 @@ export class AdminAssetsRecordsPage implements OnInit {
   ) {}
 
   ngOnInit() {
+    this.loadHierarchy();
     this.refreshData();
   }
 
@@ -45,32 +53,40 @@ export class AdminAssetsRecordsPage implements OnInit {
     }
 
     // Use analytics endpoint when date filter is active (it supports date range)
-    // Otherwise use the plain asset-list endpoint
     const obs = (from && to)
       ? this.dataService.getAssetsAnalytics(companyId, from, to)
       : this.dataService.getAssets(companyId);
 
     obs.subscribe({
       next: (res: any) => {
-        // Handle various response shapes from the backend
         let raw = res?.data || res?.assets || res || [];
         if (!Array.isArray(raw)) {
           raw = Object.values(raw).filter((v: any) => v && typeof v === 'object');
         }
 
-        // Filter for 'today' if no specific date range is set
-        if (!from && !to) {
-          const now = new Date();
-          const todayYMD = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-          const todayDMY = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`;
-          
-          raw = raw.filter((a: any) => {
-            const aDate = a.created_at || a.date_time || a.date || '';
-            return aDate && (aDate.includes(todayYMD) || aDate.includes(todayDMY));
-          });
-        }
+        const now = new Date();
+        const todayYMD = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const todayDMY = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`;
 
-        this.assetList = raw;
+        this.assetList = raw.filter((a: any) => {
+          // 1. Date Filter (if no range set, default to today)
+          let matchesDate = true;
+          if (!from && !to) {
+            const aDate = a.created_at || a.date_time || a.date || '';
+            matchesDate = !!(aDate && (aDate.includes(todayYMD) || aDate.includes(todayDMY)));
+          }
+
+          // 2. Hierarchy Filter
+          const rBeat = (a.beat_name || a.site_name || a.location || '').toLowerCase();
+          const beatObj = this.allBeats.find(b => b.name.toLowerCase() === rBeat);
+          const rRange = beatObj ? beatObj.parentName : 'General Range';
+          
+          const matchesRange = this.selectedRange === 'all' || rRange === this.selectedRange;
+          const matchesBeat = this.selectedBeat === 'all' || rBeat === this.selectedBeat.toLowerCase();
+
+          return matchesDate && matchesRange && matchesBeat;
+        });
+
         this.computeCounts();
         this.isLoading = false;
       },
@@ -99,6 +115,38 @@ export class AdminAssetsRecordsPage implements OnInit {
     return 'pending';
   }
 
+  loadHierarchy() {
+    const rawData = localStorage.getItem('user_data');
+    const user = rawData ? JSON.parse(rawData) : null;
+    const companyId = user ? (user.company_id || user.companyId) : '1';
+
+    this.dataService.getHierarchyForFilters(companyId.toString()).subscribe({
+      next: (h) => {
+        this.allRanges = h.ranges;
+        this.allBeats = h.beats;
+        this.updateVisibleBeats();
+      },
+      error: (err) => console.error('❌ Hierarchy fetch failed:', err)
+    });
+  }
+
+  updateVisibleBeats() {
+    if (this.selectedRange === 'all') {
+      this.displayBeats = Array.from(new Set(this.allBeats.map(b => b.name))).sort();
+    } else {
+      this.displayBeats = this.allBeats
+        .filter(b => b.parentName === this.selectedRange)
+        .map(b => b.name)
+        .sort();
+    }
+  }
+
+  onRangeFilterChange() {
+    this.selectedBeat = 'all';
+    this.updateVisibleBeats();
+    this.refreshData();
+  }
+
   viewDetails(asset: any) {
     this.navCtrl.navigateForward(['/home/assets-details'], {
       state: { data: asset }
@@ -118,6 +166,9 @@ export class AdminAssetsRecordsPage implements OnInit {
   resetFilter() {
     this.filterFrom = '';
     this.filterTo = '';
+    this.selectedRange = 'all';
+    this.selectedBeat = 'all';
+    this.updateVisibleBeats();
     this.applyFilter();
   }
 

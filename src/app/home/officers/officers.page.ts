@@ -19,6 +19,17 @@ export class OfficersPage implements OnInit {
   myCompanyId: any;
   totalCount: number = 0;
 
+  // Hierarchy Filters
+  public allRanges: string[] = [];
+  public allBeats: any[] = [];
+  public displayBeats: string[] = [];
+  public selectedRange: string = 'all';
+  public selectedBeat: string = 'all';
+  public isFilterModalOpen: boolean = false;
+  public filterFrom: string = '';
+  public filterTo: string = '';
+  public maxDate: string = new Date().toISOString().split('T')[0];
+
 
   constructor(
     private router: Router,
@@ -28,9 +39,15 @@ export class OfficersPage implements OnInit {
   ) {}
 
   ngOnInit() {
+    const today = new Date().toISOString().split('T')[0];
+    this.filterFrom = today;
+    this.filterTo = today;
+
     const rawData = localStorage.getItem('user_data');
     const userData = rawData ? JSON.parse(rawData) : null;
     this.myCompanyId = userData ? (userData.company_id || userData.companyId) : 1;
+    
+    this.loadHierarchy();
     this.loadOfficers();
   }
 
@@ -71,12 +88,20 @@ export class OfficersPage implements OnInit {
             const rDate = (record.timestamp || record.entryDateTime || record.created_at || record.date || '').toString();
             if (!rDate) return;
 
-            const isToday = rDate.includes(todayYMD) || rDate.includes(todayDMY) || rDate.includes(todayISO) || rDate.toLowerCase().includes('today');
+            let isMatch = false;
+            if (this.filterFrom && this.filterTo) {
+              const rTS = new Date(rDate).getTime();
+              const fromTS = new Date(this.filterFrom).setHours(0,0,0,0);
+              const toTS = new Date(this.filterTo).setHours(23,59,59,999);
+              isMatch = rTS >= fromTS && rTS <= toTS;
+            } else {
+              isMatch = rDate.includes(todayYMD) || rDate.includes(todayDMY) || rDate.includes(todayISO) || rDate.toLowerCase().includes('today');
+            }
             
             const status = String(record.status || '').toLowerCase();
             const isRejected = status === 'rejected' || status === 'failed';
 
-            if (isToday && !isRejected) {
+            if (isMatch && !isRejected) {
               const uId = record.guard_id || record.guardId || record.user_id || record.userId || record.staff_id || record.ranger_id || record.added_by || record.created_by;
               
               if (uId && !activeOfficersMap.has(uId.toString())) {
@@ -120,15 +145,81 @@ export class OfficersPage implements OnInit {
 
   onSearch() {
     const term = (this.searchText || '').toLowerCase().trim();
-    if (!term) {
-      this.filteredOfficers = [...this.allOfficers];
-    } else {
-      this.filteredOfficers = this.allOfficers.filter(o =>
+    
+    this.filteredOfficers = this.allOfficers.filter(o => {
+      // 1. Text Search
+      const matchesSearch = !term || 
         (o.name || '').toLowerCase().includes(term) ||
         (o.role || '').toLowerCase().includes(term) ||
-        (o.site_name || '').toLowerCase().includes(term)
-      );
+        (o.site_name || '').toLowerCase().includes(term);
+
+      // 2. Range Filter
+      const siteBeat = (o.site_name || o.beat_name || '').toLowerCase();
+      
+      // We need to find the range for this officer's beat
+      const officerBeatObj = this.allBeats.find((b: any) => b.name.toLowerCase() === siteBeat);
+      const officerRange = officerBeatObj ? officerBeatObj.parentName : 'General Range';
+
+      const matchesRange = this.selectedRange === 'all' || officerRange === this.selectedRange;
+
+      // 3. Beat Filter
+      const matchesBeat = this.selectedBeat === 'all' || siteBeat === this.selectedBeat.toLowerCase();
+
+      return matchesSearch && matchesRange && matchesBeat;
+    });
+
+    this.totalCount = this.filteredOfficers.length;
+    this.cdr.detectChanges();
+  }
+
+  loadHierarchy() {
+    const companyId = this.myCompanyId || '1';
+    this.dataService.getHierarchyForFilters(companyId.toString()).subscribe({
+      next: (h) => {
+        this.allRanges = h.ranges;
+        this.allBeats = h.beats;
+        this.updateVisibleBeats();
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('❌ Hierarchy fetch failed:', err)
+    });
+  }
+
+  updateVisibleBeats() {
+    if (this.selectedRange === 'all') {
+      this.displayBeats = Array.from(new Set(this.allBeats.map((b: any) => b.name))).sort();
+    } else {
+      this.displayBeats = this.allBeats
+        .filter((b: any) => b.parentName === this.selectedRange)
+        .map((b: any) => b.name)
+        .sort();
     }
+  }
+
+  onRangeFilterChange() {
+    this.selectedBeat = 'all';
+    this.updateVisibleBeats();
+  }
+
+  setFilterOpen(isOpen: boolean) {
+    this.isFilterModalOpen = isOpen;
+    this.cdr.detectChanges();
+  }
+
+  applyFilter() {
+    this.isFilterModalOpen = false;
+    this.loadOfficers(); // Fetch new data if dates changed
+  }
+
+  resetFilter() {
+    const today = new Date().toISOString().split('T')[0];
+    this.filterFrom = today;
+    this.filterTo = today;
+    this.selectedRange = 'all';
+    this.selectedBeat = 'all';
+    this.searchText = '';
+    this.updateVisibleBeats();
+    this.applyFilter();
   }
 
   doRefresh() {

@@ -50,11 +50,10 @@
   <option *ngFor="let b of beats" [value]="b">{{b}}</option>
 </select>
         <div class="date-chips">
-         
-  <div class="dchip" [class.active]="activeDateFilter==='today'" (click)="activeDateFilter='today'; onFilterChange()">Today</div>
-<div class="dchip" [class.active]="activeDateFilter==='week'" (click)="activeDateFilter='week'; onFilterChange()">Week</div>
-<div class="dchip" [class.active]="activeDateFilter==='month'" (click)="activeDateFilter='month'; onFilterChange()">Month</div>
-
+          <div class="dchip" [class.active]="activeDateFilter==='today'" (click)="activeDateFilter='today'; onFilterChange()">Today</div>
+          <div class="dchip" [class.active]="activeDateFilter==='week'" (click)="activeDateFilter='week'; onFilterChange()">Week</div>
+          <div class="dchip" [class.active]="activeDateFilter==='month'" (click)="activeDateFilter='month'; onFilterChange()">Month</div>
+          <button class="ana-reset-btn" (click)="resetAnalyticsFilters()">Reset</button>
         </div>
       </div>
 

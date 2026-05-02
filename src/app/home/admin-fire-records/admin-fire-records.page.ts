@@ -17,6 +17,13 @@ export class AdminFireRecordsPage implements OnInit {
   filterTo: string = '';
   maxDate: string = new Date().toISOString().split('T')[0];
 
+  // Hierarchy Filters
+  public allRanges: string[] = [];
+  public allBeats: any[] = [];
+  public displayBeats: string[] = [];
+  public selectedRange: string = 'all';
+  public selectedBeat: string = 'all';
+
   constructor(
     private navCtrl: NavController,
     private dataService: DataService,
@@ -27,6 +34,7 @@ export class AdminFireRecordsPage implements OnInit {
     const today = new Date().toISOString().split('T')[0];
     this.filterFrom = today;
     this.filterTo = today;
+    this.loadHierarchy();
     this.refreshData();
   }
 
@@ -78,26 +86,35 @@ export class AdminFireRecordsPage implements OnInit {
           const isFire = cat.includes('fire') || rType.includes('fire') || rDesc.includes('fire');
           if (!isFire) return false;
 
-          // Date Filter logic (Robust String-based matching)
+          // 1. Date Filter logic (Robust String-based matching)
+          let matchesDate = true;
           if (from && to) {
             const rDate = r.created_at || r.date || r.date_time || r.timestamp || '';
-            if (!rDate) return false;
-            
-            // If from and to are same (Today filter), use robust string check
-            if (from === to) {
-               const ymd = from; // YYYY-MM-DD
-               const dmy = from.split('-').reverse().join('-'); // DD-MM-YYYY
-               const match = rDate.includes(ymd) || rDate.includes(dmy) || rDate.includes(ymd.replace(/-/g, '/'));
-               if (match) return true;
+            if (!rDate) matchesDate = false;
+            else {
+              // If from and to are same (Today filter), use robust string check
+              if (from === to) {
+                const ymd = from; // YYYY-MM-DD
+                const dmy = from.split('-').reverse().join('-'); // DD-MM-YYYY
+                matchesDate = rDate.includes(ymd) || rDate.includes(dmy) || rDate.includes(ymd.replace(/-/g, '/'));
+              } else {
+                const rTimestamp = getTS(rDate);
+                const fromTS = new Date(from).setHours(0, 0, 0, 0);
+                const toTS = new Date(to).setHours(23, 59, 59, 999);
+                matchesDate = rTimestamp >= fromTS && rTimestamp <= toTS;
+              }
             }
-
-            const rTimestamp = getTS(rDate);
-            const fromTS = new Date(from).setHours(0, 0, 0, 0);
-            const toTS = new Date(to).setHours(23, 59, 59, 999);
-            
-            return rTimestamp >= fromTS && rTimestamp <= toTS;
           }
-          return true;
+
+          // 2. Hierarchy Filter
+          const rBeat = (r.beat_name || r.site_name || r.location || '').toLowerCase();
+          const beatObj = this.allBeats.find(b => b.name.toLowerCase() === rBeat);
+          const rRange = beatObj ? beatObj.parentName : 'General Range';
+          
+          const matchesRange = this.selectedRange === 'all' || rRange === this.selectedRange;
+          const matchesBeat = this.selectedBeat === 'all' || rBeat === this.selectedBeat.toLowerCase();
+
+          return matchesDate && matchesRange && matchesBeat;
         })
         .sort((a, b) => getTS(b.created_at || b.date) - getTS(a.created_at || a.date))
         .map((r: any) => this.processPhotos(r));
@@ -198,6 +215,38 @@ export class AdminFireRecordsPage implements OnInit {
     };
   }
 
+  loadHierarchy() {
+    const rawData = localStorage.getItem('user_data');
+    const user = rawData ? JSON.parse(rawData) : null;
+    const companyId = user ? (user.company_id || user.companyId) : '1';
+
+    this.dataService.getHierarchyForFilters(companyId.toString()).subscribe({
+      next: (h) => {
+        this.allRanges = h.ranges;
+        this.allBeats = h.beats;
+        this.updateVisibleBeats();
+      },
+      error: (err) => console.error('❌ Hierarchy fetch failed:', err)
+    });
+  }
+
+  updateVisibleBeats() {
+    if (this.selectedRange === 'all') {
+      this.displayBeats = Array.from(new Set(this.allBeats.map(b => b.name))).sort();
+    } else {
+      this.displayBeats = this.allBeats
+        .filter(b => b.parentName === this.selectedRange)
+        .map(b => b.name)
+        .sort();
+    }
+  }
+
+  onRangeFilterChange() {
+    this.selectedBeat = 'all';
+    this.updateVisibleBeats();
+    this.refreshData();
+  }
+
   viewDetails(report: any) {
     this.navCtrl.navigateForward(['/home/sightings-details'], {
       state: { data: report }
@@ -217,6 +266,9 @@ export class AdminFireRecordsPage implements OnInit {
   resetFilter() {
     this.filterFrom = '';
     this.filterTo = '';
+    this.selectedRange = 'all';
+    this.selectedBeat = 'all';
+    this.updateVisibleBeats();
     this.applyFilter();
   }
 

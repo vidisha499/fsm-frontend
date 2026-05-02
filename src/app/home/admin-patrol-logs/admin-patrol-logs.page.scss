@@ -253,70 +253,79 @@
   }
 
   .modal-card-content {
-    padding: 30px 24px 50px;
+    padding: 20px 24px 30px;
     
     .modal-header {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 15px;
       
       .title-row {
         display: flex; align-items: center; justify-content: center; gap: 10px;
-        h3 { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0; }
-        .title-icon { color: #0d9488; font-size: 26px; }
+        h3 { font-size: 20px; font-weight: 800; color: #0f172a; margin: 0; }
+        .title-icon { color: #0d9488; font-size: 24px; }
       }
-      .subtitle { font-size: 14px; color: #94a3b8; margin-top: 6px; }
+      .subtitle { font-size: 13px; color: #94a3b8; margin-top: 4px; }
     }
 
     .filter-body {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 12px;
 
       .date-row {
         display: flex;
         justify-content: space-between;
         align-items: center;
         background: #f8fafc;
-        padding: 12px 18px;
-        border-radius: 20px;
+        padding: 10px 18px;
+        border-radius: 18px;
         border: 1px solid #f1f5f9;
 
-        .label { font-size: 12px; font-weight: 800; color: #64748b; }
+        .label { font-size: 11px; font-weight: 800; color: #64748b; }
 
-        .date-pill input {
+        .date-pill input, .date-pill select {
           border: none;
           background: #f1f5f9;
-          padding: 8px 12px;
-          border-radius: 10px;
+          padding: 6px 10px;
+          border-radius: 8px;
           font-weight: 700;
           color: #0f172a;
           outline: none;
+          min-width: 100px;
+          font-size: 13px;
         }
       }
     }
 
     .modal-footer {
-      margin-top: 30px;
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
+      margin-top: 20px;
 
-      .apply-btn {
-        width: 100%; 
-        background: #0f172a; 
-        color: white; 
-        padding: 18px;
-        border-radius: 20px; 
-        font-weight: 700; 
-        border: none;
-        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.2);
-      }
+      .footer-btn-row {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
 
-      .clear-btn {
-        background: transparent; border: none; 
-        color: #ef4444; 
-        font-weight: 700;
-        text-decoration: underline;
+        .reset-btn {
+          width: 100%;
+          background: #f1f5f9;
+          color: #64748b;
+          padding: 14px;
+          border-radius: 15px;
+          font-weight: 700;
+          border: none;
+        }
+
+        .apply-btn {
+          width: 100%;
+          background: #0f172a;
+          color: white;
+          padding: 14px;
+          border-radius: 15px;
+          font-weight: 700;
+          border: none;
+          box-shadow: 0 8px 20px rgba(15, 23, 42, 0.15);
+        }
       }
     }
   }

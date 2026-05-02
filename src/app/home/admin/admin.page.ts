@@ -171,8 +171,13 @@ export class AdminPage implements OnInit, AfterViewInit {
   isSpinning: boolean = false;
   selectedRange: string = 'all';
   selectedBeat: string = 'all';
+  allRanges: any[] = [];
+  allBeats: any[] = [];
+  displayBeats: any[] = [];
+  hierarchyNodes: any[] = [];
   dateFrom: string = '';
   dateTo: string = '';
+  todayDate: string = new Date().toISOString().split('T')[0]; // e.g. "2026-05-02"
   isLayerVisible: boolean = true;
   attendanceChart: any;
   // --- Map & Layer State ---
@@ -439,6 +444,7 @@ export class AdminPage implements OnInit, AfterViewInit {
     this.loadTrendData();
     this.loadBeatCoverage();
     this.updateTime();
+    // this.loadHierarchy(); // Moved to loadData for more reliable fetching
     setTimeout(() => {
       this.initHomeCharts();
     }, 1000);
@@ -478,6 +484,91 @@ export class AdminPage implements OnInit, AfterViewInit {
 
   
 
+  // --- Production Filter Data Logic (Using getSites for maximum compatibility) ---
+  loadHierarchy() {
+    console.log('📡 [Hierarchy] Fetching Sites to extract Ranges/Beats...');
+    const apiToken = localStorage.getItem('api_token') || '';
+    const companyId = localStorage.getItem('company_id') || localStorage.getItem('user_company_id') || '1';
+    
+    // Aligned with Geofences/Reports logic
+    const payload = { 
+      api_token: apiToken, 
+      company_id: companyId 
+    };
+
+    this.dataService.getSites(payload).subscribe({
+      next: (res: any) => {
+        const data = res?.data || res || [];
+        const sites = Array.isArray(data) ? data : [];
+        
+        if (sites.length > 0) {
+          console.log('📥 [Hierarchy] First Site Structure:', Object.keys(sites[0]));
+          console.log('📥 [Hierarchy] First Site Sample:', sites[0]);
+        }
+        
+        if (sites.length === 0) {
+          console.warn('⚠️ [Hierarchy] No sites found in response');
+        }
+
+        const rangeSet = new Set<string>();
+        const beatArray: any[] = [];
+        
+        sites.forEach((s: any) => {
+          // Extract range and beat from site metadata
+          // In Sir's production database, 'client_name' often represents the Range/Division
+          const rName = s.client_name || s.range_name || s.range || s.division_name || s.division || 'General Range';
+          const bName = s.name || s.beat_name || s.beat || s.site_name || s.site;
+          
+          if (rName) rangeSet.add(rName);
+          if (bName) {
+            beatArray.push({
+              name: bName,
+              parentName: rName
+            });
+          }
+        });
+
+        console.log('📥 [Hierarchy] Extracted Ranges (via client_name/range):', Array.from(rangeSet));
+
+        this.allRanges = Array.from(rangeSet).sort();
+        this.allBeats = beatArray;
+        
+        // Initialize visible beats
+        if (this.selectedRange === 'all') {
+          this.displayBeats = Array.from(new Set(beatArray.map(b => b.name))).sort();
+        } else {
+          this.displayBeats = beatArray
+            .filter(b => b.parentName === this.selectedRange)
+            .map(b => b.name)
+            .sort();
+        }
+
+        console.log('✅ [Hierarchy] Sync Complete:', this.allRanges.length, 'Ranges,', this.displayBeats.length, 'Beats');
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('❌ [Hierarchy] getSites fetch failed:', err);
+      }
+    });
+  }
+
+  onRangeFilterChange() {
+    console.log('🔄 Range Filter Changed:', this.selectedRange);
+    this.selectedBeat = 'all'; // Reset beat when range changes
+    
+    if (this.selectedRange === 'all') {
+      this.displayBeats = Array.from(new Set(this.allBeats.map(b => b.name))).sort();
+    } else {
+      // Filter beats that belong to this range
+      this.displayBeats = this.allBeats
+        .filter(b => b.parentName === this.selectedRange)
+        .map(b => b.name)
+        .sort();
+    }
+    
+    this.doRefresh();
+  }
+
   fetchKPI(category: string, range: string) {
   const rawData = localStorage.getItem('user_data');
   const cId = rawData ? JSON.parse(rawData).company_id : this.myCompanyId;
@@ -500,7 +591,17 @@ export class AdminPage implements OnInit, AfterViewInit {
 
 
   // admin.page.ts
-segmentChanged(event: any) {
+  resetAllFilters() {
+    this.selectedRange = 'all';
+    this.selectedBeat = 'all';
+    this.activeDateFilter = 'today';
+    this.dateFrom = '';
+    this.dateTo = '';
+    this.loadHierarchy(); // Refresh hierarchy
+    this.doRefresh();      // Refresh data
+  }
+
+  segmentChanged(event: any) {
   const val = event.detail.value;
   this.selectedTimeframe = val;
   this.activeDateFilter = val;
@@ -756,6 +857,9 @@ changeTimeframe(newTimeframe: string) {
       return;
     }
 
+    // Refresh hierarchy data (Ranges/Beats) on every load
+    this.loadHierarchy();
+
     const dates = this.getFilterDates();
     this.isFetching = true;
 
@@ -926,6 +1030,11 @@ changeTimeframe(newTimeframe: string) {
                    if (this.activeDateFilter === 'today') isPass = isToday;
                    else if (this.activeDateFilter === 'week') isPass = isThisWeek;
                    else if (this.activeDateFilter === 'month') isPass = isThisMonth;
+                   else if (this.activeDateFilter === 'custom') {
+                     const fromTS = new Date(dates.from).getTime();
+                     const toTS = new Date(dates.to).getTime() + (24 * 60 * 60 * 1000) - 1; // End of day
+                     isPass = rTimestamp >= fromTS && rTimestamp <= toTS;
+                   }
 
                    if (isPass && catKey) {
                       if (catKey === 'crim') counts.criminal++;
@@ -1014,6 +1123,11 @@ changeTimeframe(newTimeframe: string) {
                          const rTimestamp = fDate ? new Date(fDate).getTime() : 0;
                          const nowTS = new Date().getTime();
                          isPass = rTimestamp > (nowTS - (30 * 24 * 60 * 60 * 1000));
+                      } else if (this.activeDateFilter === 'custom') {
+                         const rTimestamp = fDate ? new Date(fDate).getTime() : 0;
+                         const fromTS = new Date(dates.from).getTime();
+                         const toTS = new Date(dates.to).getTime() + (24 * 60 * 60 * 1000) - 1;
+                         isPass = rTimestamp >= fromTS && rTimestamp <= toTS;
                       }
 
                       return latValid && isPass;
@@ -2553,6 +2667,14 @@ handleApiResponse(res: any) {
       // Pichle 30 din (Fixed logic: Month ki 1st date ki jagah pichle 30 din lo)
       from.setDate(now.getDate() - 30);
       from.setHours(0, 0, 0, 0);
+    } else if (this.activeDateFilter === 'custom') {
+      if (this.dateFrom && this.dateTo) {
+        // Fix for custom range: Return precisely selected dates
+        return {
+          from: new Date(this.dateFrom).toISOString(),
+          to: new Date(this.dateTo).toISOString()
+        };
+      }
     }
 
     return {

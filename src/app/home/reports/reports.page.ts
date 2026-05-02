@@ -22,6 +22,8 @@ export class ReportsPage implements OnInit { // OnInit implement karo
   isTourOpen: boolean = false;
   isVisitorOpen: boolean = false;
   isAdminOpen: boolean = false;
+  sites: any[] = [];
+
 
   reportEndpointMap: { [key: string]: string } = {
     // Attendance
@@ -96,8 +98,22 @@ export class ReportsPage implements OnInit { // OnInit implement karo
 
     console.log("DEBUG: Final rawRole:", rawRole);
     console.log("DEBUG: Mapped userRole:", this.userRole);
-  this.resetFilters();
-}
+    this.resetFilters();
+    if (this.userRole === 'admin') {
+      this.fetchSites();
+    }
+  }
+
+  fetchSites() {
+    const companyId = localStorage.getItem('company_id') || '1';
+    this.dataService.getSitesList(companyId).subscribe({
+      next: (res: any) => {
+        this.sites = res?.data || res || [];
+        console.log('Sites fetched for reports:', this.sites);
+      },
+      error: (err) => console.error('Error fetching sites:', err)
+    });
+  }
 
 toggleAttendance() {
     this.isAttendanceOpen = !this.isAttendanceOpen;
@@ -152,16 +168,57 @@ openFilterModal(type: string) {
   generateReport(format: 'pdf' | 'excel') {
     const endpoint = this.reportEndpointMap[this.activeReport] || 'reports/forest-patrol';
     
+    // Get IDs correctly from DataService/LocalStorage
+    const companyId = this.dataService.getUserCompanyId() || localStorage.getItem('company_id') || '';
+    const rangerId = this.dataService.getRangerId() || localStorage.getItem('ranger_id') || '';
+    const token = localStorage.getItem('api_token') || '';
+    
+    // Split date to get YYYY-MM-DD
+    const from = this.startDate ? this.startDate.split('T')[0] : new Date().toISOString().split('T')[0];
+    const to = this.endDate ? this.endDate.split('T')[0] : new Date().toISOString().split('T')[0];
+
     // Create FormData as Sir's API expects multipart/form-data
     const formData = new FormData();
-    // formData.append('api_token', localStorage.getItem('api_token') || ''); // Interceptor handles this
-    formData.append('company_id', localStorage.getItem('company_id') || '');
-    formData.append('user_id', localStorage.getItem('ranger_id') || '');
-    formData.append('from', this.startDate.split('T')[0]); 
-    formData.append('to', this.endDate.split('T')[0]);
+    
+    // Body token (Critical for Sir's legacy PHP backend)
+    formData.append('api_token', token);
+    
+    // Company keys
+    formData.append('company_id', String(companyId));
+    formData.append('companyId', String(companyId));
+
+    // User keys
+    formData.append('user_id', String(rangerId));
+    formData.append('ranger_id', String(rangerId));
+    formData.append('guard_id', String(rangerId));
+    formData.append('id', String(rangerId));
+
+    // Date keys (Comprehensive set for all endpoint variants)
+    formData.append('from', from);
+    formData.append('to', to);
+    formData.append('from_date', from);
+    formData.append('to_date', to);
+    formData.append('startDate', from);
+    formData.append('endDate', to);
+    formData.append('start_date', from);
+    formData.append('end_date', to);
+    formData.append('date_from', from);
+    formData.append('date_to', to);
+
+    // Filter keys
+    if (this.selectedClient && this.selectedClient !== 'all') {
+      formData.append('client', String(this.selectedClient));
+      formData.append('client_id', String(this.selectedClient));
+      formData.append('site_id', String(this.selectedClient));
+      formData.append('range_id', String(this.selectedClient));
+      formData.append('beat_id', String(this.selectedClient));
+      formData.append('beat', String(this.selectedClient));
+      formData.append('geo_id', String(this.selectedClient));
+    }
+
     formData.append('format', format);
 
-    console.log('Requesting Report from:', endpoint, 'using FormData');
+    console.log('Requesting Report from:', endpoint, 'with params:', { from, to, companyId, rangerId, selectedClient: this.selectedClient });
 
     this.dataService.downloadReport(endpoint, formData).subscribe({
       next: (response: any) => {
