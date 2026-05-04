@@ -969,6 +969,31 @@ changeTimeframe(newTimeframe: string) {
               this.operationalRate = filteredAssets.length > 0 
                 ? Math.round((goodCount / filteredAssets.length) * 100) + '%' 
                 : '100%';
+
+              // ADD ASSET TREND DATA
+              const assetsTrendMap: { [date: string]: number } = {};
+              assetList.forEach((a: any) => {
+                 const aDate = a.created_at || a.date_time || a.date || '';
+                 let dateYMD = '';
+                 if (aDate && aDate.includes('-')) {
+                     const parts = aDate.split('T')[0].split(' ')[0].split('-');
+                     if (parts.length === 3) {
+                       dateYMD = parts[0].length === 4 ? `${parts[0]}-${parts[1]}-${parts[2]}` : `${parts[2]}-${parts[1]}-${parts[0]}`;
+                     }
+                 }
+                 if (dateYMD) {
+                     assetsTrendMap[dateYMD] = (assetsTrendMap[dateYMD] || 0) + 1;
+                 }
+              });
+
+              const last30 = Array.from({length: 30}, (_, i) => {
+                 const d = new Date();
+                 d.setDate(d.getDate() - (29 - i));
+                 const m = String(d.getMonth() + 1).padStart(2, '0');
+                 const day = String(d.getDate()).padStart(2, '0');
+                 return `${d.getFullYear()}-${m}-${day}`;
+              });
+              this.assetsTrendData = last30.map(d => assetsTrendMap[d] || 0);
             }
 
 
@@ -1343,6 +1368,42 @@ changeTimeframe(newTimeframe: string) {
 
                            // Ensure unique count: Only count one attendance per officer per day
                            this.onDutyCount = filteredCount || apiCount;
+
+                           const onDutyTrendMap: { [date: string]: Set<string> } = {};
+                           const processTrendRecord = (record: any) => {
+                             const rDateStr = (record.timestamp || record.entryDateTime || record.created_at || record.date || '').toString();
+                             if (!rDateStr) return;
+                             
+                             let dateYMD = '';
+                             if (rDateStr && rDateStr.includes('-')) {
+                                 const parts = rDateStr.split('T')[0].split(' ')[0].split('-');
+                                 if (parts.length === 3) {
+                                   dateYMD = parts[0].length === 4 ? `${parts[0]}-${parts[1]}-${parts[2]}` : `${parts[2]}-${parts[1]}-${parts[0]}`;
+                                 }
+                             }
+                             const status = String(record.status || '').toLowerCase();
+                             const isRejected = status === 'rejected' || status === 'failed';
+                             if (dateYMD && !isRejected) {
+                               const uId = record.guard_id || record.guardId || record.user_id || record.userId || record.staff_id || record.ranger_id || record.added_by || record.created_by;
+                               if (uId) {
+                                 if (!onDutyTrendMap[dateYMD]) onDutyTrendMap[dateYMD] = new Set<string>();
+                                 onDutyTrendMap[dateYMD].add(uId.toString());
+                               }
+                             }
+                           };
+                           logsArray.forEach(processTrendRecord);
+                           reqArray.forEach(processTrendRecord);
+                           onsiteArray.forEach(processTrendRecord);
+
+                           const last30 = Array.from({length: 30}, (_, i) => {
+                             const d = new Date();
+                             d.setDate(d.getDate() - (29 - i));
+                             const m = String(d.getMonth() + 1).padStart(2, '0');
+                             const day = String(d.getDate()).padStart(2, '0');
+                             return `${d.getFullYear()}-${m}-${day}`;
+                           });
+                           this.onDutyTrendData = last30.map(d => onDutyTrendMap[d] ? onDutyTrendMap[d].size : 0);
+
                            this.allRangers = staffList.length || Number(stats.total_staff || stats.total_users || this.allRangers || 0);
                            this.inactiveCount = Math.max(0, this.allRangers - this.onDutyCount);
 
