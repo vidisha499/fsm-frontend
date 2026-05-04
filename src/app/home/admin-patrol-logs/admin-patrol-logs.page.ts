@@ -56,25 +56,32 @@ export class AdminPatrolLogsPage implements OnInit {
       this.filterTo   = today;
     }
 
-    // 🚀 Parallel initialization for faster loading
+    // 🚀 Load dependencies first, then fetch data
     Promise.all([
       this.loadHierarchy(),
-      this.loadRangers(),
-      this.refreshData()
-    ]);
+      this.loadRangers()
+    ]).then(() => {
+      this.refreshData();
+    });
   }
 
-  loadRangers() {
-    const rawData = localStorage.getItem('user_data');
-    const user = rawData ? JSON.parse(rawData) : null;
-    const companyId = user ? Number(user.company_id || user.companyId) : 0;
-    if (!companyId) return;
+  loadRangers(): Promise<void> {
+    return new Promise((resolve) => {
+      const rawData = localStorage.getItem('user_data');
+      const user = rawData ? JSON.parse(rawData) : null;
+      const companyId = user ? Number(user.company_id || user.companyId) : 0;
+      if (!companyId) return resolve();
 
-    this.dataService.getAssignableUsers({ company_id: companyId.toString() }).subscribe({
-      next: (res: any) => {
-        this.rangers = res.data || res.users || (Array.isArray(res) ? res : []);
-      },
-      error: (err) => console.error('Failed to load rangers', err)
+      this.dataService.getAssignableUsers({ company_id: companyId.toString() }).subscribe({
+        next: (res: any) => {
+          this.rangers = res.data || res.users || (Array.isArray(res) ? res : []);
+          resolve();
+        },
+        error: (err) => {
+          console.error('Failed to load rangers', err);
+          resolve();
+        }
+      });
     });
   }
 
@@ -166,9 +173,9 @@ export class AdminPatrolLogsPage implements OnInit {
 
   processPatrolLog(log: any) {
     // 1. Resolve Name
-    let name = log.user_name || log.ranger_name || log.full_name;
+    let name = log.user_name || log.ranger_name || log.full_name || log.guard_name || log.officer_name;
     if (!name || name === 'Unknown Officer') {
-      const uId = log.user_id || log.ranger_id || log.staff_id;
+      const uId = log.user_id || log.ranger_id || log.staff_id || log.guard_id || log.created_by;
       if (uId && this.rangers.length > 0) {
         const found = this.rangers.find(r => (r.id || r.user_id) == uId);
         if (found) name = found.name || found.full_name;
@@ -214,18 +221,24 @@ export class AdminPatrolLogsPage implements OnInit {
     };
   }
 
-  loadHierarchy() {
-    const rawData = localStorage.getItem('user_data');
-    const user = rawData ? JSON.parse(rawData) : null;
-    const companyId = user ? (user.company_id || user.companyId) : '1';
+  loadHierarchy(): Promise<void> {
+    return new Promise((resolve) => {
+      const rawData = localStorage.getItem('user_data');
+      const user = rawData ? JSON.parse(rawData) : null;
+      const companyId = user ? (user.company_id || user.companyId) : '1';
 
-    this.dataService.getHierarchyForFilters(companyId.toString()).subscribe({
-      next: (h) => {
-        this.allRanges = h.ranges;
-        this.allBeats = h.beats;
-        this.updateVisibleBeats();
-      },
-      error: (err) => console.error('❌ Hierarchy fetch failed:', err)
+      this.dataService.getHierarchyForFilters(companyId.toString()).subscribe({
+        next: (h) => {
+          this.allRanges = h.ranges;
+          this.allBeats = h.beats;
+          this.updateVisibleBeats();
+          resolve();
+        },
+        error: (err) => {
+          console.error('❌ Hierarchy fetch failed:', err);
+          resolve();
+        }
+      });
     });
   }
 
