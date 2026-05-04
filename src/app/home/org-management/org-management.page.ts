@@ -70,6 +70,7 @@ export class OrgManagementPage implements OnInit {
 
   async openAddHierarchyNode() {
     const alert = await this.alertCtrl.create({
+      mode: 'md',
       header: 'Add Hierarchy Node',
       inputs: [
         { name: 'name', type: 'text', placeholder: 'Node Name' },
@@ -101,6 +102,7 @@ export class OrgManagementPage implements OnInit {
 
   async editHierarchyNode(node: any) {
     const alert = await this.alertCtrl.create({
+      mode: 'md',
       header: 'Update Node',
       inputs: [
         { name: 'name', type: 'text', value: node.name, placeholder: 'Node Name' },
@@ -127,6 +129,7 @@ export class OrgManagementPage implements OnInit {
 
   async deleteHierarchyNode(id: any) {
     const confirm = await this.alertCtrl.create({
+      mode: 'md',
       header: 'Delete Node?',
       message: 'This action cannot be undone.',
       buttons: [
@@ -179,6 +182,7 @@ export class OrgManagementPage implements OnInit {
 
   async openAddOrgEntity() {
     const alert = await this.alertCtrl.create({
+      mode: 'md',
       header: 'New Org Entity',
       inputs: [
         { name: 'name', type: 'text', placeholder: 'Entity Name' },
@@ -215,6 +219,7 @@ export class OrgManagementPage implements OnInit {
 
   async editOrgEntity(entity: any) {
      const alert = await this.alertCtrl.create({
+      mode: 'md',
       header: 'Update Entity',
       inputs: [
         { name: 'name', type: 'text', value: entity.name, placeholder: 'Entity Name' }
@@ -250,6 +255,7 @@ export class OrgManagementPage implements OnInit {
 
   async openAddRole() {
     const alert = await this.alertCtrl.create({
+      mode: 'md',
       header: 'Create Custom Role',
       inputs: [
         { name: 'name', type: 'text', placeholder: 'Role Name (e.g. Officer)' },
@@ -270,6 +276,7 @@ export class OrgManagementPage implements OnInit {
 
   async setRolePermissions(roleData: any) {
     const alert = await this.alertCtrl.create({
+      mode: 'md',
       header: 'Set Permissions',
       message: 'Select access for this role',
       inputs: [
@@ -333,6 +340,7 @@ export class OrgManagementPage implements OnInit {
 
   async openAssignUser() {
     const alert = await this.alertCtrl.create({
+      mode: 'md',
       header: 'Assign User to Node',
       inputs: [
         { name: 'user_id', type: 'number', placeholder: 'User ID' },

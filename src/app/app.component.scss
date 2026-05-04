@@ -110,29 +110,49 @@ ion-menu {
       display: flex; 
       align-items: center; 
       gap: 15px;
-      padding: 12px; 
-      margin-bottom: 8px;
-      border-radius: 22px;
+      padding: 14px 16px; 
+      margin-bottom: 12px;
+      border-radius: 20px;
       background: white;
-      transition: all 0.2s ease;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.03);
       cursor: pointer;
-      pointer-events: auto !important; // Clicks ensure karne ke liye
+      border: 1px solid #f1f5f9;
+      position: relative;
+      overflow: hidden;
 
-      &:active { transform: scale(0.96); }
+      &::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; width: 4px; height: 100%;
+        background: transparent;
+        transition: all 0.3s ease;
+      }
 
-      // &.active {
-      //   background: #f0fdf4;
-      //   .icon-box { background: #10b981; color: white; box-shadow: 0 8px 15px rgba(16, 185, 129, 0.2); }
-      //   .item-text span { color: #065f46; font-weight: 900; }
-      // }
+      &:active { 
+        transform: scale(0.97) translateX(5px);
+        background: #f8fafc;
+      }
+
+      &.active {
+        background: #f0fdfa;
+        border-color: #ccfbf1;
+        &::after { background: #10b981; }
+        .icon-box { 
+          transform: scale(1.1);
+          box-shadow: 0 8px 20px rgba(16, 185, 129, 0.15);
+        }
+        .item-text span { color: #0f766e; font-weight: 900; }
+      }
 
       .icon-box {
-        width: 44px; height: 44px; border-radius: 15px;
+        width: 44px; height: 44px; border-radius: 14px;
         display: flex; align-items: center; justify-content: center; font-size: 18px;
-        background: #f1f5f9; color: #64748b;
+        background: #f8fafc; color: #64748b;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
 
-        &.emerald { background: #ecfdf5; color: #10b981; }
+        &.emerald { background: #f0fdf4; color: #10b981; }
         &.blue { background: #eff6ff; color: #3b82f6; }
         &.purple { background: #faf5ff; color: #a855f7; }
         &.indigo { background: #eef2ff; color: #6366f1; }
@@ -148,7 +168,12 @@ ion-menu {
         &.pink { background: #fdf2f8; color: #db2777; }
       }
 
-      .item-text span { font-size: 14px; font-weight: 800; color: #334155; }
+      .item-text span { 
+        font-size: 14.5px; 
+        font-weight: 700; 
+        color: #334155;
+        letter-spacing: -0.2px;
+      }
     }
 
 
@@ -162,7 +187,7 @@ ion-menu {
 
   .menu-footer {
     padding: 20px; text-align: center;
-    .version-tag { font-size: 9px; font-weight: 900; color: #cbd5e1; letter-spacing: 3px; }
+    .version-tag { font-size: 10.5px; font-weight: 900; color: #cbd5e1; letter-spacing: 2px; }
   }
 
   /* Icons ke naye color variants */
@@ -1208,3 +1233,124 @@ ion-menu {
     }
   }
 }
+
+/* --- CUSTOM STYLISH LOGOUT MODAL --- */
+.custom-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.3); // Less dark, no blur
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: fadeIn 0.3s ease-out;
+
+  .premium-logout-card {
+    position: relative;
+    width: 100%;
+    max-width: 280px; // Smaller
+    background: rgba(255, 255, 255, 0.98);
+    border-radius: 30px;
+    padding: 25px 20px; // Compact
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    text-align: center;
+    overflow: hidden;
+    animation: modalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+
+    .glow-effect {
+      position: absolute;
+      top: -50px;
+      left: -50px;
+      width: 150px;
+      height: 150px;
+      background: radial-gradient(circle, rgba(239, 68, 68, 0.15) 0%, transparent 70%);
+      z-index: 0;
+    }
+
+    .modal-content-wrap {
+      position: relative;
+      z-index: 1;
+    }
+
+    .icon-header {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+
+      .icon-ring {
+        width: 54px; // Smaller
+        height: 54px;
+        background: #fef2f2;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ef4444;
+        font-size: 20px; // Smaller
+        box-shadow: 0 10px 20px rgba(239, 68, 68, 0.1);
+        border: 2px solid white;
+      }
+    }
+
+    h2 {
+      font-size: 18px; // Smaller
+      font-weight: 800;
+      color: #1e293b;
+      margin: 0 0 8px 0;
+    }
+
+    p {
+      font-size: 12px; // Smaller
+      color: #64748b;
+      line-height: 1.6;
+      margin-bottom: 25px;
+      padding: 0 10px;
+    }
+
+    .modal-actions-row {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+
+      button {
+        width: 100%;
+        padding: 16px;
+        border-radius: 18px;
+        font-size: 14px;
+        font-weight: 800;
+        transition: 0.3s;
+        border: none;
+        outline: none;
+
+        &.cancel-btn {
+          background: #f1f5f9;
+          color: #475569;
+          &:active { background: #e2e8f0; transform: scale(0.97); }
+        }
+
+        &.confirm-logout-btn {
+          background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          box-shadow: 0 10px 20px rgba(239, 68, 68, 0.25);
+          &:active { transform: scale(0.97); opacity: 0.9; }
+        }
+      }
+    }
+  }
+}
+
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.9) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

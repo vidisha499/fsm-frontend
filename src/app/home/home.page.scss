@@ -607,6 +607,10 @@
             margin-top: 2px;
             margin-left: 50px; // Aligns subtitle under the 'S' of Settings
         }
+        &.card-purple {
+            background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%);
+            box-shadow: 0 15px 30px rgba(168, 85, 247, 0.2);
+        }
     }
 }
   }

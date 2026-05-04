@@ -1402,4 +1402,18 @@ export class DataService {
       console.log("🏁 GLOBAL SYNC FINISHED.");
     }
   }
+  getNotifications() {
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    return this.http.post(`${this.baseApiUrl}/getNotifications`, formData);
+  }
+
+  markNotificationRead(notificationId: any) {
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    formData.append('notification_id', String(notificationId));
+    return this.http.post(`${this.baseApiUrl}/markNotificationRead`, formData);
+  }
 }

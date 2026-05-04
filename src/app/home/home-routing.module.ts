@@ -178,6 +178,14 @@ loadChildren:() => import('./admin/admin.module').then( m => m.AdminPageModule)
   {
     path: 'admin-patrol-logs',
     loadChildren: () => import('./admin-patrol-logs/admin-patrol-logs.module').then( m => m.AdminPatrolLogsPageModule)
+  },
+  {
+    path: 'notifications',
+    loadChildren: () => import('./notifications/notifications.module').then( m => m.NotificationsPageModule)
+  },
+  {
+    path: 'org-management',
+    loadChildren: () => import('./org-management/org-management.module').then( m => m.OrgManagementPageModule)
   }
 
 ];

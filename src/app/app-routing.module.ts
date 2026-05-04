@@ -181,6 +181,10 @@ loadChildren:() => import('./home/reports/reports.module').then( m => m.ReportsP
     path: 'org-management',
     loadChildren: () => import('./home/org-management/org-management.module').then(m => m.OrgManagementPageModule)
   },
+  {
+    path: 'notifications',
+    loadChildren: () => import('./home/notifications/notifications.module').then(m => m.NotificationsPageModule)
+  }
 ];
 
 @NgModule({

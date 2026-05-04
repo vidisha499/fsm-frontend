@@ -379,4 +379,31 @@
       <p>{{ viewerZoom > 1 ? 'Tap to Zoom Out / Reset' : 'Tap Image to Zoom In' }}</p>
     </div>
   </div>
+
+  <!-- Custom Stylish Logout Modal -->
+  <div class="custom-modal-backdrop" *ngIf="showLogoutConfirm" (click)="toggleLogoutConfirm(false)">
+    <div class="premium-logout-card" (click)="$event.stopPropagation()">
+      <div class="glow-effect"></div>
+      <div class="modal-content-wrap">
+        <div class="icon-header">
+          <div class="icon-ring">
+            <i class="fas fa-power-off"></i>
+          </div>
+        </div>
+        
+        <h2>Confirm Logout</h2>
+        <p>Are you sure you want to end your current session and sign out of the system?</p>
+
+        <div class="modal-actions-row">
+          <button class="confirm-logout-btn" (click)="performLogout()">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Sign Out</span>
+          </button>
+          <button class="cancel-btn" (click)="toggleLogoutConfirm(false)">
+            <span>Keep Logged In</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </ion-app>

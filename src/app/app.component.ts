@@ -1,6 +1,6 @@
 import { Component, Renderer2, QueryList, ViewChildren, OnInit, ChangeDetectorRef, HostListener } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { Platform, IonRouterOutlet, ActionSheetController, ModalController, MenuController, NavController, ToastController, LoadingController } from '@ionic/angular';
+import { Platform, IonRouterOutlet, ActionSheetController, ModalController, MenuController, NavController, ToastController, LoadingController, AlertController } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { LabelService } from './services/label.service';
 // import { DataService } from './data.service';
@@ -46,6 +46,7 @@ export class AppComponent implements OnInit {
   private maxSlide: number = 0; 
   passwordType: string = 'password';
   passwordIcon: string = 'eye-off';
+  showLogoutConfirm: boolean = false;
 
   // Global Photo Viewer State
   showViewer: boolean = false;
@@ -66,7 +67,8 @@ export class AppComponent implements OnInit {
     private loadingCtrl: LoadingController,
     private labelService: LabelService,
     private dataService: DataService,
-    private photoViewer: PhotoViewerService
+    private photoViewer: PhotoViewerService,
+    private alertController: AlertController
   ) {
     this.renderer.removeClass(document.body, 'dark');
     this.renderer.addClass(document.body, 'light');
@@ -595,7 +597,18 @@ async goToPage(path: string) {
   }
 
   async logout() {
-    console.log("🟠 User initiated manual logout...");
+    await this.menu.close(); // Pehle menu close karein taki background dikhe
+    this.toggleLogoutConfirm(true);
+  }
+
+  toggleLogoutConfirm(show: boolean) {
+    this.showLogoutConfirm = show;
+    this.cdr.detectChanges();
+  }
+
+  async performLogout() {
+    console.log("🟠 User confirmed manual logout...");
+    this.showLogoutConfirm = false;
     await this.menu.close();
     const lang = localStorage.getItem('app_language_code');
     
@@ -609,6 +622,7 @@ async goToPage(path: string) {
     
     console.log("🟠 Memory wiped successfully. Redirecting to /login...");
     this.navCtrl.navigateRoot('/login');
+    this.cdr.detectChanges();
   }
 
   togglePasswordVisibility() {

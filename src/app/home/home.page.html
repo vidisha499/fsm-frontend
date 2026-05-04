@@ -67,6 +67,12 @@
                         <p [innerHTML]="'DASHBOARD.ALERT_INCIDENT' | translate"></p>
                         <i class="fas fa-paw watermark"></i>
                     </div>
+                    <!-- Organization Management Module (Admin Only) -->
+                    <div class="module-card card-purple" *ngIf="userRole === 'admin' || userRole === 'super-admin'" (click)="goToPage('org-management')">
+                        <div class="icon-bg"><i class="fas fa-sitemap"></i></div>
+                        <p>Organization Management</p>
+                        <i class="fas fa-paw watermark"></i>
+                    </div>
                 </div>
             </div>
         </div>
@@ -223,7 +229,7 @@
         <span>{{ 'NAV.SOS' | translate }}</span>
     </div>
 </div>
-        <div class="nav-tab" (click)="goToPage('forest-events')"><i class="fas fa-bell"></i><span>{{ 'NAV.ALERTS' | translate }}</span></div>
+        <div class="nav-tab" (click)="goToPage('notifications')"><i class="fas fa-bell"></i><span>{{ 'NAV.ALERTS' | translate }}</span></div>
         <div class="nav-tab" (click)="goToPage('settings')"><i class="fas fa-user-shield"></i><span>{{ 'NAV.RANGER' | translate }}</span></div>
     </div>
 </div>

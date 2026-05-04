@@ -42,6 +42,7 @@ isSubmitting: boolean = false;
   rangerPassword: string = '';
   currentPassword: string = '';
   dashboardStats: any = {};
+  userRole: string = 'guard';
  
   // Navigation Logic
   
@@ -104,6 +105,7 @@ passwordType: string = 'password';
     this.rangerName = user.name || 'Supervisor';
     this.rangerId = user.id.toString();
     this.rangerPhone = user.phone || user.contact || ''; 
+    this.userRole = user.role || user.role_name || 'guard';
     this.cdr.detectChanges();
   }
 }
