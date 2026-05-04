@@ -45,10 +45,27 @@
   .main-container {
     margin-top: -30px; padding: 0 18px 100px; position: relative; z-index: 3;
 
-    .header-text-block {
-      margin: 10px 0 20px 5px;
-      h2 { font-size: 20px; font-weight: 800; color: var(--dark-slate); margin: 0; }
-      p { font-size: 13px; color: #94a3b8; margin: 4px 0 0; }
+    .management-card {
+      background: white; border-radius: 22px; padding: 18px 20px;
+      margin-bottom: 15px; display: flex; align-items: center; gap: 15px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04); border: 1px solid #f1f5f9;
+      transition: 0.3s;
+
+      &:active { transform: scale(0.97); background: #f8fafc; }
+
+      .icon-box {
+        width: 54px; height: 54px; border-radius: 15px;
+        background: #f0fdf4; display: flex; align-items: center; justify-content: center;
+        i { font-size: 22px; color: #10b981; }
+      }
+
+      .card-info {
+        flex: 1;
+        h3 { font-size: 16px; font-weight: 700; color: #1e293b; margin: 0; }
+        span { font-size: 10px; font-weight: 700; color: #94a3b8; letter-spacing: 0.5px; }
+      }
+
+      .chevron { color: #cbd5e1; font-size: 16px; }
     }
 
     .incident-row-compact {
@@ -81,33 +98,25 @@
 }
 
 .floating-submenu {
-  position: absolute;
-  top: 60px;          // Card ke header ke theek niche se
-  right: 0;           // Card ke right edge se align
-  width: 260px;       // Thoda wide rakho taaki text na kate
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); // Heavy shadow for floating look
-  z-index: 1000;      // Isse ye "Incidence Report" ke upar tairne lagega
-  border: 1px solid #e2e8f0;
-  padding: 5px 0;
+  position: relative;
+  width: 100%;
+  background: #f8fafc;
+  border-radius: 0 0 22px 22px;
+  padding: 5px 15px 15px;
+  margin-top: -15px;
+  margin-bottom: 15px;
+  border: 1px solid #f1f5f9;
+  border-top: none;
 
   .submenu-item {
-    padding: 12px 18px;
-    border-bottom: 1px solid #f1f5f9;
+    padding: 12px 10px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px dotted #e2e8f0;
     
-    span {
-      font-size: 13px;
-      color: #1e293b;
-      font-weight: 500;
-    }
-
+    span { font-size: 13px; color: #475569; font-weight: 600; }
     &:last-child { border-bottom: none; }
   }
 }
-/* ==========================================================================
-   UPDATED MODAL STYLES (Reset Filter + Side-by-Side Buttons)
-   ========================================================================== */
 
 .custom-bottom-card {
   --height: auto;
@@ -143,7 +152,6 @@
       flex-direction: column; 
       gap: 12px;
 
-      // Common row style for Client and Date (Matches image_292784.png style)
       .data-row-premium {
         display: flex; 
         justify-content: space-between; 
@@ -183,13 +191,12 @@
       }
     }
 
-    /* Side-by-Side Mini Buttons & Text Actions */
     .modal-footer-dual-row {
       margin-top: 20px;
       
       .button-grid {
         display: grid;
-        grid-template-columns: 1fr; 
+        grid-template-columns: 1fr 1fr; 
         gap: 10px;
         margin-bottom: 15px;
       }
@@ -215,39 +222,20 @@
         &:active { transform: scale(0.95); opacity: 0.9; }
       }
 
-      /* Reset and Cancel Row */
       .footer-actions-text {
         display: flex;
-        flex-direction: column;
         justify-content: center;
         align-items: center;
-        gap: 10px;
-
+        
         .reset-btn-text {
-          background: #f1f5f9;
+          background: none;
           color: #64748b;
           font-weight: 700;
           font-size: 14px;
           border: none;
-          padding: 14px;
-          border-radius: 15px;
-          width: 100%;
+          padding: 5px;
           
-          &:active { opacity: 0.8; }
-        }
-
-        .clear-btn-text {
-          background: #fef2f2;
-          color: #ef4444;
-          font-weight: 700;
-          font-size: 14px;
-          border: none;
-          padding: 14px;
-          border-radius: 15px;
-          width: 100%;
-          text-decoration: none;
-
-          &:active { opacity: 0.8; }
+          &:active { opacity: 0.6; }
         }
       }
     }

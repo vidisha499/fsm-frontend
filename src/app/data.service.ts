@@ -286,6 +286,19 @@ export class DataService {
   getPatrolPhotos(sessionId: string) { 
     return this.http.post(`${this.baseApiUrl}/patrol/${sessionId}/getphotos`, {}); 
   }
+  
+  getPatrolMethods() {
+    return this.http.get(`${this.baseApiUrl}/getMethods`);
+  }
+
+  getPatrolTypes() {
+    return this.http.get(`${this.baseApiUrl}/getPatrolTypes`);
+  }
+
+  getLogCategories() {
+    return this.http.get(`${this.baseApiUrl}/getLogCategories`);
+  }
+
   getAllMapSightings(companyId: number) { return this.http.get(`${this.baseApiUrl}/patrols/all-sightings?companyId=${companyId}`); }
   getSightingCount(companyId: number, from?: string, to?: string): Observable<number> {
     let params: any = { companyId: companyId.toString() };
@@ -689,17 +702,37 @@ export class DataService {
   // --- 14. NEW ENDPOINTS FROM FMS COLLECTION ---
   getForestReportConfigs() { return this.http.get(`${this.baseApiUrl}/forest-report-configs`); }
   
-  getForestReports(paramsOrCategory?: any) { 
+  private globalForestReportsCache: any = null;
+
+  getForestReports(paramsOrCategory?: any, forceRefresh: boolean = false) { 
     let url = `${this.baseApiUrl}/forest-reports`;
     
-    if (typeof paramsOrCategory === 'string') {
-      const params = { category: paramsOrCategory };
-      return this.http.get(url, { params });
-    } else if (paramsOrCategory && typeof paramsOrCategory === 'object') {
-      return this.http.get(url, { params: paramsOrCategory });
+    if (forceRefresh) {
+      this.globalForestReportsCache = null;
+    }
+
+    if (this.globalForestReportsCache && !paramsOrCategory) {
+      return of(this.globalForestReportsCache);
     }
     
-    return this.http.get(url);
+    let obs: Observable<any>;
+    if (typeof paramsOrCategory === 'string') {
+      const params = { category: paramsOrCategory };
+      obs = this.http.get(url, { params });
+    } else if (paramsOrCategory && typeof paramsOrCategory === 'object') {
+      obs = this.http.get(url, { params: paramsOrCategory });
+    } else {
+      obs = this.http.get(url);
+    }
+    
+    return obs.pipe(
+      map(res => {
+        if (!paramsOrCategory) {
+          this.globalForestReportsCache = res;
+        }
+        return res;
+      })
+    );
   }
   getSitesList(companyId: string) {
     const token = localStorage.getItem('api_token');

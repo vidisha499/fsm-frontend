@@ -31,12 +31,37 @@ export class AdminFireRecordsPage implements OnInit {
   ) {}
 
   ngOnInit() {
+    // 🌐 Read Global Filter from Admin Dashboard
+    const globalFilter = localStorage.getItem('global_date_filter') || 'today';
+    const globalFrom   = localStorage.getItem('global_date_from')   || '';
+    const globalTo     = localStorage.getItem('global_date_to')     || '';
+    this.selectedRange = localStorage.getItem('global_range_filter') || 'all';
+    this.selectedBeat  = localStorage.getItem('global_beat_filter')  || 'all';
+
     const today = new Date().toISOString().split('T')[0];
-    this.filterFrom = today;
-    this.filterTo = today;
+
+    if (globalFilter === 'custom' && globalFrom && globalTo) {
+      this.filterFrom = globalFrom;
+      this.filterTo   = globalTo;
+    } else if (globalFilter === 'week') {
+      const from = new Date(); from.setDate(from.getDate() - 7);
+      this.filterFrom = from.toISOString().split('T')[0];
+      this.filterTo   = today;
+    } else if (globalFilter === 'month') {
+      const from = new Date(); from.setDate(from.getDate() - 30);
+      this.filterFrom = from.toISOString().split('T')[0];
+      this.filterTo   = today;
+    } else {
+      this.filterFrom = today;
+      this.filterTo   = today;
+    }
+
     this.loadHierarchy();
     this.refreshData();
   }
+
+  allReportsCache: any[] | null = null;
+  allStatsCache: any | null = null;
 
   async refreshData() {
     this.isLoading = true;
@@ -48,85 +73,103 @@ export class AdminFireRecordsPage implements OnInit {
     const user = rawData ? JSON.parse(rawData) : null;
     const companyId = user ? Number(user.company_id || user.companyId) : 0;
 
-    // Helper for robust date parsing
-    const getTS = (d: any) => {
-      if (!d) return 0;
-      if (typeof d === 'string' && d.includes('-')) {
-        const parts = d.split(' ')[0].split('-');
-        if (parts[0].length === 2 && parts[2].length === 4) {
-          return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime();
+    const statsObs = this.dataService.getDashboardStats(companyId, from, to);
+
+    if (this.allReportsCache) {
+      statsObs.subscribe({
+        next: (statsRes: any) => {
+          this.allStatsCache = statsRes?.data || statsRes || {};
+          this.applyFiltersToCache(from, to);
+        },
+        error: (err) => {
+          console.error('Stats fetch failed', err);
+          this.isLoading = false;
         }
-      }
-      return new Date(d).getTime();
-    };
+      });
+      return;
+    }
 
     console.log(`🔥 Fetching Fire Records for Company: ${companyId} | Period: ${from} to ${to}`);
 
-    // Mirroring Admin Dashboard Logic: Use forkJoin for Reports + Dashboard Stats for Alerts
     forkJoin({
       reports: this.dataService.getForestReports(),
-      stats: this.dataService.getDashboardStats(companyId, from, to)
+      stats: statsObs
     }).subscribe({
       next: (res: any) => {
-        console.log('✅ Reports Data:', res.reports);
-        console.log('✅ Dashboard Stats Data:', res.stats);
-
-        const reportsList = Array.isArray(res.reports) ? res.reports : (res.reports?.data || []);
-        const statsData = res.stats?.data || res.stats || {};
-        const alertsList = statsData.alerts || statsData.sos || [];
-
-        const combined = [...reportsList, ...alertsList];
-        console.log(`📦 Combined Pool: ${combined.length} records (${reportsList.length} reports, ${alertsList.length} alerts)`);
-
-        this.submittedReports = combined.filter((r: any) => {
-          const cat = (r.category || '').toLowerCase();
-          const rType = (r.report_type || r.event_type || r.type || '').toLowerCase();
-          const rDesc = (r.description || r.message || '').toLowerCase();
-          
-          const isFire = cat.includes('fire') || rType.includes('fire') || rDesc.includes('fire');
-          if (!isFire) return false;
-
-          // 1. Date Filter logic (Robust String-based matching)
-          let matchesDate = true;
-          if (from && to) {
-            const rDate = r.created_at || r.date || r.date_time || r.timestamp || '';
-            if (!rDate) matchesDate = false;
-            else {
-              // If from and to are same (Today filter), use robust string check
-              if (from === to) {
-                const ymd = from; // YYYY-MM-DD
-                const dmy = from.split('-').reverse().join('-'); // DD-MM-YYYY
-                matchesDate = rDate.includes(ymd) || rDate.includes(dmy) || rDate.includes(ymd.replace(/-/g, '/'));
-              } else {
-                const rTimestamp = getTS(rDate);
-                const fromTS = new Date(from).setHours(0, 0, 0, 0);
-                const toTS = new Date(to).setHours(23, 59, 59, 999);
-                matchesDate = rTimestamp >= fromTS && rTimestamp <= toTS;
-              }
-            }
-          }
-
-          // 2. Hierarchy Filter
-          const rBeat = (r.beat_name || r.site_name || r.location || '').toLowerCase();
-          const beatObj = this.allBeats.find(b => b.name.toLowerCase() === rBeat);
-          const rRange = beatObj ? beatObj.parentName : 'General Range';
-          
-          const matchesRange = this.selectedRange === 'all' || rRange === this.selectedRange;
-          const matchesBeat = this.selectedBeat === 'all' || rBeat === this.selectedBeat.toLowerCase();
-
-          return matchesDate && matchesRange && matchesBeat;
-        })
-        .sort((a, b) => getTS(b.created_at || b.date) - getTS(a.created_at || a.date))
-        .map((r: any) => this.processPhotos(r));
-        
-        console.log(`🎯 Final Filtered Fire Records: ${this.submittedReports.length}`);
-        this.isLoading = false;
+        this.allReportsCache = Array.isArray(res.reports) ? res.reports : (res.reports?.data || []);
+        this.allStatsCache = res.stats?.data || res.stats || {};
+        this.applyFiltersToCache(from, to);
       },
       error: (err) => {
-        console.error('❌ Failed to fetch fire records', err);
+        console.error('Failed to fetch data', err);
         this.isLoading = false;
       }
     });
+  }
+
+  applyFiltersToCache(from?: string, to?: string) {
+    if (!this.allReportsCache || !this.allStatsCache) return;
+
+    // Helper for robust date parsing
+    const getTS = (d: any) => {
+      if (!d) return 0;
+      let ts = 0;
+      if (typeof d === 'string') {
+        const clean = d.split(' ')[0].replace(/\//g, '-');
+        const parts = clean.split('-');
+        if (parts.length === 3) {
+           if (parts[0].length === 2 && parts[2].length === 4) {
+             ts = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime();
+           } else if (parts[0].length === 4) {
+             ts = new Date(clean).getTime();
+           }
+        }
+      }
+      if (!ts || isNaN(ts)) ts = new Date(d).getTime();
+      return isNaN(ts) ? 0 : ts;
+    };
+
+    const alertsList = this.allStatsCache.alerts || this.allStatsCache.sos || [];
+    const combined = [...this.allReportsCache, ...alertsList];
+
+    this.submittedReports = combined.filter((r: any) => {
+      const cat = (r.category || '').toLowerCase();
+      const rType = (r.report_type || r.event_type || r.type || '').toLowerCase();
+      const rDesc = (r.description || r.message || '').toLowerCase();
+      
+      const isFire = cat.includes('fire') || rType.includes('fire') || rDesc.includes('fire');
+      if (!isFire) return false;
+
+      // 1. Date Filter logic (Robust String-based matching)
+      let matchesDate = true;
+      if (from && to) {
+        const rDate = r.created_at || r.date || r.date_time || r.timestamp || '';
+        if (!rDate) matchesDate = false;
+        else {
+          // If from and to are same (Today filter), use robust string check
+          const rTimestamp = getTS(rDate);
+          const fromTS = new Date(from).setHours(0, 0, 0, 0);
+          const toTS = new Date(to).setHours(23, 59, 59, 999);
+          matchesDate = rTimestamp >= fromTS && rTimestamp <= toTS;
+        }
+      }
+
+      // 2. Hierarchy Filter
+      const rBeat = (r.beat_name || r.site_name || r.location || '').toLowerCase();
+      const beatObj = this.allBeats.find(b => b.name.toLowerCase() === rBeat);
+      const rRange = (r.range_name || r.range || r.region || (beatObj ? beatObj.parentName : '')).toLowerCase();
+      
+      const filterRange = this.selectedRange.toLowerCase();
+      const filterBeat = this.selectedBeat.toLowerCase();
+      const matchesRange = this.selectedRange === 'all' || rRange.includes(filterRange) || filterRange.includes(rRange);
+      const matchesBeat = this.selectedBeat === 'all' || rBeat.includes(filterBeat) || filterBeat.includes(rBeat);
+
+      return matchesDate && matchesRange && matchesBeat;
+    })
+    .sort((a, b) => getTS(b.created_at || b.date) - getTS(a.created_at || a.date))
+    .map((r: any) => this.processPhotos(r));
+
+    this.isLoading = false;
   }
 
   processPhotos(report: any) {

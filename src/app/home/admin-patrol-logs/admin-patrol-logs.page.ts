@@ -31,12 +31,37 @@ export class AdminPatrolLogsPage implements OnInit {
   ) {}
 
   ngOnInit() {
+    // 🌐 Read Global Filter from Admin Dashboard
+    const globalFilter = localStorage.getItem('global_date_filter') || 'today';
+    const globalFrom   = localStorage.getItem('global_date_from')   || '';
+    const globalTo     = localStorage.getItem('global_date_to')     || '';
+    this.selectedRange = localStorage.getItem('global_range_filter') || 'all';
+    this.selectedBeat  = localStorage.getItem('global_beat_filter')  || 'all';
+
     const today = new Date().toISOString().split('T')[0];
-    this.filterFrom = today;
-    this.filterTo = today;
-    this.loadHierarchy();
-    this.loadRangers();
-    this.refreshData();
+
+    if (globalFilter === 'custom' && globalFrom && globalTo) {
+      this.filterFrom = globalFrom;
+      this.filterTo   = globalTo;
+    } else if (globalFilter === 'week') {
+      const from = new Date(); from.setDate(from.getDate() - 7);
+      this.filterFrom = from.toISOString().split('T')[0];
+      this.filterTo   = today;
+    } else if (globalFilter === 'month') {
+      const from = new Date(); from.setDate(from.getDate() - 30);
+      this.filterFrom = from.toISOString().split('T')[0];
+      this.filterTo   = today;
+    } else {
+      this.filterFrom = today;
+      this.filterTo   = today;
+    }
+
+    // 🚀 Parallel initialization for faster loading
+    Promise.all([
+      this.loadHierarchy(),
+      this.loadRangers(),
+      this.refreshData()
+    ]);
   }
 
   loadRangers() {
@@ -73,17 +98,62 @@ export class AdminPatrolLogsPage implements OnInit {
       next: (res: any) => {
         const rawLogs = res?.data || res?.patrols || (Array.isArray(res) ? res : []);
         
-        // Client-side Hierarchy Filtering
-        this.patrolLogs = rawLogs.filter((log: any) => {
+        const getTS = (d: any) => {
+          if (!d) return 0;
+          let ts = new Date(d).getTime();
+          // If suspicious or NaN, try manual swap
+          if (!ts || isNaN(ts) || ts < 1577836800000) {
+             const clean = d.toString().split(' ')[0].replace(/\//g, '-');
+             const p = clean.split('-');
+             if (p.length === 3) {
+                if (p[0].length === 2 && p[2].length === 4) ts = new Date(`${p[2]}-${p[1]}-${p[0]}`).getTime();
+                else if (p[0].length === 4) ts = new Date(clean).getTime();
+             }
+          }
+          return isNaN(ts) ? 0 : ts;
+        };
+
+        const activeFrom = from || this.filterFrom;
+        const activeTo = to || this.filterTo;
+        console.log(`🔍 [PatrolFilter] Filtering logs from ${activeFrom} to ${activeTo}`);
+
+        // Client-side Filtering (Date & Hierarchy)
+        const filtered = rawLogs.filter((log: any) => {
+          const rDate = log.created_at || log.start_time || log.date || '';
+          if (!rDate) return false;
+
+          const rTimestamp = getTS(rDate);
+          const d = new Date(rTimestamp);
+          const rLocalDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+          // 📅 1. Date Filter (Strict Local Day Match)
+          if (activeFrom && activeTo) {
+            if (activeFrom === activeTo) {
+              if (rLocalDate !== activeFrom) return false;
+            } else {
+              const fromTS = new Date(activeFrom).setHours(0, 0, 0, 0);
+              const toTS = new Date(activeTo).setHours(23, 59, 59, 999);
+              if (rTimestamp < fromTS || rTimestamp > toTS) return false;
+            }
+          }
+
+          // 🌲 2. Hierarchy Filter (Range & Beat)
           const rBeat = (log.beat_name || log.site_name || log.location || '').toLowerCase();
           const beatObj = this.allBeats.find(b => b.name.toLowerCase() === rBeat);
-          const rRange = beatObj ? beatObj.parentName : 'General Range';
+          const rRange = (log.range_name || log.range || (beatObj ? beatObj.parentName : '')).toLowerCase();
           
-          const matchesRange = this.selectedRange === 'all' || rRange === this.selectedRange;
-          const matchesBeat = this.selectedBeat === 'all' || rBeat === this.selectedBeat.toLowerCase();
+          const fRange = this.selectedRange.toLowerCase();
+          const fBeat  = this.selectedBeat.toLowerCase();
+          
+          const matchesRange = this.selectedRange === 'all' || rRange.includes(fRange) || fRange.includes(rRange);
+          const matchesBeat  = this.selectedBeat === 'all' || rBeat.includes(fBeat) || fBeat.includes(rBeat);
 
           return matchesRange && matchesBeat;
-        }).map((log: any) => this.processPatrolLog(log));
+        });
+
+        this.patrolLogs = filtered
+          .sort((a: any, b: any) => getTS(b.created_at || b.start_time) - getTS(a.created_at || a.start_time))
+          .map((log: any) => this.processPatrolLog(log));
         
         this.isLoading = false;
       },

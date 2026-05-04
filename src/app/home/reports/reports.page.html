@@ -3,6 +3,7 @@
     <div class="ambient-glow glow-1"></div>
     <div class="ambient-glow glow-2"></div>
 
+    <!-- Keep Original Hero Header -->
     <div class="hero-header">
       <div class="header-overlay"></div>
       <div class="header-content">
@@ -22,295 +23,149 @@
       </div>
     </div>
 
+    <!-- New Sir-like 3 Options List -->
     <div class="main-container">
-  
-  <!-- <div class="incident-row-compact" (click)="openFilterModal('attendance')">
-    <div class="mini-thumb">
-      <div class="priority-indicator" style="background: #3b82f6;"></div>
-      <i class="fas fa-user-check placeholder-icon" style="color: #3b82f6;"></i>
-    </div>
-    <div class="row-content">
-      <div class="top-line">
-        <span class="type-text" style="color: #3b82f6;">Personnel</span>
-      </div>
-      <h3 class="priority-title">Attendance Report</h3>
-      <p class="reporter-line">Staff duty cycles & patrol hours</p>
-    </div>
-    <div class="row-actions">
-      <i class="fas fa-caret-right chevron"></i>
-    </div>
-  </div> -->
-<div style="position: relative;">
-  <div class="incident-row-compact" (click)="toggleSection('attendance')">
-  <div class="mini-thumb">
-    <div class="priority-indicator" style="background: #3b82f6;"></div>
-    <i class="fas fa-user-check placeholder-icon" style="color: #3b82f6;"></i>
-  </div>
-  <div class="row-content">
-    <div class="top-line">
-      <span class="type-text" style="color: #3b82f6;">Personnel</span>
-    </div>
-    <h3 class="priority-title">Attendance Report</h3>
-    <p class="reporter-line">Staff duty cycles & patrol hours</p>
-  </div>
-  <div class="row-actions">
-    <i class="fas" [ngClass]="isAttendanceOpen ? 'fa-caret-down' : 'fa-caret-right'"></i>
-  </div>
-</div>
-
-<div class="floating-submenu" *ngIf="isAttendanceOpen">
-  
-  <div class="submenu-item" (click)="openFilterModal('Employee Attendance')">
-    <span>Employee Attendance</span>
-    <i class="fas fa-chevron-right"></i>
-  </div>
-
-  <div class="submenu-item" *ngIf="userRole === 'admin'" (click)="openFilterModal('Employee Attendance with Site/Beat')">
-    <span>Site/Beat Attendance</span>
-    <i class="fas fa-chevron-right"></i>
-  </div>
-
-  <div class="submenu-item" *ngIf="userRole === 'admin'" (click)="openFilterModal('Absent Report')">
-    <span>Absent Report</span>
-    <i class="fas fa-chevron-right"></i>
-  </div>
-
-  <div class="submenu-item" *ngIf="userRole === 'admin'" (click)="openFilterModal('Performance Report')">
-    <span>Performance Report</span>
-    <i class="fas fa-chevron-right"></i>
-  </div>
-
-  <div class="submenu-item" *ngIf="userRole === 'admin'" (click)="openFilterModal('Forgot to Exit')">
-    <span>Forgot to Exit</span>
-    <i class="fas fa-chevron-right"></i>
-  </div>
-
-  <div class="submenu-item" *ngIf="userRole === 'admin'" (click)="openFilterModal('Emergency Attendance')">
-    <span>Emergency Attendance</span>
-    <i class="fas fa-chevron-right"></i>
-  </div>
-</div>
-
-<!-- Tour Reports -->
-<div class="incident-row-compact" (click)="toggleSection('tour')">
-  <div class="mini-thumb">
-    <div class="priority-indicator" style="background: #ef4444;"></div>
-    <i class="fas fa-map-marked-alt placeholder-icon" style="color: #ef4444;"></i>
-  </div>
-  <div class="row-content">
-    <div class="top-line">
-      <span class="type-text" style="color: #ef4444;">Field Work</span>
-    </div>
-    <h3 class="priority-title">Tour & Patrol Reports</h3>
-    <p class="reporter-line">Daily tours and field diary logs</p>
-  </div>
-  <div class="row-actions">
-    <i class="fas" [ngClass]="isTourOpen ? 'fa-caret-down' : 'fa-caret-right'"></i>
-  </div>
-</div>
-
-<div class="floating-submenu" *ngIf="isTourOpen">
-  <div class="submenu-item" (click)="openFilterModal('Daily Tour Report')">
-    <span>Daily Tour Report</span>
-    <i class="fas fa-chevron-right"></i>
-  </div>
-  <div class="submenu-item" *ngIf="userRole === 'admin'" (click)="openFilterModal('User Tour Report')">
-    <span>User Tour Report</span>
-    <i class="fas fa-chevron-right"></i>
-  </div>
-  <div class="submenu-item" *ngIf="userRole === 'admin'" (click)="openFilterModal('Tour Summary Report')">
-    <span>Tour Summary Report</span>
-    <i class="fas fa-chevron-right"></i>
-  </div>
-  <div class="submenu-item" *ngIf="userRole === 'admin'" (click)="openFilterModal('Tour Diary')">
-    <span>Tour Diary</span>
-    <i class="fas fa-chevron-right"></i>
-  </div>
-</div>
-
-<!-- Visitor Reports -->
-<div class="incident-row-compact" (click)="toggleSection('visitor')">
-  <div class="mini-thumb">
-    <div class="priority-indicator" style="background: #f59e0b;"></div>
-    <i class="fas fa-users placeholder-icon" style="color: #f59e0b;"></i>
-  </div>
-  <div class="row-content">
-    <div class="top-line">
-      <span class="type-text" style="color: #f59e0b;">Public</span>
-    </div>
-    <h3 class="priority-title">Visitor Reports</h3>
-    <p class="reporter-line">Daily & Summary visitor logs</p>
-  </div>
-  <div class="row-actions">
-    <i class="fas" [ngClass]="isVisitorOpen ? 'fa-caret-down' : 'fa-caret-right'"></i>
-  </div>
-</div>
-
-<div class="floating-submenu" *ngIf="isVisitorOpen">
-  <div class="submenu-item" (click)="openFilterModal('Visitor Daily Report')">
-    <span>Visitor Daily Report</span>
-    <i class="fas fa-chevron-right"></i>
-  </div>
-  <div class="submenu-item" *ngIf="userRole === 'admin'" (click)="openFilterModal('Visitor Summary Report')">
-    <span>Visitor Summary Report</span>
-    <i class="fas fa-chevron-right"></i>
-  </div>
-</div>
-
-<!-- 
-  <div class="incident-row-compact" *ngIf="userRole === 'admin' || userRole === '2'" (click)="openFilterModal('incidence')">
-    <div class="mini-thumb">
-      <div class="priority-indicator" style="background: #0d9488;"></div>
-      <i class="fas fa-shield-alt placeholder-icon" style="color: #0d9488;"></i>
-    </div>
-    <div class="row-content">
-      <div class="top-line">
-        <span class="type-text" style="color: #0d9488;">Operational</span>
-      </div>
-      <h3 class="priority-title">Incidence Report</h3>
-      <p class="reporter-line">Mining, Poaching & Felling logs</p>
-    </div>
-    <div class="row-actions">
-      <i class="fas fa-caret-right chevron"></i>
-    </div>
-  </div> -->
-
-  <div class="incident-row-compact" *ngIf="userRole === 'admin'" (click)="toggleSection('incidence')">
-  <div class="mini-thumb">
-    <div class="priority-indicator" style="background: #0d9488;"></div>
-    <i class="fas fa-shield-alt placeholder-icon" style="color: #0d9488;"></i>
-  </div>
-  <div class="row-content">
-    <div class="top-line">
-      <span class="type-text" style="color: #0d9488;">Operational</span>
-    </div>
-    <h3 class="priority-title">Incidence Report</h3>
-    <p class="reporter-line">Mining, Poaching & Felling logs</p>
-  </div>
-  <div class="row-actions">
-    <i class="fas" [ngClass]="isIncidenceOpen ? 'fa-caret-down' : 'fa-caret-right'"></i>
-  </div>
-</div>
-
-<div class="floating-submenu" *ngIf="isIncidenceOpen">
-  <div class="submenu-item" (click)="openFilterModal('incidence_report')">
-    <span>Incidence Report</span>
-    <i class="fas fa-chevron-right"></i>
-  </div>
-  <div class="submenu-item" (click)="openFilterModal('incidence_summary')">
-    <span>Incidence Summary</span>
-    <i class="fas fa-chevron-right"></i>
-  </div>
-  <div class="submenu-item" (click)="openFilterModal('Patrol Report')">
-    <span>Patrol Report</span>
-    <i class="fas fa-chevron-right"></i>
-  </div>
-  <div class="submenu-item" (click)="openFilterModal('Field Visit Report')">
-    <span>Field Visit Report</span>
-    <i class="fas fa-chevron-right"></i>
-  </div>
-</div>
-<!-- Admin/Guard Reports -->
-<div class="incident-row-compact" *ngIf="userRole === 'admin'" (click)="toggleSection('admin')">
-  <div class="mini-thumb">
-    <div class="priority-indicator" style="background: #8b5cf6;"></div>
-    <i class="fas fa-user-shield placeholder-icon" style="color: #8b5cf6;"></i>
-  </div>
-  <div class="row-content">
-    <div class="top-line">
-      <span class="type-text" style="color: #8b5cf6;">Management</span>
-    </div>
-    <h3 class="priority-title">System Performance</h3>
-    <p class="reporter-line">Guard, Site & Supervisor metrics</p>
-  </div>
-  <div class="row-actions">
-    <i class="fas" [ngClass]="isAdminOpen ? 'fa-caret-down' : 'fa-caret-right'"></i>
-  </div>
-</div>
-
-<div class="floating-submenu" *ngIf="isAdminOpen">
-  <div class="submenu-item" (click)="openFilterModal('Company Performance')">
-    <span>Company Performance</span>
-    <i class="fas fa-chevron-right"></i>
-  </div>
-  <div class="submenu-item" (click)="openFilterModal('Site Performance')">
-    <span>Site Performance</span>
-    <i class="fas fa-chevron-right"></i>
-  </div>
-  <div class="submenu-item" (click)="openFilterModal('Supervisor Performance')">
-    <span>Supervisor Performance</span>
-    <i class="fas fa-chevron-right"></i>
-  </div>
-  <div class="submenu-item" (click)="openFilterModal('Jal Shakti Report')">
-    <span>Jal Shakti Report</span>
-    <i class="fas fa-chevron-right"></i>
-  </div>
-</div>
-
-</div>
-    </div>
-
- <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false" class="custom-bottom-card">
-  <ng-template>
-    <div class="modal-card-content">
-      <div class="modal-header">
-        <div class="title-row">
-          <h3>Filter Report</h3>
-          <ion-icon name="options-outline"></ion-icon>
+      
+      <!-- Option 1: Attendance -->
+      <div class="management-card" (click)="openFilterModal('Employee Attendance')">
+        <div class="icon-box">
+          <i class="fas fa-fingerprint"></i>
         </div>
-        <p class="subtitle">Set parameters for {{activeReport}}</p>
+        <div class="card-info">
+          <h3>Attendance Report</h3>
+          <span>VIEW DETAILS</span>
+        </div>
+        <ion-icon name="chevron-forward-outline" class="chevron"></ion-icon>
       </div>
 
-      <div class="filter-body">
-        <div class="data-row-premium" *ngIf="userRole === 'admin'">
-          <span class="label">CLIENT / RANGE</span>
-          <ion-select interface="popover" placeholder="Select" [(ngModel)]="selectedClient" class="compact-select">
-            <ion-select-option value="all">All Rangers</ion-select-option>
-            <ion-select-option *ngFor="let site of sites" [value]="site.id">{{ site.site_name || site.name || site.beat_name }}</ion-select-option>
-          </ion-select>
+      <!-- Option 2: Patrol -->
+      <div class="management-card" (click)="openFilterModal('Patrol Report')">
+        <div class="icon-box">
+          <i class="fas fa-walking"></i>
         </div>
-
-        <div class="data-row-premium">
-          <span class="label">START DATE</span>
-          <ion-datetime-button datetime="start"></ion-datetime-button>
+        <div class="card-info">
+          <h3>Patrol/ Beat Inspection Report</h3>
+          <span>VIEW DETAILS</span>
         </div>
-        
-        <div class="data-row-premium">
-          <span class="label">END DATE</span>
-          <ion-datetime-button datetime="end"></ion-datetime-button>
-        </div>
-
-        <ion-popover [keepContentsMounted]="true">
-          <ng-template>
-            <ion-datetime id="start" presentation="date" [(ngModel)]="startDate" [max]="maxDate"></ion-datetime>
-          </ng-template>
-        </ion-popover>
-
-        <ion-popover [keepContentsMounted]="true">
-          <ng-template>
-            <ion-datetime id="end" presentation="date" [(ngModel)]="endDate" [max]="maxDate"></ion-datetime>
-          </ng-template>
-        </ion-popover>
+        <ion-icon name="chevron-forward-outline" class="chevron"></ion-icon>
       </div>
 
-      <div class="modal-footer-dual-row">
-        <div class="button-grid">
-          <button class="export-btn-mini pdf" (click)="generateReport('pdf')">
-            <i class="fas fa-file-pdf"></i> PDF
-          </button>
-          <button class="export-btn-mini excel" (click)="generateReport('excel')">
-            <i class="fas fa-file-excel"></i> EXCEL
-          </button>
+      <!-- Option 3: Performance -->
+      <div class="management-card" (click)="openFilterModal('Performance Report')">
+        <div class="icon-box">
+          <i class="fas fa-chart-bar"></i>
         </div>
-        
-        <div class="footer-actions-text">
-          <button class="reset-btn-text" (click)="resetFilters()">Reset Filters</button>
-          <button class="clear-btn-text" (click)="isModalOpen = false">Cancel</button>
+        <div class="card-info">
+          <h3>Performance Report</h3>
+          <span>VIEW DETAILS</span>
         </div>
+        <ion-icon name="chevron-forward-outline" class="chevron"></ion-icon>
       </div>
+
     </div>
-  </ng-template>
-</ion-modal>
-
   </div>
+
+  <!-- Unified Filter Modal (Reverted to Original Style) -->
+  <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false" class="custom-bottom-card">
+    <ng-template>
+      <div class="modal-card-content">
+        <div class="modal-header">
+          <div class="title-row">
+            <h3>Filter Report</h3>
+            <ion-icon name="options-outline"></ion-icon>
+          </div>
+          <p class="subtitle">Set parameters for {{activeReport}}</p>
+        </div>
+
+        <div class="filter-body">
+          
+          <!-- Shared Client/Range Filter (Old Style) -->
+          <div class="data-row-premium" *ngIf="userRole === 'admin'">
+            <span class="label">CLIENT / RANGE</span>
+            <ion-select interface="popover" placeholder="Select" [(ngModel)]="selectedClient" class="compact-select">
+              <ion-select-option value="all">All Rangers</ion-select-option>
+              <ion-select-option *ngFor="let site of sites" [value]="site.id">{{ site.site_name || site.name || site.beat_name }}</ion-select-option>
+            </ion-select>
+          </div>
+
+          <!-- Patrol Specific Fields (Integrated in Old Style) -->
+          <ng-container *ngIf="activeReport === 'Patrol Report'">
+            <div class="data-row-premium">
+              <span class="label">PATROL TYPE</span>
+              <ion-select interface="popover" [(ngModel)]="patrolType" class="compact-select">
+                <ion-select-option value="all">All Types</ion-select-option>
+                <ion-select-option *ngFor="let type of patrolTypes" [value]="type.name || type">{{ type.name || type }}</ion-select-option>
+              </ion-select>
+            </div>
+
+            <div class="data-row-premium">
+              <span class="label">PATROL METHOD</span>
+              <ion-select interface="popover" placeholder="Select" [(ngModel)]="patrolMethod" class="compact-select">
+                <ion-select-option value="all">All Methods</ion-select-option>
+                <ion-select-option *ngFor="let m of patrolMethods" [value]="m.name || m">{{ m.name || m }}</ion-select-option>
+              </ion-select>
+            </div>
+
+            <div class="data-row-premium">
+              <span class="label">LOG CATEGORY</span>
+              <ion-select interface="popover" placeholder="Select" [(ngModel)]="logType" class="compact-select">
+                <ion-select-option value="all">All Categories</ion-select-option>
+                <ion-select-option *ngFor="let cat of logCategories" [value]="cat.name || cat">{{ cat.name || cat }}</ion-select-option>
+              </ion-select>
+            </div>
+          </ng-container>
+
+          <!-- Attendance Specific Fields (Old Style) - REMOVED ATTENDANCE TYPE -->
+          <ng-container *ngIf="activeReport === 'Employee Attendance'">
+            <!-- <div class="data-row-premium">
+              <span class="label">STATUS</span>
+              <ion-select interface="popover" [(ngModel)]="attendanceStatus" class="compact-select">
+                <ion-select-option value="all">All Status</ion-select-option> -->
+                <!-- <ion-select-option value="PRESENT">Present</ion-select-option>
+                <ion-select-option value="ABSENT">Absent</ion-select-option>
+              </ion-select>
+            </div> -->
+          </ng-container>
+
+          <!-- Shared Date Filters (Old Style) -->
+          <div class="data-row-premium">
+            <span class="label">START DATE</span>
+            <ion-datetime-button datetime="start"></ion-datetime-button>
+          </div>
+          
+          <div class="data-row-premium">
+            <span class="label">END DATE</span>
+            <ion-datetime-button datetime="end"></ion-datetime-button>
+          </div>
+
+          <ion-popover [keepContentsMounted]="true">
+            <ng-template>
+              <ion-datetime id="start" presentation="date" [(ngModel)]="startDate" [max]="maxDate"></ion-datetime>
+            </ng-template>
+          </ion-popover>
+
+          <ion-popover [keepContentsMounted]="true">
+            <ng-template>
+              <ion-datetime id="end" presentation="date" [(ngModel)]="endDate" [max]="maxDate"></ion-datetime>
+            </ng-template>
+          </ion-popover>
+        </div>
+
+        <div class="modal-footer-dual-row">
+          <div class="button-grid">
+            <button class="export-btn-mini pdf" (click)="generateReport('pdf')">
+              <i class="fas fa-file-pdf"></i> PDF
+            </button>
+            <button class="export-btn-mini excel" (click)="generateReport('excel')">
+              <i class="fas fa-file-excel"></i> EXCEL
+            </button>
+          </div>
+          
+          <div class="footer-actions-text">
+            <button class="reset-btn-text" (click)="resetFilters()">Reset Filters</button>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
 </ion-content>

@@ -23,6 +23,22 @@ export class ReportsPage implements OnInit { // OnInit implement karo
   isVisitorOpen: boolean = false;
   isAdminOpen: boolean = false;
   sites: any[] = [];
+  
+  // Patrol Specific Filters (Dynamic)
+  patrolType = 'all';
+  patrolMethod = 'all';
+  logType = 'all';
+  
+  patrolMethods: any[] = [];
+  patrolTypes: any[] = [];
+  logCategories: any[] = [];
+  
+  // Attendance Specific
+  attendanceStatus = 'all';
+  
+  // Performance Specific
+  performanceCategory = 'all';
+  performanceMetric = 'all';
 
 
   reportEndpointMap: { [key: string]: string } = {
@@ -102,6 +118,43 @@ export class ReportsPage implements OnInit { // OnInit implement karo
     if (this.userRole === 'admin') {
       this.fetchSites();
     }
+    this.fetchPatrolMetadata();
+  }
+
+  fetchPatrolMetadata() {
+    // 1. Fetch Patrol Methods
+    this.dataService.getPatrolMethods().subscribe({
+      next: (res: any) => {
+        this.patrolMethods = res?.data || res || [];
+        console.log('Patrol Methods:', this.patrolMethods);
+      },
+      error: () => {
+        // Fallback if API fails
+        this.patrolMethods = ['On Foot', 'Vehicle', 'E-Bike', 'Night Patrol'];
+      }
+    });
+
+    // 2. Fetch Patrol Types
+    this.dataService.getPatrolTypes().subscribe({
+      next: (res: any) => {
+        this.patrolTypes = res?.data || res || [];
+        console.log('Patrol Types:', this.patrolTypes);
+      },
+      error: () => {
+        this.patrolTypes = ['Regular', 'Special', 'Emergency'];
+      }
+    });
+
+    // 3. Fetch Log Categories
+    this.dataService.getLogCategories().subscribe({
+      next: (res: any) => {
+        this.logCategories = res?.data || res || [];
+        console.log('Log Categories:', this.logCategories);
+      },
+      error: () => {
+        this.logCategories = ['Standard', 'Alert', 'Incident', 'Observation'];
+      }
+    });
   }
 
   fetchSites() {
@@ -205,15 +258,27 @@ openFilterModal(type: string) {
     formData.append('date_from', from);
     formData.append('date_to', to);
 
-    // Filter keys
     if (this.selectedClient && this.selectedClient !== 'all') {
       formData.append('client', String(this.selectedClient));
       formData.append('client_id', String(this.selectedClient));
-      formData.append('site_id', String(this.selectedClient));
-      formData.append('range_id', String(this.selectedClient));
-      formData.append('beat_id', String(this.selectedClient));
-      formData.append('beat', String(this.selectedClient));
-      formData.append('geo_id', String(this.selectedClient));
+    }
+
+    // Add Patrol specific fields
+    if (this.activeReport === 'Patrol Report') {
+      if (this.patrolType && this.patrolType !== 'all') formData.append('patrol_type', this.patrolType);
+      if (this.patrolMethod && this.patrolMethod !== 'all') formData.append('patrol_method', this.patrolMethod);
+      if (this.logType && this.logType !== 'all') formData.append('log_type', this.logType);
+    }
+
+    // Add Attendance specific fields
+    if (this.activeReport === 'Employee Attendance') {
+      if (this.attendanceStatus && this.attendanceStatus !== 'all') formData.append('status', this.attendanceStatus);
+    }
+
+    // Add Performance specific fields
+    if (this.activeReport === 'Performance Report') {
+      if (this.performanceCategory && this.performanceCategory !== 'all') formData.append('category', this.performanceCategory);
+      if (this.performanceMetric && this.performanceMetric !== 'all') formData.append('metric', this.performanceMetric);
     }
 
     formData.append('format', format);
@@ -233,12 +298,14 @@ openFilterModal(type: string) {
               
               if (resObj.status === 'SUCCESS' && resObj.fileurl) {
                 console.log('Report generated! Opening link:', resObj.fileurl);
-                // Open the URL directly in a new tab for download
                 window.open(resObj.fileurl, '_blank');
                 this.isModalOpen = false;
+              } else if (resObj.message === 'No records found') {
+                // User friendly message for empty data
+                alert('Chune gaye Ranger aur Dates ke liye koi record nahi mila (No records found).');
               } else {
                 console.error('Server Error (JSON):', resObj);
-                alert('Server Error: ' + (resObj.message || 'Report generate nahi ho saka.'));
+                alert('Report generate nahi ho saka: ' + (resObj.message || 'Server returned failure.'));
               }
             } catch (e) {
               console.error('Raw Server Response:', reader.result);

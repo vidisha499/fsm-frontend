@@ -504,7 +504,22 @@ private route: ActivatedRoute,) { }
     console.log("📈 Analytics Page Initialized for Company:", this.companyId);
     this.activeTab = 'criminal';
     this.activeCatId = 'criminal';
-    this.activeDateFilter = 'today';
+
+    // 🌐 Read Global Filter State from Admin Dashboard
+    const savedFilter = localStorage.getItem('global_date_filter');
+    const savedFrom   = localStorage.getItem('global_date_from');
+    const savedTo     = localStorage.getItem('global_date_to');
+    const savedRange  = localStorage.getItem('global_range_filter');
+    const savedBeat   = localStorage.getItem('global_beat_filter');
+
+    this.activeDateFilter   = savedFilter  || 'today';
+    this.selectedTimeframe  = this.activeDateFilter;
+    this.startDate          = savedFrom    || '';
+    this.endDate            = savedTo      || '';
+    this.selectedRange      = savedRange   || 'all';
+    this.selectedBeat       = savedBeat    || 'all';
+
+    console.log(`📅 Analytics: Global Filter Restored → ${this.activeDateFilter} | Range: ${this.selectedRange} | Beat: ${this.selectedBeat}`);
     
     // Unified Data Load
     this.updateUIData();
@@ -814,6 +829,12 @@ private mkChart(id: string, config: any) {
       const lastMonth = new Date(startOfToday);
       lastMonth.setMonth(lastMonth.getMonth() - 1);
       return d.getTime() >= lastMonth.getTime();
+    } else if (timeframe === 'custom') {
+      // Use startDate/endDate from global filter (set in ngOnInit from localStorage)
+      if (!this.startDate || !this.endDate) return true; // No range set = show all
+      const fromTS = new Date(this.startDate).getTime();
+      const toTS   = new Date(this.endDate).getTime() + (24 * 60 * 60 * 1000) - 1; // End of day
+      return d.getTime() >= fromTS && d.getTime() <= toTS;
     }
     
     return true; // 'all'
@@ -841,7 +862,7 @@ private mkChart(id: string, config: any) {
     setTimeout(() => { 
       this.isInitialLoading = false; 
       this.setAnaSub(this.activeSubId); 
-    }, 1200);
+    }, 200);
   }
 
 
@@ -1023,6 +1044,12 @@ async updateUIData() {
               if (this.selectedRange !== 'all') {
                  const rRange = (r.range_name || r.range || '').toLowerCase();
                  if (!rRange.includes(this.selectedRange.toLowerCase())) return;
+              }
+
+              // BEAT FILTER
+              if (this.selectedBeat && this.selectedBeat !== 'all') {
+                const rBeat = (r.beat_name || r.beat || '').toLowerCase();
+                if (!rBeat.includes(this.selectedBeat.toLowerCase())) return;
               }
 
               let dateYMD = '';

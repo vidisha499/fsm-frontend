@@ -87,6 +87,16 @@
         <div class="item-text"><span>Plantations</span></div>
       </a> -->
 
+      <a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('dynamic-forms')" [class.active]="router.url.includes('dynamic-forms')">
+        <div class="icon-box indigo"><i class="fas fa-edit"></i></div>
+        <div class="item-text"><span>Change Forms</span></div>
+      </a>
+
+      <a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('dynamic-labels')" [class.active]="router.url.includes('dynamic-labels')">
+        <div class="icon-box azure"><i class="fas fa-font"></i></div>
+        <div class="item-text"><span>{{ 'label_dynamic' | dynamicLabel }}</span></div>
+      </a>
+
       <a *ngIf="isFeatureEnabled('attendance')" class="menu-item" (click)="goToPage('onsite-attendance')">
         <div class="icon-box blue-tint"><i class="fas fa-map-marker-alt"></i></div>
         <div class="item-text"><span>On Site/Beat Attendance</span></div>

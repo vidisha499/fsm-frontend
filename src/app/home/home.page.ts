@@ -665,108 +665,95 @@ openMenu() {
 //   await alert.present();
 // }
 async triggerEmergency() {
+  // Step 1: Capture GPS Metadata
+  let lat = 0, lon = 0, address = '';
+  try {
+    const coords = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 8000 });
+    lat = coords.coords.latitude;
+    lon = coords.coords.longitude;
+    try {
+      const geo = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+      const geoData = await geo.json();
+      address = geoData?.display_name || `${lat},${lon}`;
+    } catch { address = `${lat},${lon}`; }
+  } catch { address = 'GPS unavailable'; }
+
+  // Step 2: Primary Emergency Contact (Sir's direct system)
+  const SOS_NUMBER = '1800-180-0034';
+  const SOS_LABEL = 'Forest Control Room';
+
+  // Step 3: Streamlined SOS Prompt
   const alert = await this.alertController.create({
-    header: 'Emergency SOS',
-    // Adding a small note that location is being tracked
-    message: 'Your current GPS location will be sent to Admin. Please describe the emergency.',
-    inputs: [
-      {
-        name: 'emergencyMessage',
-        type: 'textarea',
-        placeholder: 'Injured, animal threat, illegal activity, etc.',
-      }
-    ],
+    header: '🚨 SOS EMERGENCY',
+    subHeader: 'Immediate Assistance Required',
+    message: `You are about to contact the <b>${SOS_LABEL}</b> and broadcast your live location.<br><br>📍 <b>Location:</b> ${address.substring(0, 80)}...`,
+    cssClass: 'sos-alert-premium',
     buttons: [
-      { text: 'Cancel', role: 'cancel' },
       {
-        text: 'SEND SOS',
-        cssClass: 'sos-button-confirm', // You can style this red in SCSS
-        handler: (data) => {
-          this.sendSOS(data.emergencyMessage);
+        text: 'CANCEL',
+        role: 'cancel',
+        cssClass: 'sos-btn-cancel'
+      },
+      {
+        text: 'CALL & ALERT',
+        cssClass: 'sos-btn-call',
+        handler: () => {
+          // 1. Trigger Dialer
+          window.open(`tel:${SOS_NUMBER}`, '_system');
+          // 2. Dispatch API Alert
+          this.sendSOS(`SOS Emergency Triggered - Direct Call to ${SOS_LABEL}`, lat, lon, address);
         }
       }
-    ],
-    cssClass: 'sos-alert-custom'
+    ]
   });
 
   await alert.present();
 }
 
-private async sendSOS(message: string) {
+private async sendSOS(message: string, lat: number, lon: number, address: string) {
   const rId = this.dataService.getRangerId();
   const cId = localStorage.getItem('company_id');
 
   if (!rId) return;
 
-  const loader = await this.loadingController.create({
-    message: 'Capturing GPS & Address...',
-    spinner: 'crescent'
-  });
-  await loader.present();
+  const payload = {
+    ranger_id: +rId,
+    company_id: cId ? +cId : 2,
+    ranger_name: this.rangerName,
+    message: message || 'SOS Emergency Triggered',
+    type: 'SOS_EMERGENCY',
+    timestamp: new Date().toISOString(),
+    latitude: lat,
+    longitude: lon,
+    location_name: address
+  };
 
-  try {
-    // 1. Get current GPS coordinates
-    const coordinates = await Geolocation.getCurrentPosition({
-      enableHighAccuracy: true,
-      timeout: 10000
-    });
+  console.log('SOS Payload:', payload);
 
-    const lat = coordinates.coords.latitude;
-    const lon = coordinates.coords.longitude;
-
-    // 2. Fetch Human-Readable Address (Reverse Geocoding)
-    let detectedAddress = 'Location captured';
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
-      );
-      const geoData = await response.json();
-      if (geoData && geoData.display_name) {
-        detectedAddress = geoData.display_name;
-      }
-    } catch (geoError) {
-      console.error('Reverse Geocoding failed, using coordinates only', geoError);
+  this.dataService.sendSOSAlert(payload).subscribe({
+    next: async () => {
+      const toast = await this.toastController.create({
+        message: `🚨 SOS Alert Sent! Location: ${address.substring(0, 40)}...`,
+        duration: 4000,
+        color: 'danger',
+        position: 'top',
+        mode: 'ios'
+      });
+      await toast.present();
+    },
+    error: async () => {
+      const toast = await this.toastController.create({
+        message: '⚠️ SOS API failed but call was placed.',
+        duration: 3000,
+        color: 'warning',
+        position: 'top',
+        mode: 'ios'
+      });
+      await toast.present();
     }
-
-    // 3. Construct Payload with REAL location
-    const payload = {
-      ranger_id: +rId,
-      company_id: cId ? +cId : 2,
-      ranger_name: this.rangerName,
-      message: message || 'No specific message provided',
-      type: 'SOS_EMERGENCY',
-      timestamp: new Date().toISOString(),
-      latitude: lat,
-      longitude: lon,
-      location_name: detectedAddress // <--- THIS IS NOW THE REAL ADDRESS
-    };
-
-    console.log('SOS Payload with REAL Address:', payload);
-
-    this.dataService.sendSOSAlert(payload).subscribe({
-      next: async () => {
-        await loader.dismiss();
-        const toast = await this.toastController.create({
-          message: '🚨 SOS SENT AT: ' + (detectedAddress.substring(0, 30) + '...'),
-          duration: 4000,
-          color: 'danger',
-          position: 'top',
-          mode: 'ios'
-        });
-        await toast.present();
-      },
-      error: async (err) => {
-        await loader.dismiss();
-        this.showToast('Failed to send SOS. Check connection.');
-      }
-    });
-
-  } catch (e) {
-    await loader.dismiss();
-    console.error('Error getting location', e);
-    this.showToast('Could not get GPS location. Please enable GPS.');
-  }
+  });
 }
+
 
 // private async sendSOS(message: string) {
 //   const rId = this.dataService.getRangerId();

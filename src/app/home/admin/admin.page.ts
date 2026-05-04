@@ -142,6 +142,7 @@ export class AdminPage implements OnInit, AfterViewInit {
   allRangers: number = 0;
   public isStatsLoading: boolean = true;
   private isFetching: boolean = false;
+  private lastDashboardState: string = ''; // 🛑 Track sync state for flicker prevention
   public onDutyCount: number = 0;
   public onLeaveCount: number = 0;
   public incidentsCount: number = 0;
@@ -178,6 +179,8 @@ export class AdminPage implements OnInit, AfterViewInit {
   dateFrom: string = '';
   dateTo: string = '';
   todayDate: string = new Date().toISOString().split('T')[0]; // e.g. "2026-05-02"
+  allReportsCache: any[] | null = null;
+  allAssetsCache: any[] | null = null;
   isLayerVisible: boolean = true;
   attendanceChart: any;
   // --- Map & Layer State ---
@@ -249,14 +252,14 @@ export class AdminPage implements OnInit, AfterViewInit {
         },
         {
           id: 'timber_storage',
-          label: 'Timber Storage',
+          label: 'Storage',
           emoji: '🪵',
           color: '#92400e',
           bg: '#fef3c7',
         },
         {
           id: 'timber_transport',
-          label: 'Timber Transport',
+          label: 'Transport',
           emoji: '🚛',
           color: '#1e293b',
           bg: '#f1f5f9',
@@ -419,7 +422,16 @@ export class AdminPage implements OnInit, AfterViewInit {
   }
 
   ngOnInit() {
-    this.selectedTimeframe = 'today';
+    // 🌐 Restore Persistent Filters
+    const savedFilter = localStorage.getItem('global_date_filter') || 'today';
+    this.selectedTimeframe = savedFilter;
+    this.activeDateFilter = savedFilter;
+    
+    const savedRange = localStorage.getItem('global_range_filter') || 'all';
+    this.selectedRange = savedRange;
+
+    const savedBeat = localStorage.getItem('global_beat_filter') || 'all';
+    this.selectedBeat = savedBeat;
 
     const rawData = localStorage.getItem('user_data');
   const userData = rawData ? JSON.parse(rawData) : null;
@@ -453,10 +465,10 @@ export class AdminPage implements OnInit, AfterViewInit {
     const intervalMs = savedSync ? parseInt(savedSync) * 60000 : 30000; // Default 30s if not set, else minutes to ms
 
     this.dataInterval = setInterval(() => {
-      if (this.activeTab === 'home') {
-        this.loadData();
+      if (this.activeTab === 'home' && !this.isFetching) {
+        this.loadData(false); // Silent refresh
       }
-    }, intervalMs);
+    }, 60000); // Optimized to 60 seconds to prevent constant flickering
 
     this.loadTrendData();
     this.loadBeatCoverage();
@@ -464,7 +476,7 @@ export class AdminPage implements OnInit, AfterViewInit {
     // this.loadHierarchy(); // Moved to loadData for more reliable fetching
     setTimeout(() => {
       this.initHomeCharts();
-    }, 1000);
+    }, 300); // Reduced delay for faster visual feedback
   }
 
   loadBeatCoverage() {
@@ -479,11 +491,12 @@ export class AdminPage implements OnInit, AfterViewInit {
         }
       },
       error: (err) => {
-        console.warn('⚠️ Hierarchy coverage API (Vercel) is currently unreachable or blocked by CORS. Using fallback display.');
+        console.warn('⚠️ Hierarchy coverage API (Vercel) is currently unreachable. Using locally calculated distribution.');
+        // Do NOT overwrite existing data with zeros. 
+        // Only provide a visual hint if the list is completely empty.
         if (!this.beatCoverage || this.beatCoverage.length === 0) {
            this.beatCoverage = [
-             { label: 'seminary hills range', val: 0, color: '#0d9488' },
-             { label: 'ambazari beat', val: 0, color: '#f59e0b' }
+             { label: 'General', val: 0, color: '#0d9488' }
            ];
         }
         this.cdr.detectChanges();
@@ -571,19 +584,21 @@ export class AdminPage implements OnInit, AfterViewInit {
 
   onRangeFilterChange() {
     console.log('🔄 Range Filter Changed:', this.selectedRange);
-    this.selectedBeat = 'all'; // Reset beat when range changes
+    this.selectedBeat = 'all';
+    // 🌐 Persist
+    localStorage.setItem('global_range_filter', this.selectedRange);
+    localStorage.setItem('global_beat_filter', 'all');
     
     if (this.selectedRange === 'all') {
       this.displayBeats = Array.from(new Set(this.allBeats.map(b => b.name))).sort();
     } else {
-      // Filter beats that belong to this range
       this.displayBeats = this.allBeats
         .filter(b => b.parentName === this.selectedRange)
         .map(b => b.name)
         .sort();
     }
     
-    this.doRefresh();
+    this.doRefresh(false);
   }
 
   fetchKPI(category: string, range: string) {
@@ -614,8 +629,14 @@ export class AdminPage implements OnInit, AfterViewInit {
     this.activeDateFilter = 'today';
     this.dateFrom = '';
     this.dateTo = '';
-    this.loadHierarchy(); // Refresh hierarchy
-    this.doRefresh();      // Refresh data
+    // 🌐 Reset global filter state
+    localStorage.setItem('global_date_filter', 'today');
+    localStorage.setItem('global_date_from', '');
+    localStorage.setItem('global_date_to', '');
+    localStorage.setItem('global_range_filter', 'all');
+    localStorage.setItem('global_beat_filter', 'all');
+    this.loadHierarchy();
+    this.doRefresh(false);
   }
 
   segmentChanged(event: any) {
@@ -624,6 +645,11 @@ export class AdminPage implements OnInit, AfterViewInit {
   this.activeDateFilter = val;
 
   console.log('🕒 Fetching for:', val);
+  localStorage.setItem('global_date_filter', val);
+  if (val !== 'custom') {
+    localStorage.removeItem('global_date_from');
+    localStorage.removeItem('global_date_to');
+  }
 
   // 1. Pehle Cards update karo
   this.fetchKPI('crimes', val);
@@ -631,7 +657,7 @@ export class AdminPage implements OnInit, AfterViewInit {
 
   // 2. Thoda gap dekar charts aur data load karo
   setTimeout(() => {
-    this.loadData();
+    this.loadData(false);
     this.loadTrendData();
   }, 300); 
 }
@@ -647,8 +673,9 @@ export class AdminPage implements OnInit, AfterViewInit {
     // Agar tune charts ko this._charts mein save kiya hai toh:
     if (this._charts) {
       Object.keys(this._charts).forEach((id) => {
-        if (this._charts[id]) {
-          this._charts[id].destroy();
+        const c = this._charts[id] as any;
+        if (c && typeof c.destroy === 'function') {
+          c.destroy();
         }
       });
       this._charts = {};
@@ -857,10 +884,15 @@ changeTimeframe(newTimeframe: string) {
   this.loadData();
 }
 
-  loadData() {
+  loadData(force: boolean = false) {
     this.isStatsLoading = true;
     console.log('DEBUG: DataService Object ->', this.dataService);
     if (this.isFetching) return;
+
+    if (force) {
+      this.allReportsCache = null;
+      this.allAssetsCache = null;
+    }
 
     const storageData = localStorage.getItem('user_data');
     if (!storageData) return;
@@ -876,6 +908,15 @@ changeTimeframe(newTimeframe: string) {
 
     // Refresh hierarchy data (Ranges/Beats) on every load
     this.loadHierarchy();
+    
+    // 🌐 Restore & Sync State
+    const savedFilter = localStorage.getItem('global_date_filter') || 'today';
+    this.activeDateFilter = savedFilter;
+    this.selectedTimeframe = savedFilter;
+
+    localStorage.setItem('global_date_filter', this.activeDateFilter);
+    localStorage.setItem('global_range_filter', this.selectedRange);
+    localStorage.setItem('global_beat_filter', this.selectedBeat);
 
     const dates = this.getFilterDates();
     this.isFetching = true;
@@ -890,34 +931,76 @@ changeTimeframe(newTimeframe: string) {
     const todayDMY = `${lDay}-${lMonth}-${lYear}`;
     console.log(`🕒 Dashboard Sync using Local Date: ${todayYMD} / ${todayDMY}`);
 
-    // FETCHING ALL DATA SOURCES
+    // --- DYNAMIC DATABASE FETCH (FORCE SYNC - Fixed for Local Time) ---
+    // Only fetch reports and assets if they aren't cached yet
+    const fetchReportsObs = this.allReportsCache ? of(this.allReportsCache) : this.dataService.getForestReports(undefined, force);
+    const fetchAssetsObs = this.allAssetsCache ? of(this.allAssetsCache) : this.dataService.getAssets(myCompanyId);
+
+    // FETCH STATS AND ALERTS IN BACKGROUND
     this.dataService.getDashboardStats(myCompanyId, dates.from, dates.to).subscribe({
       next: (apiResponse: any) => {
-        console.log("📊 Unified Admin Dashboard Response:", apiResponse);
+        console.log("📊 Unified Admin Dashboard Response (Stats):", apiResponse);
         const res = apiResponse.data ? apiResponse.data : apiResponse;
-
-        // --- 1. UNIFIED STATS MAPPING ---
-        const stats = res.stats?.data || res.stats || {};
         
-        // Use temporary variables for summary stats so they don't cause UI flickering
-        // The real counts are calculated below in the detailed Database Sync
-        const summaryCriminal = Number(stats.criminal_count || stats.criminalEvents || 0);
-        const summaryMonitoring = Number(stats.monitoring_count || stats.monitoringEvents || 0);
+        const stats = res.stats?.data || res.stats || {};
         const summaryFire = Number(stats.fire_count || stats.fireEvents || 0);
         this.incidentsCount = Number(stats.total_incidents || stats.total_events || 0);
 
         // Only set these if they are currently 0 (Initial Load)
         if (this.fireAlertsCount === 0) this.fireAlertsCount = summaryFire;
 
-        // --- DYNAMIC DATABASE FETCH (FORCE SYNC - Fixed for Local Time) ---
-        forkJoin({
-          reports: this.dataService.getForestReports(),
-          assets: this.dataService.getAssets(myCompanyId)
-        }).subscribe({
-          next: ({ reports, assets }: { reports: any, assets: any }) => {
-            const list = Array.isArray(reports) ? reports : (reports.data || []);
-            const assetList = Array.isArray(assets) ? assets : (assets.data || []);
+        // Populate Alerts for the Map
+        const alertsList = res.alerts || res.sos || [];
+        this.alerts = alertsList.map((a: any) => ({
+          id: a.id,
+          title: a.title || a.message || 'SOS Alert',
+          description: a.description || `Generated by ${a.created_by_name || 'System'}`,
+          severity: (a.title || a.message || '').toLowerCase().includes('fire') ? 'critical' : 'warning',
+          category: a.category || 'SOS',
+          beat_name: a.beat_name || 'Unknown',
+          created_at: a.created_at || new Date().toISOString(),
+          lat: parseFloat(a.latitude || a.lat || '0'),
+          lng: parseFloat(a.longitude || a.lng || '0'),
+          location_name: a.location_name || a.location || 'Unknown Area',
+          action_taken: a.action_taken || false
+        })).filter((a: any) => a.lat !== 0 && a.lng !== 0);
+        
+        // Update Layer Counters
+        if (this.map && this.activeSegment === 'map') {
+          this.updateFilteredAlerts();
+        }
+      },
+      error: (err) => console.error("Stats Fetch Error:", err)
+    });
+
+    // FETCH AND PROCESS REPORTS/ASSETS (INSTANT IF CACHED)
+    forkJoin({
+      reports: fetchReportsObs,
+      assets: fetchAssetsObs
+    }).subscribe({
+      next: ({ reports, assets }: { reports: any, assets: any }) => {
+        if (!this.allReportsCache) {
+          this.allReportsCache = Array.isArray(reports) ? reports : (reports.data || []);
+        }
+            if (!this.allAssetsCache) {
+              this.allAssetsCache = Array.isArray(assets) ? assets : (assets.data || []);
+            }
             
+            const list = this.allReportsCache || [];
+            const assetList = this.allAssetsCache || [];
+            
+            // Helper for robust date parsing (Shared for Assets and Reports)
+            const getTS = (d: any) => {
+              if (!d) return 0;
+              if (typeof d === 'string' && d.includes('-')) {
+                const parts = d.split(' ')[0].split('-');
+                if (parts[0].length === 2 && parts[2].length === 4) {
+                  return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime();
+                }
+              }
+              return new Date(d).getTime();
+            };
+
             // --- A. PROCESS ASSETS ---
             if (assetList.length > 0) {
               console.log("📊 Asset Sync: Found", assetList.length, "Total Assets");
@@ -931,32 +1014,34 @@ changeTimeframe(newTimeframe: string) {
                  if (this.activeDateFilter === 'today') {
                     datePass = aDate && (aDate.includes(todayYMD) || aDate.includes(todayDMY));
                  } else if (this.activeDateFilter === 'week') {
-                    const rTimestamp = aDate ? new Date(aDate).getTime() : 0;
+                    const rTimestamp = getTS(aDate);
                     const nowTS = nowL.getTime();
                     datePass = rTimestamp > (nowTS - (7 * 24 * 60 * 60 * 1000));
                  } else if (this.activeDateFilter === 'month') {
-                    const rTimestamp = aDate ? new Date(aDate).getTime() : 0;
+                    const rTimestamp = getTS(aDate);
                     const nowTS = nowL.getTime();
                     datePass = rTimestamp > (nowTS - (30 * 24 * 60 * 60 * 1000));
                  } else if (this.activeDateFilter === 'custom') {
-                    const rTimestamp = aDate ? new Date(aDate).getTime() : 0;
-                    const fromTS = new Date(dates.from).getTime();
-                    const toTS = new Date(dates.to).getTime() + (24 * 60 * 60 * 1000) - 1; // End of day
+                    const rTimestamp = getTS(aDate);
+                    const fromTS = new Date(dates.from).setHours(0, 0, 0, 0);
+                    const toTS = new Date(dates.to).setHours(23, 59, 59, 999);
                     datePass = rTimestamp >= fromTS && rTimestamp <= toTS;
                  }
 
-                 // Range filter
+                 // Range filter (Inclusive)
                  let rangePass = true;
                  if (this.selectedRange && this.selectedRange !== 'all') {
                     const aRange = (a.range_name || a.range || '').toLowerCase();
-                    rangePass = aRange.includes(this.selectedRange.toLowerCase());
+                    const filterRange = this.selectedRange.toLowerCase();
+                    rangePass = aRange.includes(filterRange) || filterRange.includes(aRange);
                  }
 
-                 // Beat filter
+                 // Beat filter (Inclusive)
                  let beatPass = true;
                  if (this.selectedBeat && this.selectedBeat !== 'all') {
                     const aBeat = (a.beat_name || a.beat || '').toLowerCase();
-                    beatPass = aBeat.includes(this.selectedBeat.toLowerCase());
+                    const filterBeat = this.selectedBeat.toLowerCase();
+                    beatPass = aBeat.includes(filterBeat) || filterBeat.includes(aBeat);
                  }
 
                  return datePass && rangePass && beatPass;
@@ -1021,70 +1106,95 @@ changeTimeframe(newTimeframe: string) {
                 const counts = { criminal: 0, monitoring: 0, fire: 0 };
                 const trendMap: { [cat: string]: { [date: string]: number } } = { crim: {}, events: {}, fire: {} };
                 const rangeMap: { [name: string]: number } = {};
+                const seenIds = new Set();
 
                 list.forEach((r: any) => {
+                   // Prevent double counting duplicates
+                   const rId = r.id || (r.latitude + '_' + r.longitude + '_' + (r.created_at || r.date));
+                   if (seenIds.has(rId)) return;
+                   seenIds.add(rId);
+
                    const cat = (r.category || '').toLowerCase();
                    const rDate = r.date || ''; 
                    const rCreatedAt = r.created_at || r.date_time || '';
-                   const range = r.range_name || r.range || r.region || 'General';
+                   
+                   // Hierarchy Resolution (Standardized with sub-pages)
+                   const rBeat = (r.beat_name || r.site_name || r.location || '').toLowerCase();
+                   const beatObj = this.allBeats.find(b => b.name.toLowerCase() === rBeat);
+                   const rRange = (r.range_name || r.range || r.region || (beatObj ? beatObj.parentName : '') || 'General').toLowerCase();
 
-                   // Robust Today Check (Handles YMD, DMY, and slash separators)
-                   const isToday = (rCreatedAt && (rCreatedAt.includes(todayYMD) || rCreatedAt.includes(todayDMY) || rCreatedAt.includes(todayYMD.replace(/-/g, '/')))) || 
-                                   (rDate && (rDate.includes(todayYMD) || rDate.includes(todayDMY) || rDate.includes(todayYMD.replace(/-/g, '/'))));
-
-                   // Timeframe Checks for Week/Month
                    const rFullDate = rCreatedAt || rDate;
-                   const rTimestamp = rFullDate ? new Date(rFullDate).getTime() : 0;
-                   const nowTS = nowL.getTime();
-                   const oneDay = 24 * 60 * 60 * 1000;
-                   const isThisWeek = rTimestamp > (nowTS - (7 * oneDay));
-                   const isThisMonth = rTimestamp > (nowTS - (30 * oneDay));
+                   const rTimestamp = getTS(rFullDate);
+                   
+                   // Robust Today Check
+                   const isToday = (rFullDate && (rFullDate.includes(todayYMD) || rFullDate.includes(todayDMY) || rFullDate.includes(todayYMD.replace(/-/g, '/'))));
+
+                   // Timeframe Checks for Week/Month (Calendar-based for Parity)
+                   const dayStart = new Date(nowL).setHours(0, 0, 0, 0);
+                   const isThisWeek = rTimestamp >= (dayStart - (7 * 24 * 60 * 60 * 1000));
+                   const isThisMonth = rTimestamp >= (dayStart - (30 * 24 * 60 * 60 * 1000));
 
                    // Record for trend mapping (Last 30 Days logic)
                    let dateYMD = '';
-                   if (rCreatedAt && rCreatedAt.includes('-')) {
-                     const parts = rCreatedAt.split(' ')[0].split('-');
-                     dateYMD = parts[0].length === 4 ? `${parts[0]}-${parts[1]}-${parts[2]}` : `${parts[2]}-${parts[1]}-${parts[0]}`;
-                   } else if (rDate && rDate.includes('-')) {
-                     const parts = rDate.split(' ')[0].split('-');
+                   if (rFullDate && rFullDate.includes('-')) {
+                     const parts = rFullDate.split(' ')[0].split('-');
                      dateYMD = parts[0].length === 4 ? `${parts[0]}-${parts[1]}-${parts[2]}` : `${parts[2]}-${parts[1]}-${parts[0]}`;
                    }
                    
-                   // Robust Categorization (Checks category, report_type, and type)
+                   // Robust Categorization (Independent checks for count parity)
                    const rType = (r.report_type || r.event_type || r.type || '').toLowerCase();
                    const combinedText = `${cat} ${rType}`.toLowerCase();
                     
+                   let isFire = combinedText.includes('fire');
+                   let isCrim = combinedText.includes('crim') || combinedText.includes('poach') || combinedText.includes('mining') || combinedText.includes('fell') || combinedText.includes('timber') || combinedText.includes('encroach') || combinedText.includes('storage') || combinedText.includes('transport') || combinedText.includes('sos');
+                   let isEvent = combinedText.includes('event') || combinedText.includes('sight') || combinedText.includes('monit') || combinedText.includes('animal') || combinedText.includes('flora') || combinedText.includes('fauna');
+
+                   // Standardize catKey for Trend Mapping (Dashboard Trend only shows one category per record)
                    let catKey = '';
-                   if (combinedText.includes('fire')) {
-                      catKey = 'fire';
-                   } else if (combinedText.includes('crim') || combinedText.includes('poach') || combinedText.includes('mining') || combinedText.includes('fell') || combinedText.includes('timber') || combinedText.includes('encroach')) {
-                      catKey = 'crim';
-                   } else if (combinedText.includes('sight') || combinedText.includes('monit') || combinedText.includes('animal') || combinedText.includes('events')) {
-                      catKey = 'events';
-                   }
+                   if (isFire) catKey = 'fire';
+                   else if (isCrim) catKey = 'crim';
+                   else if (isEvent) catKey = 'events';
 
                    if (catKey && dateYMD) {
                      trendMap[catKey][dateYMD] = (trendMap[catKey][dateYMD] || 0) + 1;
                    }
 
-                   // KPI COUNTS: Filter by timeframe (Today uses local strings)
+                   // Hierarchy Filtering logic
                    let isPass = true;
-                   if (this.activeDateFilter === 'today') isPass = isToday;
-                   else if (this.activeDateFilter === 'week') isPass = isThisWeek;
-                   else if (this.activeDateFilter === 'month') isPass = isThisMonth;
-                   else if (this.activeDateFilter === 'custom') {
-                     const fromTS = new Date(dates.from).getTime();
-                     const toTS = new Date(dates.to).getTime() + (24 * 60 * 60 * 1000) - 1; // End of day
-                     isPass = rTimestamp >= fromTS && rTimestamp <= toTS;
+
+                   // RANGE FILTER (Inclusive Matching)
+                   if (this.selectedRange && this.selectedRange !== 'all') {
+                      const filterRange = this.selectedRange.toLowerCase();
+                      if (!rRange.includes(filterRange) && !filterRange.includes(rRange)) isPass = false;
                    }
 
-                   if (isPass && catKey) {
-                      if (catKey === 'crim') counts.criminal++;
-                      else if (catKey === 'fire') counts.fire++;
-                      else if (catKey === 'events') counts.monitoring++;
+                   // BEAT FILTER (Inclusive Matching)
+                   if (isPass && this.selectedBeat && this.selectedBeat !== 'all') {
+                      const filterBeat = this.selectedBeat.toLowerCase();
+                      if (!rBeat.includes(filterBeat) && !filterBeat.includes(rBeat)) isPass = false;
                    }
 
-                   rangeMap[range] = (rangeMap[range] || 0) + 1;
+                   // DATE FILTER (Dashboard context: Today/Week/Month)
+                   if (isPass) {
+                      if (this.activeDateFilter === 'today' && !isToday) isPass = false;
+                      else if (this.activeDateFilter === 'week' && !isThisWeek) isPass = false;
+                      else if (this.activeDateFilter === 'month' && !isThisMonth) isPass = false;
+                      else if (this.activeDateFilter === 'custom') {
+                        const fromTS = new Date(dates.from).setHours(0, 0, 0, 0);
+                        const toTS = new Date(dates.to).setHours(23, 59, 59, 999);
+                        if (rTimestamp < fromTS || rTimestamp > toTS) isPass = false;
+                      }
+                   }
+
+                   if (isPass) {
+                      if (isFire) counts.fire++;
+                      if (isCrim) counts.criminal++;
+                      if (isEvent) counts.monitoring++;
+                   }
+
+                   // Populate rangeMap for Coverage (Always Case-Insensitive)
+                   const normalizedRange = rRange.toLowerCase().trim() || 'general';
+                   rangeMap[normalizedRange] = (rangeMap[normalizedRange] || 0) + 1;
                 });
 
                 // Update charts and counters
@@ -1105,42 +1215,38 @@ changeTimeframe(newTimeframe: string) {
                 this.sightingsCount15 = this.eventsTrendData.slice(-15).reduce((a, b) => a + b, 0);
                 this.fireAlertsCount15 = this.fireTrendData.slice(-15).reduce((a, b) => a + b, 0);
 
+                // --- 🗺️ BEAT COVERAGE CALCULATION (Merged & Unique) ---
                 const totalReports = list.length || 1;
-                const targetRanges = ['R2 Test', 'R1 Kankher Test', 'General'];
-                
-                // Add any other ranges that might have data but aren't in target
-                Object.keys(rangeMap).forEach(r => {
-                  if (!targetRanges.includes(r)) targetRanges.push(r);
-                });
+                const sortedRanges = Object.keys(rangeMap)
+                  .sort((a, b) => rangeMap[b] - rangeMap[a])
+                  .slice(0, 6);
 
-                this.beatCoverage = targetRanges.map(name => ({
-                   label: name,
+                this.beatCoverage = sortedRanges.map(name => ({
+                   label: name.toUpperCase(),
                    val: Math.round(((rangeMap[name] || 0) / totalReports) * 100),
-                   color: '#3b82f6'
-                })).slice(0, 3); // Maintain focus on the top 3 as requested
+                   color: this.COLORS.p
+                }));
 
-                // --- FINAL KPI SYNCHRONIZATION (Sir's API Driven) ---
-                const apiCriminal = Number(stats.criminal_count || stats.criminalEvents || 0);
-                const apiEvents = Number(stats.monitoring_count || stats.monitoringEvents || 0);
-                const apiFire = Number(stats.fire_count || stats.fireEvents || 0);
-                const apiAssets = Number(stats.total_assets || 0);
-
-                // Use API value as priority, fallback to manual sync counts if API is zero
-                this.criminalCount = apiCriminal || counts.criminal;
-                this.eventsCount = apiEvents || counts.monitoring;
-                this.fireAlertsCount = apiFire || counts.fire;
-                // For assets, prioritize our manually filtered count if it was processed
-                // otherwise fallback to apiAssets if needed. But usually, manual sync is better here.
-                if (assetList.length === 0) {
-                   this.totalAssetsCount = apiAssets;
-                }
+                this.criminalCount = counts.criminal;
+                this.eventsCount = counts.monitoring;
+                this.fireAlertsCount = counts.fire;
 
                 // Sync Bottom Snapshot variables
                 this.criminalActivityCount = this.criminalCount;
                 this.sightingsCount = this.eventsCount;
 
                 // Total Summary
-                this.incidentsCount = this.criminalCount + this.eventsCount + this.fireAlertsCount;
+                const totalSummary = this.criminalCount + this.eventsCount + this.fireAlertsCount;
+                
+                // 🛑 Smart Guard: Prevent re-rendering if counts haven't changed
+                const currentSyncState = `${this.criminalCount}-${this.eventsCount}-${this.fireAlertsCount}-${this.totalAssetsCount}`;
+                if (this.lastDashboardState === currentSyncState) {
+                   console.log("♻️ Data identical, skipping chart re-render.");
+                   this.isFetching = false;
+                   this.cdr.detectChanges();
+                   return;
+                }
+                this.lastDashboardState = currentSyncState;
 
                 console.log(`%c📊 Final Dashboard Sync: Criminal=${this.criminalCount}, Events=${this.eventsCount}, Fire=${this.fireAlertsCount}, Assets=${this.totalAssetsCount}`, 'color: #10b981; font-weight: bold;');
 
@@ -1172,6 +1278,18 @@ changeTimeframe(newTimeframe: string) {
                          isPass = rTimestamp >= fromTS && rTimestamp <= toTS;
                       }
 
+                      // RANGE FILTER on map pins
+                      if (isPass && this.selectedRange && this.selectedRange !== 'all') {
+                        const fRange = (f.range_name || f.range || f.region || '').toLowerCase();
+                        if (!fRange.includes(this.selectedRange.toLowerCase())) isPass = false;
+                      }
+
+                      // BEAT FILTER on map pins
+                      if (isPass && this.selectedBeat && this.selectedBeat !== 'all') {
+                        const fBeat = (f.beat_name || f.beat || '').toLowerCase();
+                        if (!fBeat.includes(this.selectedBeat.toLowerCase())) isPass = false;
+                      }
+
                       return latValid && isPass;
                     })
                     .map((f: any) => {
@@ -1191,6 +1309,9 @@ changeTimeframe(newTimeframe: string) {
                       else if (fullType.includes('jfmc') || fullType.includes('social')) layerId = 'jfmc';
                       else if (fullType.includes('compensation')) layerId = 'wildlife_compensation';
                       else if (fullType.includes('fire')) layerId = 'fire_alerts';
+                      else if (fullType.includes('storage')) layerId = 'timber_storage';
+                      else if (fullType.includes('transport')) layerId = 'timber_transport';
+                      else if (fullType.includes('sos')) layerId = 'sos';
                       return {
                         ...f,
                         latitude: parseFloat(f.latitude || f.lat),
@@ -1223,7 +1344,7 @@ changeTimeframe(newTimeframe: string) {
                 this.cdr.detectChanges();
 
                 // --- 🚨 ALERTS & SOS PROCESSING (Enhanced with Forest Reports) ---
-                const rawAlerts = apiResponse.data?.alerts || apiResponse.alerts || apiResponse.sos || [];
+                const rawAlerts = this.alerts || [];
                 
                 // Add fire alerts from system alerts to KPI if they are from today
                 rawAlerts.forEach((a: any) => {
@@ -1231,8 +1352,12 @@ changeTimeframe(newTimeframe: string) {
                    const aDate = a.created_at || a.date || '';
                    const isTodayAlert = (aDate.includes(todayYMD) || aDate.includes(todayDMY) || aDate.includes(todayYMD.replace(/-/g, '/')));
                    
-                   if (aType.includes('fire') && isTodayAlert) {
-                      this.fireAlertsCount++;
+                   if ((aType.includes('fire') || aType.includes('sos')) && isTodayAlert) {
+                      if (aType.includes('fire')) {
+                        this.fireAlertsCount++;
+                      } else if (aType.includes('sos')) {
+                        this.criminalCount++;
+                      }
                       this.incidentsCount++;
                    }
                 });
@@ -1294,27 +1419,6 @@ changeTimeframe(newTimeframe: string) {
         });
 
 
-        // --- 👥 PERSONNEL FROM UNIFIED API ---
-        const allUsers = res.users?.data || res.users || res.staff || [];
-        if (Array.isArray(allUsers) && allUsers.length > 0) {
-          this.rangers = allUsers.filter((u: any) => Number(u.role_id || u.roleId) === 4);
-          this.filteredRangers = [...this.rangers];
-          this.allRangers = this.rangers.length;
-        }
-
-        // Personnel Stats (Sir's Unified API fallback)
-        // Only set if 0 to prevent flickering with detailed attendance sync
-        const summaryOnDuty = Number(stats.on_duty_count || stats.on_duty || 0);
-        if (this.onDutyCount === 0) this.onDutyCount = summaryOnDuty;
-        
-        this.onLeaveCount = Number(stats.on_leave_count || stats.on_leave || 0);
-        this.inactiveCount = Number(stats.inactive_count || stats.inactive || 0);
-
-        if (res.officerStatus && res.officerStatus.history) {
-           this.onDutyTrendData = res.officerStatus.history;
-           this.initAttChart(res.officerStatus.history); 
-        }
-        
         // --- 📊 ATTENDANCE RECOVERY SYNC (Fixed for Local Time) ---
         this.dataService.getAssignableUsers({ company_id: this.myCompanyId.toString() }).subscribe({
           next: (userRes: any) => {
@@ -1386,47 +1490,10 @@ changeTimeframe(newTimeframe: string) {
                            const filteredCount = activeIds.size;
                            const pendingCount = reqArray.length;
                            const onsiteCount = onsiteArray.length;
-                           const apiCount = Number(stats.on_duty_count || stats.on_duty || 0);
 
                            // Ensure unique count: Only count one attendance per officer per day
-                           this.onDutyCount = filteredCount || apiCount;
-
-                           const onDutyTrendMap: { [date: string]: Set<string> } = {};
-                           const processTrendRecord = (record: any) => {
-                             const rDateStr = (record.timestamp || record.entryDateTime || record.created_at || record.date || '').toString();
-                             if (!rDateStr) return;
-                             
-                             let dateYMD = '';
-                             if (rDateStr && rDateStr.includes('-')) {
-                                 const parts = rDateStr.split('T')[0].split(' ')[0].split('-');
-                                 if (parts.length === 3) {
-                                   dateYMD = parts[0].length === 4 ? `${parts[0]}-${parts[1]}-${parts[2]}` : `${parts[2]}-${parts[1]}-${parts[0]}`;
-                                 }
-                             }
-                             const status = String(record.status || '').toLowerCase();
-                             const isRejected = status === 'rejected' || status === 'failed';
-                             if (dateYMD && !isRejected) {
-                               const uId = record.guard_id || record.guardId || record.user_id || record.userId || record.staff_id || record.ranger_id || record.added_by || record.created_by;
-                               if (uId) {
-                                 if (!onDutyTrendMap[dateYMD]) onDutyTrendMap[dateYMD] = new Set<string>();
-                                 onDutyTrendMap[dateYMD].add(uId.toString());
-                               }
-                             }
-                           };
-                           logsArray.forEach(processTrendRecord);
-                           reqArray.forEach(processTrendRecord);
-                           onsiteArray.forEach(processTrendRecord);
-
-                           const last30 = Array.from({length: 30}, (_, i) => {
-                             const d = new Date();
-                             d.setDate(d.getDate() - (29 - i));
-                             const m = String(d.getMonth() + 1).padStart(2, '0');
-                             const day = String(d.getDate()).padStart(2, '0');
-                             return `${d.getFullYear()}-${m}-${day}`;
-                           });
-                           this.onDutyTrendData = last30.map(d => onDutyTrendMap[d] ? onDutyTrendMap[d].size : 0);
-
-                           this.allRangers = staffList.length || Number(stats.total_staff || stats.total_users || this.allRangers || 0);
+                           this.onDutyCount = filteredCount;
+                           this.allRangers = staffList.length || this.allRangers || 0;
                            this.inactiveCount = Math.max(0, this.allRangers - this.onDutyCount);
 
                            if (staffList.length > 0) {
@@ -1482,11 +1549,47 @@ changeTimeframe(newTimeframe: string) {
                       this.updateFilteredAlerts();
                       this.cdr.detectChanges();
 
-                      // ⚡ FETCH PATROL ALERTS
-                      this.dataService.getPatrolsByCompany(this.myCompanyId, todayYMD, todayYMD).subscribe({
+                      // ⚡ FETCH PATROL ALERTS (Respecting timeframe filter)
+                      let pFrom = todayYMD;
+                      let pTo = todayYMD;
+                      if (this.activeDateFilter === 'week') {
+                         const d = new Date(nowL); d.setDate(d.getDate() - 7);
+                         pFrom = d.toISOString().split('T')[0];
+                      } else if (this.activeDateFilter === 'month') {
+                         const d = new Date(nowL); d.setDate(d.getDate() - 30);
+                         pFrom = d.toISOString().split('T')[0];
+                      } else if (this.activeDateFilter === 'custom' && this.dateFrom && this.dateTo) {
+                         pFrom = this.dateFrom;
+                         pTo = this.dateTo;
+                      }
+
+                      this.dataService.getPatrolsByCompany(this.myCompanyId, pFrom, pTo).subscribe({
                          next: (pRes: any) => {
-                            const pList = pRes.data || pRes.patrols || (Array.isArray(pRes) ? pRes : []);
-                            this.patrolCount = pList.length;
+                             const rawPList = pRes.data || pRes.patrols || (Array.isArray(pRes) ? pRes : []);
+                             
+                             // Hierarchy Filtering for Patrols (Dashboard Parity)
+                             const filteredPList = rawPList.filter((p: any) => {
+                                const pBeat = (p.beat_name || p.site_name || p.location || '').toLowerCase();
+                                const bObj = this.allBeats.find(b => b.name.toLowerCase() === pBeat);
+                                const pRange = (p.range_name || p.range || (bObj ? bObj.parentName : '')).toLowerCase();
+                                
+                                let rangePass = true;
+                                if (this.selectedRange && this.selectedRange !== 'all') {
+                                   const fRange = this.selectedRange.toLowerCase();
+                                   rangePass = pRange.includes(fRange) || fRange.includes(pRange);
+                                }
+                                
+                                let beatPass = true;
+                                if (this.selectedBeat && this.selectedBeat !== 'all') {
+                                   const fBeat = this.selectedBeat.toLowerCase();
+                                   beatPass = pBeat.includes(fBeat) || fBeat.includes(pBeat);
+                                }
+                                
+                                return rangePass && beatPass;
+                             });
+
+                             this.patrolCount = filteredPList.length;
+                             const pList = filteredPList; // Use filtered list for alerts too
                             const pAlerts = pList.map((p: any) => {
                                const uName = p.user_name || p.ranger_name || this.resolveUserName(p.user_id || p.ranger_id);
                                return {
@@ -1542,13 +1645,6 @@ changeTimeframe(newTimeframe: string) {
 
         this.isFetching = false;
         this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error("Dashboard Load Error:", err);
-        this.isFetching = false;
-        this.cdr.detectChanges();
-      }
-    });
   }
 
   trackByAlert(index: number, alert: any) {
@@ -1800,17 +1896,18 @@ handleApiResponse(res: any) {
       let layerId = 'general_incident';
 
       if (type.includes('mining')) layerId = 'illegal_mining';
-      else if (type.includes('felling')) layerId = 'illegal_felling';
-      else if (type.includes('poaching')) layerId = 'animal_poaching';
-      else if (type.includes('encroach')) layerId = 'encroachment';
-      else if (type.includes('timber storage')) layerId = 'timber_storage';
-      else if (type.includes('timber transport')) layerId = 'timber_transport';
       else if (type.includes('timber')) layerId = 'timber_storage';
-      else if (type.includes('sighting')) layerId = 'animal_sighting';
+      else if (type.includes('felling') || type.includes('fell')) layerId = 'illegal_felling';
+      else if (type.includes('poaching') || type.includes('poach')) layerId = 'animal_poaching';
+      else if (type.includes('sighting') || type.includes('sight')) layerId = 'animal_sighting';
       else if (type.includes('water')) layerId = 'water_status';
       else if (type.includes('jfmc') || type.includes('social')) layerId = 'jfmc';
       else if (type.includes('compensation')) layerId = 'wildlife_compensation';
       else if (type.includes('fire')) layerId = 'fire_alerts';
+      else if (type.includes('encroach')) layerId = 'encroachment';
+      else if (type.includes('storage')) layerId = 'timber_storage';
+      else if (type.includes('transport')) layerId = 'timber_transport';
+      else if (type.includes('sos')) layerId = 'sos';
 
       return {
         ...f,
@@ -2048,8 +2145,13 @@ handleApiResponse(res: any) {
 
   setDateFilter(type: string) {
     this.activeDateFilter = type;
-    this.loadData();
-    this.doRefresh();
+    // 🌐 Persist globally so analytics & sub-pages pick it up
+    localStorage.setItem('global_date_filter', type);
+    localStorage.setItem('global_date_from', this.dateFrom);
+    localStorage.setItem('global_date_to', this.dateTo);
+    localStorage.setItem('global_range_filter', this.selectedRange);
+    localStorage.setItem('global_beat_filter', this.selectedBeat);
+    this.doRefresh(false);
   }
 
 
@@ -2084,21 +2186,14 @@ handleApiResponse(res: any) {
   //   }, 1500);
   // }
 
-  async doRefresh() {
+  async doRefresh(force: boolean = true) {
   this.isRefreshing = true;
   this.isSpinning = true;
-
-  const loading = await this.loadingCtrl.create({
-    message: 'Refreshing Dashboard...',
-    spinner: 'crescent',
-    cssClass: 'custom-loading'
-  });
-  await loading.present();
 
   try {
     // Promise.all use karne se saare calls ek saath parallel mein honge
     await Promise.all([
-      this.loadData(),
+      this.loadData(force),
       this.loadBeatCoverage(),
       this.loadTrendData() // Refresh par trend data bhi update hona chahiye
     ]);
@@ -2107,21 +2202,17 @@ handleApiResponse(res: any) {
   } catch (error) {
     console.error('Refresh error:', error);
   } finally {
-    // 1.5 second ka delay takki animation smooth lage
-    setTimeout(() => {
-      this.isRefreshing = false;
-      this.isSpinning = false;
-      loading.dismiss();
+    this.isRefreshing = false;
+    this.isSpinning = false;
 
-      // Charts ko re-initialize karna logic ke hisaab se
-      if (this.activeSegment === 'overview') {
-        this.initHomeCharts();
-      } else if (this.activeSegment === 'officers') {
-        this.initAttChart();
-      } else if (this.activeSegment === 'map') {
-        this.updateMapMarkers();
-      }
-    }, 1000);
+    // Charts ko re-initialize karna logic ke hisaab se
+    if (this.activeSegment === 'overview') {
+      this.initHomeCharts();
+    } else if (this.activeSegment === 'officers') {
+      this.initAttChart();
+    } else if (this.activeSegment === 'map') {
+      this.updateMapMarkers();
+    }
   }
 }
 
@@ -2514,8 +2605,8 @@ handleApiResponse(res: any) {
 
     // 2. Saare charts destroy karein
     if (this._charts) {
-      Object.values(this._charts).forEach((c) => {
-        if (c) c.destroy();
+      Object.values(this._charts).forEach((c: any) => {
+        if (c && typeof c.destroy === 'function') c.destroy();
       });
       this._charts = {};
     }
@@ -2658,17 +2749,14 @@ handleApiResponse(res: any) {
   }
 
   loadTrendData() {
-    // The legacy '/incidents/trend/{id}' API is deprecated.
-    // We now derive the overall incident trend dynamically from the unified stats arrays.
-    const totalLength = Math.max(
-      this.criminalTrendData?.length || 0,
-      this.eventsTrendData?.length || 0,
-      this.fireTrendData?.length || 0,
-      6 // Fallback to 6 data points if arrays are empty
-    );
+    // Derive the overall incident trend from the 30-day trend arrays
+    const totalLength = 30;
     
-    // Generate simple labels. In a real scenario, you can map 'date' keys if provided in stats.
-    const labels = Array.from({length: totalLength}, (_, i) => `Ref ${i + 1}`);
+    // Use last 30 days labels (MM-DD)
+    const labels = Array.from({length: totalLength}, (_, i) => {
+       const d = new Date(); d.setDate(d.getDate() - (29 - i));
+       return `${d.getMonth() + 1}/${d.getDate()}`;
+    });
     
     // Summing across all incident types per index to get total trend
     const values = labels.map((_, i) => {

@@ -87,7 +87,7 @@
           <option *ngFor="let range of allRanges" [value]="range">{{ range }}</option>
         </select>
 
-        <select class="fselect" [(ngModel)]="selectedBeat" (change)="doRefresh()">
+        <select class="fselect" [(ngModel)]="selectedBeat" (change)="doRefresh(false)">
           <option value="all">All Beats</option>
           <option *ngFor="let beat of displayBeats" [value]="beat">{{ beat }}</option>
         </select>
@@ -146,14 +146,14 @@
             <ion-icon name="calendar-outline"></ion-icon>
             <label>FROM</label>
           </div>
-          <input type="date" [(ngModel)]="dateFrom" [max]="todayDate" (change)="doRefresh()" />
+          <input type="date" [(ngModel)]="dateFrom" [max]="todayDate" (change)="doRefresh(false)" />
         </div>
         <div class="date-input-box">
           <div class="dib-hdr">
             <ion-icon name="calendar-outline"></ion-icon>
             <label>TO</label>
           </div>
-          <input type="date" [(ngModel)]="dateTo" [max]="todayDate" (change)="doRefresh()" />
+          <input type="date" [(ngModel)]="dateTo" [max]="todayDate" (change)="doRefresh(false)" />
         </div>
       </div>
     </div>
@@ -223,10 +223,9 @@
             <polygon points="3 11 22 2 13 21 11 13 3 11"/>
           </svg>
         </div>
-        <div class="kpi-val">{{ patrolCount }}</div>
+        <div class="kpi-val" id="kv-patrol">{{ patrolCount }}</div>
         <div class="kpi-lbl">Patrol logs</div>
-        <div class="kpi-trend up">▲ Tap to analyse</div>
-
+        <div class="kpi-trend up" >▲ Tap to analyse</div>
       </div> 
 
       <div class="kpi-card" data-c="rose" (click)="goToCriminalRecords()">
@@ -386,7 +385,7 @@
           gap: 5px;
         "
       >
-        <span class="ldot-anim"></span>today's data on map · 4 Ranges ·
+        <span class="ldot-anim"></span>{{ activeDateFilter === 'today' ? "Today's" : (activeDateFilter | titlecase) }} data on map · {{ selectedRange === 'all' ? allRanges.length + ' Ranges' : selectedRange }} ·
         <strong style="color: var(--p)">{{ activeLayerCount }} layers</strong>
       </div>
 

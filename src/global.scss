@@ -185,6 +185,79 @@ ion-label {
   color: #000000 !important;
 }
 
+/* === SOS EMERGENCY ALERT (PREMIUM) === */
+.sos-alert-premium {
+  --background: #1a0808;
+  --backdrop-opacity: 0.85;
+
+  .alert-wrapper {
+    background: #1a0808 !important;
+    border-radius: 28px !important;
+    border: 1px solid rgba(255, 68, 68, 0.3) !important;
+    box-shadow: 0 25px 50px -12px rgba(255, 0, 0, 0.5) !important;
+  }
+
+  .alert-head {
+    padding-top: 30px !important;
+    text-align: center !important;
+  }
+
+  .alert-title {
+    color: #ff4444 !important;
+    font-size: 22px !important;
+    font-weight: 900 !important;
+    letter-spacing: 1px !important;
+  }
+
+  .alert-sub-title {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    opacity: 0.9 !important;
+    margin-top: 5px !important;
+  }
+
+  .alert-message {
+    color: rgba(255, 255, 255, 0.7) !important;
+    text-align: center !important;
+    font-size: 14px !important;
+    padding: 20px !important;
+    b {
+      color: #ff4444 !important;
+    }
+  }
+
+  .alert-button-group {
+    padding: 10px 20px 25px !important;
+    gap: 12px !important;
+    flex-direction: column-reverse !important;
+  }
+
+  .alert-button {
+    height: 54px !important;
+    border-radius: 15px !important;
+    font-weight: 800 !important;
+    font-size: 15px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+  }
+
+  .sos-btn-cancel {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    opacity: 0.6 !important;
+  }
+
+  .sos-btn-call {
+    color: #ffffff !important;
+    background: #ff4444 !important;
+    box-shadow: 0 4px 15px rgba(255, 68, 68, 0.4) !important;
+    
+    .alert-button-inner {
+      justify-content: center !important;
+    }
+  }
+}
+
 /* --- Premium Photo Viewer / Zoom Overlay --- */
 .zoom-overlay {
   position: fixed;

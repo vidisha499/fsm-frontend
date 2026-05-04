@@ -33,6 +33,30 @@ export class AdminAssetsRecordsPage implements OnInit {
   ) {}
 
   ngOnInit() {
+    const today = new Date().toISOString().split('T')[0];
+    const gFilter = localStorage.getItem('global_date_filter') || 'today';
+    const gFrom = localStorage.getItem('global_date_from');
+    const gTo = localStorage.getItem('global_date_to');
+
+    if (gFilter === 'custom' && gFrom && gTo) {
+      this.filterFrom = gFrom;
+      this.filterTo = gTo;
+    } else if (gFilter === 'week') {
+      const from = new Date(); from.setDate(from.getDate() - 7);
+      this.filterFrom = from.toISOString().split('T')[0];
+      this.filterTo = today;
+    } else if (gFilter === 'month') {
+      const from = new Date(); from.setDate(from.getDate() - 30);
+      this.filterFrom = from.toISOString().split('T')[0];
+      this.filterTo = today;
+    } else {
+      this.filterFrom = today;
+      this.filterTo = today;
+    }
+
+    this.selectedRange = localStorage.getItem('global_range_filter') || 'all';
+    this.selectedBeat = localStorage.getItem('global_beat_filter') || 'all';
+
     this.loadHierarchy();
     this.refreshData();
   }
@@ -52,10 +76,25 @@ export class AdminAssetsRecordsPage implements OnInit {
       return;
     }
 
-    // Use analytics endpoint when date filter is active (it supports date range)
-    const obs = (from && to)
-      ? this.dataService.getAssetsAnalytics(companyId, from, to)
-      : this.dataService.getAssets(companyId);
+    const getTS = (d: any) => {
+      if (!d) return 0;
+      let ts = 0;
+      if (typeof d === 'string') {
+        const clean = d.split(' ')[0].replace(/\//g, '-');
+        const parts = clean.split('-');
+        if (parts.length === 3) {
+           if (parts[0].length === 2 && parts[2].length === 4) {
+             ts = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime();
+           } else if (parts[0].length === 4) {
+             ts = new Date(clean).getTime();
+           }
+        }
+      }
+      if (!ts || isNaN(ts)) ts = new Date(d).getTime();
+      return isNaN(ts) ? 0 : ts;
+    };
+
+    const obs = this.dataService.getAssets(companyId);
 
     obs.subscribe({
       next: (res: any) => {
@@ -69,20 +108,29 @@ export class AdminAssetsRecordsPage implements OnInit {
         const todayDMY = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`;
 
         this.assetList = raw.filter((a: any) => {
-          // 1. Date Filter (if no range set, default to today)
+          // 1. Date Filter
           let matchesDate = true;
-          if (!from && !to) {
-            const aDate = a.created_at || a.date_time || a.date || '';
-            matchesDate = !!(aDate && (aDate.includes(todayYMD) || aDate.includes(todayDMY)));
+          const aDate = a.created_at || a.date_time || a.date || '';
+          
+          if (from && to) {
+            const rTimestamp = getTS(aDate);
+            const fromTS = new Date(from).setHours(0, 0, 0, 0);
+            const toTS = new Date(to).setHours(23, 59, 59, 999);
+            matchesDate = rTimestamp >= fromTS && rTimestamp <= toTS;
+          } else {
+            // Default to today (Robust Check)
+            matchesDate = !!(aDate && (aDate.includes(todayYMD) || aDate.includes(todayDMY) || aDate.includes(todayYMD.replace(/-/g, '/'))));
           }
 
-          // 2. Hierarchy Filter
+          // 2. Hierarchy Filter (Bidirectional Inclusive)
           const rBeat = (a.beat_name || a.site_name || a.location || '').toLowerCase();
+          const filterBeat = this.selectedBeat.toLowerCase();
           const beatObj = this.allBeats.find(b => b.name.toLowerCase() === rBeat);
-          const rRange = beatObj ? beatObj.parentName : 'General Range';
+          const rRange = (a.range_name || a.range || (beatObj ? beatObj.parentName : 'General Range')).toLowerCase();
+          const filterRange = this.selectedRange.toLowerCase();
           
-          const matchesRange = this.selectedRange === 'all' || rRange === this.selectedRange;
-          const matchesBeat = this.selectedBeat === 'all' || rBeat === this.selectedBeat.toLowerCase();
+          const matchesRange = this.selectedRange === 'all' || rRange.includes(filterRange) || filterRange.includes(rRange);
+          const matchesBeat = this.selectedBeat === 'all' || rBeat.includes(filterBeat) || filterBeat.includes(rBeat);
 
           return matchesDate && matchesRange && matchesBeat;
         });

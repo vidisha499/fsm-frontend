@@ -30,12 +30,37 @@ export class AdminCriminalRecordsPage implements OnInit {
   ) {}
 
   ngOnInit() {
+    // 🌐 Read Global Filter from Admin Dashboard
+    const globalFilter = localStorage.getItem('global_date_filter') || 'today';
+    const globalFrom   = localStorage.getItem('global_date_from')   || '';
+    const globalTo     = localStorage.getItem('global_date_to')     || '';
+    this.selectedRange = localStorage.getItem('global_range_filter') || 'all';
+    this.selectedBeat  = localStorage.getItem('global_beat_filter')  || 'all';
+
     const today = new Date().toISOString().split('T')[0];
-    this.filterFrom = today;
-    this.filterTo = today;
+
+    if (globalFilter === 'custom' && globalFrom && globalTo) {
+      this.filterFrom = globalFrom;
+      this.filterTo   = globalTo;
+    } else if (globalFilter === 'week') {
+      const from = new Date(); from.setDate(from.getDate() - 7);
+      this.filterFrom = from.toISOString().split('T')[0];
+      this.filterTo   = today;
+    } else if (globalFilter === 'month') {
+      const from = new Date(); from.setDate(from.getDate() - 30);
+      this.filterFrom = from.toISOString().split('T')[0];
+      this.filterTo   = today;
+    } else {
+      // 'today' default
+      this.filterFrom = today;
+      this.filterTo   = today;
+    }
+
     this.loadHierarchy();
     this.refreshData();
   }
+
+  allReportsCache: any[] | null = null;
 
   async refreshData() {
     this.isLoading = true;
@@ -43,6 +68,11 @@ export class AdminCriminalRecordsPage implements OnInit {
   }
 
   loadSubmittedReports(from?: string, to?: string) {
+    if (this.allReportsCache) {
+      this.applyFiltersToCache(from, to);
+      return;
+    }
+
     const rawData = localStorage.getItem('user_data');
     const user = rawData ? JSON.parse(rawData) : null;
     const companyId = user ? Number(user.company_id || user.companyId) : 0;
@@ -50,46 +80,77 @@ export class AdminCriminalRecordsPage implements OnInit {
     // Fetch all reports to ensure we catch everything the Admin dashboard sees
     this.dataService.getForestReports().subscribe({
       next: (res: any) => {
-        const data = res?.data || res || [];
-        
-        // Robust Client-Side Filtering matching Admin Page logic
-        this.submittedReports = data.filter((r: any) => {
-          const cat = (r.category || '').toLowerCase();
-          const isCrim = cat.includes('crim') || cat.includes('poach') || cat.includes('mining') || cat.includes('felling') || cat.includes('encroach');
-          
-          if (!isCrim) return false;
-
-          // 1. Date Filter
-          let matchesDate = true;
-          if (from && to) {
-            const rDate = r.created_at || r.date || r.date_time || '';
-            if (!rDate) matchesDate = false;
-            else {
-              const rTimestamp = new Date(rDate).getTime();
-              const fromTS = new Date(from).getTime();
-              const toTS = new Date(to).getTime() + (24 * 60 * 60 * 1000);
-              matchesDate = rTimestamp >= fromTS && rTimestamp <= toTS;
-            }
-          }
-
-          // 2. Hierarchy Filter
-          const rBeat = (r.beat_name || r.site_name || r.location || '').toLowerCase();
-          const beatObj = this.allBeats.find(b => b.name.toLowerCase() === rBeat);
-          const rRange = beatObj ? beatObj.parentName : 'General Range';
-          
-          const matchesRange = this.selectedRange === 'all' || rRange === this.selectedRange;
-          const matchesBeat = this.selectedBeat === 'all' || rBeat === this.selectedBeat.toLowerCase();
-
-          return matchesDate && matchesRange && matchesBeat;
-        }).map((r: any) => this.processPhotos(r));
-        
-        this.isLoading = false;
+        this.allReportsCache = res?.data || res || [];
+        this.applyFiltersToCache(from, to);
       },
       error: (err) => {
         console.error('Failed to fetch criminal records', err);
         this.isLoading = false;
       }
     });
+  }
+
+  applyFiltersToCache(from?: string, to?: string) {
+    if (!this.allReportsCache) return;
+
+    // Helper for robust date parsing
+    const getTS = (d: any) => {
+      if (!d) return 0;
+      let ts = 0;
+      if (typeof d === 'string') {
+        const clean = d.split(' ')[0].replace(/\//g, '-');
+        const parts = clean.split('-');
+        if (parts.length === 3) {
+           if (parts[0].length === 2 && parts[2].length === 4) {
+             ts = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime();
+           } else if (parts[0].length === 4) {
+             ts = new Date(clean).getTime();
+           }
+        }
+      }
+      if (!ts || isNaN(ts)) ts = new Date(d).getTime();
+      return isNaN(ts) ? 0 : ts;
+    };
+
+    // Robust Client-Side Filtering matching Admin Page logic
+    this.submittedReports = this.allReportsCache.filter((r: any) => {
+      const cat = (r.category || '').toLowerCase();
+      const rType = (r.report_type || r.event_type || r.type || '').toLowerCase();
+      const combined = `${cat} ${rType}`.toLowerCase();
+      
+      const isCrim = combined.includes('crim') || combined.includes('poach') || combined.includes('mining') || combined.includes('fell') || combined.includes('timber') || combined.includes('encroach');
+      if (!isCrim) return false;
+
+      // 1. Date Filter logic (Robust String-based matching)
+      let matchesDate = true;
+      if (from && to) {
+        const rDate = r.created_at || r.date || r.date_time || r.timestamp || '';
+        if (!rDate) matchesDate = false;
+        else {
+          // If from and to are same (Today filter), use robust string check
+          const rTimestamp = getTS(rDate);
+          const fromTS = new Date(from).setHours(0, 0, 0, 0);
+          const toTS = new Date(to).setHours(23, 59, 59, 999);
+          matchesDate = rTimestamp >= fromTS && rTimestamp <= toTS;
+        }
+      }
+
+      // 2. Hierarchy Filter
+      const rBeat = (r.beat_name || r.site_name || r.location || '').toLowerCase();
+      const beatObj = this.allBeats.find(b => b.name.toLowerCase() === rBeat);
+      const rRange = (r.range_name || r.range || r.region || (beatObj ? beatObj.parentName : '')).toLowerCase();
+      
+      const filterRange = this.selectedRange.toLowerCase();
+      const filterBeat = this.selectedBeat.toLowerCase();
+      const matchesRange = this.selectedRange === 'all' || rRange.includes(filterRange) || filterRange.includes(rRange);
+      const matchesBeat = this.selectedBeat === 'all' || rBeat.includes(filterBeat) || filterBeat.includes(rBeat);
+
+      return matchesDate && matchesRange && matchesBeat;
+    })
+    .sort((a, b) => getTS(b.created_at || b.date) - getTS(a.created_at || a.date))
+    .map((r: any) => this.processPhotos(r));
+    
+    this.isLoading = false;
   }
 
   processPhotos(report: any) {
