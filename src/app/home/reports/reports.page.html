@@ -2,6 +2,15 @@
   <div class="premium-wrapper">
     <div class="ambient-glow glow-1"></div>
     <div class="ambient-glow glow-2"></div>
+    
+    <!-- Professional Loader Overlay -->
+    <div class="report-loader-overlay" *ngIf="isGenerating">
+      <div class="loader-content">
+        <ion-spinner name="crescent"></ion-spinner>
+        <p>Generating Premium Report...</p>
+        <span>Please wait while we sync with server</span>
+      </div>
+    </div>
 
     <!-- Keep Original Hero Header -->
     <div class="hero-header">
@@ -27,27 +36,43 @@
     <div class="main-container">
       
       <!-- Option 1: Attendance -->
-      <div class="management-card" (click)="openFilterModal('Employee Attendance')">
+      <div class="management-card" (click)="userRole === 'admin' ? toggleSection('attendance') : openFilterModal('Employee Attendance')">
         <div class="icon-box">
           <i class="fas fa-fingerprint"></i>
         </div>
         <div class="card-info">
           <h3>Attendance Report</h3>
-          <span>VIEW DETAILS</span>
+          <span>{{ isAttendanceOpen ? 'HIDE OPTIONS' : 'VIEW OPTIONS' }}</span>
         </div>
-        <ion-icon name="chevron-forward-outline" class="chevron"></ion-icon>
+        <ion-icon [name]="isAttendanceOpen && userRole === 'admin' ? 'chevron-down-outline' : 'chevron-forward-outline'" class="chevron"></ion-icon>
+      </div>
+
+      <!-- Admin Submenu for Attendance -->
+      <div class="floating-submenu" *ngIf="isAttendanceOpen && userRole === 'admin'">
+        <div class="submenu-item" *ngFor="let option of attendanceOptions" (click)="onOptionSelect(option)">
+          <span>{{option}}</span>
+          <ion-icon name="chevron-forward-outline" style="font-size: 12px; color: #94a3b8;"></ion-icon>
+        </div>
       </div>
 
       <!-- Option 2: Patrol -->
-      <div class="management-card" (click)="openFilterModal('Patrol Report')">
+      <div class="management-card" (click)="userRole === 'admin' ? toggleSection('patrol') : openFilterModal('Patrol Report')">
         <div class="icon-box">
           <i class="fas fa-walking"></i>
         </div>
         <div class="card-info">
           <h3>Patrol/ Beat Inspection Report</h3>
-          <span>VIEW DETAILS</span>
+          <span>{{ isPatrolOpen ? 'HIDE OPTIONS' : 'VIEW OPTIONS' }}</span>
         </div>
-        <ion-icon name="chevron-forward-outline" class="chevron"></ion-icon>
+        <ion-icon [name]="isPatrolOpen && userRole === 'admin' ? 'chevron-down-outline' : 'chevron-forward-outline'" class="chevron"></ion-icon>
+      </div>
+
+      <!-- Admin Submenu for Patrol (Level 1) -->
+      <div class="floating-submenu" *ngIf="isPatrolOpen && userRole === 'admin'">
+        <div class="submenu-item" *ngFor="let option of patrolOptions" (click)="onPatrolCategorySelect(option); $event.stopPropagation()">
+          <span>{{option}}</span>
+          <ion-icon name="chevron-forward-outline" style="font-size: 12px; color: #94a3b8;"></ion-icon>
+        </div>
       </div>
 
       <!-- Option 3: Performance -->
@@ -79,17 +104,72 @@
 
         <div class="filter-body">
           
-          <!-- Shared Client/Range Filter (Old Style) -->
-          <div class="data-row-premium" *ngIf="userRole === 'admin'">
-            <span class="label">CLIENT / RANGE</span>
-            <ion-select interface="popover" placeholder="Select" [(ngModel)]="selectedClient" class="compact-select">
-              <ion-select-option value="all">All Rangers</ion-select-option>
-              <ion-select-option *ngFor="let site of sites" [value]="site.id">{{ site.site_name || site.name || site.beat_name }}</ion-select-option>
-            </ion-select>
-          </div>
+          <!-- Hierarchical Selection (Range -> Beat -> Employee) -->
+          <ng-container *ngIf="!activeReport.includes('Self') && !activeReport.includes('Supervisor') && !activeReport.includes('Admin') && activeReport !== 'Company Performance' && userRole === 'admin'">
+            <div class="data-row-premium">
+              <div class="row-label-group">
+                <i class="fas fa-city" style="color: #0d9488; font-size: 14px;"></i>
+                <span class="label">RANGE</span>
+              </div>
+              <ion-select interface="popover" placeholder="Select Range" [(ngModel)]="selectedRange" (ionChange)="onRangeChange()" class="compact-select">
+                <ion-select-option value="all">All Ranges</ion-select-option>
+                <ion-select-option *ngFor="let r of allRanges" [value]="r">{{r}}</ion-select-option>
+              </ion-select>
+            </div>
 
-          <!-- Patrol Specific Fields (Integrated in Old Style) -->
-          <ng-container *ngIf="activeReport === 'Patrol Report'">
+            <div class="data-row-premium">
+              <div class="row-label-group">
+                <i class="fas fa-map-marker-alt" style="color: #0d9488; font-size: 14px;"></i>
+                <span class="label">BEAT</span>
+              </div>
+              <ion-select interface="popover" placeholder="Select Beat" [(ngModel)]="selectedBeat" (ionChange)="onBeatChange()" class="compact-select">
+                <ion-select-option value="all">All Beats</ion-select-option>
+                <ion-select-option *ngFor="let b of displayBeats" [value]="b.id">{{b.name}}</ion-select-option>
+              </ion-select>
+            </div>
+
+            <div class="data-row-premium">
+              <div class="row-label-group">
+                <i class="fas fa-user-tie" style="color: #0d9488; font-size: 14px;"></i>
+                <span class="label">EMPLOYEE</span>
+              </div>
+              <ion-select interface="popover" placeholder="Select Employee" [(ngModel)]="selectedEmployee" class="compact-select">
+                <ion-select-option value="all">All</ion-select-option>
+                <ion-select-option *ngFor="let e of displayEmployees" [value]="e.id">{{e.name}}</ion-select-option>
+              </ion-select>
+            </div>
+          </ng-container>
+
+          <!-- Supervisor/Forester Specific Layout (Role 2) -->
+          <ng-container *ngIf="(activeReport === 'Supervisor Attendance' || activeReport.includes('Supervisor')) && userRole === 'admin'">
+            <div class="data-row-premium">
+              <div class="row-label-group">
+                <i class="fas fa-user-shield" style="color: #0d9488; font-size: 14px;"></i>
+                <span class="label">SUPERVISOR</span>
+              </div>
+              <ion-select interface="popover" placeholder="Select Supervisor" [(ngModel)]="selectedSupervisor" class="compact-select">
+                <ion-select-option value="all">All</ion-select-option>
+                <ion-select-option *ngFor="let s of allSupervisors" [value]="s.id">{{s.name}}</ion-select-option>
+              </ion-select>
+            </div>
+          </ng-container>
+
+          <!-- Admin/Range Officer Specific Layout (Role 7) -->
+          <ng-container *ngIf="activeReport.includes('Admin') && userRole === 'admin'">
+            <div class="data-row-premium">
+              <div class="row-label-group">
+                <i class="fas fa-user-cog" style="color: #0d9488; font-size: 14px;"></i>
+                <span class="label">RANGE OFFICER</span>
+              </div>
+              <ion-select interface="popover" placeholder="Select Range Officer" [(ngModel)]="selectedAdmin" class="compact-select">
+                <ion-select-option value="all">All Range Officers</ion-select-option>
+                <ion-select-option *ngFor="let a of allAdmins" [value]="a.id">{{a.name}}</ion-select-option>
+              </ion-select>
+            </div>
+          </ng-container>
+
+          <!-- Patrol Specific Fields -->
+          <ng-container *ngIf="activeReport === 'Patrol Report' || activeReport.includes('Self') || activeReport.includes('Supervisor') || activeReport.includes('Admin') || activeReport.includes('Patrol')">
             <div class="data-row-premium">
               <span class="label">PATROL TYPE</span>
               <ion-select interface="popover" [(ngModel)]="patrolType" class="compact-select">
@@ -107,9 +187,9 @@
             </div>
 
             <div class="data-row-premium">
-              <span class="label">LOG CATEGORY</span>
+              <span class="label">LOG TYPE</span>
               <ion-select interface="popover" placeholder="Select" [(ngModel)]="logType" class="compact-select">
-                <ion-select-option value="all">All Categories</ion-select-option>
+                <ion-select-option value="all">All Types</ion-select-option>
                 <ion-select-option *ngFor="let cat of logCategories" [value]="cat.name || cat">{{ cat.name || cat }}</ion-select-option>
               </ion-select>
             </div>
@@ -154,10 +234,10 @@
         <div class="modal-footer-dual-row">
           <div class="button-grid">
             <button class="export-btn-mini pdf" (click)="generateReport('pdf')">
-              <i class="fas fa-file-pdf"></i> PDF
+              <i class="fas fa-file-pdf"></i> GET PDF
             </button>
             <button class="export-btn-mini excel" (click)="generateReport('excel')">
-              <i class="fas fa-file-excel"></i> EXCEL
+              <i class="fas fa-file-excel"></i> GET EXCEL
             </button>
           </div>
           

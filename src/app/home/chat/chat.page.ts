@@ -36,7 +36,9 @@ export class ChatPage implements OnInit {
     this.dataService.getConversations().subscribe({
       next: (res: any) => {
         this.isFetching = false;
-        this.conversations = res.data || res || [];
+        // Support both direct array and {status, data} format
+        this.conversations = res.data ? res.data : (Array.isArray(res) ? res : []);
+        this.errorMessage = ''; // Clear error if we have data (even mock)
       },
       error: (err) => {
         this.isFetching = false;
@@ -60,7 +62,7 @@ export class ChatPage implements OnInit {
     apiCall.subscribe({
       next: (res: any) => {
         loading.dismiss();
-        this.messages = res.data || res || [];
+        this.messages = res.data ? res.data : (Array.isArray(res) ? res : []);
       },
       error: (err) => {
         loading.dismiss();

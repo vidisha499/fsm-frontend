@@ -247,7 +247,18 @@ loadUserData() {
     this.userRole = 'ranger';
   }
 
-  console.log("Mapped Role for HTML:", this.userRole);
+  // 🔥 Map Role ID to human-readable Designation
+  if (rawRole == '1') {
+    this.userDesignation = 'SUPERADMIN';
+  } else if (rawRole == '2') {
+    this.userDesignation = 'ADMIN';
+  } else if (rawRole == '7') {
+    this.userDesignation = 'RANGE OFFICER';
+  } else {
+    this.userDesignation = 'FOREST GUARD';
+  }
+
+  console.log("Mapped Role for HTML:", this.userRole, "Designation:", this.userDesignation);
   
   // Try implicit keys first, then fallback to user_data object
   this.rangerName = localStorage.getItem('ranger_username') || '';
@@ -269,6 +280,11 @@ loadUserData() {
             parsedUser.name = data.name || parsedUser.name;
             parsedUser.phone = data.contact || data.mobile || data.phone || parsedUser.phone;
             parsedUser.company_name = data.company_name || (data.company ? data.company.name : '') || data.client_name || parsedUser.company_name;
+            parsedUser.role_name = data.role_name || data.designation || parsedUser.role_name;
+            
+            if (parsedUser.role_name) {
+              this.userDesignation = parsedUser.role_name.toUpperCase();
+            }
             
             // Update LocalStorage objects
             localStorage.setItem('user_data', JSON.stringify(parsedUser));
