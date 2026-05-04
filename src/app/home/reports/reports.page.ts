@@ -44,7 +44,7 @@ export class ReportsPage implements OnInit {
   displayEmployees: any[] = [];
   
   sites: any[] = [];
-
+  
   // Patrol Specific Filters (Dynamic)
   patrolType = 'all';
   patrolMethod = 'all';

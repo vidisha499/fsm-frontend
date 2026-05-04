@@ -86,7 +86,6 @@
         </div>
         <ion-icon name="chevron-forward-outline" class="chevron"></ion-icon>
       </div>
-
     </div>
   </div>
 
@@ -195,19 +194,12 @@
             </div>
           </ng-container>
 
-          <!-- Attendance Specific Fields (Old Style) - REMOVED ATTENDANCE TYPE -->
+          <!-- Attendance Specific Fields -->
           <ng-container *ngIf="activeReport === 'Employee Attendance'">
-            <!-- <div class="data-row-premium">
-              <span class="label">STATUS</span>
-              <ion-select interface="popover" [(ngModel)]="attendanceStatus" class="compact-select">
-                <ion-select-option value="all">All Status</ion-select-option> -->
-                <!-- <ion-select-option value="PRESENT">Present</ion-select-option>
-                <ion-select-option value="ABSENT">Absent</ion-select-option>
-              </ion-select>
-            </div> -->
+            <!-- Attendance Specific Fields can be added here if needed -->
           </ng-container>
 
-          <!-- Shared Date Filters (Old Style) -->
+          <!-- Shared Date Filters -->
           <div class="data-row-premium">
             <span class="label">START DATE</span>
             <ion-datetime-button datetime="start"></ion-datetime-button>
