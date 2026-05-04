@@ -1,0 +1,152 @@
+<ion-content [fullscreen]="true" class="ion-no-padding">
+  <!-- Header Section -->
+  <div class="header-section">
+    <div class="toolbar">
+      <div class="tbar-left">
+        <div class="tbar-logo" (click)="goBack()">
+          <i class="fas fa-chevron-left" style="color: white; font-size: 18px;"></i>
+        </div>
+        <div>
+          <div class="tbar-title">Organization</div>
+          <div class="tbar-sub">Hierarchy & Roles</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Segment Switcher -->
+    <div class="segment-container">
+      <div class="custom-segment">
+        <button [class.active]="activeSegment === 'hierarchy'" (click)="activeSegment = 'hierarchy'">Hierarchy</button>
+        <button [class.active]="activeSegment === 'org'" (click)="activeSegment = 'org'">Org</button>
+        <button [class.active]="activeSegment === 'roles'" (click)="activeSegment = 'roles'">Roles</button>
+        <button [class.active]="activeSegment === 'assignments'" (click)="activeSegment = 'assignments'">Assign</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <!-- HIERARCHY SECTION -->
+    <div *ngIf="activeSegment === 'hierarchy'" class="section-fade-in">
+      <div class="shdr">
+        <div class="shdr-title">Hierarchy Layers</div>
+        <div class="shdr-link" (click)="openAddHierarchyNode()">
+          <i class="fas fa-plus-circle"></i> ADD NODE
+        </div>
+      </div>
+
+      <div class="empty-state" *ngIf="hierarchyNodes.length === 0">
+        <i class="fas fa-folder-open" style="font-size: 30px; color: #cbd5e1; margin-bottom: 10px;"></i>
+        <p>No hierarchy nodes found</p>
+        <button class="refresh-btn" (click)="loadHierarchy()">Refresh</button>
+      </div>
+
+      <div class="card-list" *ngIf="hierarchyNodes.length > 0">
+        <div class="management-card" *ngFor="let node of hierarchyNodes">
+          <div class="card-info">
+            <h3>{{ node.name }}</h3>
+            <span>Layer ID: {{ node.layer_id }} • Parent: {{ node.parent_id || 'Root' }}</span>
+          </div>
+          <div class="card-actions">
+            <button class="action-btn edit" (click)="editHierarchyNode(node)">
+              <i class="far fa-edit"></i>
+            </button>
+            <button class="action-btn delete" (click)="deleteHierarchyNode(node.id)">
+              <i class="far fa-trash-alt"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ORG STRUCTURE SECTION -->
+    <div *ngIf="activeSegment === 'org'" class="section-fade-in">
+      <div class="shdr">
+        <div class="shdr-title">Org Layers & Entities</div>
+        <div class="shdr-link" (click)="openAddOrgEntity()">
+          <i class="fas fa-plus-circle"></i> ADD ENTITY
+        </div>
+      </div>
+
+      <div class="layer-filter">
+        <div class="filter-pill" [class.active]="selectedLayer === 'all'" (click)="filterEntities('all')">All</div>
+        <div class="filter-pill" *ngFor="let layer of orgLayers" 
+             [class.active]="selectedLayer === layer.id" 
+             (click)="filterEntities(layer.id)">
+          {{ layer.name }}
+        </div>
+      </div>
+
+      <div class="card-list">
+        <div class="management-card" *ngFor="let entity of filteredEntities">
+          <div class="card-info">
+            <h3>{{ entity.name }}</h3>
+            <span>Code: {{ entity.code }} • Parent: {{ entity.parent_id || 'Root' }}</span>
+          </div>
+          <div class="card-actions">
+            <button class="action-btn edit" (click)="editOrgEntity(entity)">
+              <i class="far fa-edit"></i>
+            </button>
+            <button class="action-btn delete" (click)="deleteOrgEntity(entity.id)">
+              <i class="far fa-trash-alt"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROLES SECTION -->
+    <div *ngIf="activeSegment === 'roles'" class="section-fade-in">
+      <div class="shdr">
+        <div class="shdr-title">Custom Roles</div>
+        <div class="shdr-link" (click)="openAddRole()">
+          <i class="fas fa-plus-circle"></i> CREATE ROLE
+        </div>
+      </div>
+
+      <div class="card-list">
+        <div class="role-card-premium" *ngFor="let role of customRoles">
+          <div class="role-top">
+            <div class="role-badge">RANK {{ role.rank }}</div>
+            <div class="status-dot" [class.active]="role.is_active"></div>
+          </div>
+          <h3>{{ role.name }}</h3>
+          <div class="perms-summary">
+            <span *ngFor="let p of role.permissions">{{ p.module_key }}</span>
+          </div>
+          <div class="role-actions">
+            <button (click)="editRole(role)">Update</button>
+            <button class="del" (click)="deleteRole(role.id)">Remove</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ASSIGNMENTS SECTION -->
+    <div *ngIf="activeSegment === 'assignments'" class="section-fade-in">
+      <div class="shdr">
+        <div class="shdr-title">User Assignments</div>
+        <div class="shdr-link" (click)="openAssignUser()">
+          <i class="fas fa-user-plus"></i> ASSIGN
+        </div>
+      </div>
+
+      <div class="search-wrap">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Search user or entity..." (input)="searchAssignments($event)">
+      </div>
+
+      <div class="card-list">
+        <div class="assign-card" *ngFor="let assign of assignments">
+          <div class="user-ico">{{ assign.user_name?.substring(0,1) || 'U' }}</div>
+          <div class="assign-info">
+            <h3>{{ assign.user_name }}</h3>
+            <p>{{ assign.role_name }} • {{ assign.entity_name }}</p>
+          </div>
+          <button class="unassign-btn" (click)="unassignUser(assign)">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</ion-content>

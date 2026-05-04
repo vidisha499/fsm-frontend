@@ -177,6 +177,10 @@ loadChildren:() => import('./home/reports/reports.module').then( m => m.ReportsP
     path: 'super-admin',
     loadChildren: () => import('./home/super-admin/super-admin.module').then(m => m.SuperAdminPageModule)
   },
+  {
+    path: 'org-management',
+    loadChildren: () => import('./home/org-management/org-management.module').then(m => m.OrgManagementPageModule)
+  },
 ];
 
 @NgModule({

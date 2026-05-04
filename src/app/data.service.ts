@@ -1200,6 +1200,106 @@ export class DataService {
     });
   }
 
+  // --- 20. LAYER HIERARCHY (BASIC) ---
+  getHierarchies() {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.get(`${this.baseApiUrl}/hierarchy`, { params: { api_token: token } });
+  }
+  createHierarchyNode(payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/hierarchy`, { api_token: token, ...payload });
+  }
+  updateHierarchyNode(nodeId: any, payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/hierarchy/${nodeId}`, { api_token: token, ...payload });
+  }
+  deleteHierarchyNode(nodeId: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.delete(`${this.baseApiUrl}/hierarchy/${nodeId}`, { params: { api_token: token } });
+  }
+  getHierarchyTree() {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.get(`${this.baseApiUrl}/hierarchy/tree`, { params: { api_token: token } });
+  }
+
+  // --- 21. DYNAMIC ORG STRUCTURE ---
+  listOrgLayers() {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.get(`${this.baseApiUrl}/org/layers`, { params: { api_token: token } });
+  }
+  createOrgLayer(payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/org/layers`, { api_token: token, ...payload });
+  }
+  listOrgEntities(layerId: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.get(`${this.baseApiUrl}/org/entities`, { params: { api_token: token, layer_id: String(layerId) } });
+  }
+  createOrgEntity(payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/org/entities`, { api_token: token, ...payload });
+  }
+  updateOrgEntity(entityId: any, payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/org/entities/${entityId}`, { api_token: token, ...payload });
+  }
+  deleteOrgEntity(entityId: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.delete(`${this.baseApiUrl}/org/entities/${entityId}`, { params: { api_token: token } });
+  }
+  getOrgTree() {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.get(`${this.baseApiUrl}/org/tree`, { params: { api_token: token } });
+  }
+  getNodeCoverage(entityId: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.get(`${this.baseApiUrl}/org/coverage/${entityId}`, { params: { api_token: token } });
+  }
+  getRangersForEntity(entityId: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.get(`${this.baseApiUrl}/org/rangers/${entityId}`, { params: { api_token: token } });
+  }
+
+  // --- 22. CUSTOM ROLES & PERMS ---
+  listCustomRoles() {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.get(`${this.baseApiUrl}/roles`, { params: { api_token: token } });
+  }
+  createCustomRole(payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/roles`, { api_token: token, ...payload });
+  }
+  updateCustomRole(roleId: any, payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/roles/${roleId}`, { api_token: token, ...payload });
+  }
+  deleteCustomRole(roleId: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.delete(`${this.baseApiUrl}/roles/${roleId}`, { params: { api_token: token } });
+  }
+
+  // --- 23. USER ASSIGNMENTS ---
+  assignUserToNode(payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/assignments/assign`, { api_token: token, ...payload });
+  }
+  unassignUser(payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/assignments/unassign`, { api_token: token, ...payload });
+  }
+  getNodeAssignments(entityId: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.get(`${this.baseApiUrl}/assignments/node/${entityId}`, { params: { api_token: token } });
+  }
+  getUserAssignments(userId: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.get(`${this.baseApiUrl}/assignments/user/${userId}`, { params: { api_token: token } });
+  }
+  getMySubordinates() {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.get(`${this.baseApiUrl}/assignments/subordinates`, { params: { api_token: token } });
+  }
+
   private isSyncing = false;
 
   // --- GLOBAL SYNC ENGINE ---

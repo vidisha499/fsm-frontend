@@ -229,8 +229,7 @@ export class AdminSettingsPage implements OnInit {
   }
 
   manageUsers() {
-    // Navigating to enroll page as a temporary user management portal
-    this.navCtrl.navigateForward('/enroll');
+    this.navCtrl.navigateForward('/org-management');
   }
 
   private async showToast(msg: string, color: string) {
