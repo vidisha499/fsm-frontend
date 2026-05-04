@@ -666,6 +666,10 @@
     border: none;
   }
 
+  .leaflet-control-zoom, .leaflet-control-attribution {
+    display: none !important;
+  }
+
 
   @keyframes pulse {
     0% { transform: scale(0.8); opacity: 0.8; }
@@ -724,6 +728,28 @@
         box-shadow: 0 2px 6px rgba(0,0,0,.12);
       }
 
+      .fullscreen-btn {
+        position: absolute; top: 12px; right: 60px; z-index: 15;
+        background: #fff; border: none; padding: 8px;
+        border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        color: var(--tx); box-shadow: 0 2px 6px rgba(0,0,0,.12);
+        width: 36px; height: 36px;
+      }
+      
+      .map-wrap.fullscreen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        margin: 0;
+        height: 100vh !important;
+        width: 100vw !important;
+        z-index: 9999;
+        border-radius: 0;
+        border: none;
+      }
+
      
 
       .map-foot {
@@ -736,11 +762,11 @@
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
         
-        /* 2 Rows of 5 items */
+        /* Fit all 12 items perfectly in 2 rows */
         display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        gap: 6px 2px;
-        padding: 8px 4px;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 6px 1px;
+        padding: 8px 2px;
         border-top: 1px solid rgba(0,0,0,0.05);
         text-align: center;
 
@@ -886,8 +912,8 @@
       }
 
       .layers-btn {
-        bottom: 80px !important;
-        position: absolute; bottom: 60px; right: 12px; z-index: 20;
+        bottom: 110px !important;
+        position: absolute; right: 12px; z-index: 20;
         background: var(--p); color: #fff; border: none;
         padding: 8px 12px; border-radius: 10px;
         display: flex; align-items: center; gap: 8px;
@@ -995,7 +1021,7 @@
     display: flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 700;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   }
-  .layers-btn { bottom: 60px; right: 12px; background: var(--p); color: #fff; }
+  .layers-btn { bottom: 110px; right: 12px; background: var(--p); color: #fff; }
   .comps-btn { top: 12px; left: 12px; }
 
   /* --- PREMIUM LAYER PANEL (THE MAIN PART) --- */

@@ -186,6 +186,7 @@ export class AdminPage implements OnInit, AfterViewInit {
   private markerGroup = L.layerGroup(); // To manage dynamic markers
   private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw';
   isCompsActive: boolean = false;
+  isMapFullscreen: boolean = false;
   isLayerPanelOpen: boolean = false;
   activeLayerCount: number = 4;
   public activeAlertFilter: string = 'all';
@@ -207,15 +208,17 @@ export class AdminPage implements OnInit, AfterViewInit {
 
   layerStates: { [key: string]: boolean } = {
     illegal_felling: true,
-    animal_poaching: true, // poaching se animal_poaching kiya
+    animal_poaching: true,
     illegal_mining: true,
     animal_sighting: true,
     water_status: true,
     fire_alerts: true,
     sos: true,
-    timber_storage: true, // Naya add kiya
-    timber_transport: true, // Naya add kiya
+    timber_storage: true,
+    timber_transport: true,
     encroachment: true,
+    jfmc: true,
+    wildlife_compensation: true,
   };
 
   readonly LAYERS_DATA: any = {
@@ -272,7 +275,7 @@ export class AdminPage implements OnInit, AfterViewInit {
       emoji: '🐾',
       items: [
         {
-          id: 'animal_sighting', // Updated for consistency
+          id: 'animal_sighting',
           label: 'Animal Sighting',
           emoji: '🦌',
           color: '#059669',
@@ -284,6 +287,20 @@ export class AdminPage implements OnInit, AfterViewInit {
           emoji: '💧',
           color: '#2563eb',
           bg: '#eff6ff',
+        },
+        {
+          id: 'jfmc',
+          label: 'JFMC / Social Forestry',
+          emoji: '🌳',
+          color: '#059669',
+          bg: '#ecfdf5',
+        },
+        {
+          id: 'wildlife_compensation',
+          label: 'Wildlife Compensation',
+          emoji: '💰',
+          color: '#0284c7',
+          bg: '#e0f2fe',
         },
       ],
     },
@@ -1166,8 +1183,13 @@ changeTimeframe(newTimeframe: string) {
                       else if (fullType.includes('encroach')) layerId = 'encroachment';
                       else if (fullType.includes('mining')) layerId = 'illegal_mining';
                       else if (fullType.includes('fell')) layerId = 'illegal_felling';
+                      else if (fullType.includes('timber storage')) layerId = 'timber_storage';
+                      else if (fullType.includes('timber transport')) layerId = 'timber_transport';
+                      else if (fullType.includes('timber')) layerId = 'timber_storage';
                       else if (fullType.includes('sight')) layerId = 'animal_sighting';
                       else if (fullType.includes('water')) layerId = 'water_status';
+                      else if (fullType.includes('jfmc') || fullType.includes('social')) layerId = 'jfmc';
+                      else if (fullType.includes('compensation')) layerId = 'wildlife_compensation';
                       else if (fullType.includes('fire')) layerId = 'fire_alerts';
                       return {
                         ...f,
@@ -1547,7 +1569,7 @@ changeTimeframe(newTimeframe: string) {
           const count = this.activePinsDisplay.filter((p: any) => p.layerId === item.id).length;
 
           activeStats.push({
-            label: item.label,
+            label: item.id === 'jfmc' ? 'JFMC' : item.label,
             count: count,
             color: item.color,
             emoji: item.emoji,
@@ -1602,6 +1624,8 @@ changeTimeframe(newTimeframe: string) {
       SIGHTING: { bg: '#f0f9ff', color: '#fa8c16', icon: 'paw', label: 'WARNING' },
       MONITORING: { bg: '#f0f9ff', color: '#0369a1', icon: 'eye', label: 'WARNING' },
       WARN: { bg: '#fffbeb', color: '#f39c12', icon: 'warning', label: 'WARNING' },
+      JFMC: { bg: '#ecfdf5', color: '#059669', icon: 'leaf', label: 'WARNING' },
+      COMPENSATION: { bg: '#e0f2fe', color: '#0284c7', icon: 'wallet', label: 'WARNING' },
 
       // --- ℹ️ INFO GROUP ---
       ATTENDANCE: { bg: '#f5f3ff', color: '#8b5cf6', icon: 'finger-print', label: 'INFO' },
@@ -1641,7 +1665,7 @@ changeTimeframe(newTimeframe: string) {
 
   private getSeverityFromLayer(layerId: string): 'critical' | 'warning' | 'info' {
     const crit = ['illegal_felling', 'animal_poaching', 'illegal_mining', 'fire_alerts', 'sos', 'encroachment', 'timber'];
-    const warn = ['animal_sighting', 'sighting', 'monitoring'];
+    const warn = ['animal_sighting', 'sighting', 'monitoring', 'jfmc', 'compensation'];
     
     const id = (layerId || '').toLowerCase();
     if (crit.some(k => id.includes(k))) return 'critical';
@@ -1778,8 +1802,14 @@ handleApiResponse(res: any) {
       if (type.includes('mining')) layerId = 'illegal_mining';
       else if (type.includes('felling')) layerId = 'illegal_felling';
       else if (type.includes('poaching')) layerId = 'animal_poaching';
+      else if (type.includes('encroach')) layerId = 'encroachment';
+      else if (type.includes('timber storage')) layerId = 'timber_storage';
+      else if (type.includes('timber transport')) layerId = 'timber_transport';
+      else if (type.includes('timber')) layerId = 'timber_storage';
       else if (type.includes('sighting')) layerId = 'animal_sighting';
       else if (type.includes('water')) layerId = 'water_status';
+      else if (type.includes('jfmc') || type.includes('social')) layerId = 'jfmc';
+      else if (type.includes('compensation')) layerId = 'wildlife_compensation';
       else if (type.includes('fire')) layerId = 'fire_alerts';
 
       return {
@@ -1961,6 +1991,10 @@ handleApiResponse(res: any) {
     if (id.includes('death')) return '💀';
     if (id.includes('impact')) return '⚠️';
     if (id.includes('sos')) return '🆘';
+    if (id.includes('timber')) return '🪵';
+    if (id.includes('encroach')) return '🏠';
+    if (id.includes('jfmc')) return '🌳';
+    if (id.includes('compensation')) return '💰';
     return '📍';
   }
 
@@ -1973,6 +2007,11 @@ handleApiResponse(res: any) {
       animal_sighting: '#10b981',
       water_status: '#3b82f6',
       sos: '#dc2626',
+      timber_storage: '#92400e',
+      timber_transport: '#1e293b',
+      encroachment: '#7c3aed',
+      jfmc: '#059669',
+      wildlife_compensation: '#0284c7'
     };
     return colors[layerId] || '#3b82f6';
   }
@@ -1996,6 +2035,15 @@ handleApiResponse(res: any) {
   }
   toggleFilterBar() {
     this.isFilterCollapsed = !this.isFilterCollapsed;
+  }
+
+  toggleMapFullscreen() {
+    this.isMapFullscreen = !this.isMapFullscreen;
+    if (this.map) {
+      setTimeout(() => {
+        this.map.invalidateSize();
+      }, 300);
+    }
   }
 
   setDateFilter(type: string) {

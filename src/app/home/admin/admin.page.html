@@ -390,18 +390,11 @@
         <strong style="color: var(--p)">{{ activeLayerCount }} layers</strong>
       </div>
 
-      <div class="map-wrap">
+      <div class="map-wrap" [class.fullscreen]="isMapFullscreen">
           <div class="map-canvas">
   <div id="leafletMap" style="height: 100%; width: 100%; z-index: 1;"></div>
 
-  <div class="map-compass" style="z-index: 1000; pointer-events: none;">
-    <svg viewBox="0 0 24 24" fill="none" width="20" height="20">
-      <circle cx="12" cy="12" r="10" stroke="#e2e8f0" stroke-width="1.5" />
-      <polygon points="12,3 14,12 12,10 10,12" fill="#ef4444" />
-      <polygon points="12,21 10,12 12,14 14,12" fill="#94a3b8" />
-      <circle cx="12" cy="12" r="1.5" fill="#0f172a" />
-    </svg>
-  </div>
+
 
           <div class="map-pins">
             <div
@@ -436,6 +429,15 @@
               <circle cx="12" cy="12" r="1.5" fill="#0f172a" />
             </svg>
           </div>
+
+          <button class="fullscreen-btn" [class.active]="isMapFullscreen" (click)="toggleMapFullscreen()" style="z-index: 1000;">
+            <svg *ngIf="!isMapFullscreen" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path d="M4 8V4m0 0h4M4 4l5 5M20 8V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5M20 16v4m0 0h-4m4 0l-5-5" />
+            </svg>
+            <svg *ngIf="isMapFullscreen" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path d="M4 14v4m0 0h4m-4 0l5-5M20 14v4m0 0h-4m4 0l-5-5M4 10V6m0 0h4m-4 0l5 5M20 10V6m0 0h-4m4 0l-5 5" />
+            </svg>
+          </button>
 
           <button class="comps-btn" [class.active]="isCompsActive" (click)="toggleComps()" style="z-index: 1000;">
     <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
