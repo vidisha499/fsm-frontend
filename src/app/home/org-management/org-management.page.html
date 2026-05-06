@@ -19,6 +19,7 @@
         <button [class.active]="activeSegment === 'hierarchy'" (click)="activeSegment = 'hierarchy'">Hierarchy</button>
         <button [class.active]="activeSegment === 'org'" (click)="activeSegment = 'org'">Org</button>
         <button [class.active]="activeSegment === 'roles'" (click)="activeSegment = 'roles'">Roles</button>
+        <button [class.active]="activeSegment === 'permissions'" (click)="activeSegment = 'permissions'">Perms</button>
         <button [class.active]="activeSegment === 'assignments'" (click)="activeSegment = 'assignments'">Assign</button>
       </div>
     </div>
@@ -119,6 +120,49 @@
           <div class="role-actions">
             <button (click)="editRole(role)">Update</button>
             <button class="del" (click)="deleteRole(role.id)">Remove</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PERMISSIONS SECTION -->
+    <div *ngIf="activeSegment === 'permissions'" class="section-fade-in">
+      <div class="shdr">
+        <div class="shdr-title">Role Permissions</div>
+      </div>
+
+      <div class="search-wrap">
+        <i class="fas fa-user-tag"></i>
+        <select class="role-select" [(ngModel)]="selectedRoleForPerms" (change)="onRoleSelectForPerms()">
+          <option [ngValue]="null" disabled selected>Select a Role...</option>
+          <option *ngFor="let role of customRoles" [ngValue]="role">{{ role.name }}</option>
+        </select>
+      </div>
+
+      <div class="card-list" *ngIf="selectedRoleForPerms">
+        <div class="role-card-premium">
+          <h3>Permissions for {{ selectedRoleForPerms.name }}</h3>
+          
+          <div class="perms-list">
+            <div class="perm-module-card" *ngFor="let mod of availableModules">
+              <div class="mod-header" (click)="toggleModuleAccess(mod.key)">
+                <div class="mod-title">
+                  <i class="fas" [class.fa-check-square]="isModuleAssigned(mod.key)" [class.fa-square]="!isModuleAssigned(mod.key)"></i>
+                  {{ mod.label }}
+                </div>
+              </div>
+              <div class="mod-actions" *ngIf="isModuleAssigned(mod.key)">
+                <label class="action-check"><input type="checkbox" [(ngModel)]="modulePermissions[mod.key].view"> View</label>
+                <label class="action-check"><input type="checkbox" [(ngModel)]="modulePermissions[mod.key].create"> Create</label>
+                <label class="action-check"><input type="checkbox" [(ngModel)]="modulePermissions[mod.key].update"> Update</label>
+                <label class="action-check"><input type="checkbox" [(ngModel)]="modulePermissions[mod.key].delete"> Delete</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="role-actions">
+            <button style="background: var(--surf2); color: var(--tx2);" (click)="cancelPermissions()">Cancel</button>
+            <button style="background: var(--p); color: white;" (click)="saveRolePermissions()">Save Permissions</button>
           </div>
         </div>
       </div>

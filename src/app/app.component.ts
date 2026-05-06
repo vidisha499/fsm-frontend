@@ -169,8 +169,41 @@ export class AppComponent implements OnInit {
   }
 
   isFeatureEnabled(feature: string): boolean {
-    // Basic implementation for feature flagging. You can connect this to real logic.
-    return true;
+    const roleId = localStorage.getItem('user_role');
+    
+    // Superadmin and Admin always bypass feature restrictions
+    if (roleId === '1' || roleId === '2') {
+      return true;
+    }
+
+    const permsStr = localStorage.getItem('user_permissions');
+    if (!permsStr) {
+      // Fallback: If no permissions data is loaded yet (or user has no custom role), 
+      // allow default access to prevent breaking the app for standard users.
+      // If a custom role is assigned with 0 permissions, permsStr will be "[]" and will correctly return false.
+      return true;
+    }
+
+    try {
+      const perms = JSON.parse(permsStr);
+      
+      // Map frontend feature keys to backend module keys if they differ
+      let keyToCheck = feature;
+      if (feature === 'patrol_report') keyToCheck = 'patrol';
+      if (feature === 'attendance_request') keyToCheck = 'attendance';
+      if (feature === 'chat') keyToCheck = 'communication';
+      if (feature === 'field_visits') keyToCheck = 'client_visits';
+
+      const modulePerm = perms.find((p: any) => p.module_key === keyToCheck);
+      
+      // The user must have 'view' permission enabled to see the feature in the sidebar
+      if (modulePerm && modulePerm.permissions && modulePerm.permissions.view) {
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
   }
 
   // 🔥 NEW: Automatic Sync when Network Restored
@@ -272,6 +305,11 @@ loadUserData() {
           const activeAssign = assignments[0];
           const dynamicRole = activeAssign.role?.name || activeAssign.role_name;
           const dynamicRoleId = activeAssign.role_id || activeAssign.role?.id;
+          
+          // 🔥 Save role permissions to localStorage for sidebar filtering
+          if (activeAssign.role && activeAssign.role.permissions !== undefined) {
+            localStorage.setItem('user_permissions', JSON.stringify(activeAssign.role.permissions));
+          }
           
           // Safeguard: Never overwrite Superadmin (1) or Admin (2) roles
           const baseRole = localStorage.getItem('user_role') || (parsedUser ? parsedUser.role_id : null);
