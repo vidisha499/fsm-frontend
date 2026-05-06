@@ -19,6 +19,7 @@ export class OrgManagementPage implements OnInit {
   orgEntities: any[] = [];
   filteredEntities: any[] = [];
   selectedLayer: any = 'all';
+  isLoadingEntities: boolean = false;
   
   // Roles Data
   customRoles: any[] = [];
@@ -159,14 +160,18 @@ export class OrgManagementPage implements OnInit {
   }
 
   async loadOrgEntities() {
-    this.dataService.listOrgEntities(1).subscribe({ // Default layer 1
+    this.isLoadingEntities = true;
+    this.dataService.listOrgEntities('').subscribe({ 
       next: (res: any) => {
+        console.log('📥 [Org Entities] Raw Response:', res);
         this.orgEntities = res?.data || res || [];
-        this.filterEntities('all');
+        console.log('✅ [Org Entities] Total Count:', this.orgEntities.length);
+        this.filterEntities(this.selectedLayer || 'all');
+        this.isLoadingEntities = false;
       },
       error: (err) => {
         console.error('Org entities load failed', err);
-        this.showToast('Failed to load organization entities', 'danger');
+        this.isLoadingEntities = false;
       }
     });
   }
@@ -176,7 +181,7 @@ export class OrgManagementPage implements OnInit {
     if (layerId === 'all') {
       this.filteredEntities = [...this.orgEntities];
     } else {
-      this.filteredEntities = this.orgEntities.filter(e => e.layer_id === layerId);
+      this.filteredEntities = this.orgEntities.filter(e => String(e.layer_id) === String(layerId));
     }
   }
 
@@ -213,6 +218,11 @@ export class OrgManagementPage implements OnInit {
       next: () => {
         this.showToast('Entity deleted', 'success');
         this.loadOrgEntities();
+      },
+      error: (err) => {
+        console.error('Delete failed:', err);
+        const msg = err.error?.error || err.error?.message || 'Delete failed';
+        this.showToast('⚠️ ' + msg, 'danger');
       }
     });
   }
@@ -221,8 +231,11 @@ export class OrgManagementPage implements OnInit {
      const alert = await this.alertCtrl.create({
       mode: 'md',
       header: 'Update Entity',
-      inputs: [
-        { name: 'name', type: 'text', value: entity.name, placeholder: 'Entity Name' }
+       inputs: [
+        { name: 'name', type: 'text', value: entity.name, placeholder: 'Entity Name' },
+        { name: 'code', type: 'text', value: entity.code, placeholder: 'Code (E001)' },
+        { name: 'layer_id', type: 'number', value: entity.layer_id, placeholder: 'Layer ID' },
+        { name: 'parent_id', type: 'number', value: entity.parent_id, placeholder: 'Parent ID' }
       ],
       buttons: [
         { text: 'Cancel', role: 'cancel' },
@@ -253,6 +266,48 @@ export class OrgManagementPage implements OnInit {
     });
   }
 
+
+  getAvailableModules() {
+    // Collect all unique module_keys from existing roles + our standard list
+    const standardModules = [
+      { key: 'attendance', label: 'Attendance' },
+      { key: 'patrol', label: 'Patrol / Patrolling' },
+      { key: 'assets', label: 'Asset Management' },
+      { key: 'criminal', label: 'Criminal Activity' },
+      { key: 'fire', label: 'Fire Records' },
+      { key: 'events', label: 'Forest Events' },
+      { key: 'tasks', label: 'Tasks & Assignments' },
+      { key: 'analytics', label: 'Advanced Analytics' },
+      { key: 'reports', label: 'Reports & Logs' },
+      { key: 'chat', label: 'Communication (Chat)' },
+      { key: 'daily_updates', label: 'Daily Updates' },
+      { key: 'client_visits', label: 'Client Visits' },
+      { key: 'geofences', label: 'Geofencing' },
+      { key: 'dynamic_forms', label: 'Dynamic Forms' },
+      { key: 'dynamic_labels', label: 'Dynamic Labels' },
+      { key: 'org_management', label: 'Org Management' },
+      { key: 'notifications', label: 'Notifications' }
+    ];
+
+    // Extract from existing roles to be truly dynamic
+    const existingKeys = new Set();
+    this.customRoles.forEach(role => {
+      if (role.permissions && Array.isArray(role.permissions)) {
+        role.permissions.forEach((p: any) => existingKeys.add(p.module_key));
+      }
+    });
+
+    // Merge them
+    const finalModules = [...standardModules];
+    existingKeys.forEach(key => {
+      if (key && !finalModules.find(m => m.key === key)) {
+        finalModules.push({ key: key as string, label: (key as string).replace(/_/g, ' ').toUpperCase() });
+      }
+    });
+
+    return finalModules;
+  }
+
   async openAddRole() {
     const alert = await this.alertCtrl.create({
       mode: 'md',
@@ -279,11 +334,13 @@ export class OrgManagementPage implements OnInit {
       mode: 'md',
       header: 'Set Permissions',
       message: 'Select access for this role',
-      inputs: [
-        { name: 'attendance', type: 'checkbox', label: 'Attendance', value: 'attendance', checked: true },
-        { name: 'patrol', type: 'checkbox', label: 'Patrol', value: 'patrol', checked: true },
-        { name: 'reports', type: 'checkbox', label: 'Reports', value: 'reports' }
-      ],
+      inputs: this.getAvailableModules().map(m => ({
+        name: m.key,
+        type: 'checkbox' as const,
+        label: m.label,
+        value: m.key,
+        checked: true
+      })),
       buttons: [
         { text: 'Back', role: 'cancel' },
         {
@@ -308,7 +365,62 @@ export class OrgManagementPage implements OnInit {
   }
 
   async editRole(role: any) {
-    // Similar to add but with update API
+    const alert = await this.alertCtrl.create({
+      mode: 'md',
+      header: 'Update Role',
+      inputs: [
+        { name: 'name', type: 'text', value: role.name, placeholder: 'Role Name' },
+        { name: 'rank', type: 'number', value: role.rank, placeholder: 'Rank' }
+      ],
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Next (Perms)',
+          handler: (data) => {
+            this.setUpdatePermissions(role, data);
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  async setUpdatePermissions(originalRole: any, updatedData: any) {
+    const currentModuleKeys = originalRole.permissions?.map((p: any) => p.module_key) || [];
+    
+    const alert = await this.alertCtrl.create({
+      mode: 'md',
+      header: 'Update Permissions',
+      message: 'Select access for ' + updatedData.name,
+      inputs: this.getAvailableModules().map(m => ({
+        name: m.key,
+        type: 'checkbox' as const,
+        label: m.label,
+        value: m.key,
+        checked: currentModuleKeys.includes(m.key)
+      })),
+      buttons: [
+        { text: 'Back', role: 'cancel' },
+        {
+          text: 'Update Role',
+          handler: (perms) => {
+            const payload = {
+              ...updatedData,
+              is_active: originalRole.is_active,
+              permissions: perms.map((p: string) => ({ module_key: p, permissions: { view: true, edit: true } }))
+            };
+            this.dataService.updateCustomRole(originalRole.id, payload).subscribe({
+              next: () => {
+                this.showToast('Role updated successfully', 'success');
+                this.loadCustomRoles();
+              },
+              error: (err) => this.showToast('Failed to update role', 'danger')
+            });
+          }
+        }
+      ]
+    });
+    await alert.present();
   }
 
   async deleteRole(id: any) {
@@ -324,8 +436,23 @@ export class OrgManagementPage implements OnInit {
   async loadAssignments() {
     this.dataService.getMySubordinates().subscribe({
       next: (res: any) => {
-        this.allAssignments = res?.data || res || [];
+        console.log('📥 [Assignments] Raw Response:', res);
+        const rawAssignments = res?.data || res || [];
+        
+        // Map missing names if backend only sent IDs
+        this.allAssignments = rawAssignments.map((a: any) => {
+          const role = this.customRoles.find((r: any) => String(r.id) === String(a.role_id));
+          const entity = this.orgEntities.find((e: any) => String(e.id) === String(a.entity_id));
+          return {
+            ...a,
+            user_name: a.user_name || `User ID: ${a.user_id}`,
+            role_name: a.role_name || (role ? role.name : 'Unknown Role'),
+            entity_name: a.entity_name || (entity ? entity.name : 'Unknown Entity')
+          };
+        });
+        
         this.assignments = [...this.allAssignments];
+        console.log('✅ [Assignments] Parsed Count:', this.assignments.length);
       },
       error: (err) => {
         console.error('Assignments load failed (Backend Issue)', err);
@@ -352,10 +479,24 @@ export class OrgManagementPage implements OnInit {
         {
           text: 'Assign',
           handler: (data) => {
-            this.dataService.assignUserToNode(data).subscribe({
+            const currentUserId = localStorage.getItem('user_id') || localStorage.getItem('ranger_id') || '1';
+            const payload = {
+              ...data,
+              reporting_to: currentUserId
+            };
+            this.dataService.assignUserToNode(payload).subscribe({
               next: () => {
-                this.showToast('User assigned', 'success');
+                this.showToast('User assigned successfully!', 'success');
                 this.loadAssignments();
+              },
+              error: (err) => {
+                console.error('Assignment failed:', err);
+                const backendMsg = err.error?.message || '';
+                if (backendMsg.includes('custom_permissions') || backendMsg.includes('reporting_to') || backendMsg.includes('Column not found')) {
+                  this.showToast('⚠️ Backend DB columns missing! Sir ko SQL bhejiye.', 'danger');
+                } else {
+                  this.showToast('Assignment failed: ' + (backendMsg || 'Server error'), 'danger');
+                }
               }
             });
           }

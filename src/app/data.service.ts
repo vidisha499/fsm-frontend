@@ -801,24 +801,51 @@ export class DataService {
 
   getHierarchyForFilters(companyId: string): Observable<{ranges: string[], beats: any[]}> {
     const apiToken = localStorage.getItem('api_token') || '';
-    return this.getSites({ api_token: apiToken, company_id: companyId }).pipe(
-      map((res: any) => {
-        const data = res?.data || res || [];
-        const sites = Array.isArray(data) ? data : [];
-        const rangeSet = new Set<string>();
-        const beatArray: any[] = [];
-        sites.forEach((s: any) => {
-          const rName = s.client_name || s.range_name || s.range || s.division_name || s.division || 'General Range';
-          const bName = s.name || s.beat_name || s.beat || s.site_name || s.site;
-          if (rName) rangeSet.add(rName);
-          if (bName) beatArray.push({ name: bName, parentName: rName });
-        });
-        return {
-          ranges: Array.from(rangeSet).sort(),
-          beats: beatArray
-        };
-      })
-    );
+    return new Observable<{ranges: string[], beats: any[]}>(observer => {
+      const rangeSet = new Set<string>();
+      const beatArray: any[] = [];
+
+      this.getSites({ api_token: apiToken, company_id: companyId }).subscribe({
+        next: (res: any) => {
+          const data = res?.data || res || [];
+          const sites = Array.isArray(data) ? data : [];
+          sites.forEach((s: any) => {
+            const rName = s.client_name || s.range_name || s.range || s.division_name || s.division || 'General Range';
+            const bName = s.name || s.beat_name || s.beat || s.site_name || s.site;
+            if (rName) rangeSet.add(rName);
+            if (bName) beatArray.push({ name: bName, parentName: rName });
+          });
+          this._mergeOrgEntitiesIntoFilters(rangeSet, beatArray, observer);
+        },
+        error: () => {
+          this._mergeOrgEntitiesIntoFilters(rangeSet, beatArray, observer);
+        }
+      });
+    });
+  }
+
+  private _mergeOrgEntitiesIntoFilters(rangeSet: Set<string>, beatArray: any[], observer: any) {
+    this.listOrgEntities('').subscribe({
+      next: (res: any) => {
+        const entities = res?.data || res || [];
+        if (Array.isArray(entities)) {
+          entities.forEach((e: any) => {
+            if (String(e.layer_id) === '3') {
+              if (e.name) rangeSet.add(e.name);
+            } else if (String(e.layer_id) === '4' || String(e.layer_id) === '5') {
+              const parent = entities.find((p: any) => String(p.id) === String(e.parent_id));
+              beatArray.push({ name: e.name, parentName: parent?.name || 'General Range' });
+            }
+          });
+        }
+        observer.next({ ranges: Array.from(rangeSet).sort(), beats: beatArray });
+        observer.complete();
+      },
+      error: () => {
+        observer.next({ ranges: Array.from(rangeSet).sort(), beats: beatArray });
+        observer.complete();
+      }
+    });
   }
 
   getTrackSites(payload: any) { return this.http.post(`${this.baseApiUrl}/getTrackSites`, payload); }
@@ -1233,7 +1260,11 @@ export class DataService {
   }
   listOrgEntities(layerId: any) {
     const token = localStorage.getItem('api_token') || '';
-    return this.http.get(`${this.baseApiUrl}/org/entities`, { params: { api_token: token, layer_id: String(layerId) } });
+    const params: any = { api_token: token };
+    if (layerId && layerId !== 'all') {
+      params.layer_id = String(layerId);
+    }
+    return this.http.get(`${this.baseApiUrl}/org/entities`, { params });
   }
   createOrgEntity(payload: any) {
     const token = localStorage.getItem('api_token') || '';

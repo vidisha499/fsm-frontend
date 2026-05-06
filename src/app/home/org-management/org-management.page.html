@@ -42,9 +42,10 @@
 
       <div class="card-list" *ngIf="hierarchyNodes.length > 0">
         <div class="management-card" *ngFor="let node of hierarchyNodes">
-          <div class="card-info">
+          <div class="node-info">
+            <div class="id-badge">ID: {{ node.id }}</div>
             <h3>{{ node.name }}</h3>
-            <span>Layer ID: {{ node.layer_id }} • Parent: {{ node.parent_id || 'Root' }}</span>
+            <p>Layer ID: {{ node.layer_id }} • Parent ID: {{ node.parent_id || 'Root' }}</p>
           </div>
           <div class="card-actions">
             <button class="action-btn edit" (click)="editHierarchyNode(node)">
@@ -78,9 +79,10 @@
 
       <div class="card-list">
         <div class="management-card" *ngFor="let entity of filteredEntities">
-          <div class="card-info">
+          <div class="node-info">
+            <div class="id-badge">ID: {{ entity.id }}</div>
             <h3>{{ entity.name }}</h3>
-            <span>Code: {{ entity.code }} • Parent: {{ entity.parent_id || 'Root' }}</span>
+            <p>Code: {{ entity.code }} • Layer: {{ entity.layer_id }} • Parent: {{ entity.parent_id || 'None' }}</p>
           </div>
           <div class="card-actions">
             <button class="action-btn edit" (click)="editOrgEntity(entity)">
@@ -107,6 +109,7 @@
         <div class="role-card-premium" *ngFor="let role of customRoles">
           <div class="role-top">
             <div class="role-badge">RANK {{ role.rank }}</div>
+            <div class="id-badge">Role ID: {{ role.id }}</div>
             <div class="status-dot" [class.active]="role.is_active"></div>
           </div>
           <h3>{{ role.name }}</h3>
@@ -138,9 +141,10 @@
       <div class="card-list">
         <div class="assign-card" *ngFor="let assign of assignments">
           <div class="user-ico">{{ assign.user_name?.substring(0,1) || 'U' }}</div>
-          <div class="assign-info">
+          <div class="node-info">
+            <div class="id-badge">User ID: {{ assign.user_id }}</div>
             <h3>{{ assign.user_name }}</h3>
-            <p>{{ assign.role_name }} • {{ assign.entity_name }}</p>
+            <p>{{ assign.role_name }} (ID: {{ assign.role_id }}) @ {{ assign.entity_name }} (ID: {{ assign.entity_id }})</p>
           </div>
           <button class="unassign-btn" (click)="unassignUser(assign)">
             <i class="fas fa-times"></i>

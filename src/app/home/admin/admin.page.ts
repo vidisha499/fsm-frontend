@@ -514,18 +514,21 @@ export class AdminPage implements OnInit, AfterViewInit {
 
   
 
-  // --- Production Filter Data Logic (Using getSites for maximum compatibility) ---
+  // --- Production Filter Data Logic (Using getSites + Org Entities for full coverage) ---
   loadHierarchy() {
-    console.log('📡 [Hierarchy] Fetching Sites to extract Ranges/Beats...');
+    console.log('📡 [Hierarchy] Fetching Sites + Org Entities to extract Ranges/Beats...');
     const apiToken = localStorage.getItem('api_token') || '';
     const companyId = localStorage.getItem('company_id') || localStorage.getItem('user_company_id') || '1';
     
-    // Aligned with Geofences/Reports logic
     const payload = { 
       api_token: apiToken, 
       company_id: companyId 
     };
 
+    const rangeSet = new Set<string>();
+    const beatArray: any[] = [];
+
+    // 1. Fetch from getSites (existing production data)
     this.dataService.getSites(payload).subscribe({
       next: (res: any) => {
         const data = res?.data || res || [];
@@ -535,17 +538,8 @@ export class AdminPage implements OnInit, AfterViewInit {
           console.log('📥 [Hierarchy] First Site Structure:', Object.keys(sites[0]));
           console.log('📥 [Hierarchy] First Site Sample:', sites[0]);
         }
-        
-        if (sites.length === 0) {
-          console.warn('⚠️ [Hierarchy] No sites found in response');
-        }
 
-        const rangeSet = new Set<string>();
-        const beatArray: any[] = [];
-        
         sites.forEach((s: any) => {
-          // Extract range and beat from site metadata
-          // In Sir's production database, 'client_name' often represents the Range/Division
           const rName = s.client_name || s.range_name || s.range || s.division_name || s.division || 'General Range';
           const bName = s.name || s.beat_name || s.beat || s.site_name || s.site;
           
@@ -560,27 +554,65 @@ export class AdminPage implements OnInit, AfterViewInit {
 
         console.log('📥 [Hierarchy] Extracted Ranges (via client_name/range):', Array.from(rangeSet));
 
-        this.allRanges = Array.from(rangeSet).sort();
-        this.allBeats = beatArray;
-        
-        // Initialize visible beats
-        if (this.selectedRange === 'all') {
-          this.displayBeats = Array.from(new Set(beatArray.map(b => b.name))).sort();
-        } else {
-          this.displayBeats = beatArray
-            .filter(b => b.parentName === this.selectedRange)
-            .map(b => b.name)
-            .sort();
-        }
-
-        console.log('✅ [Hierarchy] Sync Complete:', this.allRanges.length, 'Ranges,', this.displayBeats.length, 'Beats');
-        this.cdr.detectChanges();
+        // 2. Now also fetch from Org Entities (dynamic data from Org Management module)
+        this.mergeOrgEntities(rangeSet, beatArray);
       },
       error: (err) => {
         console.error('❌ [Hierarchy] getSites fetch failed:', err);
+        // Still try org entities even if getSites fails
+        this.mergeOrgEntities(rangeSet, beatArray);
       }
     });
   }
+
+  // Merge Org Management entities into Range/Beat dropdowns
+  private mergeOrgEntities(rangeSet: Set<string>, beatArray: any[]) {
+    this.dataService.listOrgEntities('').subscribe({
+      next: (res: any) => {
+        const entities = res?.data || res || [];
+        if (Array.isArray(entities)) {
+          entities.forEach((e: any) => {
+            // Layer 3 = Range, Layer 5 = Beat (based on hierarchy convention)
+            if (String(e.layer_id) === '3') {
+              if (e.name) rangeSet.add(e.name);
+            } else if (String(e.layer_id) === '4' || String(e.layer_id) === '5') {
+              // Find parent range name
+              const parentEntity = entities.find((p: any) => String(p.id) === String(e.parent_id));
+              beatArray.push({
+                name: e.name,
+                parentName: parentEntity?.name || 'General Range'
+              });
+            }
+          });
+          console.log('📥 [Hierarchy] Merged Org Entities. Total Ranges:', rangeSet.size);
+        }
+        this.finalizeHierarchy(rangeSet, beatArray);
+      },
+      error: (err) => {
+        console.warn('⚠️ [Hierarchy] Org Entities fetch failed, using Sites only:', err);
+        this.finalizeHierarchy(rangeSet, beatArray);
+      }
+    });
+  }
+
+  // Set the final data
+  private finalizeHierarchy(rangeSet: Set<string>, beatArray: any[]) {
+    this.allRanges = Array.from(rangeSet).sort();
+    this.allBeats = beatArray;
+    
+    if (this.selectedRange === 'all') {
+      this.displayBeats = Array.from(new Set(beatArray.map(b => b.name))).sort();
+    } else {
+      this.displayBeats = beatArray
+        .filter(b => b.parentName === this.selectedRange)
+        .map(b => b.name)
+        .sort();
+    }
+
+    console.log('✅ [Hierarchy] Sync Complete:', this.allRanges.length, 'Ranges,', this.displayBeats.length, 'Beats');
+    this.cdr.detectChanges();
+  }
+
 
   onRangeFilterChange() {
     console.log('🔄 Range Filter Changed:', this.selectedRange);

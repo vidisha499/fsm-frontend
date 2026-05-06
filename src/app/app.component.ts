@@ -262,6 +262,48 @@ loadUserData() {
 
   console.log("Mapped Role for HTML:", this.userRole, "Designation:", this.userDesignation);
   
+  // 🔥 FETCH DYNAMIC ROLE FROM ASSIGNMENTS API
+  const rangerId = localStorage.getItem('ranger_id') || localStorage.getItem('user_id') || (parsedUser ? parsedUser.id : null);
+  if (rangerId) {
+    this.dataService.getUserAssignments(rangerId).subscribe({
+      next: (res: any) => {
+        const assignments = res?.data || res || [];
+        if (Array.isArray(assignments) && assignments.length > 0) {
+          const activeAssign = assignments[0];
+          const dynamicRole = activeAssign.role?.name || activeAssign.role_name;
+          const dynamicRoleId = activeAssign.role_id || activeAssign.role?.id;
+          
+          // Safeguard: Never overwrite Superadmin (1) or Admin (2) roles
+          const baseRole = localStorage.getItem('user_role') || (parsedUser ? parsedUser.role_id : null);
+          const isSuperAdminOrAdmin = baseRole == '1' || baseRole == '2';
+          
+          if (dynamicRole) {
+            (this as any).hasDynamicRole = true;
+            
+            // Only update role if they are NOT an admin
+            if (!isSuperAdminOrAdmin) {
+              this.userDesignation = dynamicRole.toUpperCase();
+              if (dynamicRoleId) {
+                localStorage.setItem('user_role', String(dynamicRoleId));
+                this.userRole = 'ranger';
+                
+                if (parsedUser) {
+                  parsedUser.role_id = dynamicRoleId;
+                  parsedUser.role_name = dynamicRole;
+                  localStorage.setItem('user_data', JSON.stringify(parsedUser));
+                }
+              }
+            } else {
+              console.log("🛡️ Superadmin/Admin role protected from dynamic overwrite.");
+            }
+            this.cdr.detectChanges();
+          }
+        }
+      },
+      error: (err) => console.warn("Failed to fetch dynamic role", err)
+    });
+  }
+  
   // Try implicit keys first, then fallback to user_data object
   this.rangerName = localStorage.getItem('ranger_username') || '';
   this.rangerPhone = localStorage.getItem('ranger_phone') || '';
@@ -276,22 +318,25 @@ loadUserData() {
         next: (res: any) => {
           if (res.status === 'success' || res.status === 'SUCCESS' || res.data) {
             const data = res.data || res;
-            console.log("🟢 Step 4: Profile synced successfully! Updating localStorage with new data:", data);
-            
             // Sync all vital details from DB to LocalStorage
             parsedUser.name = data.name || parsedUser.name;
             parsedUser.phone = data.contact || data.mobile || data.phone || parsedUser.phone;
             parsedUser.company_name = data.company_name || (data.company ? data.company.name : '') || data.client_name || parsedUser.company_name;
-            parsedUser.role_name = data.role_name || data.designation || parsedUser.role_name;
             
-            if (parsedUser.role_name) {
-              this.userDesignation = parsedUser.role_name.toUpperCase();
+            // Only update role if we HAVEN'T fetched a dynamic role yet
+            if (!(this as any).hasDynamicRole) {
+              parsedUser.role_name = data.role_name || data.designation || parsedUser.role_name;
+              if (parsedUser.role_name) {
+                this.userDesignation = parsedUser.role_name.toUpperCase();
+              }
             }
             
             // Update LocalStorage objects
             localStorage.setItem('user_data', JSON.stringify(parsedUser));
             localStorage.setItem('ranger_username', parsedUser.name);
             localStorage.setItem('ranger_phone', parsedUser.phone);
+            
+            console.log("🟢 Step 4: Profile synced! FINAL user_data saved in app:", parsedUser);
             
             // Update UI properties
             this.companyName = parsedUser.company_name;

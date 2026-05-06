@@ -172,13 +172,18 @@ loadDashboardStats(companyId?: any) {
       this.hierarchyService.getAssignedBeat(rangerId).subscribe({
         next: (res: any) => {
           const data = res.data || res;
-          if (data && (data.beat_name || data.beatName || data.name)) {
+          if (Array.isArray(data) && data.length > 0) {
+            // Old getSites API format
+            this.assignedBeatName = data[0].site_name || data[0].name || 'General';
+          } else if (data && (data.beat_name || data.beatName || data.name)) {
+            // New dynamic API format
             this.assignedBeatName = data.beat_name || data.beatName || data.name;
           } else {
             this.assignedBeatName = 'General';
           }
           // Cache for quick access
           localStorage.setItem('assigned_beat_name', this.assignedBeatName);
+          this.cdr.detectChanges();
         },
         error: () => {
           // Fallback to cached value or default
@@ -306,13 +311,8 @@ toggleEdit() {
         this.rangerId = profile.id || this.rangerId;
         this.rangerDivision = profile.address || profile.division || this.rangerDivision;
         
-        // If beat info is returned in verifyUser, use it and cache it
-        if (profile.beat_name || profile.beatName) {
-           this.assignedBeatName = profile.beat_name || profile.beatName;
-           localStorage.setItem('assigned_beat_name', this.assignedBeatName);
-        } else {
-           this.loadRangerBeat(); // Fallback to cached localStorage data
-        }
+        // Always call loadRangerBeat to fetch the latest dynamic assignment
+        this.loadRangerBeat();
 
         // Save to localStorage to persist state
         localStorage.setItem('ranger_username', this.rangerName);

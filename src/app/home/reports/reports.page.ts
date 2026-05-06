@@ -165,45 +165,69 @@ export class ReportsPage implements OnInit {
 
   loadHierarchy() {
     const companyId = localStorage.getItem('company_id') || '1';
-    console.log('📡 [Reports] Fetching Sites for Company:', companyId);
+    console.log('📡 [Reports] Fetching Sites + Org Entities for Company:', companyId);
     
+    const rangeSet = new Set<string>();
+    const beatArray: any[] = [];
+
+    // 1. Fetch from getSitesList
     this.dataService.getSitesList(companyId).subscribe({
       next: (res: any) => {
         const data = res?.data || res || [];
         this.sites = Array.isArray(data) ? data : [];
         console.log('📥 [Reports] Sites Fetched:', this.sites.length);
-        
-        if (this.sites.length > 0) {
-          console.log('📥 [Reports] Sample Site:', this.sites[0]);
-        }
 
-        const rangeSet = new Set<string>();
-        const beatArray: any[] = [];
-        
         this.sites.forEach((s: any) => {
-          // Alignment with Sir's production keys
           const rName = s.client_name || s.range_name || s.range || s.division_name || s.division || 'General Range';
           const bName = s.site_name || s.name || s.beat_name || s.beat || s.site;
           const bId = s.id || s.site_id || s.beat_id;
           
           if (rName) rangeSet.add(rName);
-          if (bName) {
-            beatArray.push({
-              id: bId,
-              name: bName,
-              parentName: rName
-            });
-          }
+          if (bName) beatArray.push({ id: bId, name: bName, parentName: rName });
         });
 
-        this.allRanges = Array.from(rangeSet).sort();
-        this.allBeats = beatArray;
-        this.displayBeats = [...this.allBeats];
-        
-        console.log('✅ [Reports] Hierarchy Ready:', this.allRanges.length, 'Ranges,', this.allBeats.length, 'Beats');
+        // 2. Merge Org Entities
+        this.mergeOrgEntitiesForReports(rangeSet, beatArray);
       },
-      error: (err) => console.error('❌ [Reports] Error fetching sites:', err)
+      error: (err) => {
+        console.error('❌ [Reports] Error fetching sites:', err);
+        this.mergeOrgEntitiesForReports(rangeSet, beatArray);
+      }
     });
+  }
+
+  private mergeOrgEntitiesForReports(rangeSet: Set<string>, beatArray: any[]) {
+    this.dataService.listOrgEntities('').subscribe({
+      next: (res: any) => {
+        const entities = res?.data || res || [];
+        if (Array.isArray(entities)) {
+          entities.forEach((e: any) => {
+            if (String(e.layer_id) === '3') {
+              if (e.name) rangeSet.add(e.name);
+            } else if (String(e.layer_id) === '4' || String(e.layer_id) === '5') {
+              const parentEntity = entities.find((p: any) => String(p.id) === String(e.parent_id));
+              beatArray.push({
+                id: e.id,
+                name: e.name,
+                parentName: parentEntity?.name || 'General Range'
+              });
+            }
+          });
+        }
+        this.finalizeReportsHierarchy(rangeSet, beatArray);
+      },
+      error: (err) => {
+        console.warn('⚠️ [Reports] Org Entities fetch failed:', err);
+        this.finalizeReportsHierarchy(rangeSet, beatArray);
+      }
+    });
+  }
+
+  private finalizeReportsHierarchy(rangeSet: Set<string>, beatArray: any[]) {
+    this.allRanges = Array.from(rangeSet).sort();
+    this.allBeats = beatArray;
+    this.displayBeats = [...this.allBeats];
+    console.log('✅ [Reports] Hierarchy Ready:', this.allRanges.length, 'Ranges,', this.allBeats.length, 'Beats');
   }
 
   fetchUsers() {

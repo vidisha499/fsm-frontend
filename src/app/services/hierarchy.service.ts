@@ -106,9 +106,9 @@ export class HierarchyService {
   getAssignedBeat(rangerId: number): Observable<any> {
     const apiToken = localStorage.getItem('api_token') || '';
     const companyId = localStorage.getItem('company_id') || '1';
-    const userRole = localStorage.getItem('user_role');
     
-    // Using generic getSites for all roles as specialized endpoints are currently unstable (returning 500)
+    // 1. Check New Dynamic Assignments API first
+    const dynamicUrl = `${environment.apiUrl}/assignments/user/${rangerId}?api_token=${apiToken}`;
     const productionUrl = `${environment.apiUrl}/getSites`;
     
     const payload = { 
@@ -117,17 +117,53 @@ export class HierarchyService {
       user_id: rangerId
     };
 
-    console.log('🔄 Fetching Assigned Site from /getSites for Role:', userRole, 'ID:', rangerId);
+    return new Observable(observer => {
+      this.http.get<any>(dynamicUrl).subscribe({
+        next: (res) => {
+          const assignments = res?.data || res || [];
+          if (Array.isArray(assignments) && assignments.length > 0) {
+            const activeAssign = assignments[0];
+            
+            // The backend returns nested objects: { entity: { name: '...' }, role: { name: '...' } }
+            const entityName = activeAssign.entity?.name || activeAssign.entity_name || 'Unknown Entity';
+            const roleName = activeAssign.role?.name || activeAssign.role_name || 'Unknown Role';
+            
+            observer.next({
+              status: 'SUCCESS',
+              data: {
+                beat_name: entityName,
+                role_name: roleName
+              }
+            });
+            observer.complete();
+          } else {
+            // Fallback to old getSites
+            this.fetchOldSite(productionUrl, payload, observer);
+          }
+        },
+        error: (err) => {
+          console.warn('Dynamic assignment fetch failed, falling back to old logic', err);
+          this.fetchOldSite(productionUrl, payload, observer);
+        }
+      });
+    });
+  }
 
-    return this.http.post<any>(productionUrl, payload, {
+  private fetchOldSite(productionUrl: string, payload: any, observer: any) {
+    this.http.post<any>(productionUrl, payload, {
       headers: new HttpHeaders().set('Bypass-Token', 'true')
-    }).pipe(
-      catchError(err => {
-        console.error('Production Sites check failed (Fallback to General):', err);
+    }).subscribe({
+      next: (res) => {
+        observer.next(res);
+        observer.complete();
+      },
+      error: (err) => {
+        console.error('Production Sites check failed:', err);
         const cached = localStorage.getItem('assigned_beat_name') || 'General';
-        return of({ status: 'SUCCESS', data: [{ site_name: cached }] });
-      })
-    );
+        observer.next({ status: 'SUCCESS', data: { beat_name: cached } });
+        observer.complete();
+      }
+    });
   }
 
   // 7. Get Coverage Stats
