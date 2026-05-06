@@ -24,6 +24,11 @@ export class OrgManagementPage implements OnInit {
   // Roles Data
   customRoles: any[] = [];
   
+  // Permissions Data
+  selectedRoleForPerms: any = null;
+  availableModules: any[] = [];
+  modulePermissions: { [key: string]: { view: boolean, create: boolean, update: boolean, delete: boolean } } = {};
+  
   // Assignments Data
   assignments: any[] = [];
   allAssignments: any[] = [];
@@ -46,6 +51,7 @@ export class OrgManagementPage implements OnInit {
     this.loadOrgEntities();
     this.loadCustomRoles();
     this.loadAssignments();
+    this.availableModules = this.getAvailableModules();
   }
 
   onSegmentChange() {
@@ -319,37 +325,12 @@ export class OrgManagementPage implements OnInit {
       buttons: [
         { text: 'Cancel', role: 'cancel' },
         {
-          text: 'Next (Perms)',
+          text: 'Create',
           handler: (data) => {
-            this.setRolePermissions(data);
-          }
-        }
-      ]
-    });
-    await alert.present();
-  }
-
-  async setRolePermissions(roleData: any) {
-    const alert = await this.alertCtrl.create({
-      mode: 'md',
-      header: 'Set Permissions',
-      message: 'Select access for this role',
-      inputs: this.getAvailableModules().map(m => ({
-        name: m.key,
-        type: 'checkbox' as const,
-        label: m.label,
-        value: m.key,
-        checked: true
-      })),
-      buttons: [
-        { text: 'Back', role: 'cancel' },
-        {
-          text: 'Save Role',
-          handler: (perms) => {
             const payload = {
-              ...roleData,
+              ...data,
               is_active: true,
-              permissions: perms.map((p: string) => ({ module_key: p, permissions: { view: true, edit: true } }))
+              permissions: [] // Start with empty perms, assign in Perms tab
             };
             this.dataService.createCustomRole(payload).subscribe({
               next: () => {
@@ -375,43 +356,16 @@ export class OrgManagementPage implements OnInit {
       buttons: [
         { text: 'Cancel', role: 'cancel' },
         {
-          text: 'Next (Perms)',
+          text: 'Update',
           handler: (data) => {
-            this.setUpdatePermissions(role, data);
-          }
-        }
-      ]
-    });
-    await alert.present();
-  }
-
-  async setUpdatePermissions(originalRole: any, updatedData: any) {
-    const currentModuleKeys = originalRole.permissions?.map((p: any) => p.module_key) || [];
-    
-    const alert = await this.alertCtrl.create({
-      mode: 'md',
-      header: 'Update Permissions',
-      message: 'Select access for ' + updatedData.name,
-      inputs: this.getAvailableModules().map(m => ({
-        name: m.key,
-        type: 'checkbox' as const,
-        label: m.label,
-        value: m.key,
-        checked: currentModuleKeys.includes(m.key)
-      })),
-      buttons: [
-        { text: 'Back', role: 'cancel' },
-        {
-          text: 'Update Role',
-          handler: (perms) => {
             const payload = {
-              ...updatedData,
-              is_active: originalRole.is_active,
-              permissions: perms.map((p: string) => ({ module_key: p, permissions: { view: true, edit: true } }))
+              ...data,
+              is_active: role.is_active,
+              permissions: role.permissions || []
             };
-            this.dataService.updateCustomRole(originalRole.id, payload).subscribe({
+            this.dataService.updateCustomRole(role.id, payload).subscribe({
               next: () => {
-                this.showToast('Role updated successfully', 'success');
+                this.showToast('Role updated', 'success');
                 this.loadCustomRoles();
               },
               error: (err) => this.showToast('Failed to update role', 'danger')
@@ -430,6 +384,66 @@ export class OrgManagementPage implements OnInit {
         this.loadCustomRoles();
       }
     });
+  }
+
+  // --- PERMISSIONS TAB LOGIC ---
+  onRoleSelectForPerms() {
+    if (!this.selectedRoleForPerms) return;
+    this.modulePermissions = {};
+    const perms = this.selectedRoleForPerms.permissions || [];
+    perms.forEach((p: any) => {
+      this.modulePermissions[p.module_key] = {
+        view: p.permissions?.view || false,
+        create: p.permissions?.create || false,
+        update: p.permissions?.update || p.permissions?.edit || false,
+        delete: p.permissions?.delete || false
+      };
+    });
+  }
+
+  isModuleAssigned(key: string) {
+    return !!this.modulePermissions[key];
+  }
+
+  toggleModuleAccess(key: string) {
+    if (this.modulePermissions[key]) {
+      delete this.modulePermissions[key];
+    } else {
+      this.modulePermissions[key] = { view: true, create: false, update: false, delete: false };
+    }
+  }
+
+  saveRolePermissions() {
+    if (!this.selectedRoleForPerms) return;
+    
+    const formattedPerms = Object.keys(this.modulePermissions).map(key => ({
+      module_key: key,
+      permissions: {
+        view: this.modulePermissions[key].view,
+        create: this.modulePermissions[key].create,
+        edit: this.modulePermissions[key].update, // mapping update to edit for backend
+        delete: this.modulePermissions[key].delete
+      }
+    }));
+
+    const payload = {
+      ...this.selectedRoleForPerms,
+      permissions: formattedPerms
+    };
+    
+    this.dataService.updateCustomRole(this.selectedRoleForPerms.id, payload).subscribe({
+      next: () => {
+        this.showToast('Permissions updated successfully', 'success');
+        this.loadCustomRoles(); // Refresh the roles data
+        this.cancelPermissions(); // Close the card upon saving
+      },
+      error: (err) => this.showToast('Failed to update permissions', 'danger')
+    });
+  }
+
+  cancelPermissions() {
+    this.selectedRoleForPerms = null;
+    this.modulePermissions = {};
   }
 
   // --- ASSIGNMENTS LOGIC ---

@@ -1302,7 +1302,7 @@ export class DataService {
   }
   updateCustomRole(roleId: any, payload: any) {
     const token = localStorage.getItem('api_token') || '';
-    return this.http.post(`${this.baseApiUrl}/roles/${roleId}`, { api_token: token, ...payload });
+    return this.http.post(`${this.baseApiUrl}/roles/${roleId}`, { api_token: token, _method: 'PUT', ...payload });
   }
   deleteCustomRole(roleId: any) {
     const token = localStorage.getItem('api_token') || '';
