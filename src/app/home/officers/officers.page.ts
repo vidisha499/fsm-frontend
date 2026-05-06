@@ -65,30 +65,27 @@ export class OfficersPage implements OnInit {
       logs: this.dataService.getAttendanceLogsByRanger(companyIdStr).pipe(catchError(() => of([]))),
       requests: this.dataService.getAttendanceRequests(companyIdStr).pipe(catchError(() => of([]))),
       onsite: this.dataService.getGuardsOnSite(companyIdStr).pipe(catchError(() => of([]))),
-      allUsers: this.hierarchyService.getRangers(this.myCompanyId).pipe(catchError(() => of([])))
+      allUsersPHP: this.dataService.getAssignableUsers({ company_id: companyIdStr }).pipe(catchError(() => of([]))),
+      allUsersNode: this.hierarchyService.getRangers(this.myCompanyId).pipe(catchError(() => of([])))
     }).subscribe({
       next: (res: any) => {
-        console.log('DEBUG [Officers]: API Response received:', res);
+        console.log('DEBUG [Officers]: API Response received');
         
         const getArr = (obj: any) => {
           if (Array.isArray(obj)) return obj;
           if (!obj) return [];
           const list = obj.data || obj.users || obj.attendance || obj.requests || obj.requests_list || obj.items || obj.logs || obj.result;
           if (Array.isArray(list)) return list;
-          const firstArray = Object.values(obj).find(v => Array.isArray(v)) as any[];
-          return firstArray || [];
+          return [];
         };
 
         const logsArray = getArr(res.logs);
         const reqArray = getArr(res.requests);
         const onsiteArray = getArr(res.onsite);
-        const allUsersArray = getArr(res.allUsers);
+        const phpUsers = getArr(res.allUsersPHP);
+        const nodeUsers = getArr(res.allUsersNode);
 
-        console.log('DEBUG [Officers]: Data counts -> Logs:', logsArray.length, 'Reqs:', reqArray.length, 'Onsite:', onsiteArray.length, 'AllUsers:', allUsersArray.length);
-        if (allUsersArray.length > 0) {
-          console.log('DEBUG [Officers]: First User Sample Object:', JSON.stringify(allUsersArray[0]));
-        }
-
+        console.log('DEBUG [Officers]: PHP Users:', phpUsers.length, 'Node Users:', nodeUsers.length);
 
         const nowL = new Date();
         const todayYMD = `${nowL.getFullYear()}-${String(nowL.getMonth() + 1).padStart(2, '0')}-${String(nowL.getDate()).padStart(2, '0')}`;
@@ -101,21 +98,19 @@ export class OfficersPage implements OnInit {
           const rDate = (record.timestamp || record.entryDateTime || record.created_at || record.date || '').toString();
           if (!rDate) return;
 
-          let isMatch = false;
+          let isMatch = rDate.includes(todayYMD) || rDate.includes(todayISO);
           if (this.filterFrom && this.filterTo) {
             const rTS = new Date(rDate).getTime();
             const fromTS = new Date(this.filterFrom).setHours(0, 0, 0, 0);
             const toTS = new Date(this.filterTo).setHours(23, 59, 59, 999);
             isMatch = rTS >= fromTS && rTS <= toTS;
-          } else {
-            isMatch = rDate.includes(todayYMD) || rDate.includes(todayISO);
           }
 
           const status = String(record.status || '').toLowerCase();
           const isRejected = status === 'rejected' || status === 'failed';
 
           if (isMatch && !isRejected) {
-            const uId = (record.guard_id || record.guardId || record.user_id || record.userId || record.staff_id || record.ranger_id || record.added_by || record.created_by || '').toString();
+            const uId = (record.guard_id || record.guardId || record.user_id || record.userId || record.staff_id || record.ranger_id || '').toString();
             if (uId) {
               attendedOfficerIds.add(uId);
               if (!attendanceDetailsMap.has(uId)) {
@@ -132,20 +127,28 @@ export class OfficersPage implements OnInit {
         reqArray.forEach(processAttendance);
         onsiteArray.forEach(processAttendance);
 
+        // Map Node Users by ID for quick photo lookup
+        const nodePhotoMap = new Map<string, string>();
+        nodeUsers.forEach((u: any) => {
+          const uId = (u.id || u.user_id || u.staff_id || u.ranger_id || u.guard_id || '').toString();
+          const photo = u.profile_pic || u.profile_Pic || u.image || u.photo || u.profile_image || u.avatar || u.user_photo || '';
+          if (uId && photo) nodePhotoMap.set(uId, photo);
+        });
+
         const officersMap = new Map<string, any>();
 
-        // Step 1: Add from All Users (Main List)
-        allUsersArray.forEach((user: any) => {
+        // Step 1: Use PHP Users as the Master List (The full 15 people)
+        phpUsers.forEach((user: any) => {
           const uId = (user.id || user.user_id || user.staff_id || user.ranger_id || user.guard_id || '').toString();
           if (!uId) return;
 
           const hasAttended = attendedOfficerIds.has(uId);
           const attDetails = attendanceDetailsMap.get(uId);
           
-          // Check all possible photo keys from signup/profile
+          // Enrich with photo from Node if missing in PHP
           const photoRaw = user.profile_pic || user.profile_Pic || user.profilePic || 
                            user.photo || user.image || user.profile_image || 
-                           user.avatar || user.user_photo || attDetails?.photo || '';
+                           user.avatar || user.user_photo || nodePhotoMap.get(uId) || attDetails?.photo || '';
 
           officersMap.set(uId, {
             ...user,
@@ -160,29 +163,8 @@ export class OfficersPage implements OnInit {
           });
         });
 
-        // Step 2: Fallback for Attendance-only records not in All Users
-        [...logsArray, ...reqArray, ...onsiteArray].forEach((record: any) => {
-          const uId = (record.guard_id || record.guardId || record.user_id || record.userId || record.staff_id || record.ranger_id || record.added_by || record.created_by || '').toString();
-          if (uId && !officersMap.has(uId)) {
-            const hasAttended = attendedOfficerIds.has(uId);
-            const photoRaw = record.photo || record.profile_pic || record.profile_Pic || record.profilePic || 
-                             record.image || record.avatar || record.user_photo || '';
-            officersMap.set(uId, {
-              ...record,
-              id: uId,
-              name: record.name || record.full_name || record.guard_name || record.user_name || record.ranger_name || 'Officer',
-              role: this.getRoleName(record.role_id),
-              site_name: record.site_name || record.geo_name || record.beat_name || '',
-              company_name: record.company_name || '',
-              photo: this.getPhotoUrl(photoRaw),
-              dutyStatus: hasAttended ? 'On Duty' : 'Off Duty',
-              hasAttended: hasAttended
-            });
-          }
-        });
-
         this.allOfficers = Array.from(officersMap.values());
-        console.log('DEBUG [Officers]: Final Officer Map size:', this.allOfficers.length);
+        console.log('DEBUG [Officers]: Final Merged List size:', this.allOfficers.length);
 
         this.allOfficers.sort((a, b) => {
           if (a.hasAttended && !b.hasAttended) return -1;
@@ -193,7 +175,6 @@ export class OfficersPage implements OnInit {
         this.filteredOfficers = [...this.allOfficers];
         this.totalCount = this.allOfficers.length;
         this.attendedCount = this.allOfficers.filter(o => o.hasAttended).length;
-        console.log('DEBUG [Officers]: Stats -> Total:', this.totalCount, 'Attended:', this.attendedCount);
         
         this.isLoading = false;
         this.cdr.detectChanges();
