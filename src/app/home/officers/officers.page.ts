@@ -2,8 +2,9 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { NavController } from '@ionic/angular';
 import { DataService } from 'src/app/data.service';
-import { of } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { HierarchyService } from 'src/app/services/hierarchy.service';
 
 @Component({
   selector: 'app-officers',
@@ -18,6 +19,7 @@ export class OfficersPage implements OnInit {
   searchText: string = '';
   myCompanyId: any;
   totalCount: number = 0;
+  attendedCount: number = 0;
 
   // Hierarchy Filters
   public allRanges: string[] = [];
@@ -35,6 +37,7 @@ export class OfficersPage implements OnInit {
     private router: Router,
     private navCtrl: NavController,
     private dataService: DataService,
+    private hierarchyService: HierarchyService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -53,93 +56,153 @@ export class OfficersPage implements OnInit {
 
   loadOfficers() {
     this.isLoading = true;
+    console.log('DEBUG [Officers]: loadOfficers started for Company:', this.myCompanyId);
     this.cdr.detectChanges();
 
     const companyIdStr = this.myCompanyId.toString();
 
-    // Fetch from all attendance sources to ensure nobody is missed
-    import('rxjs').then(({ forkJoin, of }) => {
-      forkJoin({
-        logs: this.dataService.getAttendanceLogsByRanger(companyIdStr).pipe(catchError(() => of([]))),
-        requests: this.dataService.getAttendanceRequests(companyIdStr).pipe(catchError(() => of([]))),
-        onsite: this.dataService.getGuardsOnSite().pipe(catchError(() => of([])))
-      }).subscribe({
-        next: (res: any) => {
-          const getArr = (obj: any) => {
-            if (Array.isArray(obj)) return obj;
-            if (!obj) return [];
-            const firstArray = Object.values(obj).find(v => Array.isArray(v)) as any[];
-            if (firstArray) return firstArray;
-            return obj.data || obj.attendance || obj.requests || obj.requests_list || obj.items || obj.logs || (Array.isArray(obj.result) ? obj.result : []);
-          };
+    forkJoin({
+      logs: this.dataService.getAttendanceLogsByRanger(companyIdStr).pipe(catchError(() => of([]))),
+      requests: this.dataService.getAttendanceRequests(companyIdStr).pipe(catchError(() => of([]))),
+      onsite: this.dataService.getGuardsOnSite(companyIdStr).pipe(catchError(() => of([]))),
+      allUsers: this.hierarchyService.getRangers(this.myCompanyId).pipe(catchError(() => of([])))
+    }).subscribe({
+      next: (res: any) => {
+        console.log('DEBUG [Officers]: API Response received:', res);
+        
+        const getArr = (obj: any) => {
+          if (Array.isArray(obj)) return obj;
+          if (!obj) return [];
+          const list = obj.data || obj.users || obj.attendance || obj.requests || obj.requests_list || obj.items || obj.logs || obj.result;
+          if (Array.isArray(list)) return list;
+          const firstArray = Object.values(obj).find(v => Array.isArray(v)) as any[];
+          return firstArray || [];
+        };
 
-          const logsArray = getArr(res.logs);
-          const reqArray = getArr(res.requests);
-          const onsiteArray = getArr(res.onsite);
+        const logsArray = getArr(res.logs);
+        const reqArray = getArr(res.requests);
+        const onsiteArray = getArr(res.onsite);
+        const allUsersArray = getArr(res.allUsers);
 
-          const nowL = new Date();
-          const todayYMD = `${nowL.getFullYear()}-${String(nowL.getMonth() + 1).padStart(2, '0')}-${String(nowL.getDate()).padStart(2, '0')}`;
-          const todayDMY = `${String(nowL.getDate()).padStart(2, '0')}-${String(nowL.getMonth() + 1).padStart(2, '0')}-${nowL.getFullYear()}`;
-          const todayISO = nowL.toISOString().split('T')[0];
+        console.log('DEBUG [Officers]: Data counts -> Logs:', logsArray.length, 'Reqs:', reqArray.length, 'Onsite:', onsiteArray.length, 'AllUsers:', allUsersArray.length);
+        if (allUsersArray.length > 0) {
+          console.log('DEBUG [Officers]: First User Sample Object:', JSON.stringify(allUsersArray[0]));
+        }
 
-          const activeOfficersMap = new Map<string, any>();
 
-          const processRecord = (record: any) => {
-            const rDate = (record.timestamp || record.entryDateTime || record.created_at || record.date || '').toString();
-            if (!rDate) return;
+        const nowL = new Date();
+        const todayYMD = `${nowL.getFullYear()}-${String(nowL.getMonth() + 1).padStart(2, '0')}-${String(nowL.getDate()).padStart(2, '0')}`;
+        const todayISO = nowL.toISOString().split('T')[0];
 
-            let isMatch = false;
-            if (this.filterFrom && this.filterTo) {
-              const rTS = new Date(rDate).getTime();
-              const fromTS = new Date(this.filterFrom).setHours(0,0,0,0);
-              const toTS = new Date(this.filterTo).setHours(23,59,59,999);
-              isMatch = rTS >= fromTS && rTS <= toTS;
-            } else {
-              isMatch = rDate.includes(todayYMD) || rDate.includes(todayDMY) || rDate.includes(todayISO) || rDate.toLowerCase().includes('today');
-            }
-            
-            const status = String(record.status || '').toLowerCase();
-            const isRejected = status === 'rejected' || status === 'failed';
+        const attendedOfficerIds = new Set<string>();
+        const attendanceDetailsMap = new Map<string, any>();
 
-            if (isMatch && !isRejected) {
-              const uId = record.guard_id || record.guardId || record.user_id || record.userId || record.staff_id || record.ranger_id || record.added_by || record.created_by;
-              
-              if (uId && !activeOfficersMap.has(uId.toString())) {
-                const photoRaw = record.photo || record.profile_pic || record.profile_Pic || record.image || record.avatar || record.profile_image;
-                
-                activeOfficersMap.set(uId.toString(), {
-                  ...record,
-                  id: uId.toString(),
-                  name: record.name || record.full_name || record.guard_name || record.user_name || record.ranger_name || 'Officer',
-                  role: this.getRoleName(record.role_id),
+        const processAttendance = (record: any) => {
+          const rDate = (record.timestamp || record.entryDateTime || record.created_at || record.date || '').toString();
+          if (!rDate) return;
+
+          let isMatch = false;
+          if (this.filterFrom && this.filterTo) {
+            const rTS = new Date(rDate).getTime();
+            const fromTS = new Date(this.filterFrom).setHours(0, 0, 0, 0);
+            const toTS = new Date(this.filterTo).setHours(23, 59, 59, 999);
+            isMatch = rTS >= fromTS && rTS <= toTS;
+          } else {
+            isMatch = rDate.includes(todayYMD) || rDate.includes(todayISO);
+          }
+
+          const status = String(record.status || '').toLowerCase();
+          const isRejected = status === 'rejected' || status === 'failed';
+
+          if (isMatch && !isRejected) {
+            const uId = (record.guard_id || record.guardId || record.user_id || record.userId || record.staff_id || record.ranger_id || record.added_by || record.created_by || '').toString();
+            if (uId) {
+              attendedOfficerIds.add(uId);
+              if (!attendanceDetailsMap.has(uId)) {
+                attendanceDetailsMap.set(uId, {
                   site_name: record.site_name || record.geo_name || record.beat_name || record.location_name || '',
-                  company_name: record.company_name || (record.company ? record.company.name : '') || record.client_name || '',
-                  photo: this.getPhotoUrl(photoRaw),
-                  dutyStatus: 'On Duty',
-                  hasAttended: true
+                  photo: record.photo || record.profile_pic || record.profile_Pic || record.image || record.avatar || ''
                 });
               }
             }
-          };
+          }
+        };
 
-          logsArray.forEach(processRecord);
-          reqArray.forEach(processRecord);
-          onsiteArray.forEach(processRecord);
+        logsArray.forEach(processAttendance);
+        reqArray.forEach(processAttendance);
+        onsiteArray.forEach(processAttendance);
 
-          this.allOfficers = Array.from(activeOfficersMap.values());
-          this.allOfficers.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        const officersMap = new Map<string, any>();
 
-          this.filteredOfficers = [...this.allOfficers];
-          this.totalCount = this.allOfficers.length;
-          this.isLoading = false;
-          this.cdr.detectChanges();
-        },
-        error: (err) => {
-          console.error('Error unifying officers:', err);
-          this.isLoading = false;
-          this.cdr.detectChanges();
-        }
-      });
+        // Step 1: Add from All Users (Main List)
+        allUsersArray.forEach((user: any) => {
+          const uId = (user.id || user.user_id || user.staff_id || user.ranger_id || user.guard_id || '').toString();
+          if (!uId) return;
+
+          const hasAttended = attendedOfficerIds.has(uId);
+          const attDetails = attendanceDetailsMap.get(uId);
+          
+          // Check all possible photo keys from signup/profile
+          const photoRaw = user.profile_pic || user.profile_Pic || user.profilePic || 
+                           user.photo || user.image || user.profile_image || 
+                           user.avatar || user.user_photo || attDetails?.photo || '';
+
+          officersMap.set(uId, {
+            ...user,
+            id: uId,
+            name: user.name || user.full_name || user.guard_name || user.user_name || user.ranger_name || 'Officer',
+            role: this.getRoleName(user.role_id || user.roleId),
+            site_name: attDetails?.site_name || user.site_name || user.beat_name || user.geo_name || '',
+            company_name: user.company_name || (user.company ? user.company.name : '') || '',
+            photo: this.getPhotoUrl(photoRaw),
+            dutyStatus: hasAttended ? 'On Duty' : 'Off Duty',
+            hasAttended: hasAttended
+          });
+        });
+
+        // Step 2: Fallback for Attendance-only records not in All Users
+        [...logsArray, ...reqArray, ...onsiteArray].forEach((record: any) => {
+          const uId = (record.guard_id || record.guardId || record.user_id || record.userId || record.staff_id || record.ranger_id || record.added_by || record.created_by || '').toString();
+          if (uId && !officersMap.has(uId)) {
+            const hasAttended = attendedOfficerIds.has(uId);
+            const photoRaw = record.photo || record.profile_pic || record.profile_Pic || record.profilePic || 
+                             record.image || record.avatar || record.user_photo || '';
+            officersMap.set(uId, {
+              ...record,
+              id: uId,
+              name: record.name || record.full_name || record.guard_name || record.user_name || record.ranger_name || 'Officer',
+              role: this.getRoleName(record.role_id),
+              site_name: record.site_name || record.geo_name || record.beat_name || '',
+              company_name: record.company_name || '',
+              photo: this.getPhotoUrl(photoRaw),
+              dutyStatus: hasAttended ? 'On Duty' : 'Off Duty',
+              hasAttended: hasAttended
+            });
+          }
+        });
+
+        this.allOfficers = Array.from(officersMap.values());
+        console.log('DEBUG [Officers]: Final Officer Map size:', this.allOfficers.length);
+
+        this.allOfficers.sort((a, b) => {
+          if (a.hasAttended && !b.hasAttended) return -1;
+          if (!a.hasAttended && b.hasAttended) return 1;
+          return (a.name || '').localeCompare(b.name || '');
+        });
+
+        this.filteredOfficers = [...this.allOfficers];
+        this.totalCount = this.allOfficers.length;
+        this.attendedCount = this.allOfficers.filter(o => o.hasAttended).length;
+        console.log('DEBUG [Officers]: Stats -> Total:', this.totalCount, 'Attended:', this.attendedCount);
+        
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('DEBUG [Officers]: API Error:', err);
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      }
     });
   }
 
@@ -284,30 +347,24 @@ export class OfficersPage implements OnInit {
     }
 
     if (!url || typeof url !== 'string' || url.length < 5) return '';
-
-    // Fix for absolute URLs that are missing '/public/'
-    if (url.includes('fms.pugarch.in/profilepics/') && !url.includes('/public/')) {
-        url = url.replace('fms.pugarch.in/profilepics/', 'fms.pugarch.in/public/profilepics/');
-    }
-
-    if (url.startsWith('http')) return url;
-    if (url.startsWith('data:')) return url;
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
     
     // Clean leading slashes
-    const cleaned = url.replace(/^\/+/, '');
+    let cleaned = url.replace(/^\/+/, '');
     
     // If it contains the domain but no protocol
     if (cleaned.includes('fms.pugarch.in')) {
       return `https://${cleaned.replace('https://', '').replace('http://', '')}`;
     }
 
-    // If it already has a directory path
-    if (cleaned.includes('/')) {
+    // Logic aligned with login.page.ts for production consistency
+    if (!cleaned.includes('/')) {
+      // It's just a filename like '1234.png'
+      return `https://fms.pugarch.in/public/profilepics/${cleaned}`;
+    } else {
+      // It has some path but no domain
       return `https://fms.pugarch.in/public/${cleaned}`;
     }
-
-    // Fallback for filenames
-    return `https://fms.pugarch.in/public/profilepics/${cleaned}`;
   }
 
   getInitials(name: string): string {
