@@ -1563,19 +1563,25 @@ changeTimeframe(newTimeframe: string) {
                           ].map((log: any) => {
                              const uId = log.user_id || log.staff_id || log.ranger_id || log.added_by || log.created_by;
                              const uName = this.resolveUserName(uId, log.ranger || log.user_name || 'Officer');
-                                const isExit = (log.entryType || log.type || '').toUpperCase() === 'EXIT';
-                                const isRequest = log.is_request;
+                             const isExit = (log.entryType || log.type || '').toUpperCase() === 'EXIT';
+                             const isRequest = log.is_request;
+                             const status = String(log.status || '').toLowerCase();
+                             
+                             // 🔥 Fix: Check for [PENDING] vs [APPROVED] status
+                             const isPending = isRequest && status !== 'approved';
+                             const statusLabel = isPending ? '[PENDING]' : '[APPROVED]';
+                             const theme = this.getAlertTheme(isPending ? 'WARN' : 'ATTENDANCE');
                                 
-                                return {
-                                    ...log,
-                                    displayTitle: `${isRequest ? '[PENDING] ' : ''}attendance ${isExit ? 'out' : 'in'}`,
-                                    displayDesc: `${uName} at ${log.location_name || log.geofence || 'Forest Area'}`,
-                                    displayTime: this.formatTime(log.timestamp || log.created_at || log.entryDateTime),
-                                    severity: isRequest ? 'warning' : 'info',
-                                    theme: this.getAlertTheme(isRequest ? 'WARN' : 'ATTENDANCE'),
-                                    layerId: 'attendance'
-                                };
-                             });
+                             return {
+                                 ...log,
+                                 ...theme, // 🔥 Fix: Spread theme to get icon and color
+                                 displayTitle: `${statusLabel} attendance ${isExit ? 'out' : 'in'}`,
+                                 displayDesc: `${uName} at ${log.location_name || log.geofence || 'Forest Area'}`,
+                                 displayTime: this.formatTime(log.timestamp || log.created_at || log.entryDateTime),
+                                 severity: isPending ? 'warning' : 'info',
+                                 layerId: 'attendance'
+                             };
+                          });
 
                       this.alertsData = [...(this.alertsData || []), ...attAlerts];
                       this.updateFilteredAlerts();
@@ -1624,13 +1630,14 @@ changeTimeframe(newTimeframe: string) {
                              const pList = filteredPList; // Use filtered list for alerts too
                             const pAlerts = pList.map((p: any) => {
                                const uName = p.user_name || p.ranger_name || this.resolveUserName(p.user_id || p.ranger_id);
+                               const theme = this.getAlertTheme('PATROL');
                                return {
                                   ...p,
+                                  ...theme, // 🔥 Fix: Spread theme to get icon and color
                                   displayTitle: `patrol ${p.status === 'completed' ? 'ended' : 'started'}`,
                                   displayDesc: `${uName} at ${p.range_name || 'Beat Area'}`,
                                   displayTime: this.formatTime(p.created_at || p.start_time || p.updated_at),
                                   severity: 'info',
-                                  theme: this.getAlertTheme('PATROL'),
                                   layerId: 'patrol'
                                };
                             });
