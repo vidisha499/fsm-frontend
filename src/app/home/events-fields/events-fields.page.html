@@ -21,7 +21,7 @@
       <div *ngFor="let field of dynamicFields">
         <div class="input-wrapper animate-in" *ngIf="isFieldVisible(field)">
           <ion-label class="field-label">
-            {{ field.label }} <span class="required-star">*</span>
+            {{ field.label }} <span class="required-star" *ngIf="field.required">*</span>
           </ion-label>
 
           <!-- Text aur Number Inputs -->

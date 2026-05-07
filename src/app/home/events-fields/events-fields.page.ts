@@ -35,29 +35,30 @@ export class EventsFieldsPage implements OnInit {
 
 fieldsConfig: any = {
     'Illegal Felling': [
-      { label: 'Photo', type: 'file', icon: 'camera-outline', key: 'photo' },
-      { label: 'Species List', type: 'select', placeholder: 'Select Species', options: this.speciesOptions, key: 'species' },
+      { label: 'Photo', type: 'file', icon: 'camera-outline', key: 'photo', required: true },
+      { label: 'Species List', type: 'select', placeholder: 'Select Species', options: this.speciesOptions, key: 'species', required: true },
       { label: 'Reason for Felling', type: 'text', placeholder: 'Describe reason', key: 'reason' },
-      { label: 'No. of Trees', type: 'number', placeholder: '0', key: 'tree_count' },
-      { label: 'Total Volume (Cu.Mtr)', type: 'number', placeholder: '0.00', key: 'volume' },
+      { label: 'No. of Trees', type: 'number', placeholder: '0', key: 'tree_count', required: true },
+      { label: 'Total Volume (Cu.Mtr)', type: 'number', placeholder: '0.00', key: 'volume', required: true },
       { label: 'Action Taken / Remarks', type: 'textarea', placeholder: 'Immediate action steps', key: 'action_taken' },
       { label: 'Overall Remarks', type: 'textarea', placeholder: 'Any additional notes', key: 'overall_remarks' }
     ],
 
     'Illegal Timber Transport': [
-      { label: 'Photo', type: 'file', icon: 'camera-outline', key: 'photo' },
-      { label: 'Name of Forest Produce', type: 'text', placeholder: 'e.g. Teak Logs', key: 'produce_name' },
-      { label: 'No. of Trees', type: 'number', placeholder: 'Enter tree count', key: 'tree_count' },
-      { label: 'Volume (Cub.Mtr)', type: 'number', placeholder: 'Enter volume', key: 'volume' },
+      { label: 'Photo', type: 'file', icon: 'camera-outline', key: 'photo', required: true },
+      { label: 'Name of Forest Produce', type: 'text', placeholder: 'e.g. Teak Logs', key: 'produce_name', required: true },
+      { label: 'No. of Trees', type: 'number', placeholder: 'Enter tree count', key: 'tree_count', required: true },
+      { label: 'Volume (Cub.Mtr)', type: 'number', placeholder: 'Enter volume', key: 'volume', required: true },
       { 
         label: 'Vehicle Type', 
         type: 'select', 
         placeholder: 'Select Vehicle', 
         icon: 'car-outline',
         options: ['Truck', 'Tractor', 'Tempo', 'Bullock Cart', 'Two-wheeler', 'Other'],
-        key: 'vehicle_type'
+        key: 'vehicle_type',
+        required: true
       },
-      { label: 'Vehicle Number', type: 'text', placeholder: 'e.g. MP-04-AB-1234', key: 'vehicle_no' },
+      { label: 'Vehicle Number', type: 'text', placeholder: 'e.g. MP-04-AB-1234', key: 'vehicle_no', required: true },
       { label: 'Route Taken', type: 'text', placeholder: 'Enter route details', key: 'route' },
       { label: 'Name of Accused', type: 'text', placeholder: 'Enter name', key: 'accused_name' },
       { label: 'Address', type: 'textarea', placeholder: 'Enter full address', key: 'address' },
@@ -65,19 +66,17 @@ fieldsConfig: any = {
     ],
 
     'Illegal Timber Storage': [
-      // { label: 'GPS Status', type: 'text', value: 'Fetching Address...', readonly: true, icon: 'location-outline', id: 'gps' },
-      // { label: 'Assigned Beat', type: 'text', placeholder: 'Enter Beat Name', key: 'beat' },
-      { label: 'Species', type: 'select', placeholder: 'Select Species', options: this.speciesOptions, key: 'species' },
-      { label: 'Quantity', type: 'number', placeholder: 'Enter quantity', key: 'qty_cmt' },
-      { label: 'Storage Type', type: 'select', placeholder: 'Select Storage Type', options: ['Godown', 'Open Space', 'Others'], key: 'storage_type' },
+      { label: 'Species', type: 'select', placeholder: 'Select Species', options: this.speciesOptions, key: 'species', required: true },
+      { label: 'Quantity', type: 'number', placeholder: 'Enter quantity', key: 'qty_cmt', required: true },
+      { label: 'Storage Type', type: 'select', placeholder: 'Select Storage Type', options: ['Godown', 'Open Space', 'Others'], key: 'storage_type', required: true },
       { label: 'Name of Owner', type: 'text', placeholder: 'Enter owner name', key: 'owner_name' },
       { label: 'Address of Owner', type: 'textarea', placeholder: 'Enter owner address', key: 'owner_address' },
-      { label: 'Storage Photo', type: 'file', icon: 'camera-outline', key: 'photo' },
+      { label: 'Storage Photo', type: 'file', icon: 'camera-outline', key: 'photo', required: true },
       { label: 'Remarks', type: 'textarea', placeholder: 'Any additional notes', key: 'remarks' }
     ],
 
     'Wild Animal Poaching': [
-      { label: 'Species', type: 'select', placeholder: 'Select Animal', options: this.animalSpecies, key: 'species' },
+      { label: 'Species', type: 'select', placeholder: 'Select Animal', options: this.animalSpecies, key: 'species', required: true },
       { label: 'Cause of Death', type: 'text', placeholder: 'e.g. Trap, Poisoning', key: 'cause_death' },
       { label: 'Gender', type: 'select', options: ['Male', 'Female', 'Unknown'], key: 'gender' },
       { label: 'Age Class', type: 'select', options: ['Adult', 'Sub-Adult', 'Juvenile', 'Unknown'], key: 'age_class' },
@@ -87,30 +86,30 @@ fieldsConfig: any = {
         options: ['Fresh', 'Partially decomposed', 'Highly decomposed', 'Skeletonized', 'Scavenged', 'Others'],
         key: 'carcass_state'
       },
-      { label: 'Evidence Photo', type: 'file', icon: 'camera-outline', key: 'photos' },
+      { label: 'Evidence Photo', type: 'file', icon: 'camera-outline', key: 'photos', required: true },
       { label: 'Notes', type: 'textarea', placeholder: 'Enter additional observations', key: 'notes' }
     ],
 
     'Encroachment': [
-      { label: 'Encroachment Type', type: 'select', options: ['Agriculture', 'Construction'], key: 'encroachment_type' },
-      { label: 'Area (Hectare)', type: 'number', placeholder: 'e.g. 1.5', key: 'area_hectare' },
+      { label: 'Encroachment Type', type: 'select', options: ['Agriculture', 'Construction'], key: 'encroachment_type', required: true },
+      { label: 'Area (Hectare)', type: 'number', placeholder: 'e.g. 1.5', key: 'area_hectare', required: true },
       { label: 'Number of Encroachers', type: 'number', placeholder: 'Enter count', key: 'num_encroachers' },
       { label: 'Name of Person/Occupant', type: 'text', placeholder: 'Enter name', key: 'occupant_name' },
       { label: 'Phone Number of Person', type: 'text', placeholder: 'Enter phone', key: 'occupant_phone' },
-      { label: 'Article Seized', type: 'select', options: ['Yes', 'No'], key: 'article_seized' },
+      { label: 'Article Seized', type: 'select', options: ['Yes', 'No'], key: 'article_seized', required: true },
       { label: 'Article Details', type: 'text', key: 'article_details', dependsOn: 'Article Seized', showIf: 'Yes' },
-      { label: 'Site Photo', type: 'file', icon: 'camera-outline', key: 'photo' },
+      { label: 'Site Photo', type: 'file', icon: 'camera-outline', key: 'photo', required: true },
       { label: 'Remarks', type: 'textarea', key: 'remarks' }
     ],
 
     'Illegal Mining': [
-      { label: 'Mineral Type', type: 'select', options: ['Sand', 'Stone', 'Murrum', 'Others'], key: 'mineral_type' },
-      { label: 'Estimated Volume (Cub.Mtr)', type: 'number', placeholder: 'Enter volume', key: 'volume_cum' },
-      { label: 'Vehicle Seized', type: 'select', options: ['Yes', 'No'], key: 'vehicle_seized' },
+      { label: 'Mineral Type', type: 'select', options: ['Sand', 'Stone', 'Murrum', 'Others'], key: 'mineral_type', required: true },
+      { label: 'Estimated Volume (Cub.Mtr)', type: 'number', placeholder: 'Enter volume', key: 'volume_cum', required: true },
+      { label: 'Vehicle Seized', type: 'select', options: ['Yes', 'No'], key: 'vehicle_seized', required: true },
       { label: 'Seized Vehicle Type', type: 'select', options: ['Truck', 'Tractor', 'Tempo', 'Bullock Cart', 'Two-wheeler', 'Other'], key: 'seized_vehicle_type', dependsOn: 'Vehicle Seized', showIf: 'Yes' },
       { label: 'Seized Vehicle Number', type: 'text', placeholder: 'Enter vehicle number', key: 'seized_vehicle_no', dependsOn: 'Vehicle Seized', showIf: 'Yes' },
       { label: 'Action Taken / Remark', type: 'textarea', placeholder: 'Enter details', key: 'action_taken' },
-      { label: 'Site Photo', type: 'file', icon: 'camera-outline', key: 'photo' },
+      { label: 'Site Photo', type: 'file', icon: 'camera-outline', key: 'photo', required: true },
       { label: 'Name of Accused', type: 'text', placeholder: 'Enter name', key: 'accused_name' },
       { label: 'Address', type: 'textarea', placeholder: 'Enter address', key: 'accused_address' }
     ],
@@ -177,7 +176,7 @@ fieldsConfig: any = {
 
     'Plantation': [
       // { label: 'GPS Status', type: 'text', value: 'Fetching Address...', readonly: true, icon: 'location-outline', id: 'gps' },
-      // // { label: 'Assigned Beat', type: 'text', placeholder: 'Enter Beat Name', key: 'beat' },
+      // { label: 'Assigned Beat', type: 'text', placeholder: 'Enter Beat Name', key: 'beat' },
       { label: 'Species', type: 'select', options: this.speciesOptions, key: 'species' },
       { label: 'Total Count', type: 'number', key: 'count' },
       { label: 'Area Covered (Hectares)', type: 'number', key: 'area' },
@@ -448,10 +447,13 @@ async fetchLocation() {
   checkFormValidity() {
     let isValid = true;
     for (const field of this.dynamicFields) {
-      if (field.id === 'gps') continue; // Always filled by fetchLocation
+      if (field.id === 'gps') continue; 
       
       // Skip validation if field is hidden
       if (!this.isFieldVisible(field)) continue;
+
+      // 🔥 ONLY REQUIRE FIELDS MARKED AS REQUIRED
+      if (!field.required) continue;
 
       const userValue = this.reportData[field.label];
       if (field.type === 'file') {
@@ -464,7 +466,7 @@ async fetchLocation() {
         break;
       }
 
-      // Check for conditional "Other" field
+      // Check for conditional "Other" field (only if the main field is required)
       if (field.type === 'select' && (userValue === 'Other' || userValue === 'Others')) {
         const otherValue = this.reportData[field.label + '_other'];
         if (!otherValue || otherValue.trim() === '') {
