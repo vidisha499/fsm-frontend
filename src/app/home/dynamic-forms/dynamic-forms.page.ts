@@ -119,20 +119,25 @@ export class DynamicFormsPage implements OnInit {
         { label: 'Species', type: 'select', options: [...this.animalSpecies], key: 'species', icon: 'paw-outline' },
         { label: 'Sighting Type', type: 'select', options: ['Direct', 'Indirect'], key: 'sighting_type', icon: 'eye-outline' },
         { label: 'No. of Animals', type: 'number', key: 'num_animals', icon: 'calculator-outline' },
-        { label: 'Gender', type: 'select', options: ['Male', 'Female', 'Unknown'], key: 'gender', icon: 'transgender-outline' },
         { label: 'Evidence Type', type: 'select', options: ['Photo', 'Pugmark', 'Scratch', 'Scat', 'Body Part', 'Den', 'Other'], key: 'evidence_type', icon: 'search-outline' },
         { label: 'Upload Photo', type: 'file', key: 'photo_evidence', icon: 'camera-outline' },
         { label: 'Remarks', type: 'textarea', key: 'notes', icon: 'document-text-outline' }
     ],
     'Fire Alerts': [
+        { label: 'Compartment/Beat Name', type: 'text', key: 'beat_name', icon: 'map-outline' },
         { label: 'Fire Cause', type: 'select', options: ['Natural', 'Negligence', 'Intentional', 'Unknown'], key: 'fire_cause', icon: 'help-circle-outline' },
         { label: 'Damage Type', type: 'select', options: ['Forest Area', 'Grassland', 'Wildlife Habitat', 'Plantation', 'Human Property', 'Mixed'], key: 'damage_type', icon: 'flash-outline' },
-        { label: 'Area Burnt (Hectares)', type: 'number', placeholder: '0.00', key: 'area_burnt', icon: 'map-outline' },
+        { label: 'Fire Severity', type: 'select', options: ['Low', 'Medium', 'High', 'Other'], key: 'severity', icon: 'warning-outline' },
+        { label: 'Area Burnt (Hectares)', type: 'number', placeholder: '0.00', key: 'area_burnt', icon: 'square-outline' },
         { label: 'No. of Personnel Deployed', type: 'number', placeholder: '0', key: 'personnel_count', icon: 'people-outline' },
         { label: 'Response Time (Minutes)', type: 'number', placeholder: '0', key: 'response_time', icon: 'time-outline' },
         { label: 'Fire Status', type: 'select', options: ['Active', 'Controlled', 'Extinguished'], key: 'fire_status', icon: 'checkmark-circle-outline' },
+        { label: 'Weather Condition', type: 'select', options: ['Dry', 'Windy', 'Hot', 'Normal', 'Rainy'], key: 'weather', icon: 'cloud-outline' },
         { label: 'Detected By', type: 'select', options: ['Patrol', 'Satellite', 'Villager', 'Sensor', 'Other'], key: 'detected_by', icon: 'eye-outline' },
-        { label: 'Estimated Loss', type: 'text', placeholder: 'Value in ₹ or description', key: 'estimated_loss', icon: 'cash-outline' }
+        { label: 'Estimated Loss', type: 'text', placeholder: 'Value in ₹ or description', key: 'estimated_loss', icon: 'cash-outline' },
+        { label: 'Reported By', type: 'text', key: 'reported_by', icon: 'person-outline' },
+        { label: 'Photo', type: 'file', key: 'photo', icon: 'camera-outline' },
+        { label: 'Action Taken / Remarks', type: 'textarea', key: 'action_taken', icon: 'document-text-outline' }
     ],
     'JFMC / Social Forestry': [
         { label: 'Village', type: 'text', key: 'village', icon: 'home-outline' },
@@ -141,19 +146,20 @@ export class DynamicFormsPage implements OnInit {
         { label: 'Remarks', type: 'textarea', key: 'decisions', icon: 'document-text-outline' }
     ],
     'Water Source Status': [
-        { label: 'Source Type', type: 'select', options: ['Earthen Pond', 'Dam', 'Check Dam', 'Stop Dam', 'Concrete Pond', 'Water Stream', 'Well', 'Others'], key: 'source_type', icon: 'water-outline' },
+        { label: 'Source Type', type: 'select', options: ['Natural Pond', 'Earthen Dam', 'Check Dam', 'Stop Dam', 'Concrete Water Hole', 'River Stream', 'Open Well', 'Closed Well', 'Others'], key: 'source_type', icon: 'water-outline' },
         { label: 'Is it Dry?', type: 'select', options: ['Yes', 'No'], key: 'is_dry', icon: 'alert-circle-outline' },
-        { label: 'Water Quality', type: 'text', key: 'water_quality', icon: 'flask-outline' },
+        { label: 'Water Quality', type: 'select', options: ['Clean/Clear', 'Muddy/Turbid', 'Stagnant/Algae', 'Polluted/Contaminated', 'Unknown', 'Other'], key: 'water_quality', icon: 'flask-outline' },
         { label: 'Animal Signs Observed', type: 'text', key: 'animal_sign', icon: 'paw-outline' },
         { label: 'Remarks', type: 'textarea', key: 'notes', icon: 'document-text-outline' },
         { label: 'Upload Photo', type: 'file', key: 'photo', icon: 'camera-outline' }
     ],
     'Wildlife Compensation': [
         { label: 'Compensation Type', type: 'select', options: ['Human death', 'Permanent disability', 'Human injury', 'Cattle death', 'crop damage', 'House damage', 'Other'], key: 'comp_type', icon: 'medkit-outline' },
-        { label: 'Name of Victim/Owner', type: 'text', key: 'victim_name', icon: 'person-outline' },
+        { label: 'Animal Responsible', type: 'select', options: ['Leopard', 'Tiger', 'Jackal', 'Sloth Bear', 'Wild Boar', 'Hyena', 'Spotted Deer', 'Sambar', 'Other'], key: 'animal_name', icon: 'paw-outline' },
+        { label: 'Name of Victims/Owner', type: 'text', key: 'victim_name', icon: 'person-outline' },
         { label: 'Village of Incident', type: 'text', key: 'village', icon: 'home-outline' },
         { label: 'Amount Claimed (₹)', type: 'number', key: 'amount_claimed', icon: 'cash-outline' },
-        { label: 'Upload Evidence Photo', type: 'file', key: 'damage_photo', icon: 'camera-outline' },
+        { label: 'Evidence Photo', type: 'file', key: 'damage_photo', icon: 'camera-outline' },
         { label: 'Remarks', type: 'textarea', key: 'remarks', icon: 'document-text-outline' }
     ],
     'Plantation': [

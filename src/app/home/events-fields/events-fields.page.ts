@@ -132,7 +132,6 @@ fieldsConfig: any = {
       { label: 'No. of Animals', type: 'number', key: 'num_animals' },
       { label: 'No. of Males', type: 'number', key: 'num_males' },
       { label: 'No. of Females', type: 'number', key: 'num_females' },
-      { label: 'Gender', type: 'select', options: ['Male', 'Female', 'Unknown'], key: 'gender' },
       { label: 'Evidence Type', type: 'select', options: ['Photo', 'Pugmark', 'Scratch', 'Scat', 'Body Part', 'Den', 'Other'], key: 'evidence_type' },
       { label: 'Upload Photo', type: 'file', icon: 'camera-outline', key: 'photo_evidence' },
       { label: 'Remarks', type: 'textarea', key: 'notes' }
@@ -141,40 +140,38 @@ fieldsConfig: any = {
     'Water Source Status': [
       // { label: 'GPS Status', type: 'text', value: 'Fetching Address...', readonly: true, icon: 'location-outline', id: 'gps' },
       // { label: 'Assigned Beat', type: 'text', placeholder: 'Enter Beat Name', key: 'beat' },
-      { label: 'Source Type', type: 'select', options: ['Earthen Pond', 'Dam', 'Check Dam', 'Stop Dam', 'Concrete Pond', 'Water Stream', 'Well', 'Others'], key: 'source_type' },
+      { label: 'Source Type', type: 'select', options: ['Natural Pond', 'Earthen Dam', 'Check Dam', 'Stop Dam', 'Concrete Water Hole', 'River Stream', 'Open Well', 'Closed Well', 'Others'], key: 'source_type' },
       { label: 'Is it Dry?', type: 'select', options: ['Seasonal (Mausami)', 'Perennial (Baramasi)'], key: 'is_dry' },
-      { label: 'Water Quality', type: 'text', key: 'water_quality' },
+      { label: 'Water Quality', type: 'select', options: ['Clean/Clear', 'Muddy/Turbid', 'Stagnant/Algae', 'Polluted/Contaminated', 'Unknown', 'Other'], key: 'water_quality' },
       { label: 'Animal Signs Observed', type: 'text', key: 'animal_sign' },
       { label: 'Upload Photo', type: 'file', icon: 'camera-outline', key: 'photo' },
       { label: 'Remarks', type: 'textarea', key: 'notes' }
     ],
 
     'Fire Alerts': [
-      // { label: 'GPS Status', type: 'text', value: 'Fetching Address...', readonly: true, icon: 'location-outline', id: 'gps' },
-      // { label: 'Assigned Beat', type: 'text', placeholder: 'Enter Beat Name', key: 'beat' },
+      { label: 'Compartment/Beat Name', type: 'text', placeholder: 'Enter name/number', key: 'beat_name' },
       { label: 'Fire Cause', type: 'select', options: ['Natural', 'Negligence', 'Intentional', 'Unknown'], key: 'fire_cause' },
       { label: 'Damage Type', type: 'select', options: ['Forest Area', 'Grassland', 'Wildlife Habitat', 'Plantation', 'Human Property', 'Mixed'], key: 'damage_type' },
+      { label: 'Fire Severity', type: 'select', options: ['Low', 'Medium', 'High', 'Other'], key: 'severity' },
       { label: 'Area Burnt (Hectares)', type: 'number', placeholder: '0.00', key: 'area_burnt' },
       { label: 'No. of Personnel Deployed', type: 'number', placeholder: '0', key: 'personnel_count' },
       { label: 'Response Time (Minutes)', type: 'number', placeholder: '0', key: 'response_time' },
       { label: 'Fire Status', type: 'select', options: ['Active', 'Controlled', 'Extinguished'], key: 'fire_status' },
+      { label: 'Weather Condition', type: 'select', options: ['Dry', 'Windy', 'Hot', 'Normal', 'Rainy'], key: 'weather' },
       { label: 'Detected By', type: 'select', options: ['Patrol', 'Satellite', 'Villager', 'Sensor', 'Other'], key: 'detected_by' },
       { label: 'Estimated Loss', type: 'text', placeholder: 'Value in ₹ or description', key: 'estimated_loss' },
       { label: 'Reported By', type: 'text', placeholder: 'Name / Designation', key: 'reported_by' },
-      { label: 'Action Taken', type: 'textarea', placeholder: 'Describe steps taken', key: 'action_taken' },
-      { label: 'Remarks', type: 'textarea', placeholder: 'Additional notes', key: 'remarks' },
-      { label: 'Upload Photo', type: 'file', icon: 'camera-outline', key: 'photo' }
+      { label: 'Photo', type: 'file', icon: 'camera-outline', key: 'photo' },
+      { label: 'Action Taken / Remarks', type: 'textarea', placeholder: 'Describe steps and additional notes', key: 'action_taken' }
     ],
 
     'Wildlife Compensation': [
-      // { label: 'GPS Status', type: 'text', value: 'Fetching Address...', readonly: true, icon: 'location-outline', id: 'gps' },
-      // { label: 'Assigned Beat', type: 'text', placeholder: 'Enter Beat Name', key: 'beat' },
       { label: 'Compensation Type', type: 'select', options: ['Human death', 'Permanent disability', 'Human injury', 'Cattle death', 'crop damage', 'House damage', 'Other'], key: 'comp_type' },
-      { label: 'Name of Victims/Owner', type: 'text', key: 'victim_name' },
-      { label: 'Name of Animal', type: 'text', key: 'animal_name', placeholder: 'Enter animal name' },
-      { label: 'Village of Incident', type: 'text', key: 'village' },
-      { label: 'Amount Claimed (₹)', type: 'number', key: 'amount_claimed' },
-      { label: 'Upload Evidence Photo', type: 'file', icon: 'camera-outline', key: 'damage_photo' },
+      { label: 'Animal Responsible', type: 'select', options: ['Leopard', 'Tiger', 'Jackal', 'Sloth Bear', 'Wild Boar', 'Hyena', 'Spotted Deer', 'Sambar', 'Other'], key: 'animal_name' },
+      { label: 'Name of Victims/Owner', type: 'text', placeholder: 'Enter name', key: 'victim_name' },
+      { label: 'Village of Incident', type: 'text', placeholder: 'Enter village name', key: 'village' },
+      { label: 'Amount Claimed (₹)', type: 'number', placeholder: '0.00', key: 'amount_claimed' },
+      { label: 'Evidence Photo', type: 'file', icon: 'camera-outline', key: 'damage_photo' },
       { label: 'Remarks', type: 'textarea', key: 'remarks' }
     ],
 
