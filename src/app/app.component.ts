@@ -338,7 +338,9 @@ loadUserData() {
           }
         }
       },
-      error: (err) => console.warn("Failed to fetch dynamic role", err)
+      error: (err) => {
+        if (err.status !== 0) console.warn("Failed to fetch dynamic role", err.status);
+      }
     });
   }
   
@@ -385,9 +387,11 @@ loadUserData() {
           }
         },
         error: (err) => {
-          console.log("🔴 Profile sync failed or token invalid. HTTP Error:", err.status);
-          if (!this.companyName) {
-            this.companyName = `Company ID: ${parsedUser.company_id}`;
+          // Silent failure for timeouts or network errors
+          if (err.status !== 0) console.error("Profile sync failed. Error Code:", err.status);
+          
+          if (!this.companyName && parsedUser) {
+            this.companyName = parsedUser.company_name || `Company ID: ${parsedUser.company_id}`;
             this.cdr.detectChanges();
           }
         }

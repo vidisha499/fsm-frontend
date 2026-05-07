@@ -35,30 +35,33 @@ export class EventsFieldsPage implements OnInit {
 
 fieldsConfig: any = {
     'Illegal Felling': [
-      // { label: 'GPS Location', type: 'text', value: 'Locating...', readonly: true, icon: 'location-outline', id: 'gps' },
-      // { label: 'Assigned Beat', type: 'text', placeholder: 'Enter Beat Name', key: 'beat' },
+      { label: 'Photo', type: 'file', icon: 'camera-outline', key: 'photo' },
       { label: 'Species List', type: 'select', placeholder: 'Select Species', options: this.speciesOptions, key: 'species' },
-      { label: 'Quality', type: 'text', placeholder: 'e.g. Grade A, B', key: 'quality' },
-      { label: 'Girth (cm)', type: 'number', placeholder: '0', key: 'girth' },
-      { label: 'CUM (Volume)', type: 'number', placeholder: '0.00', key: 'volume' },
-      { label: 'Photo of Stump', type: 'file', icon: 'camera-outline', key: 'stump_photo' },
       { label: 'Reason for Felling', type: 'text', placeholder: 'Describe reason', key: 'reason' },
-      { label: 'Remarks', type: 'textarea', placeholder: 'Any additional notes', key: 'overall_remarks' },
-      { label: 'Action Taken', type: 'text', placeholder: 'Immediate action steps', key: 'action_taken' }
+      { label: 'No. of Trees', type: 'number', placeholder: '0', key: 'tree_count' },
+      { label: 'Total Volume (Cu.Mtr)', type: 'number', placeholder: '0.00', key: 'volume' },
+      { label: 'Action Taken / Remarks', type: 'textarea', placeholder: 'Immediate action steps', key: 'action_taken' },
+      { label: 'Overall Remarks', type: 'textarea', placeholder: 'Any additional notes', key: 'overall_remarks' }
     ],
 
     'Illegal Timber Transport': [
-      // { label: 'GPS Status', type: 'text', value: 'Fetching Address...', readonly: true, icon: 'location-outline', id: 'gps' },
-      // { label: 'Assigned Beat', type: 'text', placeholder: 'Enter Beat Name', key: 'beat' },
+      { label: 'Photo', type: 'file', icon: 'camera-outline', key: 'photo' },
       { label: 'Name of Forest Produce', type: 'text', placeholder: 'e.g. Teak Logs', key: 'produce_name' },
-      { label: 'Vehicle Type', type: 'text', placeholder: 'e.g. Truck', key: 'vehicle_type' },
+      { label: 'No. of Trees', type: 'number', placeholder: 'Enter tree count', key: 'tree_count' },
+      { label: 'Volume (Cub.Mtr)', type: 'number', placeholder: 'Enter volume', key: 'volume' },
+      { 
+        label: 'Vehicle Type', 
+        type: 'select', 
+        placeholder: 'Select Vehicle', 
+        icon: 'car-outline',
+        options: ['Truck', 'Tractor', 'Tempo', 'Bullock Cart', 'Two-wheeler', 'Other'],
+        key: 'vehicle_type'
+      },
       { label: 'Vehicle Number', type: 'text', placeholder: 'e.g. MP-04-AB-1234', key: 'vehicle_no' },
-      { label: 'Quantity', type: 'number', placeholder: 'Enter quantity', key: 'qty_final' },
       { label: 'Route Taken', type: 'text', placeholder: 'Enter route details', key: 'route' },
       { label: 'Name of Accused', type: 'text', placeholder: 'Enter name', key: 'accused_name' },
-      { label: 'Address of Accused', type: 'textarea', placeholder: 'Enter full address', key: 'accused_address' },
-      { label: 'Incident Photo', type: 'file', icon: 'camera-outline', key: 'photo' },
-      { label: 'Remarks', type: 'textarea', placeholder: 'Additional observations', key: 'remarks' }
+      { label: 'Address', type: 'textarea', placeholder: 'Enter full address', key: 'address' },
+      { label: 'Remark', type: 'textarea', placeholder: 'Additional observations', key: 'remarks' }
     ],
 
     'Illegal Timber Storage': [
@@ -74,22 +77,26 @@ fieldsConfig: any = {
     ],
 
     'Wild Animal Poaching': [
-      // { label: 'GPS Status', type: 'text', value: 'Fetching Address...', readonly: true, icon: 'location-outline', id: 'gps' },
-      // { label: 'Assigned Beat', type: 'text', placeholder: 'Enter Beat Name', key: 'beat' },
       { label: 'Species', type: 'select', placeholder: 'Select Animal', options: this.animalSpecies, key: 'species' },
-      { label: 'Cause of Death', type: 'text', placeholder: 'e.g. Trap', key: 'cause_death' },
-      { label: 'Carcass State', type: 'text', placeholder: 'e.g. Fresh', key: 'carcass_state' },
+      { label: 'Cause of Death', type: 'text', placeholder: 'e.g. Trap, Poisoning', key: 'cause_death' },
       { label: 'Gender', type: 'select', options: ['Male', 'Female', 'Unknown'], key: 'gender' },
       { label: 'Age Class', type: 'select', options: ['Adult', 'Sub-Adult', 'Juvenile', 'Unknown'], key: 'age_class' },
+      { 
+        label: 'Carcass State', 
+        type: 'select', 
+        options: ['Fresh', 'Partially decomposed', 'Highly decomposed', 'Skeletonized', 'Scavenged', 'Others'],
+        key: 'carcass_state'
+      },
       { label: 'Evidence Photo', type: 'file', icon: 'camera-outline', key: 'photos' },
-      { label: 'Remarks', type: 'textarea', key: 'notes' }
+      { label: 'Notes', type: 'textarea', placeholder: 'Enter additional observations', key: 'notes' }
     ],
 
     'Encroachment': [
-      // { label: 'GPS Status', type: 'text', value: 'Fetching Address...', readonly: true, icon: 'location-outline', id: 'gps' },
-      // { label: 'Assigned Beat', type: 'text', placeholder: 'Enter Beat Name', key: 'beat' },
       { label: 'Encroachment Type', type: 'select', options: ['Agriculture', 'Construction'], key: 'encroachment_type' },
       { label: 'Area (Hectare)', type: 'number', placeholder: 'e.g. 1.5', key: 'area_hectare' },
+      { label: 'Number of Encroachers', type: 'number', placeholder: 'Enter count', key: 'num_encroachers' },
+      { label: 'Name of Person/Occupant', type: 'text', placeholder: 'Enter name', key: 'occupant_name' },
+      { label: 'Phone Number of Person', type: 'text', placeholder: 'Enter phone', key: 'occupant_phone' },
       { label: 'Article Seized', type: 'select', options: ['Yes', 'No'], key: 'article_seized' },
       { label: 'Article Details', type: 'text', key: 'article_details', dependsOn: 'Article Seized', showIf: 'Yes' },
       { label: 'Site Photo', type: 'file', icon: 'camera-outline', key: 'photo' },
@@ -97,17 +104,15 @@ fieldsConfig: any = {
     ],
 
     'Illegal Mining': [
-      // { label: 'GPS Status', type: 'text', value: 'Fetching Address...', readonly: true, icon: 'location-outline', id: 'gps' },
-      // { label: 'Assigned Beat', type: 'text', placeholder: 'Enter Beat Name', key: 'beat' },
-      { label: 'Mineral Type', type: 'text', placeholder: 'e.g. Sand', key: 'mineral_type' },
-      { label: 'Estimated Volume (cu mtr)', type: 'number', key: 'volume_cum' },
+      { label: 'Mineral Type', type: 'select', options: ['Sand', 'Stone', 'Murrum', 'Others'], key: 'mineral_type' },
+      { label: 'Estimated Volume (Cub.Mtr)', type: 'number', placeholder: 'Enter volume', key: 'volume_cum' },
       { label: 'Vehicle Seized', type: 'select', options: ['Yes', 'No'], key: 'vehicle_seized' },
-      { label: 'Vehicle Seized Type', type: 'text', key: 'vehicle_seized_type', dependsOn: 'Vehicle Seized', showIf: 'Yes' },
-      { label: 'Mining Method', type: 'select', options: ['Manual', 'Mechanized'], key: 'mining_method' },
-      { label: 'Equipments Seen', type: 'text', key: 'equipment' },
-      { label: 'Action Taken', type: 'text', key: 'action_taken' },
-      { label: 'Mining Site Photo', type: 'file', icon: 'camera-outline', key: 'photo_ref' },
-      { label: 'Remarks', type: 'textarea', key: 'notes' }
+      { label: 'Seized Vehicle Type', type: 'select', options: ['Truck', 'Tractor', 'Tempo', 'Bullock Cart', 'Two-wheeler', 'Other'], key: 'seized_vehicle_type', dependsOn: 'Vehicle Seized', showIf: 'Yes' },
+      { label: 'Seized Vehicle Number', type: 'text', placeholder: 'Enter vehicle number', key: 'seized_vehicle_no', dependsOn: 'Vehicle Seized', showIf: 'Yes' },
+      { label: 'Action Taken / Remark', type: 'textarea', placeholder: 'Enter details', key: 'action_taken' },
+      { label: 'Site Photo', type: 'file', icon: 'camera-outline', key: 'photo' },
+      { label: 'Name of Accused', type: 'text', placeholder: 'Enter name', key: 'accused_name' },
+      { label: 'Address', type: 'textarea', placeholder: 'Enter address', key: 'accused_address' }
     ],
 
     'JFMC / Social Forestry': [
@@ -213,11 +218,9 @@ fieldsConfig: any = {
       
       if (!pid || pid === 'null' || pid === 'undefined') {
         pid = localStorage.getItem('active_patrol_id');
-        console.log("💾 [FALLBACK] Recovered ID from storage:", pid);
       }
 
       this.patrolId = pid;
-      console.log("🚀 [STRICT SYNC] EventsFields Patrol ID locked to:", this.patrolId);
     });
 
     if (category) {

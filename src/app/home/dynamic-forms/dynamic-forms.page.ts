@@ -39,24 +39,31 @@ export class DynamicFormsPage implements OnInit {
 
   defaultFormsRegistry: { [key: string]: any[] } = {
     'Illegal Felling': [
+      { label: 'Photo', type: 'file', key: 'photo', icon: 'camera-outline' },
       { label: 'Species List', type: 'select', options: [...this.speciesOptions], key: 'species', icon: 'list-outline' },
-      { label: 'Quality', type: 'text', placeholder: 'e.g. Grade A, B', key: 'quality', icon: 'shield-checkmark-outline' },
-      { label: 'Girth (cm)', type: 'number', placeholder: '0', key: 'girth', icon: 'resize-outline' },
-      { label: 'CUM (Volume)', type: 'number', placeholder: '0.00', key: 'volume', icon: 'cube-outline' },
-      { label: 'Photo of Stump', type: 'file', key: 'stump_photo', icon: 'camera-outline' },
       { label: 'Reason for Felling', type: 'text', key: 'reason', icon: 'help-circle-outline' },
-      { label: 'Remarks', type: 'textarea', key: 'overall_remarks', icon: 'document-text-outline' },
-      { label: 'Action Taken', type: 'text', key: 'action_taken', icon: 'checkmark-done-outline' }
+      { label: 'No. of Trees', type: 'number', placeholder: '0', key: 'tree_count', icon: 'calculator-outline' },
+      { label: 'Total Volume (Cu.Mtr)', type: 'number', placeholder: '0.00', key: 'volume', icon: 'cube-outline' },
+      { label: 'Action Taken / Remarks', type: 'textarea', key: 'action_taken', icon: 'checkmark-done-outline' },
+      { label: 'Overall Remarks', type: 'textarea', key: 'overall_remarks', icon: 'document-text-outline' }
     ],
     'Illegal Timber Transport': [
+      { label: 'Photo', type: 'file', key: 'photo', icon: 'camera-outline' },
       { label: 'Name of Forest Produce', type: 'text', key: 'produce_name', icon: 'leaf-outline' },
-      { label: 'Vehicle Type', type: 'text', key: 'vehicle_type', icon: 'bus-outline' },
+      { label: 'No. of Trees', type: 'number', key: 'tree_count', icon: 'list-outline' },
+      { label: 'Volume (Cub.Mtr)', type: 'number', key: 'volume', icon: 'cube-outline' },
+      { 
+        label: 'Vehicle Type', 
+        type: 'select', 
+        options: ['Truck', 'Tractor', 'Tempo', 'Bullock Cart', 'Two-wheeler', 'Other'],
+        key: 'vehicle_type', 
+        icon: 'bus-outline' 
+      },
       { label: 'Vehicle Number', type: 'text', key: 'vehicle_no', icon: 'card-outline' },
-      { label: 'Quantity', type: 'number', key: 'qty_final', icon: 'layers-outline' },
       { label: 'Route Taken', type: 'text', key: 'route', icon: 'trail-sign-outline' },
       { label: 'Name of Accused', type: 'text', key: 'accused_name', icon: 'person-outline' },
-      { label: 'Address of Accused', type: 'textarea', key: 'accused_address', icon: 'home-outline' },
-      { label: 'Incident Photo', type: 'file', key: 'photo', icon: 'camera-outline' }
+      { label: 'Address', type: 'textarea', key: 'address', icon: 'home-outline' },
+      { label: 'Remark', type: 'textarea', key: 'remark', icon: 'document-text-outline' }
     ],
     'Illegal Timber Storage': [
       { label: 'Species', type: 'select', options: [...this.speciesOptions], key: 'species', icon: 'list-outline' },
@@ -68,23 +75,45 @@ export class DynamicFormsPage implements OnInit {
     'Wild Animal Poaching': [
       { label: 'Species', type: 'select', options: [...this.animalSpecies], key: 'species', icon: 'paw-outline' },
       { label: 'Cause of Death', type: 'text', key: 'cause_death', icon: 'medkit-outline' },
-      { label: 'Carcass State', type: 'text', key: 'carcass_state', icon: 'flash-outline' },
       { label: 'Gender', type: 'select', options: ['Male', 'Female', 'Unknown'], key: 'gender', icon: 'transgender-outline' },
       { label: 'Age Class', type: 'select', options: ['Adult', 'Sub-Adult', 'Juvenile', 'Unknown'], key: 'age_class', icon: 'hourglass-outline' },
-      { label: 'Evidence Photo', type: 'file', key: 'photos', icon: 'camera-outline' }
+      { 
+        label: 'Carcass State', 
+        type: 'select', 
+        options: ['Fresh', 'Partially decomposed', 'Highly decomposed', 'Skeletonized', 'Scavenged', 'Others'],
+        key: 'carcass_state', 
+        icon: 'flash-outline' 
+      },
+      { label: 'Evidence Photo', type: 'file', key: 'photos', icon: 'camera-outline' },
+      { label: 'Notes', type: 'textarea', key: 'notes', icon: 'document-text-outline' }
     ],
     'Encroachment': [
       { label: 'Encroachment Type', type: 'select', options: ['Agriculture', 'Construction'], key: 'encroachment_type', icon: 'construct-outline' },
       { label: 'Area (Hectare)', type: 'number', key: 'area_hectare', icon: 'map-outline' },
+      { label: 'Number of Encroachers', type: 'number', key: 'num_encroachers', icon: 'people-outline' },
+      { label: 'Name of Person/Occupant', type: 'text', key: 'occupant_name', icon: 'person-outline' },
+      { label: 'Phone Number of Person', type: 'text', key: 'occupant_phone', icon: 'call-outline' },
       { label: 'Machinery Present', type: 'select', options: ['Yes', 'No'], key: 'machinery', icon: 'hardware-chip-outline' },
-      { label: 'Occupants/Persons Involved', type: 'text', key: 'occupants', icon: 'people-outline' },
       { label: 'Site Photo', type: 'file', key: 'photo', icon: 'camera-outline' }
     ],
     'Illegal Mining': [
-      { label: 'Mineral Type', type: 'text', key: 'mineral_type', icon: 'diamond-outline' },
-      { label: 'Estimated Volume (cu mtr)', type: 'number', key: 'volume_cum', icon: 'cube-outline' },
-      { label: 'Mining Method', type: 'select', options: ['Manual', 'Mechanized'], key: 'mining_method', icon: 'hammer-outline' },
-      { label: 'Action Taken', type: 'text', key: 'action_taken', icon: 'checkmark-done-outline' }
+      { label: 'Mineral Type', type: 'select', options: ['Sand', 'Stone', 'Murrum', 'Others'], key: 'mineral_type', icon: 'diamond-outline' },
+      { label: 'Estimated Volume (Cub.Mtr)', type: 'number', key: 'volume_cum', icon: 'cube-outline' },
+      { label: 'Vehicle Seized', type: 'select', options: ['Yes', 'No'], key: 'vehicle_seized', icon: 'bus-outline' },
+      { 
+        label: 'Seized Vehicle Type', 
+        type: 'select', 
+        options: ['Truck', 'Tractor', 'Tempo', 'Bullock Cart', 'Two-wheeler', 'Other'],
+        key: 'seized_vehicle_type', 
+        icon: 'car-outline', 
+        dependsOn: 'Vehicle Seized', 
+        showIf: 'Yes' 
+      },
+      { label: 'Seized Vehicle Number', type: 'text', key: 'seized_vehicle_no', icon: 'card-outline', dependsOn: 'Vehicle Seized', showIf: 'Yes' },
+      { label: 'Action Taken / Remark', type: 'textarea', key: 'action_taken', icon: 'checkmark-done-outline' },
+      { label: 'Site Photo', type: 'file', key: 'photo', icon: 'camera-outline' },
+      { label: 'Name of Accused', type: 'text', key: 'accused_name', icon: 'person-outline' },
+      { label: 'Address', type: 'textarea', key: 'accused_address', icon: 'home-outline' }
     ],
     'Wild Animal Sighting': [
         { label: 'Species', type: 'select', options: [...this.animalSpecies], key: 'species', icon: 'paw-outline' },

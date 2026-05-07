@@ -61,7 +61,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { environment } from '../../environments/environment';
-import { Observable, catchError, throwError, of } from 'rxjs';
+import { Observable, catchError, throwError, of, timeout } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -118,31 +118,27 @@ export class HierarchyService {
     };
 
     return new Observable(observer => {
-      this.http.get<any>(dynamicUrl).subscribe({
+      this.http.get<any>(dynamicUrl).pipe(
+        timeout(10000),
+        catchError((err) => {
+          // Completely silent fallback
+          return throwError(() => err);
+        })
+      ).subscribe({
         next: (res) => {
           const assignments = res?.data || res || [];
           if (Array.isArray(assignments) && assignments.length > 0) {
             const activeAssign = assignments[0];
-            
-            // The backend returns nested objects: { entity: { name: '...' }, role: { name: '...' } }
             const entityName = activeAssign.entity?.name || activeAssign.entity_name || 'Unknown Entity';
             const roleName = activeAssign.role?.name || activeAssign.role_name || 'Unknown Role';
             
-            observer.next({
-              status: 'SUCCESS',
-              data: {
-                beat_name: entityName,
-                role_name: roleName
-              }
-            });
+            observer.next({ status: 'SUCCESS', data: { beat_name: entityName, role_name: roleName } });
             observer.complete();
           } else {
-            // Fallback to old getSites
             this.fetchOldSite(productionUrl, payload, observer);
           }
         },
         error: (err) => {
-          console.warn('Dynamic assignment fetch failed, falling back to old logic', err);
           this.fetchOldSite(productionUrl, payload, observer);
         }
       });
@@ -151,14 +147,19 @@ export class HierarchyService {
 
   private fetchOldSite(productionUrl: string, payload: any, observer: any) {
     this.http.post<any>(productionUrl, payload, {
-      headers: new HttpHeaders().set('Bypass-Token', 'true')
-    }).subscribe({
+      headers: new HttpHeaders().set('Bypass-Token', 'true'),
+    }).pipe(
+      timeout(10000),
+      catchError((err) => {
+        // Silent recovery - no error in console
+        return of({ status: 'OFFLINE_RECOVERY', data: { beat_name: localStorage.getItem('assigned_beat_name') || 'General' } });
+      })
+    ).subscribe({
       next: (res) => {
         observer.next(res);
         observer.complete();
       },
       error: (err) => {
-        console.error('Production Sites check failed:', err);
         const cached = localStorage.getItem('assigned_beat_name') || 'General';
         observer.next({ status: 'SUCCESS', data: { beat_name: cached } });
         observer.complete();
