@@ -119,6 +119,8 @@ export class DynamicFormsPage implements OnInit {
         { label: 'Species', type: 'select', options: [...this.animalSpecies], key: 'species', icon: 'paw-outline' },
         { label: 'Sighting Type', type: 'select', options: ['Direct', 'Indirect'], key: 'sighting_type', icon: 'eye-outline' },
         { label: 'No. of Animals', type: 'number', key: 'num_animals', icon: 'calculator-outline' },
+        { label: 'No. of Males', type: 'number', key: 'num_males', icon: 'male-outline' },
+        { label: 'No. of Females', type: 'number', key: 'num_females', icon: 'female-outline' },
         { label: 'Evidence Type', type: 'select', options: ['Photo', 'Pugmark', 'Scratch', 'Scat', 'Body Part', 'Den', 'Other'], key: 'evidence_type', icon: 'search-outline' },
         { label: 'Upload Photo', type: 'file', key: 'photo_evidence', icon: 'camera-outline' },
         { label: 'Remarks', type: 'textarea', key: 'notes', icon: 'document-text-outline' }
