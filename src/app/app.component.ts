@@ -358,6 +358,7 @@ loadUserData() {
         next: (res: any) => {
           if (res.status === 'success' || res.status === 'SUCCESS' || res.data) {
             const data = res.data || res;
+            console.log("DEBUG: Raw Profile Data from API:", data);
             // Sync all vital details from DB to LocalStorage
             parsedUser.name = data.name || parsedUser.name;
             parsedUser.phone = data.contact || data.mobile || data.phone || parsedUser.phone;
@@ -371,18 +372,16 @@ loadUserData() {
               }
             }
             
-            // Update LocalStorage objects
-            localStorage.setItem('user_data', JSON.stringify(parsedUser));
-            localStorage.setItem('ranger_username', parsedUser.name);
-            localStorage.setItem('ranger_phone', parsedUser.phone);
-            
-            console.log("🟢 Step 4: Profile synced! FINAL user_data saved in app:", parsedUser);
-            
-            // Update UI properties
-            this.companyName = parsedUser.company_name;
-            this.rangerName = parsedUser.name;
-            this.rangerPhone = parsedUser.phone;
-            
+            // 🖼️ SYNC PROFILE PHOTO
+            const rawPhoto = data.profile_pic || data.photo || data.image || data.profile_image || data.avatar || data.profilePic || data.user_photo;
+            if (rawPhoto && rawPhoto !== 'null') {
+              this.userPhoto = this.getPhotoUrl(rawPhoto);
+              localStorage.setItem('user_photo', this.userPhoto);
+            } else {
+              // Fallback to what we have in storage or null
+              this.userPhoto = localStorage.getItem('user_photo') || '';
+            }
+
             this.cdr.detectChanges();
           }
         },
@@ -739,4 +738,44 @@ async goToPage(path: string) {
     this.cdr.detectChanges();
   }
 
+  getPhotoUrl(photoPath: any): string {
+    if (!photoPath || photoPath === 'null' || photoPath === 'undefined') return '';
+    
+    let url = '';
+    if (typeof photoPath === 'string') {
+      url = photoPath.trim();
+      if (url.startsWith('[') || url.startsWith('"{')) {
+        try {
+          const parsed = JSON.parse(url.replace(/^"|"$/g, '').replace(/\\"/g, '"'));
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            url = parsed[0].photo || parsed[0].url || parsed[0].path || parsed[0] || '';
+          } else if (typeof parsed === 'object' && parsed !== null) {
+            url = parsed.photo || parsed.url || parsed.path || '';
+          }
+        } catch (e) {
+          console.warn('Failed to parse photo JSON:', url);
+        }
+      }
+    } else if (typeof photoPath === 'object' && photoPath !== null) {
+      url = photoPath.photo || photoPath.url || photoPath.path || '';
+    }
+
+    if (!url || typeof url !== 'string' || url.length < 5) return '';
+
+    if (url.includes('fms.pugarch.in/profilepics/') && !url.includes('/public/')) {
+        url = url.replace('fms.pugarch.in/profilepics/', 'fms.pugarch.in/public/profilepics/');
+    }
+
+    if (url.startsWith('http')) return url;
+    if (url.startsWith('data:')) return url;
+    
+    const cleaned = url.replace(/^\/+/, '');
+    if (cleaned.includes('fms.pugarch.in')) {
+      return `https://${cleaned.replace('https://', '').replace('http://', '')}`;
+    }
+    if (cleaned.includes('/')) {
+      return `https://fms.pugarch.in/public/${cleaned}`;
+    }
+    return `https://fms.pugarch.in/public/profilepics/${cleaned}`;
+  }
 }

@@ -34,6 +34,7 @@ export class AddUserPage implements OnInit {
   allBeats: any[] = [];
   filteredBeats: any[] = [];
   isSaving: boolean = false;
+  showBeatSuggestions: boolean = false;
 
   constructor(
     private navCtrl: NavController,
@@ -113,6 +114,17 @@ export class AddUserPage implements OnInit {
     } else {
       this.filteredBeats = this.allBeats.filter(b => b.parentName === this.userData.range);
     }
+  }
+
+  selectBeat(name: string) {
+    this.userData.beat = name;
+    this.showBeatSuggestions = false;
+  }
+
+  hideSuggestionsWithDelay() {
+    setTimeout(() => {
+      this.showBeatSuggestions = false;
+    }, 200);
   }
 
   async saveUser() {

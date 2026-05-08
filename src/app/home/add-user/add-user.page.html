@@ -101,14 +101,25 @@
             </div>
           </div>
 
-          <div class="input-pill">
+          <div class="input-pill" style="position: relative;">
             <label>DESIGNATION (BEAT)</label>
             <div class="pill-content">
               <i class="fas fa-briefcase"></i>
-              <input [(ngModel)]="userData.beat" type="text" list="beatList" placeholder="Search Beat or Type Designation">
-              <datalist id="beatList">
-                <option *ngFor="let b of filteredBeats" [value]="b.name"></option>
-              </datalist>
+              <input [(ngModel)]="userData.beat" 
+                     type="text" 
+                     placeholder="Search Beat or Type Designation"
+                     (focus)="showBeatSuggestions = true"
+                     (blur)="hideSuggestionsWithDelay()">
+              
+              <!-- Custom Premium Suggestion List -->
+              <div class="custom-suggestion-list" *ngIf="showBeatSuggestions && filteredBeats.length > 0">
+                <div class="suggestion-item" 
+                     *ngFor="let b of filteredBeats" 
+                     (mousedown)="selectBeat(b.name)">
+                  <i class="fas fa-map-marker-alt"></i>
+                  <span>{{ b.name }}</span>
+                </div>
+              </div>
             </div>
           </div>
         </ng-container>
