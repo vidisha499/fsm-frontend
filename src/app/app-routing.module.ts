@@ -184,6 +184,10 @@ loadChildren:() => import('./home/reports/reports.module').then( m => m.ReportsP
   {
     path: 'notifications',
     loadChildren: () => import('./home/notifications/notifications.module').then(m => m.NotificationsPageModule)
+  },
+  {
+    path: 'add-user',
+    loadChildren: () => import('./home/add-user/add-user.module').then(m => m.AddUserPageModule)
   }
 ];
 

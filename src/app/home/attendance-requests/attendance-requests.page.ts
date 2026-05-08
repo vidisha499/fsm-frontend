@@ -167,36 +167,39 @@ export class AttendanceRequestsPage implements OnInit {
             if (firstArray) sortedData = firstArray;
           }
         }
+        // 🔍 DEBUG: Print all statuses to see what backend returns
+        console.log('🔍 All record statuses:', sortedData.map((r: any) => ({ id: r.id, status: r.status, type: typeof r.status })));
         
-        this.pendingRequests = sortedData.filter((req: any) => {
-          const status = (req.status || '').toLowerCase();
-          const remark = (req.remark || '').toLowerCase();
-          
-          // 1. Show all pending or requested items
-          if (status === 'pending' || status === 'requested' || status === '' || status === 'success') {
-            return true;
-          }
+        // Show ALL requests - admin should see everything
+        // 1. No Filter - Show everything from API
+        const filtered = sortedData;
+        console.log("🔍 After Filter (No Filter):", filtered.length);
 
-          // 2. Auto-approved requests stay in the list (so admin can still Reject them if needed)
-          // 3. Manually approved requests (remark: 'onsite attendance') will now disappear from this list
-          if (status === 'approved') {
-            return remark !== 'onsite attendance'; 
+        // 2. Map Step
+        const mapped = filtered.map((req: any) => {
+          const raw = String(req.status || 'pending').toLowerCase().trim();
+          if (raw === 'approved') {
+            req.status = 'approved';
+          } else if (raw === 'rejected' || raw === '0') {
+            req.status = 'rejected';
+          } else {
+            req.status = 'pending';
           }
-
-          return false;
-        }).map((req: any) => {
-          // --- 📍 DIRECT DATABASE MAPPING ---
-          // Just ensure it's lowercase for our UI checks
-          req.status = (req.status || 'pending').toLowerCase();
           
-          req.displayName = req.guard_name || 'Officer';
-          req.displayLocation = req.location || 'Current Location';
-          req.displayTime = req.time || 'N/A';
-          req.pipeDate = req.entryDateTime || req.timestamp || req.date; 
+          req.displayName = req.guard_name || req.name || 'Officer';
+          req.displayLocation = this.parseLocation(req.location) || 'Current Location';
+          req.displayTime = req.time || req.entry_time || 'N/A';
+          req.pipeDate = req.entryDateTime || req.timestamp || req.date || new Date().toISOString(); 
 
           return req;
-        }).sort((a: any, b: any) => {
-          return new Date(b.pipeDate).getTime() - new Date(a.pipeDate).getTime();
+        });
+        console.log("🔍 After Map:", mapped.length);
+
+        // 3. Sort Step
+        this.pendingRequests = mapped.sort((a: any, b: any) => {
+          const timeA = new Date(a.pipeDate).getTime() || 0;
+          const timeB = new Date(b.pipeDate).getTime() || 0;
+          return timeB - timeA;
         });
 
         console.log("2. Total Pending Requests:", this.pendingRequests.length);
@@ -260,5 +263,16 @@ export class AttendanceRequestsPage implements OnInit {
   async presentToast(message: string, color: string) {
     const toast = await this.toastCtrl.create({ message, duration: 2000, color });
     toast.present();
+  }
+
+  private parseLocation(loc: any): string {
+    if (!loc) return '';
+    if (typeof loc !== 'string') return String(loc);
+    try {
+      const parsed = JSON.parse(loc);
+      return parsed.name || parsed.address || `${parsed.lat}, ${parsed.lng}`;
+    } catch (e) {
+      return loc;
+    }
   }
 }

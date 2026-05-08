@@ -30,6 +30,16 @@ passwordIcon: string = 'eye-off'; // Ionic default icon name
 
 confirmPasswordType: string = 'password';
 confirmPasswordIcon: string = 'eye-off';
+
+range: string = '';
+beat: string = '';
+gender: string = '';
+shift: string = '';
+weeklyOff: string = '';
+ranges: any[] = [];
+allBeats: any[] = [];
+filteredBeats: any[] = [];
+
   constructor(
     private route: ActivatedRoute,
     private http: HttpClient,
@@ -85,15 +95,76 @@ ngOnInit() {
 
       this.mobile = data.mobile || '';
       const fullName = data.name || '';
+      this.range = data.range || '';
+      this.beat = data.beat || '';
 
       if (fullName.trim()) {
         const nameParts = fullName.trim().split(/\s+/);
         this.firstName = nameParts[0];
         this.lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
       }
+
+      this.loadHierarchy(data.company_id || 1);
     }
   });
 }
+
+  loadHierarchy(companyId: any) {
+    // We use the Public Hierarchy (GET) which doesn't need a token
+    this.dataService.getPublicHierarchy(companyId).subscribe({
+      next: (res: any) => {
+        this.ranges = res.ranges || [];
+        this.allBeats = res.beats || [];
+        
+        // Anti-Null Fallback: If lists are empty or missing the pre-assigned value, add it manually
+        if (this.verifiedData.range && !this.ranges.find(r => (r.name || r) === this.verifiedData.range)) {
+          this.ranges.push({ id: 0, name: this.verifiedData.range });
+        }
+
+        // Smart Auto-Detect: If Range is null but Beat exists, find Range from hierarchy
+        if (!this.range && this.verifiedData.beat) {
+          const foundBeat = this.allBeats.find(b => b.name === this.verifiedData.beat);
+          if (foundBeat && foundBeat.parentName) {
+            console.log('🧠 Smart Detect: Found Range from Beat:', foundBeat.parentName);
+            this.range = foundBeat.parentName;
+            this.onRangeChange();
+          }
+        }
+
+        // After loading, ensure the autofilled values are preserved
+        if (this.verifiedData.range) {
+          this.range = this.verifiedData.range;
+          this.onRangeChange(); 
+        }
+
+        if (this.verifiedData.beat) {
+          // If the beat is not in the filtered list, add it as a manual option
+          if (!this.filteredBeats.find(b => b.name === this.verifiedData.beat)) {
+            this.filteredBeats.push({ name: this.verifiedData.beat, parentName: this.range });
+          }
+          this.beat = this.verifiedData.beat;
+        }
+      },
+      error: (err) => {
+        console.error('Public Hierarchy fetch failed, using fallbacks', err);
+        // Even if it fails, we keep the verified data
+        if (this.verifiedData.range) {
+          this.ranges = [{ id: 0, name: this.verifiedData.range }];
+          this.range = this.verifiedData.range;
+          this.onRangeChange();
+        }
+        if (this.verifiedData.beat) {
+          this.filteredBeats = [{ name: this.verifiedData.beat, parentName: this.range }];
+          this.beat = this.verifiedData.beat;
+        }
+      }
+    });
+  }
+
+onRangeChange() {
+  this.filteredBeats = this.allBeats.filter(b => b.parentName === this.range);
+}
+
 
   togglePassword(field: string) {
   if (field === 'pw') {
@@ -163,6 +234,13 @@ ngOnInit() {
     formData.append('email', this.email);
     formData.append('password', this.password);
     formData.append('dob', this.dob);
+    formData.append('range', this.range);
+    formData.append('beat', this.beat);
+    formData.append('gender', this.gender);
+    formData.append('address', this.address);
+    formData.append('shift_name', this.shift);
+    formData.append('weekly_off', this.weeklyOff);
+
     
     // Role and Company IDs
     const roleId = this.verifiedData?.role_id || this.verifiedData?.roleId || 4;
@@ -177,10 +255,11 @@ ngOnInit() {
       formData.append('profile_pic', this.profileImage);
     }
 
-    console.log("Final Registration Request to /addRegistration");
+    console.log("Final Registration Request to /addUser (Signup)");
 
-    // 3. API Call via DataService
-    this.dataService.addRegistration(formData).subscribe({
+    // 3. API Call via DataService - Using addUser for final signup to generate gen_id
+    this.dataService.addUser(formData).subscribe({
+
       next: async (response: any) => {
         await loader.dismiss();
         

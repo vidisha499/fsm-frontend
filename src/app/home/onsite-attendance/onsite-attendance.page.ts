@@ -272,6 +272,9 @@ async captureImage(source: CameraSource) {
 
   // --- Submission & Slider ---
 async submit() {
+  // Guard: Block duplicate submissions
+  if (this.isSubmitting) return;
+
   if (!this.capturedPhoto) {
     const msg = await firstValueFrom(this.translate.get('ATTENDANCE.PHOTO_REQUIRED'));
     this.presentToast(msg, 'warning');
@@ -290,46 +293,32 @@ async submit() {
   const datetime = now.toTimeString().split(' ')[0]; // HH:mm:ss
   
    // --- FINAL POSTMAN-COMPLIANT PAYLOAD ---
+  // --- FINAL POSTMAN-COMPLIANT PAYLOAD MATCHING SIR'S SCREENSHOT ---
   const formData = new FormData();
-  formData.append('entry', datetime);
-  formData.append('name', localStorage.getItem('ranger_username') || 'Ranger');
-  formData.append('date', fdate);
-  formData.append('applicant_id', localStorage.getItem('ranger_id') || '');
   formData.append('api_token', token || '');
-  formData.append('remark', this.onsiteRemark || 'Onsite Attendance');
-  formData.append('applicant_name', localStorage.getItem('ranger_username') || 'Ranger');
-  formData.append('company_id', localStorage.getItem('company_id') || '');
+  formData.append('entry', datetime);
+  formData.append('date', fdate);
   formData.append('photo', this.capturedPhoto);
-  // --- VALID SITE ID FOR APPROVAL FLOW ---
-  // requestEntryAttendance strict validation requires a real site ID. 
-  // We use the assigned site ID or '1' as a fallback. If backend still says 'No site detected', 
-  // the backend developer MUST allow attendance_type='ONSITE' to bypass site validation in requestEntryAttendance.
-  const validSiteId = this.assignedSiteId !== '0' ? this.assignedSiteId : '1';
-  // We have completely removed geo_id and site_id to see if the backend 
-  // will accept the ONSITE request without checking geofence validation.
-  // formData.append('geo_id', validSiteId); 
-  // formData.append('site_id', validSiteId); 
-  // formData.append('id', validSiteId); 
   
+  const locationObj = {
+    lat: this.currentLat,
+    lng: this.currentLng,
+    name: this.currentAddress || 'Onsite Location'
+  };
+  formData.append('location', JSON.stringify(locationObj));
+  
+  formData.append('geo_id', this.assignedSiteId || '0');
+  formData.append('site_id', this.assignedSiteId || '0');
   formData.append('geo_name', '[Onsite] ' + (this.currentAddress || 'Location'));
-  formData.append('site_name', 'Onsite');
-  formData.append('applicant_role_id', localStorage.getItem('user_role') || '3');
-  formData.append('attendance_type', 'ONSITE');
-  
-  // 🔥 Restoring geo_id and site_id to resolve 'No site detected'
-  // Using '1' and 'onsite' as identifiers that should bypass geofencing on the backend
-  formData.append('geo_id', '1'); 
-  formData.append('site_id', 'onsite'); 
-  
-  // 🔥 Reverting 'type' to Entry/Exit while keeping the location string in 'location'
-  // If Sir insists on 'type' being location, we will revert, but 'No site detected' 
-  // is usually a missing site_id/geo_id issue.
-  const addressString = this.currentAddress || 'Onsite Location';
-  // 🔥 UPDATED: Sir specifically requested to send the literal string "location" in the 'type' parameter
   formData.append('type', 'location'); 
-  formData.append('location', addressString); 
-  formData.append('status', 'Pending'); // Force pending state for approval workflow
+  formData.append('remark', this.onsiteRemark || 'Onsite Attendance');
+  
+  // Extra fields for Forest backend
+  formData.append('name', localStorage.getItem('ranger_username') || 'Ranger');
+  formData.append('applicant_id', localStorage.getItem('ranger_id') || '');
+  formData.append('company_id', localStorage.getItem('company_id') || '');
   formData.append('attendance_type', 'ONSITE');
+  formData.append('status', 'Pending'); 
 
   if (!this.dataService.isOnline()) {
     const offlineData = {

@@ -200,24 +200,29 @@ async loadAttendanceLogs() {
       import('rxjs').then(({ forkJoin }) => {
         forkJoin([logsObs, reqsObs]).subscribe({
           next: ([logsRes, reqsRes]: [any, any]) => {
-            let approvedLogs = this.extractLogsArray(logsRes);
-            let pendingReqs = this.extractLogsArray(reqsRes);
+            try {
+              let approvedLogs = this.extractLogsArray(logsRes);
+              let pendingReqs = this.extractLogsArray(reqsRes);
 
-            // Mark status and normalize fields
-            approvedLogs = approvedLogs.map((l: any) => ({ ...l, status: 'approved' }));
-            
-            pendingReqs = pendingReqs.filter((r: any) => {
-              const rId = String(r.guard_id || r.user_id || r.ranger_id || r.rangerId || '');
-              return rId === rangerId;
-            }).map((r: any) => {
-              const rawStatus = String(r.status || 'pending').toLowerCase();
-              return { ...r, status: rawStatus, isRequest: true };
-            });
+              // Mark status and normalize fields
+              approvedLogs = approvedLogs.map((l: any) => ({ ...l, status: String(l.status || 'pending').toLowerCase() }));
+              
+              pendingReqs = pendingReqs.filter((r: any) => {
+                const rId = String(r.guard_id || r.user_id || r.ranger_id || r.rangerId || '');
+                return rId === rangerId;
+              }).map((r: any) => {
+                const rawStatus = String(r.status || 'pending').toLowerCase();
+                return { ...r, status: rawStatus, isRequest: true };
+              });
 
-            console.log(`✅ Loaded ${approvedLogs.length} approved and ${pendingReqs.length} pending logs.`);
+              console.log(`✅ Loaded ${approvedLogs.length} approved and ${pendingReqs.length} pending logs.`);
 
-            const combined = [...pendingReqs, ...approvedLogs];
-            this.processLogsResponse(combined, loader);
+              const combined = [...pendingReqs, ...approvedLogs];
+              this.processLogsResponse(combined, loader);
+            } catch (e) {
+              console.error('❌ Error processing onsite logs:', e);
+              loader.dismiss();
+            }
           },
           error: (err) => this.handleError(err, loader)
         });
@@ -231,6 +236,17 @@ async loadAttendanceLogs() {
   if (res && Array.isArray(res.attendance)) return res.attendance;
   if (res && res.data && Array.isArray(res.data.attendance)) return res.data.attendance;
   return [];
+}
+
+private parseLocation(loc: any): string {
+  if (!loc) return 'Onsite';
+  if (typeof loc !== 'string') return String(loc);
+  try {
+    const parsed = JSON.parse(loc);
+    return parsed.name || parsed.address || `${parsed.lat}, ${parsed.lng}`;
+  } catch (e) {
+    return loc;
+  }
 }
 
 private processLogsResponse(res: any, loader: any) {
@@ -262,21 +278,48 @@ private processLogsResponse(res: any, loader: any) {
                      (log.site_name && String(log.site_name).toLowerCase().includes('onsite')) ||
                      (log.geo_name && String(log.geo_name).toLowerCase().includes('[onsite]'));
 
-    return {
-      ...log,
-      createdAt: formattedDate,
-      geofence: isOnsite ? (log.location || log.address || log.geo_name || log.geofence || 'Onsite') : (log.geo_name || log.geofence || 'General Area'),
-      rangerName: log.name || log.rangerName || log.guard_name || 'Ranger',
-      status: String(log.status || (this.selectedMode === 'beat' ? 'completed' : 'approved')).toLowerCase()
-    };
+      // 🔍 DEBUG: See exactly what backend sent
+      console.log(`Log [${formattedDate}]: Backend Status = "${log.status}"`);
+
+      // Map backend statuses to readable strings
+      // "1" = active/exists (NOT approved), only "approved" = approved
+      const statusStr = String(log.status || '').toLowerCase().trim();
+      let mappedStatus = 'pending';
+      let statusLabel = 'PENDING';
+      if (statusStr === 'approved') {
+        mappedStatus = 'approved';
+        statusLabel = 'APPROVED';
+      } else if (statusStr === '0' || statusStr === 'rejected') {
+        mappedStatus = 'rejected';
+        statusLabel = 'REJECTED';
+      } else {
+        // "1", "pending", "requested", "" — all mean pending
+        mappedStatus = 'pending';
+        statusLabel = 'PENDING';
+      }
+
+      return {
+        ...log,
+        createdAt: formattedDate,
+        geofence: isOnsite ? this.parseLocation(log.location || log.address || log.geo_name || log.geofence || 'Onsite') : (log.geo_name || log.geofence || 'General Area'),
+        rangerName: log.name || log.rangerName || log.guard_name || 'Ranger',
+        status: mappedStatus,
+        statusLabel: statusLabel
+      };
   });
 
   // Merge Offline Drafts
   const drafts = this.dataService.getAttendanceDrafts(this.selectedMode);
   this.allLogs = [...drafts, ...fetchedLogs];
 
+  console.log('📊 Total fetched logs:', fetchedLogs.length, '| Mode:', this.selectedMode);
+  if (fetchedLogs.length > 0) {
+    console.log('📋 Sample log:', JSON.stringify(fetchedLogs[0]));
+  }
+
   // Filter logic
   const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+  console.log('📅 Today string:', todayStr);
   this.attendanceLogs = this.allLogs.filter(log => {
     // 1. Determine Mode (Onsite vs Beat)
     const isOnsite = log.isRequest || 

@@ -60,6 +60,88 @@
         </div>
 
         <div class="input-pill">
+          <label>GENDER*</label>
+          <div class="pill-content">
+            <i class="fas fa-venus-mars"></i>
+            <select [(ngModel)]="gender" style="border: none; background: transparent; width: 100%; font-weight: 700; color: var(--dark-slate); outline: none; font-size: 14px;">
+              <option value="">Select Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="input-pill">
+          <label>RESIDENTIAL ADDRESS*</label>
+          <div class="pill-content">
+            <i class="fas fa-home"></i>
+            <textarea [(ngModel)]="address" placeholder="Residential Address" style="border: none; background: transparent; width: 100%; font-weight: 700; color: var(--dark-slate); outline: none; font-size: 14px; min-height: 60px;"></textarea>
+          </div>
+        </div>
+
+        <div class="section-divider">
+          <span>ASSIGNMENT</span>
+        </div>
+
+        <div class="input-pill">
+          <label>CLIENT / RANGE*</label>
+          <div class="pill-content">
+            <i class="fas fa-map-marked-alt"></i>
+            <select [(ngModel)]="range" (change)="onRangeChange()" style="border: none; background: transparent; width: 100%; font-weight: 700; color: var(--dark-slate); outline: none; font-size: 14px;">
+              <option value="">Select Range</option>
+              <option *ngFor="let r of ranges" [value]="r.name || r">{{ r.name || r }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="input-pill">
+          <label>SITE / BEAT*</label>
+          <div class="pill-content">
+            <i class="fas fa-draw-polygon"></i>
+            <select [(ngModel)]="beat" style="border: none; background: transparent; width: 100%; font-weight: 700; color: var(--dark-slate); outline: none; font-size: 14px;">
+              <option value="">Select Beat</option>
+              <option *ngFor="let b of filteredBeats" [value]="b.name">{{ b.name }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="input-pill">
+          <label>SHIFT*</label>
+          <div class="pill-content">
+            <i class="fas fa-clock"></i>
+            <select [(ngModel)]="shift" style="border: none; background: transparent; width: 100%; font-weight: 700; color: var(--dark-slate); outline: none; font-size: 14px;">
+              <option value="">Select Shift</option>
+              <option value="General shift (12:00 am - 11:57 pm)">General shift (12:00 am - 11:57 pm)</option>
+              <option value="Morning shift (06:00 am - 02:00 pm)">Morning shift (06:00 am - 02:00 pm)</option>
+              <option value="Afternoon shift (02:00 pm - 10:00 pm)">Afternoon shift (02:00 pm - 10:00 pm)</option>
+              <option value="Night shift (10:00 pm - 06:00 am)">Night shift (10:00 pm - 06:00 am)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="input-pill">
+          <label>WEEKLY OFF*</label>
+          <div class="pill-content">
+            <i class="fas fa-calendar-day"></i>
+            <select [(ngModel)]="weeklyOff" style="border: none; background: transparent; width: 100%; font-weight: 700; color: var(--dark-slate); outline: none; font-size: 14px;">
+              <option value="">Select Weekly Off</option>
+              <option value="Sunday">Sunday</option>
+              <option value="Monday">Monday</option>
+              <option value="Tuesday">Tuesday</option>
+              <option value="Wednesday">Wednesday</option>
+              <option value="Thursday">Thursday</option>
+              <option value="Friday">Friday</option>
+              <option value="Saturday">Saturday</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="section-divider">
+          <span>SECURITY</span>
+        </div>
+
+        <div class="input-pill">
           <label>DATE OF BIRTH</label>
           <div class="pill-content">
             <i class="fas fa-calendar-alt"></i>

@@ -64,10 +64,20 @@ export class AuthInterceptor implements HttpInterceptor {
     return nextObs.pipe(
       catchError((error: HttpErrorResponse) => {
         if (error.status === 401) {
-          console.error("🔴 Step 5 (Auth Trap): 401 Unauthorized received! Token is expired or invalid.");
-          console.error("🔴 Step 6 (Logout): Clearing localStorage and forcing redirect to /login...");
-          localStorage.clear();
-          this.router.navigate(['/login']);
+          const isPublicUrl = error.url?.includes('verifyUser') || 
+                              error.url?.includes('addUser') || 
+                              error.url?.includes('ranges') || 
+                              error.url?.includes('beats') || 
+                              error.url?.includes('getSites');
+
+          if (!isPublicUrl) {
+            console.error("🔴 Step 5 (Auth Trap): 401 Unauthorized received! Token is expired or invalid.");
+            console.error("🔴 Step 6 (Logout): Clearing localStorage and forcing redirect to /login...");
+            localStorage.clear();
+            this.router.navigate(['/login']);
+          } else {
+            console.warn("🟡 401 received for public/signup URL. Ignoring logout trap.");
+          }
         }
         return throwError(() => error);
       })

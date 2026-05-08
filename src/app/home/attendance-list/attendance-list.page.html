@@ -68,8 +68,9 @@
               <span *ngIf="selectedMode === 'onsite' && !log.isOffline" 
                     class="status-badge" 
                     [class.status-approved]="log.status === 'approved'"
-                    [class.status-pending]="log.status !== 'approved'">
-                {{ (log.status !== null && log.status !== undefined ? log.status.toString() : 'pending') | uppercase }}
+                    [class.status-pending]="log.status === 'pending' || log.status === 'requested'"
+                    [class.status-rejected]="log.status === 'rejected'">
+                {{ log.statusLabel || 'PENDING' }}
               </span>
               <span *ngIf="log.isOffline" class="status-badge status-offline">
                 OFFLINE

@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { environment } from '../environments/environment';
-import { Observable, of, Subject } from 'rxjs';
+import { Observable, of, Subject, forkJoin } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
@@ -798,6 +798,26 @@ export class DataService {
   deleteGeofenceMultiGuard(payload: any) { return this.http.post(`${this.baseApiUrl}/deleteGeofenceMultiGuard`, payload); }
   getClientSites(payload: any) { return this.http.post(`${this.baseApiUrl}/getClientSites`, payload); }
   getSites(payload: any) { return this.http.post(`${this.baseApiUrl}/getSites`, payload); }
+
+  getPublicHierarchy(companyId: any): Observable<{ranges: any[], beats: any[]}> {
+    const headers = { 'Bypass-Token': 'true' };
+    return this.http.post(`${this.baseApiUrl}/getSites`, { company_id: companyId }, { headers }).pipe(
+      map((res: any) => {
+        const data = res?.data || res || [];
+        const sites = Array.isArray(data) ? data : [];
+        const rangeSet = new Set<string>();
+        const beatArray: any[] = [];
+        sites.forEach((s: any) => {
+          const rName = s.client_name || s.range_name || s.range || s.division_name || s.division || 'General Range';
+          const bName = s.name || s.beat_name || s.beat || s.site_name || s.site;
+          if (rName) rangeSet.add(rName);
+          if (bName) beatArray.push({ name: bName, parentName: rName });
+        });
+        return { ranges: Array.from(rangeSet).sort(), beats: beatArray };
+      }),
+      catchError(() => of({ ranges: [], beats: [] }))
+    );
+  }
 
   getHierarchyForFilters(companyId: string): Observable<{ranges: string[], beats: any[]}> {
     const apiToken = localStorage.getItem('api_token') || '';

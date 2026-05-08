@@ -88,7 +88,9 @@ export class EnrollPage implements OnInit {
 
     const payload = { 
       phone: this.ranger.phone,
-      mobile: this.ranger.phone
+      mobile: this.ranger.phone,
+      phoneNo: this.ranger.phone,
+      contact: this.ranger.phone
     }; 
     const verifyUrl = `${environment.apiUrl}/verifyUser`;
 
@@ -98,14 +100,22 @@ export class EnrollPage implements OnInit {
         
         // Sir's API always returns HTTP 200, so we MUST check the inner 'status' string
         if (res.status === 'SUCCESS' || res.status === 'success') {
-          // Exists in approved list and not yet registered
           const data = res.data || res;
+          const u = data.user || data.details || data;
+          
+          console.log('🔍 FULL VERIFY OBJECT:', JSON.stringify(u));
+          console.log('🔑 AVAILABLE KEYS:', Object.keys(u));
+          
           this.verifiedData = {
-            name: data.name,
-            mobile: data.contact || data.mobile || data.phone,
-            role_id: data.role_id || data.roleId || 4,
-            company_id: data.company_id 
+            name: u.firstName ? `${u.firstName} ${u.lastName || ''}`.trim() : (u.name || u.full_name || u.user_name || 'User'),
+            mobile: u.contact || u.mobile || u.phone || u.phoneNo || this.ranger.phone,
+            role_id: u.role_id || u.roleId || 4,
+            company_id: u.company_id || u.companyId,
+            range: u.range || u.division || u.address || u.department || u.client_name || u.block || null,
+            beat: u.site_name || u.beat || u.beat_name || u.designation || null
           };
+          console.log("DEBUG: Final Extracted Data:", this.verifiedData);
+
           
           this.isVerified = true;
 
