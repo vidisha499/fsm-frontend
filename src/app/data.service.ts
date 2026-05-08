@@ -1294,18 +1294,22 @@ export class DataService {
     const token = localStorage.getItem('api_token') || '';
     return this.http.post(`${this.baseApiUrl}/org/entities/${entityId}`, { api_token: token, ...payload });
   }
+
   deleteOrgEntity(entityId: any) {
     const token = localStorage.getItem('api_token') || '';
     return this.http.delete(`${this.baseApiUrl}/org/entities/${entityId}`, { params: { api_token: token } });
   }
+
   getOrgTree() {
     const token = localStorage.getItem('api_token') || '';
     return this.http.get(`${this.baseApiUrl}/org/tree`, { params: { api_token: token } });
   }
+
   getNodeCoverage(entityId: any) {
     const token = localStorage.getItem('api_token') || '';
     return this.http.get(`${this.baseApiUrl}/org/coverage/${entityId}`, { params: { api_token: token } });
   }
+
   getRangersForEntity(entityId: any) {
     const token = localStorage.getItem('api_token') || '';
     return this.http.get(`${this.baseApiUrl}/org/rangers/${entityId}`, { params: { api_token: token } });
@@ -1316,14 +1320,21 @@ export class DataService {
     const token = localStorage.getItem('api_token') || '';
     return this.http.get(`${this.baseApiUrl}/roles`, { params: { api_token: token } });
   }
+
+  getRoleIdList() {
+    return this.http.get(`${this.baseApiUrl}/getRoleIdList`);
+  }
+
   createCustomRole(payload: any) {
     const token = localStorage.getItem('api_token') || '';
     return this.http.post(`${this.baseApiUrl}/roles`, { api_token: token, ...payload });
   }
+
   updateCustomRole(roleId: any, payload: any) {
     const token = localStorage.getItem('api_token') || '';
     return this.http.post(`${this.baseApiUrl}/roles/${roleId}`, { api_token: token, _method: 'PUT', ...payload });
   }
+
   deleteCustomRole(roleId: any) {
     const token = localStorage.getItem('api_token') || '';
     return this.http.delete(`${this.baseApiUrl}/roles/${roleId}`, { params: { api_token: token } });
@@ -1334,18 +1345,22 @@ export class DataService {
     const token = localStorage.getItem('api_token') || '';
     return this.http.post(`${this.baseApiUrl}/assignments/assign`, { api_token: token, ...payload });
   }
+
   unassignUser(payload: any) {
     const token = localStorage.getItem('api_token') || '';
     return this.http.post(`${this.baseApiUrl}/assignments/unassign`, { api_token: token, ...payload });
   }
+
   getNodeAssignments(entityId: any) {
     const token = localStorage.getItem('api_token') || '';
     return this.http.get(`${this.baseApiUrl}/assignments/node/${entityId}`, { params: { api_token: token } });
   }
+
   getUserAssignments(userId: any) {
     const token = localStorage.getItem('api_token') || '';
     return this.http.get(`${this.baseApiUrl}/assignments/user/${userId}`, { params: { api_token: token } });
   }
+
   getMySubordinates() {
     const token = localStorage.getItem('api_token') || '';
     return this.http.get(`${this.baseApiUrl}/assignments/subordinates`, { params: { api_token: token } });

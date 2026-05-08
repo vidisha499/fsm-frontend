@@ -13,6 +13,8 @@ export class AddUserPage implements OnInit {
     firstName: '',
     lastName: '',
     contact: '',
+    email: '',
+    roleCategory: 'static',
     roleId: null,
     range: null,
     beat: null,
@@ -20,6 +22,14 @@ export class AddUserPage implements OnInit {
   };
 
   roles: any[] = [];
+  staticRoles: any[] = [
+    { id: 1, name: 'Super Admin' },
+    { id: 2, name: 'Admin' },
+    { id: 3, name: 'Guard / Ranger' },
+    { id: 4, name: 'Supervisor' }
+  ];
+  dynamicRoles: any[] = [];
+  
   ranges: any[] = [];
   allBeats: any[] = [];
   filteredBeats: any[] = [];
@@ -32,27 +42,28 @@ export class AddUserPage implements OnInit {
     private loadingCtrl: LoadingController
   ) {}
 
-  ngOnInit() {
-    const userStr = localStorage.getItem('user_data');
-    if (userStr) {
-      const user = JSON.parse(userStr);
-      this.userData.companyId = user.company_id || 1;
-    }
-    this.loadInitialData();
+  async ngOnInit() {
+    this.userData.companyId = localStorage.getItem('company_id');
+    await this.loadInitialData();
   }
 
   async loadInitialData() {
-    const loading = await this.loadingCtrl.create({
-      message: 'Fetching Hierarchy...',
-      spinner: 'crescent'
-    });
-    await loading.present();
+    const loader = await this.loadingCtrl.create({ message: 'Loading Roles & Hierarchy...' });
+    await loader.present();
 
     try {
-      // 1. Load Roles
-      this.dataService.listCustomRoles().subscribe({
+      // 1. Fetch official roles from Sir's new API
+      this.dataService.getRoleIdList().subscribe({
         next: (res: any) => {
-          this.roles = res?.data || res || [];
+          const allRoles = res?.data || [];
+          
+          // Categorize them as per your requirement
+          this.staticRoles = allRoles.filter((r: any) => [1, 2, 3, 7].includes(Number(r.id)));
+          this.dynamicRoles = allRoles.filter((r: any) => ![1, 2, 3, 7].includes(Number(r.id)));
+          
+          // Map names to match your UI (e.g., role_name -> name)
+          this.staticRoles.forEach(r => r.name = r.role_name);
+          this.dynamicRoles.forEach(r => r.name = r.role_name);
         }
       });
 
@@ -61,13 +72,38 @@ export class AddUserPage implements OnInit {
         next: (res: any) => {
           this.ranges = res.ranges || [];
           this.allBeats = res.beats || [];
-          loading.dismiss();
+          loader.dismiss();
         },
-        error: () => loading.dismiss()
+        error: () => loader.dismiss()
       });
     } catch (e) {
-      loading.dismiss();
+      loader.dismiss();
     }
+  }
+
+  getStandardRoles() {
+    return [
+      { id: 1, name: 'Super Admin', needs_hierarchy: false },
+      { id: 2, name: 'Admin', needs_hierarchy: false },
+      { id: 3, name: 'Guard / Ranger', needs_hierarchy: true },
+      { id: 4, name: 'Supervisor', needs_hierarchy: true }
+    ];
+  }
+
+  shouldShowHierarchy(): boolean {
+    // Hide hierarchy until a role is actually selected
+    if (!this.userData.roleId || this.userData.roleId === 'null') {
+      return false;
+    }
+    
+    // IDs 1 (Super Admin) and 7 (Admin) are global
+    const globalRoles = ['1', '7', 1, 7];
+    if (globalRoles.includes(this.userData.roleId)) {
+      return false;
+    }
+    
+    // All other roles (Supervisor, Ranger, Custom) get hierarchy options
+    return true;
   }
 
   onRangeChange() {
@@ -90,12 +126,9 @@ export class AddUserPage implements OnInit {
       return;
     }
 
-    // Finding IDs for the selected range and beat
-    const selectedRangeObj = this.ranges.find((r: any) => r.name === this.userData.range);
-    const selectedBeatObj = this.allBeats.find((b: any) => b.name === this.userData.beat);
-    
-    const range_id = selectedRangeObj ? selectedRangeObj.id : null;
-    const site_id = selectedBeatObj ? selectedBeatObj.id : null;
+    const showH = this.shouldShowHierarchy();
+    const selectedBeatObj = showH ? this.allBeats.find((b: any) => b.name === this.userData.beat) : null;
+    const site_id = selectedBeatObj ? selectedBeatObj.id : '';
     const token = localStorage.getItem('api_token') || '';
 
     const payload = {
@@ -103,28 +136,28 @@ export class AddUserPage implements OnInit {
       firstName: this.userData.firstName,
       lastName: this.userData.lastName,
       name: `${this.userData.firstName} ${this.userData.lastName}`.trim(),
-      full_name: `${this.userData.firstName} ${this.userData.lastName}`.trim(),
       contact: this.userData.contact,
       mobile: this.userData.contact,
       phoneNo: this.userData.contact,
-      email: this.userData.contact + '@fsm.com', // Using mobile for unique email
+      email: this.userData.email || (this.userData.contact + '@fsm.com'),
       password: '123456',
       role_id: String(this.userData.roleId),
       company_id: String(this.userData.companyId),
       status: '1',
-      // Hierarchy Mappings
-      range: this.userData.range || '',
-      range_id: range_id,
-      department: this.userData.range || '', 
-      client_name: this.userData.range || '', // New possible key for Range
-      block: this.userData.range || '',      // Another possible key
-      division: this.userData.range || '',
-      address: this.userData.range || '',
-      beat: this.userData.beat || '',
-      beat_id: site_id,
-      designation: this.userData.beat || '', 
-      site_name: this.userData.beat || '',
+      
+      // Hierarchy - DEPARTMENT (Range)
+      department: showH ? (this.userData.range || '') : '',
+      range: showH ? (this.userData.range || '') : '',
+      client_name: showH ? (this.userData.range || '') : '',
+      division: showH ? (this.userData.range || '') : '',
+      
+      // Hierarchy - DESIGNATION (Beat)
+      designation: showH ? (this.userData.beat || '') : '',
+      beat: showH ? (this.userData.beat || '') : '',
+      site_name: showH ? (this.userData.beat || '') : '',
       site_id: site_id,
+      beat_id: site_id,
+      
       registrationFlag: 0,
       showUser: 1
     };

@@ -153,11 +153,13 @@ async login() {
   await loading.present();
 
   const payload = { 
-    email: this.loginData.phone.trim(), // As per Postman, use email key
-    mobile: this.loginData.phone.trim(), // Keeping mobile for compatibility
+    email: this.loginData.phone.trim(), 
+    mobile: this.loginData.phone.trim(), 
+    contact: this.loginData.phone.trim(), 
+    identifier: this.loginData.phone.trim(), // Most common field name for mobile/email
     password: this.loginData.password,
-    imei: '123456789012345', // Placeholder or Capacitor Device Info
-    fcm_token: 'fcm_mock_token_123' // Placeholder or Capacitor Push Info
+    imei: '123456789012345', 
+    fcm_token: 'fcm_mock_token_123' 
   };
 
   this.loginSub = this.dataService.login(payload).subscribe({

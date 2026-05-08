@@ -263,11 +263,18 @@ export class OrgManagementPage implements OnInit {
 
   // --- ROLES LOGIC ---
   async loadCustomRoles() {
-    this.dataService.listCustomRoles().subscribe({
-      next: (res: any) => this.customRoles = res?.data || res || [],
+    this.dataService.getRoleIdList().subscribe({
+      next: (res: any) => {
+        this.customRoles = res?.data || res || [];
+        // Map role_name to name so UI can display it
+        this.customRoles.forEach((r: any) => {
+          if (r.role_name && !r.name) r.name = r.role_name;
+        });
+        console.log("Fetched and Mapped Roles:", this.customRoles);
+      },
       error: (err) => {
         console.error('Roles load failed', err);
-        this.showToast('Failed to load custom roles', 'danger');
+        this.showToast('Failed to load roles', 'danger');
       }
     });
   }
@@ -319,6 +326,7 @@ export class OrgManagementPage implements OnInit {
       mode: 'md',
       header: 'Create Custom Role',
       inputs: [
+        { name: 'id', type: 'number', placeholder: 'Role ID (e.g. 10)' },
         { name: 'name', type: 'text', placeholder: 'Role Name (e.g. Officer)' },
         { name: 'rank', type: 'number', placeholder: 'Rank' }
       ],

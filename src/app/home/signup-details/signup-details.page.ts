@@ -199,6 +199,15 @@ onRangeChange() {
   /**
    * Submits the registration form to the 'rangers' table.
    */
+  shouldShowHierarchy(): boolean {
+    const roleId = this.verifiedData?.role_id || this.verifiedData?.roleId;
+    if (!roleId) return true;
+    
+    // Admin roles (1, 2) don't need hierarchy
+    const adminRoles = ['1', '2', 1, 2];
+    return !adminRoles.includes(roleId);
+  }
+
   async onSignup() {
     // 1. Validation Logic
     if (!this.profileImage) {
@@ -229,26 +238,50 @@ onRangeChange() {
 
     // 2. Payload Construction using FormData
     const formData = new FormData();
+    console.log("🚀 Registering Mobile:", this.mobile);
+    
     formData.append('name', `${this.firstName} ${this.lastName}`.trim());
-    formData.append('contact', this.mobile);
-    formData.append('email', this.email);
+    const finalMobile = String(this.mobile || '').trim();
+    
+    // 💡 Preserving gen_id if provided by backend during verification
+    if (this.verifiedData?.gen_id) {
+      formData.append('gen_id', this.verifiedData.gen_id);
+    }
+    
+    formData.append('name', `${this.firstName} ${this.lastName}`.trim());
+    const showH = this.shouldShowHierarchy();
+    if (showH) {
+      formData.append('range', this.range || '');
+      formData.append('beat', this.beat || '');
+      formData.append('site_id', this.verifiedData?.site_id || '');
+    }
+    
+    formData.append('gender', this.gender || '');
+    formData.append('dob', this.dob || '');
+    
+    // Contact Aliases
+    formData.append('contact', finalMobile);
+    formData.append('mobile', finalMobile);
+    formData.append('phone', finalMobile);
+    formData.append('phoneNo', finalMobile);
+    formData.append('username', finalMobile);
+    
+    formData.append('email', this.email || '');
     formData.append('password', this.password);
-    formData.append('dob', this.dob);
-    formData.append('range', this.range);
-    formData.append('beat', this.beat);
-    formData.append('gender', this.gender);
-    formData.append('address', this.address);
-    formData.append('shift_name', this.shift);
-    formData.append('weekly_off', this.weeklyOff);
+    formData.append('address', this.address || '');
+    
+    // Assignments & Roles
+    const roleId = this.verifiedData?.role_id || this.verifiedData?.roleId || 3;
+    const companyId = this.verifiedData?.company_id || this.verifiedData?.companyId || '';
 
-    
-    // Role and Company IDs
-    const roleId = this.verifiedData?.role_id || this.verifiedData?.roleId || 4;
-    const companyId = this.verifiedData?.company_id || this.verifiedData?.companyId;
-    
     formData.append('role_id', String(roleId));
     formData.append('company_id', String(companyId));
+    
+    // System Settings
+    formData.append('attendance_type', 'multiple');
     formData.append('status', '1');
+    formData.append('shift_name', this.shift || 'General Shift');
+    formData.append('weekly_off', this.weeklyOff || 'Sunday');
 
     // Handle profile photo
     if (this.profileImage) {

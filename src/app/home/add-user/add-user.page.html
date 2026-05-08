@@ -47,37 +47,71 @@
         </div>
 
         <div class="input-pill">
-          <label>ASSIGN ROLE</label>
+          <label>EMAIL ID</label>
+          <div class="pill-content">
+            <i class="fas fa-envelope"></i>
+            <input [(ngModel)]="userData.email" type="email" placeholder="Enter Email Address">
+          </div>
+        </div>
+
+        <div class="input-pill">
+          <label>ROLE CATEGORY</label>
+          <div class="pill-content">
+            <i class="fas fa-layer-group"></i>
+            <select [(ngModel)]="userData.roleCategory" (change)="userData.roleId = null">
+              <option value="static">Static (Standard Roles)</option>
+              <option value="dynamic">Dynamic (Custom Roles)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="input-pill">
+          <label>SELECT ROLE</label>
           <div class="pill-content">
             <i class="fas fa-user-shield"></i>
             <select [(ngModel)]="userData.roleId">
               <option [value]="null">Select Role</option>
-              <option *ngFor="let role of roles" [value]="role.id">{{ role.name }}</option>
+              
+              <!-- Shows Static Roles if category is static -->
+              <ng-container *ngIf="userData.roleCategory === 'static'">
+                <option *ngFor="let role of staticRoles" [value]="role.id">
+                  {{ role.name }} (ID: {{ role.id }})
+                </option>
+              </ng-container>
+
+              <!-- Shows Dynamic Roles if category is dynamic -->
+              <ng-container *ngIf="userData.roleCategory === 'dynamic'">
+                <option *ngFor="let role of dynamicRoles" [value]="role.id">
+                  {{ role.name }} (ID: {{ role.id }})
+                </option>
+              </ng-container>
             </select>
           </div>
         </div>
 
-        <div class="input-pill">
-          <label>ASSIGN RANGE</label>
-          <div class="pill-content">
-            <i class="fas fa-map-marked-alt"></i>
-            <select [(ngModel)]="userData.range" (change)="onRangeChange()">
-              <option [value]="null">Select Range</option>
-              <option *ngFor="let r of ranges" [value]="r">{{ r }}</option>
-            </select>
+        <ng-container *ngIf="shouldShowHierarchy()">
+          <div class="input-pill">
+            <label>DEPARTMENT (RANGE)</label>
+            <div class="pill-content">
+              <i class="fas fa-building"></i>
+              <select [(ngModel)]="userData.range" (change)="onRangeChange()">
+                <option [value]="null">Select Department</option>
+                <option *ngFor="let r of ranges" [value]="r">{{ r }}</option>
+              </select>
+            </div>
           </div>
-        </div>
 
-        <div class="input-pill">
-          <label>ASSIGN BEAT</label>
-          <div class="pill-content">
-            <i class="fas fa-draw-polygon"></i>
-            <select [(ngModel)]="userData.beat">
-              <option [value]="null">Select Beat</option>
-              <option *ngFor="let b of filteredBeats" [value]="b.name">{{ b.name }}</option>
-            </select>
+          <div class="input-pill">
+            <label>DESIGNATION (BEAT)</label>
+            <div class="pill-content">
+              <i class="fas fa-briefcase"></i>
+              <input [(ngModel)]="userData.beat" type="text" list="beatList" placeholder="Search Beat or Type Designation">
+              <datalist id="beatList">
+                <option *ngFor="let b of filteredBeats" [value]="b.name"></option>
+              </datalist>
+            </div>
           </div>
-        </div>
+        </ng-container>
 
         <button class="mark-btn" (click)="saveUser()" [disabled]="isSaving">
           <span class="btn-text">{{ isSaving ? 'SAVING...' : 'REGISTER USER' }}</span>

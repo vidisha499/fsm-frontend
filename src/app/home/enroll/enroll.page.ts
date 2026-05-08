@@ -109,6 +109,7 @@ export class EnrollPage implements OnInit {
           this.verifiedData = {
             name: u.firstName ? `${u.firstName} ${u.lastName || ''}`.trim() : (u.name || u.full_name || u.user_name || 'User'),
             mobile: u.contact || u.mobile || u.phone || u.phoneNo || this.ranger.phone,
+            gen_id: u.gen_id || u.genId || null, // Capture gen_id if it exists
             role_id: u.role_id || u.roleId || 4,
             company_id: u.company_id || u.companyId,
             range: u.range || u.division || u.address || u.department || u.client_name || u.block || null,
