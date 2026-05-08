@@ -270,6 +270,30 @@
               font-weight: 700;
               color: #1e293b;
             }
+            .beat-select {
+              --padding-start: 0;
+              --padding-end: 0;
+              --placeholder-color: #94a3b8;
+              --placeholder-opacity: 1;
+              font-size: 14px;
+              font-weight: 700;
+              color: #1e293b;
+              width: 100%;
+            }
+            .remark-input {
+              --padding-start: 0;
+              --padding-end: 0;
+              font-size: 14px;
+              font-weight: 600;
+              color: #1e293b;
+              margin-top: 5px;
+            }
+          }
+        }
+        .remark-card {
+          align-items: flex-start !important;
+          .icon-box {
+            margin-top: 5px;
           }
         }
       }

@@ -73,16 +73,16 @@
           <div class="field-card">
             <div class="icon-box"><ion-icon name="earth-outline"></ion-icon></div>
             <div class="content-box">
-              <span class="label">SITE</span>
-              <span class="value">{{ siteName }}</span>
-            </div>
-          </div>
-
-          <div class="field-card">
-            <div class="icon-box"><ion-icon name="location-outline"></ion-icon></div>
-            <div class="content-box">
-              <span class="label">DETECTED GEOFENCE</span>
-              <span class="value">{{ currentAddress || 'Detecting location...' }}</span>
+              <span class="label">SELECT BEAT</span>
+              <ion-select class="beat-select" 
+                          [value]="selectedBeat?.id" 
+                          (ionChange)="onBeatChange($event)"
+                          placeholder="Choose Beat"
+                          interface="action-sheet">
+                <ion-select-option *ngFor="let beat of beats" [value]="beat.id">
+                  {{ beat.name }}
+                </ion-select-option>
+              </ion-select>
             </div>
           </div>
 
@@ -91,6 +91,18 @@
             <div class="content-box">
               <span class="label">DATE & TIME</span>
               <span class="value">{{ currentTime | date:'dd MMM yyyy • hh:mm a' }}</span>
+            </div>
+          </div>
+
+          <div class="field-card remark-card">
+            <div class="icon-box"><ion-icon name="chatbubble-ellipses-outline"></ion-icon></div>
+            <div class="content-box">
+              <span class="label">REMARK</span>
+              <ion-textarea [(ngModel)]="remark" 
+                            placeholder="Enter any additional notes..." 
+                            rows="2" 
+                            class="remark-input">
+              </ion-textarea>
             </div>
           </div>
         </div>

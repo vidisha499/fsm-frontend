@@ -40,9 +40,12 @@ export class AttendancePage implements OnInit, OnDestroy {
   public selectedZoomImage: string | null = null;
   public currentZoom: number = 1; // 🔍 Zoom level state
   public capturedPhoto: string = ''; 
+  public currentAddress: string = ''; 
   public rangerName: string = '';
   public siteName: string = '';
-  public currentAddress: string = ''; // Will show translated placeholder in HTML
+  public beats: any[] = [];
+  public selectedBeat: any = null;
+  public remark: string = '';
 
   public currentLat: number = 20.1013; 
   public currentLng: number = 77.1337;
@@ -81,6 +84,39 @@ export class AttendancePage implements OnInit, OnDestroy {
     setInterval(() => {
       this.currentTime = new Date();
     }, 1000);
+
+    this.fetchBeats();
+  }
+
+  async fetchBeats() {
+    const companyId = this.dataService.getUserCompanyId();
+    const token = localStorage.getItem('api_token');
+    
+    // Sir's API Payload for getGeofences
+    const payload = {
+      api_token: token,
+      company_id: companyId
+    };
+
+    this.dataService.getGeofences(payload).subscribe({
+      next: (res: any) => {
+        if (res && res.data) {
+          this.beats = res.data;
+          // Auto-select first beat if available
+          if (this.beats.length > 0) {
+            this.selectedBeat = this.beats[0];
+          }
+        }
+      },
+      error: (err) => {
+        console.error("Error fetching geofences:", err);
+      }
+    });
+  }
+
+  onBeatChange(event: any) {
+    const selectedId = event.detail.value;
+    this.selectedBeat = this.beats.find(b => b.id == selectedId);
   }
 
   hasOffline(): boolean {
@@ -321,12 +357,13 @@ async submitAttendance() {
 
   const commonPayload = {
     api_token: token,
-    geo_id: '1', // Hardcoded as per Postman example, ideally comes from getGuardGeofence
-    geo_name: this.currentAddress || 'Unknown Location',
-    site_id: 'beat', // 👈 Distinguishes from 'onsite' in history filter
-    site_name: this.siteName,
+    geo_id: this.selectedBeat?.id || '1', 
+    geo_name: this.selectedBeat?.name || this.currentAddress || 'Unknown Location',
+    site_id: 'beat', 
+    site_name: this.selectedBeat?.name || this.siteName,
     photo: this.capturedPhoto,
-    location: `${this.currentLat},${this.currentLng}`
+    location: `${this.currentLat},${this.currentLng}`,
+    remark: this.remark || 'Beat Attendance'
   };
 
   // 5. Debug Logs
