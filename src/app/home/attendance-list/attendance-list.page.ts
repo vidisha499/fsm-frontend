@@ -338,12 +338,9 @@ private processLogsResponse(res: any, loader: any) {
     if (this.isFiltered) {
       const start = new Date(this.filters.fromDate).toLocaleDateString('en-CA');
       const end = new Date(this.filters.toDate).toLocaleDateString('en-CA');
-      const locQuery = (this.filters.location || '').toLowerCase().trim();
-      const logLoc = (log.geofence || log.location_name || '').toLowerCase();
       
       const isWithin = logDate >= start && logDate <= end;
-      const matchesLoc = locQuery === '' || logLoc.includes(locQuery);
-      return isWithin && matchesLoc;
+      return isWithin;
     } else {
       // Default: Only Today
       return logDate === todayStr;
@@ -519,8 +516,6 @@ async applyFilters() {
   // 1. Dates ko normalize karein (Local Date YYYY-MM-DD)
   const start = new Date(this.filters.fromDate).toLocaleDateString('en-CA');
   const end = new Date(this.filters.toDate).toLocaleDateString('en-CA');
-  const locQuery = (this.filters.location || '').toLowerCase().trim();
-
   // 2. Filter logic with Mode check
   this.attendanceLogs = this.allLogs.filter(log => {
     if (!log.createdAt) return false;
@@ -538,11 +533,7 @@ async applyFilters() {
     
     const matchesMode = (this.selectedMode === 'onsite') ? isOnsite : !isOnsite;
     
-    // Location check
-    const logLoc = (log.geofence || log.location_name || '').toLowerCase();
-    const matchesLoc = locQuery === '' || logLoc.includes(locQuery);
-
-    return isWithin && matchesMode && matchesLoc;
+    return isWithin && matchesMode;
   });
 
   this.isModalOpen = false;

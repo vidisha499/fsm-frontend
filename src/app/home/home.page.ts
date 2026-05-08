@@ -98,17 +98,25 @@ passwordType: string = 'password';
   }
 
   loadRangerData() {
-  // localStorage se 'user_data' nikalna safe hai
-  const data = localStorage.getItem('user_data');
-  if (data) {
-    const user = JSON.parse(data);
-    this.rangerName = user.name || 'Supervisor';
-    this.rangerId = user.id.toString();
-    this.rangerPhone = user.phone || user.contact || ''; 
-    this.userRole = user.role || user.role_name || 'guard';
-    this.cdr.detectChanges();
+    const data = localStorage.getItem('user_data');
+    if (data) {
+      const user = JSON.parse(data);
+      this.rangerName = user.name || 'Supervisor';
+      this.rangerId = user.id?.toString() || '';
+      this.rangerPhone = user.phone || user.contact || ''; 
+      this.userRole = user.role || user.role_name || 'guard';
+      
+      // Load photo from user_data or direct key
+      const storedPhoto = user.profile_pic || user.photo || localStorage.getItem('user_photo');
+      if (storedPhoto) {
+        this.profileImage = storedPhoto.includes('data:image') 
+          ? storedPhoto 
+          : (storedPhoto.length > 100 ? `data:image/jpeg;base64,${storedPhoto}` : storedPhoto);
+      }
+      
+      this.cdr.detectChanges();
+    }
   }
-}
 
 // home.page.ts line 109 fix
 /*

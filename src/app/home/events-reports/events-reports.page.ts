@@ -30,6 +30,9 @@ export class EventsReportsPage implements OnInit {
   ) {}
 
   ngOnInit() {
+    const today = new Date().toISOString().split('T')[0];
+    this.filterFrom = today;
+    this.filterTo = today;
     this.refreshData();
   }
 
@@ -198,8 +201,9 @@ export class EventsReportsPage implements OnInit {
   }
 
   resetFilter() {
-    this.filterFrom = '';
-    this.filterTo = '';
+    const today = new Date().toISOString().split('T')[0];
+    this.filterFrom = today;
+    this.filterTo = today;
     this.applyFilter();
   }
 
