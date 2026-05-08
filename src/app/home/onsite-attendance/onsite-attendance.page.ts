@@ -303,15 +303,15 @@ async submit() {
   const locationObj = {
     lat: this.currentLat,
     lng: this.currentLng,
-    name: this.currentAddress || 'Onsite Location'
+    name: this.currentAddress || 'On Location'
   };
   formData.append('location', JSON.stringify(locationObj));
   
   formData.append('geo_id', this.assignedSiteId || '0');
   formData.append('site_id', this.assignedSiteId || '0');
-  formData.append('geo_name', '[Onsite] ' + (this.currentAddress || 'Location'));
+  formData.append('geo_name', '[On Location] ' + (this.currentAddress || 'Location'));
   formData.append('type', 'location'); 
-  formData.append('remark', this.onsiteRemark || 'Onsite Attendance');
+  formData.append('remark', this.onsiteRemark || 'On Location Attendance');
   
   // Extra fields for Forest backend
   formData.append('name', localStorage.getItem('ranger_username') || 'Ranger');
@@ -331,7 +331,7 @@ async submit() {
       attendance_type: 'ONSITE',
       geo_id: '99999',
       photo: this.capturedPhoto,
-      location: this.currentAddress || 'Onsite Location'
+      location: this.currentAddress || 'On Location'
     };
     const offlinePayload = {
       ...offlineData,
@@ -342,7 +342,7 @@ async submit() {
     
     this.isSubmitting = false;
     this.resetSlider();
-    this.presentToast('Onsite attendance saved offline.', 'secondary');
+    this.presentToast('On location attendance saved offline.', 'secondary');
     
     setTimeout(() => {
       this.navCtrl.navigateRoot('/attendance-list', { queryParams: { mode: 'onsite' } });

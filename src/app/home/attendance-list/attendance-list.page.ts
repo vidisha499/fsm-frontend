@@ -180,7 +180,7 @@ async loadAttendanceLogs() {
   if (!companyId) return;
 
     const loader = await this.loadingCtrl.create({
-      message: `Fetching ${this.selectedMode === 'beat' ? 'Beat' : 'Onsite'} Logs...`,
+      message: `Fetching ${this.selectedMode === 'beat' ? 'Beat' : 'On Location'} Logs...`,
       spinner: 'crescent'
     });
     await loader.present();
@@ -239,7 +239,7 @@ async loadAttendanceLogs() {
 }
 
 private parseLocation(loc: any): string {
-  if (!loc) return 'Onsite';
+  if (!loc) return 'On Location';
   if (typeof loc !== 'string') return String(loc);
   try {
     const parsed = JSON.parse(loc);
