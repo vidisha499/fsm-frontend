@@ -320,6 +320,11 @@
           font-size: 24px;
           z-index: 2;
           box-shadow: 0 4px 15px rgba(13, 148, 136, 0.3);
+          transition: transform 0.1s linear, background 0.3s ease;
+          
+          &:active {
+            background: var(--dark-green);
+          }
         }
 
         .slider-text {
@@ -330,6 +335,9 @@
           font-weight: 800;
           font-size: 16px;
           pointer-events: none;
+          transition: opacity 0.2s ease;
+          letter-spacing: 1px;
+          text-transform: uppercase;
         }
       }
     }
