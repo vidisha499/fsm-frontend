@@ -180,13 +180,13 @@
       >
         Alerts
       </button>
-      <button
+      <!-- <button
         class="seg-btn"
         [class.active]="activeSegment === 'officers'"
         (click)="setSegment('officers')"
       >
         Officers
-      </button>
+      </button> -->
     </div>
 
   
@@ -602,17 +602,13 @@
     
   
 
-  <div id="seg-officers" *ngIf="activeSegment === 'officers'">
+  <!-- <div id="seg-officers" *ngIf="activeSegment === 'officers'">
 
     <div class="stat-row" style="padding: 8px 14px;">
       <div class="stat-box">
         <div class="stat-n" style="color:#0d9488">{{onDutyCount}}</div>
         <div class="stat-l">On Duty</div>
       </div>
-      <!-- <div class="stat-box">
-        <div class="stat-n" style="color:#f59e0b">{{onLeaveCount}}</div>
-        <div class="stat-l">On Leave</div>
-      </div> -->
       <div class="stat-box">
         <div class="stat-n" style="color:#f43f5e">{{inactiveCount}}</div>
         <div class="stat-l">Inactive</div>
@@ -668,7 +664,6 @@
       </div>
 
       <div class="card-body" style="position: relative;">
-        <!-- Chart Loader -->
         <div *ngIf="isChartLoading" class="chart-loader">
           <ion-spinner name="crescent" color="primary"></ion-spinner>
           <span>Fetching data...</span>
@@ -692,7 +687,7 @@
       </div>
     </div>
 
-  </div>
+  </div> -->
 
     <div style="height: 100px; width: 100%"></div>
   </ion-content>
