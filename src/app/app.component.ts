@@ -472,13 +472,21 @@ loadUserData() {
 
             // 🖼️ SYNC PROFILE PHOTO — only overwrite if API returns a REAL photo
             const rawPhoto = data.profile_pic || data.photo || data.image || data.profile_image || data.avatar || data.profilePic || data.user_photo;
+            const faceId = data.personIdFaceRecog || 'NOT GENERATED';
+
+            console.log("📊 [DATABASE STATUS CHECK] Full Object:", data);
+
             if (rawPhoto && rawPhoto !== 'null' && rawPhoto !== 'undefined' && String(rawPhoto).length > 5) {
+              console.log("✅ [DATABASE CHECK] Profile Pic exists in DB:", rawPhoto);
+              console.log("🆔 [DATABASE CHECK] Face ID Status:", faceId);
               const resolvedUrl = this.getPhotoUrl(rawPhoto);
               this.userPhoto = resolvedUrl;
               localStorage.setItem('user_photo', resolvedUrl);
+            } else {
+              console.warn("❌ [DATABASE CHECK] Profile Pic is NULL in database!");
+              console.log("🆔 [DATABASE CHECK] Face ID Status:", faceId);
             }
-            // If rawPhoto is null/empty, keep the existing userPhoto from localStorage (set above)
-
+            
             this.cdr.detectChanges();
           }
         },

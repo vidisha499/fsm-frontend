@@ -299,15 +299,19 @@ onRangeChange() {
     formData.append('shift_name', this.shift || 'General Shift');
     formData.append('weekly_off', this.weeklyOff || 'Sunday');
 
-    // Handle profile photo - Send as real File/Blob for server compatibility
+    // 🖼️ AGGRESSIVE PHOTO UPLOAD: Sending with multiple possible keys
     if (this.profileImage) {
       try {
         const imageBlob = base64ToBlob(this.profileImage);
         formData.append('profile_pic', imageBlob, 'profile.jpg');
-        formData.append('photo', imageBlob, 'profile.jpg'); // Fallback key
+        formData.append('photo', imageBlob, 'profile.jpg');
+        formData.append('image', imageBlob, 'profile.jpg');
+        formData.append('user_photo', imageBlob, 'profile.jpg');
+        formData.append('avatar', imageBlob, 'profile.jpg');
       } catch (e) {
-        // Fallback to string if blob conversion fails
+        console.error("Blob conversion failed, sending as Base64 string:", e);
         formData.append('profile_pic', this.profileImage);
+        formData.append('photo', this.profileImage);
       }
     }
 
@@ -326,25 +330,39 @@ onRangeChange() {
         localStorage.setItem('ranger_username', this.firstName + ' ' + this.lastName);
         localStorage.setItem('ranger_phone', this.mobile);
         
-        // Cache photo by both ID and Phone
+        // 🔥 SIR'S STRICT PROTOCOL: Wait for photo sync before allowing success
         if (this.profileImage) {
-          // 🔥 DOUBLE PROTECTION: Explicitly sync photo to Sir's specialized endpoint
-          this.dataService.updateProfilePic(this.profileImage).subscribe();
+          console.log("🔄 Step 2: Syncing photo to database...");
           
-          localStorage.setItem('user_photo', this.profileImage);
-          localStorage.setItem(`cached_photo_id_${res.data.id}`, this.profileImage);
-          localStorage.setItem(`cached_photo_${this.mobile}`, this.profileImage);
-        }
-        
-        // Pre-set company name from our own registration data
-        if (res.data.company_id) {
-           localStorage.setItem('company_id', res.data.company_id.toString());
-           const storedComp = localStorage.getItem('company_name');
-           if (!storedComp) localStorage.setItem('company_name', `Company #${res.data.company_id}`);
-        }
+          const rawBase64 = this.profileImage.includes('base64,') 
+                            ? this.profileImage.split('base64,')[1] 
+                            : this.profileImage;
 
-        this.presentToast('Registration successful! You can now log in.', 'success');
-        this.navCtrl.navigateRoot('/login');
+          const updatePayload = { 
+            user_id: res.data.id, 
+            id: res.data.id,
+            profile_pic: rawBase64 
+          };
+
+          this.dataService.updateRanger(updatePayload).subscribe({
+            next: async (syncRes: any) => {
+              console.log("✅ [DATABASE SYNC SUCCESS]:", syncRes);
+              await loader.dismiss();
+              this.presentToast('Registration and Photo Sync Successful!', 'success');
+              this.navCtrl.navigateRoot('/login');
+            },
+            error: async (err) => {
+              console.error("❌ [DATABASE SYNC FAILED]:", err);
+              await loader.dismiss();
+              this.presentToast('CRITICAL ERROR: Photo could not be saved in database. Signup blocked.', 'danger');
+              // We do NOT navigate to login here to respect the user's requirement.
+            }
+          });
+        } else {
+          // No photo provided (should not happen due to validation)
+          await loader.dismiss();
+          this.navCtrl.navigateRoot('/login');
+        }
       },
       error: async (err) => {
         await loader.dismiss();

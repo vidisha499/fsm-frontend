@@ -1311,7 +1311,11 @@ export class DataService {
   }
   listOrgEntities(layerId: any) {
     const token = localStorage.getItem('api_token') || '';
+    const companyId = localStorage.getItem('company_id') || '';
     const params: any = { api_token: token };
+    
+    if (companyId) params.company_id = String(companyId);
+    
     if (layerId && layerId !== 'all') {
       params.layer_id = String(layerId);
     }

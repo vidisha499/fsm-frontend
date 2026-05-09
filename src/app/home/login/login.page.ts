@@ -242,33 +242,44 @@ async login() {
           // Also cache by user ID for next-device fallback
           if (userData.id) localStorage.setItem(`cached_photo_id_${userData.id}`, profilePic);
         } else {
-          // --- FALLBACK 3: Silently fetch photo from getUserDetails API ---
-          if (userData.id && userData.company_id) {
-            this.dataService.getUserDetails(userData.id, userData.company_id).subscribe({
-              next: (detailRes: any) => {
-                const d = detailRes.data || detailRes;
-                const apiPhoto = d.profile_pic || d.photo || d.image || d.profile_image || d.avatar || d.profilePic || '';
-                if (apiPhoto && apiPhoto !== 'null' && apiPhoto !== 'undefined' && String(apiPhoto).length > 5) {
-                  let resolvedUrl = String(apiPhoto).trim();
-                  if (!resolvedUrl.startsWith('http') && !resolvedUrl.startsWith('data:')) {
-                    let c = resolvedUrl.startsWith('/') ? resolvedUrl.substring(1) : resolvedUrl;
-                    resolvedUrl = c.includes('/') 
-                      ? `https://fms.pugarch.in/public/${c}` 
-                      : `https://fms.pugarch.in/public/profilepics/${c}`;
-                  }
-                  localStorage.setItem('user_photo', resolvedUrl);
-                  if (userData.id) localStorage.setItem(`cached_photo_id_${userData.id}`, resolvedUrl);
-                  console.log('✅ Profile photo fetched from API:', resolvedUrl);
-                } else {
-                  // Keep any previously cached photo if available
-                  localStorage.removeItem('user_photo');
+          // --- 🔥 SIR'S INSTRUCTION: FETCH LATEST DETAILS FROM DB IMMEDIATELY ---
+        if (userData.id && userData.company_id) {
+          console.log("🚀 Calling /getUserDetails to fetch latest DB profile...");
+          this.dataService.getUserDetails(userData.id, userData.company_id).subscribe({
+            next: (detailRes: any) => {
+              const d = detailRes.data || detailRes;
+              console.log("📊 [DATABASE STATUS] Full User Object:", d);
+              
+              const dbPhoto = d.profile_pic || d.photo || d.image || d.profilePic || '';
+              const faceId = d.personIdFaceRecog || 'NOT GENERATED';
+
+              if (dbPhoto && dbPhoto !== 'null' && dbPhoto.length > 5) {
+                console.log("✅ [DATABASE CHECK] Profile Pic is SAVED:", dbPhoto);
+                console.log("🆔 [DATABASE CHECK] Face ID Status:", faceId);
+                
+                let resolvedUrl = String(dbPhoto).trim();
+                if (!resolvedUrl.startsWith('http') && !resolvedUrl.startsWith('data:')) {
+                  let c = resolvedUrl.startsWith('/') ? resolvedUrl.substring(1) : resolvedUrl;
+                  resolvedUrl = c.includes('/') 
+                    ? `https://fms.pugarch.in/public/${c}` 
+                    : `https://fms.pugarch.in/public/profilepics/${c}`;
                 }
-              },
-              error: () => { localStorage.removeItem('user_photo'); }
-            });
-          } else {
-            localStorage.removeItem('user_photo');
-          }
+                localStorage.setItem('user_photo', resolvedUrl);
+              } else {
+                console.warn("❌ [DATABASE CHECK] Profile Pic is NULL or EMPTY in database!");
+                console.log("🆔 [DATABASE CHECK] Face ID Status:", faceId);
+                localStorage.removeItem('user_photo');
+              }
+              
+              // Update local storage with fresh data from DB
+              const updatedUserInfo = { ...userInfo, ...d };
+              localStorage.setItem('user_data', JSON.stringify(updatedUserInfo));
+            },
+            error: (err) => {
+              console.error("❌ Failed to fetch getUserDetails:", err);
+            }
+          });
+        }
         }
 
         this.presentToast(`Welcome, ${userData.name}!`, 'success');
