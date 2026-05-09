@@ -49,6 +49,8 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
   public mapLoaded: boolean = false;
   private gpsWatchId: any = null;
   private timer: any;
+  public isAlreadyMarked: boolean = false;
+  public statusChecked: boolean = false;
 
   // Configuration
   private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw'; // Re-check if this is restricted
@@ -116,8 +118,45 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
     }
 
     this.rangerName = localStorage.getItem('ranger_username') || 'Ranger';
-    this.translate.get('ATTENDANCE.DETECTING').subscribe(res => {
-      this.currentAddress = res;
+    this.checkTodayStatus();
+  }
+
+  async checkTodayStatus() {
+    const companyId = this.dataService.getUserCompanyId();
+    const rangerId = this.dataService.getRangerId();
+    if (!companyId || !rangerId) return;
+
+    this.dataService.getAttendanceLogsByRanger(companyId).subscribe({
+      next: (res: any) => {
+        const logs = res.attendance || res.data || res || [];
+        if (Array.isArray(logs)) {
+          const todayStr = new Date().toISOString().split('T')[0];
+          
+          const hasTodayOnsite = logs.some((l: any) => {
+            const dateVal = l.created_at || l.createdAt || l.date_time || l.timestamp;
+            if (!dateVal) return false;
+            const logDate = dateVal.split(' ')[0].split('T')[0];
+            const logRangerId = l.user_id || l.ranger_id || l.applicant_id;
+            const logType = (l.attendance_type || l.type || '').toUpperCase();
+            // Checking for ONSITE type for this ranger today
+            return logDate === todayStr && 
+                   String(logRangerId) === String(rangerId) && 
+                   (logType === 'ONSITE' || logType === 'LOCATION');
+          });
+
+          // 🔥 Check local onsite drafts too
+          const onsiteDrafts = this.dataService.getAttendanceDrafts('onsite');
+          const hasTodayDraftOnsite = onsiteDrafts.some(d => d.createdAt?.split('T')[0] === todayStr);
+
+          this.isAlreadyMarked = hasTodayOnsite || hasTodayDraftOnsite;
+        }
+        this.statusChecked = true;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.statusChecked = true;
+        this.cdr.detectChanges();
+      }
     });
   }
 

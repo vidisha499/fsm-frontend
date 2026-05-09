@@ -46,6 +46,8 @@ export class AttendancePage implements OnInit, OnDestroy {
   public beats: any[] = [];
   public selectedBeat: any = null;
   public remark: string = '';
+  public isAlreadyMarked: boolean = false;
+  public statusChecked: boolean = false;
 
   public currentLat: number = 20.1013; 
   public currentLng: number = 77.1337;
@@ -86,13 +88,74 @@ export class AttendancePage implements OnInit, OnDestroy {
     }, 1000);
 
     this.fetchBeats();
+    this.checkTodayStatus();
+  }
+
+  async checkTodayStatus() {
+    const companyId = this.dataService.getUserCompanyId();
+    const rangerId = this.dataService.getRangerId();
+    if (!companyId || !rangerId) return;
+
+    this.dataService.getAttendanceLogsByRanger(companyId).subscribe({
+      next: (res: any) => {
+        const logs = res.attendance || res.data || res || [];
+        if (Array.isArray(logs)) {
+          const todayStr = new Date().toISOString().split('T')[0];
+          
+          // Filter logs for today and THIS ranger
+          const todayLogs = logs.filter((l: any) => {
+            const dateVal = l.created_at || l.createdAt || l.date_time || l.timestamp;
+            if (!dateVal) return false;
+            const logDate = dateVal.split(' ')[0].split('T')[0];
+            const logRangerId = l.user_id || l.ranger_id || l.applicant_id;
+            return logDate === todayStr && String(logRangerId) === String(rangerId);
+          });
+
+          const hasEntry = todayLogs.some((l: any) => (l.type || l.attendance_type)?.toUpperCase() === 'ENTRY');
+          const hasExit = todayLogs.some((l: any) => (l.type || l.attendance_type)?.toUpperCase() === 'EXIT');
+
+          // 🔥 Critical Sync: Also check local offline drafts
+          const beatDrafts = this.dataService.getAttendanceDrafts('beat');
+          const todayDraftEntry = beatDrafts.some(d => d.createdAt?.split('T')[0] === todayStr && d.isEntry !== false);
+          const todayDraftExit = beatDrafts.some(d => d.createdAt?.split('T')[0] === todayStr && d.isEntry === false);
+
+          const finalHasEntry = hasEntry || todayDraftEntry;
+          const finalHasExit = hasExit || todayDraftExit;
+
+          if (finalHasEntry && !finalHasExit) {
+            this.isEntry = false; // Already entered (online or offline), next is exit
+          } else if (finalHasEntry && finalHasExit) {
+            this.isAlreadyMarked = true; // Both done for today
+          } else {
+            this.isEntry = true; // Fresh start
+          }
+        }
+        this.statusChecked = true;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.statusChecked = true;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   async fetchBeats() {
     const companyId = this.dataService.getUserCompanyId();
     const token = localStorage.getItem('api_token');
     
-    // Sir's API Payload for getGeofences
+    // 1. Load from cache first for offline support
+    const cached = localStorage.getItem('cached_beats');
+    if (cached) {
+      try {
+        this.beats = JSON.parse(cached);
+        if (this.beats.length > 0 && !this.selectedBeat) {
+          this.selectedBeat = this.beats[0];
+        }
+      } catch (e) { console.error("Cache parse error", e); }
+    }
+
+    // 2. Fetch fresh data from API
     const payload = {
       api_token: token,
       company_id: companyId
@@ -100,16 +163,20 @@ export class AttendancePage implements OnInit, OnDestroy {
 
     this.dataService.getGeofences(payload).subscribe({
       next: (res: any) => {
-        if (res && res.data) {
+        if (res && res.data && Array.isArray(res.data)) {
           this.beats = res.data;
-          // Auto-select first beat if available
-          if (this.beats.length > 0) {
+          
+          // 3. Update cache
+          localStorage.setItem('cached_beats', JSON.stringify(this.beats));
+
+          // Auto-select first beat if nothing selected yet
+          if (this.beats.length > 0 && !this.selectedBeat) {
             this.selectedBeat = this.beats[0];
           }
         }
       },
       error: (err) => {
-        console.error("Error fetching geofences:", err);
+        console.error("Error fetching fresh geofences:", err);
       }
     });
   }

@@ -102,8 +102,16 @@
           </ion-textarea>
         </div>
 
+        <!-- Already Marked Message -->
+        <div class="already-marked-overlay" *ngIf="isAlreadyMarked">
+          <ion-icon name="checkmark-done-circle-outline"></ion-icon>
+          <h3>Attendance Completed</h3>
+          <p>You have already marked your onsite attendance for today.</p>
+          <button class="return-btn" (click)="goBack()">RETURN TO LOGS</button>
+        </div>
+
         <!-- Slider from Image -->
-        <div class="action-slider">
+        <div class="action-slider" *ngIf="!isAlreadyMarked && statusChecked">
           <div class="slider-handle" 
                [style.transform]="'translateX(' + currentTranslateX + 'px)'"
                (touchstart)="onDragStart($event)"
@@ -114,6 +122,11 @@
           <div class="slider-text" [style.opacity]="textOpacity">
             {{ isSubmitting ? 'Marking...' : 'Mark Attendance' }}
           </div>
+        </div>
+
+        <div class="checking-status" *ngIf="!statusChecked">
+          <ion-spinner name="crescent"></ion-spinner>
+          <span>Checking Status...</span>
         </div>
 
       </div>
