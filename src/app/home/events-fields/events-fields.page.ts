@@ -172,8 +172,6 @@ fieldsConfig: any = {
     ],
 
     'Plantation': [
-      // { label: 'GPS Status', type: 'text', value: 'Fetching Address...', readonly: true, icon: 'location-outline', id: 'gps' },
-      // { label: 'Assigned Beat', type: 'text', placeholder: 'Enter Beat Name', key: 'beat' },
       { label: 'Species', type: 'select', options: this.speciesOptions, key: 'species' },
       { label: 'Total Count', type: 'number', key: 'count' },
       { label: 'Area Covered (Hectares)', type: 'number', key: 'area' },

@@ -884,15 +884,61 @@ export class DataService {
   storeLocation(payload: any) { return this.http.post(`${this.baseApiUrl}/storeLocation`, payload); }
   storeLocationBG(payload: any) { return this.http.post(`${this.baseApiUrl}/storeLocationBG`, payload); }
   
-  getBeatBoundaries() { return this.http.post(`${this.baseApiUrl}/boundary/beats`, {}); }
+  getBeatBoundaries(layerId?: number, parentId?: number) { 
+    const token = localStorage.getItem('api_token') || '';
+    const headers = { 'Bypass-Token': 'true' };
+    const payload: any = { api_token: token };
+    
+    // In V2, we might need layer_id. If omitted, backend might return all or require it.
+    if (layerId !== undefined) payload.layer_id = layerId;
+    if (parentId !== undefined) payload.parent_id = parentId;
+
+    // Use the new V2 Dynamic Hierarchy API
+    return this.http.post(`${this.baseApiUrl}/v2/hierarchy-entities`, payload, { headers }); 
+  }
   // --- 15. HIERARCHY & MAP DATA ---
-  getBeatMapData() { return this.http.get(`${this.baseApiUrl}/beat-map-data`); }
-  getBoundaryData() { return this.http.get(`${this.baseApiUrl}/data`); }
-  getLayers() { return this.http.get(`${this.baseApiUrl}/layers`); }
-  getYears() { return this.http.get(`${this.baseApiUrl}/years`); }
-  getRanges() { return this.http.get(`${this.baseApiUrl}/ranges`); }
-  getSections(rangeId: string | number) { return this.http.get(`${this.baseApiUrl}/sections/${rangeId}`); }
-  getBeats(sectionId?: string | number) { return this.http.get(`${this.baseApiUrl}/beats${sectionId ? '/' + sectionId : ''}`); }
+  getBeatMapData() { return this.http.get(`${this.baseApiUrl}boundaries/beat-map-data`); }
+  getBoundaryData(level?: string | number, id?: string | number, year?: string | number) {
+    const token = localStorage.getItem('api_token') || '';
+    const headers = { 'Bypass-Token': 'true' };
+    const params: any = { api_token: token };
+    if (level !== undefined && level !== null) params.level = String(level);
+    if (id !== undefined && id !== null) params.id = String(id);
+    if (year !== undefined && year !== null) params.year = String(year);
+    return this.http.get(`${this.baseApiUrl}/boundaries/data`, { params, headers });
+  }
+  getLayers(level?: string | number, id?: string | number) {
+    const token = localStorage.getItem('api_token') || '';
+    const headers = { 'Bypass-Token': 'true' };
+    const params: any = { api_token: token };
+    if (level !== undefined && level !== null) params.level = String(level);
+    if (id !== undefined && id !== null) params.id = String(id);
+    return this.http.get(`${this.baseApiUrl}/boundaries/layers`, { params, headers });
+  }
+  getYears() {
+    const token = localStorage.getItem('api_token') || '';
+    const headers = { 'Bypass-Token': 'true' };
+    const params: any = { api_token: token };
+    return this.http.get(`${this.baseApiUrl}/boundaries/years`, { params, headers });
+  }
+  getRanges() {
+    const token = localStorage.getItem('api_token') || '';
+    const headers = { 'Bypass-Token': 'true' };
+    const params: any = { api_token: token };
+    return this.http.get(`${this.baseApiUrl}/boundaries/ranges`, { params, headers });
+  }
+  getSections(rangeId: string | number) {
+    const token = localStorage.getItem('api_token') || '';
+    const headers = { 'Bypass-Token': 'true' };
+    const params: any = { api_token: token };
+    return this.http.get(`${this.baseApiUrl}/boundaries/sections/${rangeId}`, { params, headers });
+  }
+  getBeats(sectionId?: string | number) {
+    const token = localStorage.getItem('api_token') || '';
+    const headers = { 'Bypass-Token': 'true' };
+    const params: any = { api_token: token };
+    return this.http.get(`${this.baseApiUrl}/boundaries/beats${sectionId ? '/' + sectionId : ''}`, { params, headers });
+  }
 
   // --- 15.1 PLANTATIONS ---
   getPlantations() { return this.http.get(`${this.baseApiUrl}/plantations`); }

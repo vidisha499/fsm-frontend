@@ -1,105 +1,120 @@
-<ion-content [fullscreen]="true">
-  <div class="premium-wrapper">
-    <!-- Ambient Glow Effects -->
-    <div class="ambient-glow glow-1"></div>
-    <div class="ambient-glow glow-2"></div>
+<ion-header class="beat-header shadow-md">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Know Your Area</ion-title>
+    <ion-buttons slot="end" *ngIf="userRole !== 3">
+      <ion-button (click)="toggleFilters()" [color]="showFilters ? 'success' : 'light'" class="filter-toggle-btn">
+        <ion-icon slot="icon-only" [name]="showFilters ? 'close-circle' : 'funnel-outline'"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
 
-    <!-- Hero Header -->
-    <div class="hero-header">
-      <div class="header-overlay"></div>
-      <div class="header-content">
-        <div class="nav-bar">
-          <div class="left-section">
-            <button (click)="goBack()" class="glass-btn">
-              <ion-icon name="arrow-back-outline"></ion-icon>
-            </button>
-            <h1>Geofences & Sites</h1>
-          </div>
-          <div class="right-section">
-            <button class="filter-toggle-btn" (click)="loadSites()">
-              <ion-icon name="refresh-outline" *ngIf="!isLoading"></ion-icon>
-              <ion-spinner name="crescent" color="light" *ngIf="isLoading"></ion-spinner>
-            </button>
-          </div>
+<ion-content [fullscreen]="true" class="beat-content">
+  <div id="boundary-map" class="beat-map"></div>
+
+  <!-- ── Map Controls ────────────────────────────────────────────────────── -->
+  <div slot="fixed" class="map-controls">
+    <button class="map-control-btn" (click)="toggleMapType()">
+      <ion-icon [name]="mapType === 'roadmap' ? 'earth-outline' : 'map-outline'"></ion-icon>
+    </button>
+    <button class="map-control-btn" (click)="showMyLocation()">
+      <ion-icon name="locate-outline"></ion-icon>
+    </button>
+  </div>
+
+  <!-- ── Floating Filter Card ──────────────────────────────────────────────── -->
+  <div class="floating-filter-container" [class.is-visible]="showFilters">
+    <div class="floating-filter-card">
+      <div class="filter-grid">
+        <!-- Year Filter -->
+        <div class="filter-box">
+          <span class="filter-label">Year</span>
+          <ion-select [(ngModel)]="selectedYear" (ionChange)="onYearChange()" placeholder="Select Year" class="custom-select" interface="popover" toggleIcon="chevron-down-outline">
+            <ion-select-option *ngFor="let item of availableYears" [value]="item.id">
+              {{ item.id === 'all' ? ('COMMON.all' | translate) : item.name }}
+            </ion-select-option>
+          </ion-select>
         </div>
+
+        <!-- Range Filter -->
+        <div class="filter-box">
+          <span class="filter-label">Select Range</span>
+          <ion-select [(ngModel)]="selectedRangeId" (ionChange)="onRangeChange()" placeholder="Select Range" class="custom-select" interface="popover" toggleIcon="chevron-down-outline">
+            <ion-select-option *ngFor="let item of ranges" [value]="item.id">{{item.name}}</ion-select-option>
+          </ion-select>
+        </div>
+
+        <!-- Section Filter -->
+        <div class="filter-box" [class.disabled]="!selectedRangeId">
+          <span class="filter-label">Select Section</span>
+          <ion-select [(ngModel)]="selectedSectionId" (ionChange)="onSectionChange()" placeholder="Select Section" [disabled]="!selectedRangeId" class="custom-select" interface="popover" toggleIcon="chevron-down-outline">
+            <ion-select-option *ngFor="let item of sections" [value]="item.id">{{item.name}}</ion-select-option>
+          </ion-select>
+        </div>
+
+        <!-- Beat Filter -->
+        <div class="filter-box" [class.disabled]="!selectedSectionId">
+          <span class="filter-label">Select Beat</span>
+          <ion-select [(ngModel)]="selectedBeatId" placeholder="Select Beat" [disabled]="!selectedSectionId" class="custom-select" interface="popover" toggleIcon="chevron-down-outline">
+            <ion-select-option *ngFor="let item of beats" [value]="item.id">{{item.name}}</ion-select-option>
+          </ion-select>
+        </div>
+      </div>
+
+      <div class="filter-actions">
+        <ion-button fill="clear" color="medium" class="reset-btn" (click)="resetFilters()">
+          <ion-icon name="refresh-outline" slot="start"></ion-icon>
+          RESET
+        </ion-button>
+        <ion-button fill="solid" color="success" class="apply-btn" (click)="applyFilters()">
+          <ion-icon name="checkmark-outline" slot="start"></ion-icon>
+          APPLY
+        </ion-button>
       </div>
     </div>
+  </div>
 
-    <!-- Main Container -->
-    <div class="main-container">
-      <!-- Status Tabs -->
-      <div class="status-tabs-wrapper">
-        <div class="status-tabs">
-          <div class="tab" [class.active]="statusFilter === 'sites'" (click)="statusFilter = 'sites'">
-            SITES
-          </div>
-          <div class="tab" [class.active]="statusFilter === 'geofences'" (click)="statusFilter = 'geofences'">
-            GEOFENCES
-          </div>
-        </div>
-      </div>
-
-      <!-- Sites List -->
-      <div class="content-list" *ngIf="statusFilter === 'sites'">
-        <div class="item-row animate__animated animate__fadeInUp" 
-             *ngFor="let site of sites; let i = index"
-             [style.animation-delay]="(i * 0.1) + 's'">
-
-          <div class="mini-thumb">
-            <div class="icon-box">
-              <i class="fas fa-map-marked-alt"></i>
-            </div>
-          </div>
-
-          <div class="row-content">
-            <div class="top-line">
-              <span class="type-text">STATION</span>
-              <span class="log-date">{{ site.created_at ? (site.created_at | date:'shortDate') : 'Active' }}</span>
-            </div>
-            <h2 class="item-title">{{ site.name || site.site_name || site.location_name || site.title || 'Forest Site' }}</h2>
-            <div class="meta-line">
-              <ion-icon name="location-outline"></ion-icon>
-              <span>{{ site.address || site.location || site.area || 'Location assigned' }}</span>
-            </div>
-          </div>
-
-          <div class="row-actions">
-            <ion-icon name="chevron-forward" class="chevron"></ion-icon>
-          </div>
-        </div>
-
-        <!-- Empty State -->
-        <div class="empty-state" *ngIf="sites.length === 0 && !isLoading">
-          <i class="fas fa-draw-polygon"></i>
-          <p>No sites registered yet</p>
-        </div>
-      </div>
-
-      <!-- Geofences List -->
-      <div class="content-list" *ngIf="statusFilter === 'geofences'">
-        <div class="empty-state">
-          <i class="fas fa-satellite-dish"></i>
-          <p>Geofence boundaries loading...</p>
-        </div>
-      </div>
-
-      <!-- Skeleton Loader -->
-      <div *ngIf="isLoading" style="padding: 10px 0;">
-        <div class="item-row" *ngFor="let s of [1,2,3,4]">
-          <ion-skeleton-text animated style="width: 50px; height: 50px; border-radius: 12px;"></ion-skeleton-text>
-          <div style="flex: 1;">
-            <ion-skeleton-text animated style="width: 40%; height: 12px; margin-bottom: 8px;"></ion-skeleton-text>
-            <ion-skeleton-text animated style="width: 80%; height: 16px; margin-bottom: 8px;"></ion-skeleton-text>
-          </div>
-        </div>
-      </div>
+  <!-- ── Loading Overlay ─────────────────────────────────────────────────── -->
+  <div *ngIf="loading" class="state-overlay">
+    <div class="state-card">
+      <ion-spinner name="crescent" color="success"></ion-spinner>
+      <p>Loading...</p>
     </div>
-
-    <!-- FAB for Adding New -->
-    <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-      <ion-fab-button class="premium-fab">
-        <ion-icon name="add"></ion-icon>
-      </ion-fab-button>
-    </ion-fab>
   </div>
 </ion-content>
+
+<!-- ── Panel Toggle Button ──────────────────────────────────────────────── -->
+<div class="panel-toggle-btn" (click)="togglePanel()" [class.panel-open]="isPanelOpen">
+  <ion-icon [name]="isPanelOpen ? 'chevron-forward-outline' : 'chevron-back-outline'"></ion-icon>
+</div>
+
+<!-- ── Layer panel (Right Sidebar) ──────────────────────────────────────── -->
+<div class="layer-panel" [class.is-open]="isPanelOpen">
+  <div class="panel-header">
+    <span class="panel-title">Map Layers</span>
+    <span class="panel-subtitle">Select to Show/Hide</span>
+  </div>
+
+  <div class="layer-list">
+    <!-- Dynamic KML Layers -->
+    <div *ngFor="let layer of layers" class="layer-row" [class.layer-hidden]="!layer.visible"
+      (click)="toggleLayer(layer)">
+      <div class="layer-dot" [style.background-color]="layer.color"></div>
+      <div class="layer-icon-box" [style.background-color]="layer.lightColor">
+        <ion-icon [name]="layer.icon" class="layer-icon" [style.color]="layer.color"></ion-icon>
+      </div>
+      <div class="layer-content-main">
+        <span class="layer-label">
+          {{ layer.label }}
+        </span>
+        <div class="layer-suffix">
+          <span class="layer-count-badge">{{ layer.count }}</span>
+          <ion-icon [name]="layer.visible ? 'eye' : 'eye-off-outline'" class="eye-toggle-icon"></ion-icon>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
