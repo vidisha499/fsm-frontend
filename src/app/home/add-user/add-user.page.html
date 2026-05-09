@@ -90,36 +90,16 @@
         </div>
 
         <ng-container *ngIf="shouldShowHierarchy()">
-          <div class="input-pill">
-            <label>DEPARTMENT (RANGE)</label>
+          <div class="input-pill" *ngFor="let layer of layers; let i = index">
+            <label>{{ layer.name | uppercase }}</label>
             <div class="pill-content">
-              <i class="fas fa-building"></i>
-              <select [(ngModel)]="userData.range" (change)="onRangeChange()">
-                <option [value]="null">Select Department</option>
-                <option *ngFor="let r of ranges" [value]="r">{{ r }}</option>
+              <i class="fas fa-sitemap"></i>
+              <select [(ngModel)]="hierarchySelections[i]" (change)="onLayerChange(i)">
+                <option [value]="null">Select {{ layer.name }}</option>
+                <option *ngFor="let ent of layerEntities[layer.id]" [value]="ent.id">
+                  {{ ent.name }}
+                </option>
               </select>
-            </div>
-          </div>
-
-          <div class="input-pill" style="position: relative;">
-            <label>DESIGNATION (BEAT)</label>
-            <div class="pill-content">
-              <i class="fas fa-briefcase"></i>
-              <input [(ngModel)]="userData.beat" 
-                     type="text" 
-                     placeholder="Search Beat or Type Designation"
-                     (focus)="showBeatSuggestions = true"
-                     (blur)="hideSuggestionsWithDelay()">
-              
-              <!-- Custom Premium Suggestion List -->
-              <div class="custom-suggestion-list" *ngIf="showBeatSuggestions && filteredBeats.length > 0">
-                <div class="suggestion-item" 
-                     *ngFor="let b of filteredBeats" 
-                     (mousedown)="selectBeat(b.name)">
-                  <i class="fas fa-map-marker-alt"></i>
-                  <span>{{ b.name }}</span>
-                </div>
-              </div>
             </div>
           </div>
         </ng-container>

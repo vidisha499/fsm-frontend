@@ -514,86 +514,71 @@ export class AdminPage implements OnInit, AfterViewInit {
 
   
 
-  // --- Production Filter Data Logic (Using getSites + Org Entities for full coverage) ---
+  // --- Production Filter Data Logic (Sir's Way + getSites) ---
   loadHierarchy() {
-    console.log('📡 [Hierarchy] Fetching Sites + Org Entities to extract Ranges/Beats...');
+    console.log('📡 [Hierarchy] Dashboard Syncing (Sir\'s way + getSites)...');
     const apiToken = localStorage.getItem('api_token') || '';
     const companyId = localStorage.getItem('company_id') || localStorage.getItem('user_company_id') || '1';
     
-    const payload = { 
-      api_token: apiToken, 
-      company_id: companyId 
-    };
-
     const rangeSet = new Set<string>();
     const beatArray: any[] = [];
 
-    // 1. Fetch from getSites (existing production data)
-    this.dataService.getSites(payload).subscribe({
+    // 1. Fetch from getHierarchies (Structural)
+    this.dataService.getHierarchies().subscribe({
       next: (res: any) => {
-        const data = res?.data || res || [];
-        const sites = Array.isArray(data) ? data : [];
-        
-        if (sites.length > 0) {
-          console.log('📥 [Hierarchy] First Site Structure:', Object.keys(sites[0]));
-          console.log('📥 [Hierarchy] First Site Sample:', sites[0]);
-        }
-
-        sites.forEach((s: any) => {
-          const rName = s.client_name || s.range_name || s.range || s.division_name || s.division || 'General Range';
-          const bName = s.name || s.beat_name || s.beat || s.site_name || s.site;
-          
-          if (rName) rangeSet.add(rName);
-          if (bName) {
-            beatArray.push({
-              name: bName,
-              parentName: rName
-            });
-          }
-        });
-
-        console.log('📥 [Hierarchy] Extracted Ranges (via client_name/range):', Array.from(rangeSet));
-
-        // 2. Now also fetch from Org Entities (dynamic data from Org Management module)
-        this.mergeOrgEntities(rangeSet, beatArray);
-      },
-      error: (err) => {
-        console.error('❌ [Hierarchy] getSites fetch failed:', err);
-        // Still try org entities even if getSites fails
-        this.mergeOrgEntities(rangeSet, beatArray);
-      }
-    });
-  }
-
-  // Merge Org Management entities into Range/Beat dropdowns
-  private mergeOrgEntities(rangeSet: Set<string>, beatArray: any[]) {
-    this.dataService.listOrgEntities('').subscribe({
-      next: (res: any) => {
-        const entities = res?.data || res || [];
-        if (Array.isArray(entities)) {
-          entities.forEach((e: any) => {
-            // Layer 3 = Range, Layer 5 = Beat (based on hierarchy convention)
-            if (String(e.layer_id) === '3') {
-              if (e.name) rangeSet.add(e.name);
-            } else if (String(e.layer_id) === '4' || String(e.layer_id) === '5') {
-              // Find parent range name
-              const parentEntity = entities.find((p: any) => String(p.id) === String(e.parent_id));
-              beatArray.push({
-                name: e.name,
-                parentName: parentEntity?.name || 'General Range'
-              });
+        const nodes = res?.data || res || [];
+        if (Array.isArray(nodes)) {
+          nodes.forEach((n: any) => {
+            if (String(n.layer_id) === '2' || String(n.layer_id) === '3') {
+              if (n.name) rangeSet.add(n.name);
+            } else if (String(n.layer_id) === '4' || String(n.layer_id) === '5') {
+              const parent = nodes.find((p: any) => String(p.id) === String(n.parent_id));
+              if (n.name) {
+                beatArray.push({ name: n.name, parentName: parent?.name || 'General Range' });
+              }
             }
           });
-          console.log('📥 [Hierarchy] Merged Org Entities. Total Ranges:', rangeSet.size);
         }
-        this.finalizeHierarchy(rangeSet, beatArray);
+
+        // 2. Merge with getSites (Assigned)
+        this.dataService.getSites({ api_token: apiToken, company_id: companyId }).subscribe({
+          next: (siteRes: any) => {
+            const sites = siteRes?.data || siteRes || [];
+            if (Array.isArray(sites)) {
+              sites.forEach((s: any) => {
+                const rName = s.client_name || s.range_name || s.range || s.division_name || s.division || 'General Range';
+                const bName = s.name || s.beat_name || s.beat || s.site_name || s.site;
+                if (rName) rangeSet.add(rName);
+                if (bName && !beatArray.find(b => b.name === bName)) {
+                  beatArray.push({ name: bName, parentName: rName });
+                }
+              });
+            }
+            this.finalizeHierarchy(rangeSet, beatArray);
+          },
+          error: () => this.finalizeHierarchy(rangeSet, beatArray)
+        });
       },
       error: (err) => {
-        console.warn('⚠️ [Hierarchy] Org Entities fetch failed, using Sites only:', err);
-        this.finalizeHierarchy(rangeSet, beatArray);
+        console.error('❌ [Hierarchy] Dashboard structural fetch failed:', err);
+        // Fallback to sites if hierarchies fail
+        this.dataService.getSites({ api_token: apiToken, company_id: companyId }).subscribe({
+          next: (siteRes: any) => {
+            const sites = siteRes?.data || siteRes || [];
+            sites.forEach((s: any) => {
+              const rName = s.client_name || s.range_name || s.range || s.division_name || s.division || 'General Range';
+              const bName = s.name || s.beat_name || s.beat || s.site_name || s.site;
+              if (rName) rangeSet.add(rName);
+              if (bName) beatArray.push({ name: bName, parentName: rName });
+            });
+            this.finalizeHierarchy(rangeSet, beatArray);
+          },
+          error: () => this.finalizeHierarchy(rangeSet, beatArray)
+        });
       }
     });
   }
+
 
   // Set the final data
   private finalizeHierarchy(rangeSet: Set<string>, beatArray: any[]) {

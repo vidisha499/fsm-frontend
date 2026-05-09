@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { NavController, ToastController, LoadingController } from '@ionic/angular';
 import { DataService } from '../../data.service';
 
@@ -30,6 +30,11 @@ export class AddUserPage implements OnInit {
   ];
   dynamicRoles: any[] = [];
   
+  // Dynamic Hierarchy State
+  layers: any[] = [];
+  hierarchySelections: any[] = []; // Stores selected entity for each layer
+  layerEntities: { [key: number]: any[] } = {}; // Stores entities for each layer_id
+  
   ranges: any[] = [];
   allBeats: any[] = [];
   filteredBeats: any[] = [];
@@ -40,7 +45,8 @@ export class AddUserPage implements OnInit {
     private navCtrl: NavController,
     private dataService: DataService,
     private toastCtrl: ToastController,
-    private loadingCtrl: LoadingController
+    private loadingCtrl: LoadingController,
+    private cdr: ChangeDetectorRef
   ) {}
 
   async ngOnInit() {
@@ -68,11 +74,16 @@ export class AddUserPage implements OnInit {
         }
       });
 
-      // 2. Load Ranges & Beats from Hierarchy
-      this.dataService.getHierarchyForFilters(this.userData.companyId).subscribe({
+      // 2. Load Dynamic Org Layers
+      this.dataService.listOrgLayers().subscribe({
         next: (res: any) => {
-          this.ranges = res.ranges || [];
-          this.allBeats = res.beats || [];
+          this.layers = res?.data || [];
+          console.log("📂 Dynamic Layers Loaded:", this.layers);
+          
+          // Pre-fetch entities for the first layer (if any)
+          if (this.layers.length > 0) {
+            this.loadEntitiesForLayer(this.layers[0].id);
+          }
           loader.dismiss();
         },
         error: () => loader.dismiss()
@@ -82,6 +93,45 @@ export class AddUserPage implements OnInit {
     }
   }
 
+  loadEntitiesForLayer(layerId: number, parentId: any = null) {
+    this.dataService.listOrgEntities(layerId).subscribe({
+      next: (res: any) => {
+        const allEntities = res?.data || [];
+        // Filter by parent if provided
+        if (parentId) {
+          this.layerEntities[layerId] = allEntities.filter((e: any) => String(e.parent_id) === String(parentId));
+        } else {
+          this.layerEntities[layerId] = allEntities;
+        }
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  onLayerChange(layerIndex: number) {
+    const selectedEntityId = this.hierarchySelections[layerIndex];
+    
+    // Clear subsequent selections
+    for (let i = layerIndex + 1; i < this.layers.length; i++) {
+      this.hierarchySelections[i] = null;
+      this.layerEntities[this.layers[i].id] = [];
+    }
+
+    // Load next layer entities
+    if (selectedEntityId && layerIndex + 1 < this.layers.length) {
+      const nextLayer = this.layers[layerIndex + 1];
+      this.loadEntitiesForLayer(nextLayer.id, selectedEntityId);
+    }
+  }
+
+  shouldShowHierarchy(): boolean {
+    if (!this.userData.roleId || this.userData.roleId === 'null') return false;
+    
+    // IDs 1 (Super Admin) and 7 (Admin) are global. Others need hierarchy.
+    const globalRoles = [1, 2, 7]; // Added 2 as well for consistency
+    return !globalRoles.includes(Number(this.userData.roleId));
+  }
+
   getStandardRoles() {
     return [
       { id: 1, name: 'Super Admin', needs_hierarchy: false },
@@ -89,22 +139,6 @@ export class AddUserPage implements OnInit {
       { id: 3, name: 'Guard / Ranger', needs_hierarchy: true },
       { id: 4, name: 'Supervisor', needs_hierarchy: true }
     ];
-  }
-
-  shouldShowHierarchy(): boolean {
-    // Hide hierarchy until a role is actually selected
-    if (!this.userData.roleId || this.userData.roleId === 'null') {
-      return false;
-    }
-    
-    // IDs 1 (Super Admin) and 7 (Admin) are global
-    const globalRoles = ['1', '7', 1, 7];
-    if (globalRoles.includes(this.userData.roleId)) {
-      return false;
-    }
-    
-    // All other roles (Supervisor, Ranger, Custom) get hierarchy options
-    return true;
   }
 
   onRangeChange() {
@@ -138,10 +172,36 @@ export class AddUserPage implements OnInit {
       return;
     }
 
-    const showH = this.shouldShowHierarchy();
-    const selectedBeatObj = showH ? this.allBeats.find((b: any) => b.name === this.userData.beat) : null;
-    const site_id = selectedBeatObj ? selectedBeatObj.id : '';
+    this.isSaving = true;
     const token = localStorage.getItem('api_token') || '';
+
+    // Extract dynamic hierarchy values
+    let deepestEntityId: any = null;
+    let deepestEntityName: string = '';
+    let parentEntityName: string = '';
+
+    const showH = this.shouldShowHierarchy();
+    if (showH) {
+      // Find the deepest non-null selection
+      for (let i = this.hierarchySelections.length - 1; i >= 0; i--) {
+        if (this.hierarchySelections[i]) {
+          deepestEntityId = this.hierarchySelections[i];
+          const layerId = this.layers[i].id;
+          const ent = this.layerEntities[layerId]?.find(e => String(e.id) === String(deepestEntityId));
+          deepestEntityName = ent?.name || '';
+          
+          // Get parent name if available (for range/department fallback)
+          if (i > 0 && this.hierarchySelections[i-1]) {
+            const pLayerId = this.layers[i-1].id;
+            const pEnt = this.layerEntities[pLayerId]?.find(e => String(e.id) === String(this.hierarchySelections[i-1]));
+            parentEntityName = pEnt?.name || '';
+          } else if (i === 0) {
+             parentEntityName = deepestEntityName;
+          }
+          break;
+        }
+      }
+    }
 
     const payload = {
       api_token: token,
@@ -157,24 +217,25 @@ export class AddUserPage implements OnInit {
       company_id: String(this.userData.companyId),
       status: '1',
       
-      // Hierarchy - DEPARTMENT (Range)
-      department: showH ? (this.userData.range || '') : '',
-      range: showH ? (this.userData.range || '') : '',
-      client_name: showH ? (this.userData.range || '') : '',
-      division: showH ? (this.userData.range || '') : '',
+      // Dynamic Hierarchy Mappings
+      entity_id: deepestEntityId,
+      site_id: deepestEntityId,
+      beat_id: deepestEntityId,
       
-      // Hierarchy - DESIGNATION (Beat)
-      designation: showH ? (this.userData.beat || '') : '',
-      beat: showH ? (this.userData.beat || '') : '',
-      site_name: showH ? (this.userData.beat || '') : '',
-      site_id: site_id,
-      beat_id: site_id,
+      // Legacy Fallbacks
+      department: parentEntityName,
+      range: parentEntityName,
+      division: parentEntityName,
+      designation: deepestEntityName,
+      beat: deepestEntityName,
+      site_name: deepestEntityName,
       
       registrationFlag: 0,
       showUser: 1
     };
 
-    // Using addRegistration as per Sir's new instruction for Admin-side creation
+    console.log("🚀 Pre-registering User with Dynamic Hierarchy:", payload);
+
     this.dataService.addRegistration(payload).subscribe({
       next: async (res: any) => {
         this.isSaving = false;

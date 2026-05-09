@@ -3,6 +3,7 @@ import { Chart, registerables } from 'chart.js';
 import { HttpClient } from '@angular/common/http';
 import { DataService } from 'src/app/data.service';
 import { ActivatedRoute } from '@angular/router';
+import { HierarchyService } from 'src/app/services/hierarchy.service';
 
 
 Chart.register(...registerables);
@@ -17,7 +18,6 @@ const COLORS = {
 };
 
 const SPECIES = ['Sal', 'Saja', 'Sagaon', 'Beeja', 'Haldu', 'Dhawda', 'Safed Siris', 'Kala Siris', 'Jamun', 'Aam', 'Semal', 'Mahua', 'Tendu', 'Nilgiri', 'Others'];
-const REGIONS = ['North Division', 'South Valley', 'East Plateau', 'River Buffer', 'West Ridge'];
 const ANIMALS = ['Tiger', 'Elephant', 'Leopard', 'Deer', 'Bison', 'Wild Boar', 'Sloth Bear'];
 const PALETTE = [COLORS.p, COLORS.rose, COLORS.amber, COLORS.ind, COLORS.pur];
 
@@ -51,9 +51,10 @@ export class AdminAnalyticsPage implements OnInit, OnDestroy {
   refreshInterval: any;
 
   selectedRange: string = 'all';
-selectedBeat: string = 'all';
-ranges = REGIONS; // Constant se le lo
-beats = ['Beat Alpha', 'Beat Beta', 'Beat Gamma'];
+  selectedBeat: string = 'all';
+  ranges: any[] = [];
+  beats: any[] = [];
+  allHierarchyBeats: any[] = [];
 
   // Display arrays for HTML
   activeCatId: string = 'criminal';
@@ -493,8 +494,9 @@ events: {
 
   constructor(private cdr: ChangeDetectorRef, 
     private http: HttpClient,
-  private dataService: DataService,
-private route: ActivatedRoute,) { }
+    private dataService: DataService,
+    private hierarchyService: HierarchyService,
+    private route: ActivatedRoute,) { }
 
   ngOnInit() { 
     const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
@@ -520,6 +522,7 @@ private route: ActivatedRoute,) { }
     console.log(`📅 Analytics: Global Filter Restored → ${this.activeDateFilter} | Range: ${this.selectedRange} | Beat: ${this.selectedBeat}`);
     
     // Unified Data Load
+    this.loadHierarchyData();
     this.updateUIData();
     this.fetchRealAssetData(); 
 
@@ -872,6 +875,9 @@ onFilterChange() {
     timeframe: this.activeDateFilter
   });
 
+  // If Range changed, update Beats list
+  this.onRangeChange();
+
   // 1. UI Status update
   this.isInitialLoading = true; // Trigger premium blurred loader
   this.destroyCharts(); // Purane charts clean karein
@@ -880,6 +886,82 @@ onFilterChange() {
   // 2. Data Fetch
   this.updateUIData(); 
   this.fetchRealAssetData();
+}
+
+loadHierarchyData() {
+  const companyId = localStorage.getItem('company_id') || '1';
+  
+  // Use a combination of getHierarchies (Structural) and getSites (Assigned)
+  this.dataService.getHierarchies().subscribe({
+    next: (res: any) => {
+      const nodes = res?.data || res || [];
+      const rangeSet = new Set<string>();
+      const beatArray: any[] = [];
+
+      // 1. Process Structural Nodes
+      if (Array.isArray(nodes)) {
+        nodes.forEach((n: any) => {
+          // Layer 2 or 3 can be Range depending on Org setup
+          if (String(n.layer_id) === '2' || String(n.layer_id) === '3') {
+            if (n.name) rangeSet.add(n.name);
+          } else if (String(n.layer_id) === '4' || String(n.layer_id) === '5') {
+            const parent = nodes.find((p: any) => String(p.id) === String(n.parent_id));
+            if (n.name) {
+              beatArray.push({ name: n.name, parentName: parent?.name || 'General Range' });
+            }
+          }
+        });
+      }
+
+      // 2. Merge with assigned Sites/Beats for 100% coverage
+      const apiToken = localStorage.getItem('api_token') || '';
+      this.dataService.getSites({ api_token: apiToken, company_id: companyId }).subscribe({
+        next: (siteRes: any) => {
+          const sites = siteRes?.data || siteRes || [];
+          if (Array.isArray(sites)) {
+            sites.forEach((s: any) => {
+              const rName = s.client_name || s.range_name || s.range || s.division_name || s.division || 'General Range';
+              const bName = s.name || s.beat_name || s.beat || s.site_name || s.site;
+              if (rName) rangeSet.add(rName);
+              if (bName && !beatArray.find(b => b.name === bName)) {
+                beatArray.push({ name: bName, parentName: rName });
+              }
+            });
+          }
+          
+          this.ranges = Array.from(rangeSet).sort();
+          this.allHierarchyBeats = beatArray;
+          console.log(`📊 Analytics Hierarchy (Full Sync): Found ${this.ranges.length} Ranges and ${this.allHierarchyBeats.length} Beats`);
+          this.onRangeChange();
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          // Fallback to just structural nodes if sites fail
+          this.ranges = Array.from(rangeSet).sort();
+          this.allHierarchyBeats = beatArray;
+          this.cdr.detectChanges();
+        }
+      });
+    }
+  });
+}
+
+onRangeChange() {
+  if (this.selectedRange === 'all') {
+    this.beats = [];
+    this.selectedBeat = 'all';
+  } else {
+    // Filter beats that belong to this range
+    this.beats = this.allHierarchyBeats
+      .filter(b => b.parentName === this.selectedRange)
+      .map(b => b.name);
+    
+    // Reset beat if it's not in the new list
+    if (this.selectedBeat !== 'all' && !this.beats.includes(this.selectedBeat)) {
+      this.selectedBeat = 'all';
+    }
+  }
+  this.cdr.detectChanges();
 }
 
 getIconColor(label: string): string {
