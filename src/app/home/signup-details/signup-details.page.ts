@@ -7,6 +7,22 @@ import { NavController, ToastController, LoadingController,  } from '@ionic/angu
 import { DataService } from 'src/app/data.service';
 
 
+// Utility to convert Base64 to Blob for real file uploads
+function base64ToBlob(base64: string, contentType: string = 'image/jpeg') {
+  const byteCharacters = atob(base64.split(',')[1]);
+  const byteArrays = [];
+  for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+    const slice = byteCharacters.slice(offset, offset + 512);
+    const byteNumbers = new Array(slice.length);
+    for (let i = 0; i < slice.length; i++) {
+      byteNumbers[i] = slice.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    byteArrays.push(byteArray);
+  }
+  return new Blob(byteArrays, { type: contentType });
+}
+
 @Component({
   selector: 'app-signup-details',
   templateUrl: './signup-details.page.html',
@@ -283,9 +299,16 @@ onRangeChange() {
     formData.append('shift_name', this.shift || 'General Shift');
     formData.append('weekly_off', this.weeklyOff || 'Sunday');
 
-    // Handle profile photo
+    // Handle profile photo - Send as real File/Blob for server compatibility
     if (this.profileImage) {
-      formData.append('profile_pic', this.profileImage);
+      try {
+        const imageBlob = base64ToBlob(this.profileImage);
+        formData.append('profile_pic', imageBlob, 'profile.jpg');
+        formData.append('photo', imageBlob, 'profile.jpg'); // Fallback key
+      } catch (e) {
+        // Fallback to string if blob conversion fails
+        formData.append('profile_pic', this.profileImage);
+      }
     }
 
     console.log("Final Registration Request to /addUser (Signup)");
@@ -293,12 +316,31 @@ onRangeChange() {
     // 3. API Call via DataService - Using addUser for final signup to generate gen_id
     this.dataService.addUser(formData).subscribe({
 
-      next: async (response: any) => {
+      next: async (res: any) => {
         await loader.dismiss();
         
-        // Cache the profile picture locally
-        if (this.profileImage && this.mobile) {
+        // 🔥 AGGRESSIVE CACHING for new users
+        localStorage.setItem('user_data', JSON.stringify(res.data));
+        localStorage.setItem('api_token', res.data.api_token);
+        localStorage.setItem('ranger_id', res.data.id.toString());
+        localStorage.setItem('ranger_username', this.firstName + ' ' + this.lastName);
+        localStorage.setItem('ranger_phone', this.mobile);
+        
+        // Cache photo by both ID and Phone
+        if (this.profileImage) {
+          // 🔥 DOUBLE PROTECTION: Explicitly sync photo to Sir's specialized endpoint
+          this.dataService.updateProfilePic(this.profileImage).subscribe();
+          
+          localStorage.setItem('user_photo', this.profileImage);
+          localStorage.setItem(`cached_photo_id_${res.data.id}`, this.profileImage);
           localStorage.setItem(`cached_photo_${this.mobile}`, this.profileImage);
+        }
+        
+        // Pre-set company name from our own registration data
+        if (res.data.company_id) {
+           localStorage.setItem('company_id', res.data.company_id.toString());
+           const storedComp = localStorage.getItem('company_name');
+           if (!storedComp) localStorage.setItem('company_name', `Company #${res.data.company_id}`);
         }
 
         this.presentToast('Registration successful! You can now log in.', 'success');

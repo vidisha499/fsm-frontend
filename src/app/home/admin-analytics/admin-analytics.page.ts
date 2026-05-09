@@ -89,9 +89,7 @@ endDate: string = '';    // Ye missing tha
     { id: 'criminal', label: '🌲 Criminal' },
     { id: 'events', label: '🐾 Events' },
     { id: 'fire', label: '🔥 Fire' },
-    { id: 'patrol', label: '👮 Patrol' },
     { id: 'assets', label: '🛡️ Assets' }
-
   ];
 
   manualSubCounts: any = {};

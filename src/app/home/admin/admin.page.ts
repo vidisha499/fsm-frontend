@@ -2226,34 +2226,38 @@ handleApiResponse(res: any) {
   // }
 
   async doRefresh(force: boolean = true) {
-  this.isRefreshing = true;
-  this.isSpinning = true;
+    this.isRefreshing = true;
+    this.isSpinning = true;
 
-  try {
-    // Promise.all use karne se saare calls ek saath parallel mein honge
-    await Promise.all([
-      this.loadData(force),
-      this.loadBeatCoverage(),
-      this.loadTrendData() // Refresh par trend data bhi update hona chahiye
-    ]);
+    const loading = await this.loadingCtrl.create({
+      message: 'Syncing Dashboard...',
+      spinner: 'crescent',
+      cssClass: 'custom-loading'
+    });
+    await loading.present();
 
-    console.log('Data fetched successfully!');
-  } catch (error) {
-    console.error('Refresh error:', error);
-  } finally {
-    this.isRefreshing = false;
-    this.isSpinning = false;
+    try {
+      await Promise.all([
+        this.loadData(force),
+        this.loadBeatCoverage(),
+        this.loadTrendData()
+      ]);
+    } catch (error) {
+      console.error('Refresh error:', error);
+    } finally {
+      this.isRefreshing = false;
+      this.isSpinning = false;
+      await loading.dismiss();
 
-    // Charts ko re-initialize karna logic ke hisaab se
-    if (this.activeSegment === 'overview') {
-      this.initHomeCharts();
-    } else if (this.activeSegment === 'officers') {
-      this.initAttChart();
-    } else if (this.activeSegment === 'map') {
-      this.updateMapMarkers();
+      if (this.activeSegment === 'overview') {
+        this.initHomeCharts();
+      } else if (this.activeSegment === 'officers') {
+        this.initAttChart();
+      } else if (this.activeSegment === 'map') {
+        this.updateMapMarkers();
+      }
     }
   }
-}
 
 
   private mkG(ctx: CanvasRenderingContext2D, color: string, h: number = 130) {

@@ -22,6 +22,8 @@ export class AppComponent implements OnInit {
   rangerDivision: string = 'Washim Division 4.2';
   rangerPhone: string = '';
   companyName: string = '';
+  userRange: string = '';
+  userBeat: string = '';
   userPhoto: string = ''; 
   profileImage: string | null = null;
   userRole: string = '';
@@ -191,8 +193,10 @@ export class AppComponent implements OnInit {
       let keyToCheck = feature;
       if (feature === 'patrol_report') keyToCheck = 'patrol';
       if (feature === 'attendance_request') keyToCheck = 'attendance';
-      if (feature === 'chat') keyToCheck = 'communication';
+      if (feature === 'asset_management') keyToCheck = 'assets';
+      if (feature === 'forest_events') keyToCheck = 'events';
       if (feature === 'field_visits') keyToCheck = 'client_visits';
+      // Note: 'chat' remains 'chat', 'daily_updates' remains 'daily_updates'
 
       const modulePerm = perms.find((p: any) => p.module_key === keyToCheck);
       
@@ -306,9 +310,21 @@ loadUserData() {
           const dynamicRole = activeAssign.role?.name || activeAssign.role_name;
           const dynamicRoleId = activeAssign.role_id || activeAssign.role?.id;
           
-          // 🔥 Save role permissions to localStorage for sidebar filtering
           if (activeAssign.role && activeAssign.role.permissions !== undefined) {
             localStorage.setItem('user_permissions', JSON.stringify(activeAssign.role.permissions));
+          }
+          
+          // Store Node assignment names for UI display
+          if (activeAssign.entity_name) {
+            // Depending on the layer, it might be a range or beat
+            const layerId = String(activeAssign.entity?.layer_id || activeAssign.layer_id || '');
+            if (layerId === '1' || activeAssign.entity_name.toLowerCase().includes('range')) {
+              this.userRange = activeAssign.entity_name;
+            } else if (layerId === '2' || activeAssign.entity_name.toLowerCase().includes('beat')) {
+              this.userBeat = activeAssign.entity_name;
+            } else {
+              this.userBeat = activeAssign.entity_name; // Fallback
+            }
           }
           
           // Safeguard: Never overwrite Superadmin (1) or Admin (2) roles
@@ -343,13 +359,44 @@ loadUserData() {
       }
     });
   }
+
+  // 🔥 NEW: Fallback to fetch base role permissions if they don't have an explicit node assignment
+  const currentRoleId = localStorage.getItem('user_role') || (parsedUser ? parsedUser.role_id : null);
+  if (currentRoleId && currentRoleId !== '1' && currentRoleId !== '2') {
+    this.dataService.getRoleIdList().subscribe({
+      next: (res: any) => {
+        const roles = res?.data || res || [];
+        const myRole = roles.find((r: any) => String(r.id) === String(currentRoleId));
+        
+        // If we found the role and they haven't gotten permissions from an assignment yet
+        if (myRole && myRole.permissions) {
+          const existingPerms = localStorage.getItem('user_permissions');
+          if (!existingPerms || existingPerms === '[]') {
+            console.log(`🛡️ Falling back to base role permissions for Role ID: ${currentRoleId}`);
+            localStorage.setItem('user_permissions', JSON.stringify(myRole.permissions));
+            this.cdr.detectChanges(); // Refresh sidebar immediately
+          }
+        }
+      }
+    });
+  }
   
   // Try implicit keys first, then fallback to user_data object
   this.rangerName = localStorage.getItem('ranger_username') || '';
   this.rangerPhone = localStorage.getItem('ranger_phone') || '';
   
   if (parsedUser) {
-    this.companyName = parsedUser.company_name || (parsedUser.company ? parsedUser.company.name : '') || parsedUser.client_name || '';
+    // Load from localStorage cache immediately (instant display)
+    this.companyName = localStorage.getItem('company_name') 
+      || parsedUser.company_name 
+      || (parsedUser.company ? parsedUser.company.name : '') 
+      || parsedUser.client_name || '';
+    
+    // 🔥 FIX: Load photo immediately from cache with multiple fallbacks for new users
+    this.userPhoto = localStorage.getItem('user_photo') 
+      || localStorage.getItem(`cached_photo_id_${parsedUser.id}`)
+      || localStorage.getItem(`cached_photo_${this.rangerPhone}`)
+      || '';
     
     // 🔥 ALWAYS fetch latest DB data to sync with local storage (Phone/Password change sync)
     if (parsedUser.id && parsedUser.company_id) {
@@ -362,7 +409,54 @@ loadUserData() {
             // Sync all vital details from DB to LocalStorage
             parsedUser.name = data.name || parsedUser.name;
             parsedUser.phone = data.contact || data.mobile || data.phone || parsedUser.phone;
-            parsedUser.company_name = data.company_name || (data.company ? data.company.name : '') || data.client_name || parsedUser.company_name;
+            
+            // Company name — try multiple keys from user details response
+            const freshCompany = data.company_name 
+              || (data.company ? data.company.name : '') 
+              || data.client_name 
+              || parsedUser.company_name 
+              || (parsedUser.company ? parsedUser.company.name : '') 
+              || parsedUser.client_name
+              || localStorage.getItem('company_name') || '';
+            parsedUser.company_name = freshCompany;
+            
+            if (freshCompany) {
+              this.companyName = freshCompany;
+              localStorage.setItem('company_name', freshCompany);
+            } else if (parsedUser.company_id) {
+              // Company name not found anywhere — fetch from separate API
+              this.dataService.getCompanyDetails(parsedUser.company_id).subscribe({
+                next: (cRes: any) => {
+                  // getChatUsers returns list of users — extract company name from first user
+                  const users = cRes?.data || cRes?.users || (Array.isArray(cRes) ? cRes : []);
+                  let cName = '';
+                  
+                  if (Array.isArray(users) && users.length > 0) {
+                    const firstUser = users[0];
+                    cName = firstUser.company_name 
+                      || (firstUser.company ? firstUser.company.name : '')
+                      || firstUser.client_name || '';
+                  }
+                  
+                  // Fallback to top-level fields if array extract failed
+                  if (!cName) {
+                    cName = cRes?.company_name || cRes?.name || '';
+                  }
+
+                  if (cName) {
+                    this.companyName = cName;
+                    localStorage.setItem('company_name', cName);
+                    this.cdr.detectChanges();
+                  } else {
+                    this.companyName = localStorage.getItem('company_name') || `Company #${parsedUser.company_id}`;
+                  }
+                },
+                error: () => {
+                  this.companyName = localStorage.getItem('company_name') || `Company #${parsedUser.company_id}`;
+                }
+              });
+            }
+
             
             // Only update role if we HAVEN'T fetched a dynamic role yet
             if (!(this as any).hasDynamicRole) {
@@ -372,15 +466,18 @@ loadUserData() {
               }
             }
             
-            // 🖼️ SYNC PROFILE PHOTO
+            // Sync Range and Beat from DB if not already populated by assignments
+            if (!this.userRange) this.userRange = data.range || data.department || '';
+            if (!this.userBeat) this.userBeat = data.beat || data.designation || data.site_name || '';
+
+            // 🖼️ SYNC PROFILE PHOTO — only overwrite if API returns a REAL photo
             const rawPhoto = data.profile_pic || data.photo || data.image || data.profile_image || data.avatar || data.profilePic || data.user_photo;
-            if (rawPhoto && rawPhoto !== 'null') {
-              this.userPhoto = this.getPhotoUrl(rawPhoto);
-              localStorage.setItem('user_photo', this.userPhoto);
-            } else {
-              // Fallback to what we have in storage or null
-              this.userPhoto = localStorage.getItem('user_photo') || '';
+            if (rawPhoto && rawPhoto !== 'null' && rawPhoto !== 'undefined' && String(rawPhoto).length > 5) {
+              const resolvedUrl = this.getPhotoUrl(rawPhoto);
+              this.userPhoto = resolvedUrl;
+              localStorage.setItem('user_photo', resolvedUrl);
             }
+            // If rawPhoto is null/empty, keep the existing userPhoto from localStorage (set above)
 
             this.cdr.detectChanges();
           }
@@ -389,14 +486,22 @@ loadUserData() {
           // Silent failure for timeouts or network errors
           if (err.status !== 0) console.error("Profile sync failed. Error Code:", err.status);
           
+          // On error, try to show company from stored data
           if (!this.companyName && parsedUser) {
-            this.companyName = parsedUser.company_name || `Company ID: ${parsedUser.company_id}`;
+            this.companyName = parsedUser.company_name 
+              || (parsedUser.company ? parsedUser.company.name : '') 
+              || parsedUser.client_name 
+              || `Company #${parsedUser.company_id}`;
             this.cdr.detectChanges();
           }
         }
       });
-    } else if (!this.companyName && parsedUser.company_id) {
-      this.companyName = `Company ID: ${parsedUser.company_id}`;
+    } else if (parsedUser.company_id) {
+      // No getUserDetails call possible, use what we have
+      this.companyName = parsedUser.company_name 
+        || (parsedUser.company ? parsedUser.company.name : '') 
+        || parsedUser.client_name 
+        || `Company #${parsedUser.company_id}`;
     }
   }
   
@@ -410,7 +515,10 @@ loadUserData() {
   // Final fallback
   this.rangerName = this.rangerName || 'User';
 
-  this.userPhoto = localStorage.getItem('user_photo') || ''; 
+  // Load photo from localStorage FIRST (stable source)
+  const storedPhoto = localStorage.getItem('user_photo') || '';
+  this.userPhoto = storedPhoto;
+
   this.rangerDivision = localStorage.getItem('ranger_division') || 'Washim Division 4.2';
 
   // Database se aane wala value 
