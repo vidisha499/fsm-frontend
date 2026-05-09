@@ -107,6 +107,7 @@ async saveSighting() {
      const payload = {
       
     patrolId: finalPatrolId, // Use the verified number here
+    patrol_id: finalPatrolId, // Include snake_case for backend compatibility
     category: this.category,
     sightingType: this.obsData.sightingType,
     species: this.obsData.species || this.category,

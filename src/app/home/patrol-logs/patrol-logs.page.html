@@ -45,7 +45,7 @@
                         'fas fa-binoculars'"></i>
           </div>
           <div class="log-info">
-            <p class="log-title">{{ log.patrolName }} - {{ log.patrolType }}</p>
+            <p class="log-title">{{ log.patrolName }}{{ log.patrolType ? ' - ' + log.patrolType : '' }}</p>
             <p class="log-date">{{ log.startTime | date:'MMM d, h:mm a' }}</p>
           </div>
         </div>
@@ -103,9 +103,11 @@
           <ion-item lines="none" class="custom-input-item">
             <ion-label position="stacked">{{ 'LIST.TYPE' | translate }}</ion-label>
             <ion-select [(ngModel)]="selectedType" [placeholder]="'LIST.SELECT_PLACEHOLDER' | translate" interface="action-sheet">
-              <ion-select-option value="Regular">{{ 'LIST.REGULAR' | translate }}</ion-select-option>
-              <ion-select-option value="Special">{{ 'LIST.SPECIAL' | translate }}</ion-select-option>
-              <ion-select-option value="Emergency">{{ 'LIST.EMERGENCY' | translate }}</ion-select-option>
+              <ion-select-option value="Routine">Routine</ion-select-option>
+              <ion-select-option value="Special">Special</ion-select-option>
+              <ion-select-option value="Beat Inspection">Beat Inspection</ion-select-option>
+              <ion-select-option value="Joint">Joint</ion-select-option>
+              <ion-select-option value="Other">Other</ion-select-option>
             </ion-select>
           </ion-item>
 

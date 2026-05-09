@@ -341,14 +341,29 @@ async loadDefaultBeat() {
 }
 
 async fetchLocation() {
+  let lat = 0;
+  let lon = 0;
   try {
-    const coordinates = await Geolocation.getCurrentPosition({
-      enableHighAccuracy: true,
-      timeout: 30000,
-      maximumAge: 3000
-    });
-    const lat = coordinates.coords.latitude;
-    const lon = coordinates.coords.longitude;
+    try {
+      // First attempt: High Accuracy
+      const coordinates = await Geolocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+      });
+      lat = coordinates.coords.latitude;
+      lon = coordinates.coords.longitude;
+    } catch (highAccErr) {
+      console.warn("High accuracy GPS failed, falling back to low accuracy...", highAccErr);
+      // Second attempt: Low Accuracy (Network/Cell based)
+      const coordinates = await Geolocation.getCurrentPosition({
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 60000
+      });
+      lat = coordinates.coords.latitude;
+      lon = coordinates.coords.longitude;
+    }
 
     // --- CRITICAL FIX: Save numeric coordinates to reportData ---
     // Inhein save karna zaroori hai taaki submitReport() inhein DB mein bhej sake
@@ -442,6 +457,14 @@ async fetchLocation() {
   }
 
   checkFormValidity() {
+    // --- STRICT GPS VALIDATION ---
+    const lat = this.reportData['latitude'];
+    const lon = this.reportData['longitude'];
+    if (!lat || !lon || lat === "0" || lon === "0" || lat === 0 || lon === 0) {
+      this.isFormValid = false;
+      return false;
+    }
+
     let isValid = true;
     for (const field of this.dynamicFields) {
       if (field.id === 'gps') continue; 
@@ -565,8 +588,18 @@ async fetchLocation() {
   }
 
   async showValidationError() {
+    const lat = this.reportData['latitude'];
+    const lon = this.reportData['longitude'];
+    
+    let msg = 'Please fill all mandatory fields and capture photos! ⚠️';
+    
+    // Override message if the failure is specifically due to GPS
+    if (!lat || !lon || lat === "0" || lon === "0" || lat === 0 || lon === 0) {
+      msg = 'Location not found! Please enable GPS and wait for coordinates to load. 📍';
+    }
+
     const toast = await this.toastCtrl.create({
-      message: 'Please fill all mandatory fields and capture photos! ⚠️',
+      message: msg,
       duration: 3000,
       color: 'danger',
       position: 'bottom',

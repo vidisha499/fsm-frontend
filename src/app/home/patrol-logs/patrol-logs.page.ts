@@ -146,7 +146,7 @@ export class PatrolLogsPage implements OnInit {
             tStr = p.patrolName.split(' - ')[1];
           }
           
-          if (!tStr || tStr === '') tStr = 'LOG';
+          if (!tStr || tStr === 'LOG') tStr = '';
 
           const start = p.start_time || p.started_at || p.created_at || p.date_time || new Date().toISOString();
           const end = p.end_time || p.ended_at || p.updated_at || p.endTime;
@@ -158,7 +158,7 @@ export class PatrolLogsPage implements OnInit {
             ...p,
             status: isCompleted ? 'COMPLETED' : (p.status || 'PENDING'),
             patrolName: mStr.toString().toUpperCase(),
-            patrolType: tStr.toString().toUpperCase(),
+            patrolType: tStr ? tStr.toString().toUpperCase() : '',
             startTime: start,
             // Use server duration if it exists, otherwise it will be calculated in UI or pipe
             duration: serverDuration || null 
@@ -172,12 +172,12 @@ export class PatrolLogsPage implements OnInit {
           const id = d.sessionId || d.patrolId;
           if (!uniqueDraftMap.has(id) || d.type === 'end') {
             const mStr = d.method || 'PATROL';
-            const tStr = d.type_name || d.type || 'LOG';
+            const tStr = d.type_name || d.type || d.patrolType || d.patrolName?.split(' - ')[1] || '';
             
             uniqueDraftMap.set(id, {
               ...d,
               patrolName: mStr.toString().toUpperCase(),
-              patrolType: tStr.toString().toUpperCase(),
+              patrolType: tStr ? tStr.toString().toUpperCase() : '',
               startTime: d.startTime || d.timestamp || new Date().toISOString()
             });
           }
@@ -198,7 +198,7 @@ export class PatrolLogsPage implements OnInit {
           const id = d.sessionId || d.patrolId || d.draftId;
           if (!uniqueDraftMap.has(id) || d.type === 'end') {
             const mStr = d.method || d.patrolName?.split(' - ')[0] || 'PATROL';
-            const tStr = d.type_name || d.type || d.patrolType || d.patrolName?.split(' - ')[1] || 'LOG';
+            const tStr = d.type_name || d.type || d.patrolType || d.patrolName?.split(' - ')[1] || '';
             
             const isCompleted = d.status === 'COMPLETED' || d.type === 'end' || !!d.end_lat;
             
@@ -206,7 +206,7 @@ export class PatrolLogsPage implements OnInit {
               ...d,
               status: isCompleted ? 'COMPLETED' : (d.status || 'PENDING'),
               patrolName: mStr.toString().toUpperCase(),
-              patrolType: tStr.toString().toUpperCase(),
+              patrolType: tStr ? tStr.toString().toUpperCase() : '',
               startTime: d.startTime || d.timestamp || d.created_at || new Date().toISOString()
             });
           }
@@ -287,12 +287,15 @@ export class PatrolLogsPage implements OnInit {
     const uniqueSessionId = `PATROL_${storedRangerId}_${Date.now()}`;
 
     // Update payload to match FMS `/patrol/start` POST body requirement
+    // Adding both naming conventions to ensure backend compatibility
     const payload = { 
       user_id: storedRangerId,
       start_lat: String(lat),
       start_lng: String(lng),
       type: this.selectedType,
       method: this.selectedMethod,
+      patrol_type: this.selectedType,
+      patrol_method: this.selectedMethod,
       sessionId: uniqueSessionId
     };
 

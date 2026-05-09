@@ -197,7 +197,18 @@ export class PatrolDetailsPage implements OnInit {
         
         const startTime = new Date(startStr).getTime();
         // If completed, use end_time. If active, use now.
-        const endTime = endStr ? new Date(endStr).getTime() : Date.now();
+        let endTime = Date.now();
+        if (endStr && !isNaN(new Date(endStr).getTime())) {
+          endTime = new Date(endStr).getTime();
+        } else {
+          const isActive = (String(this.patrol.id) === localStorage.getItem('active_patrol_id') || 
+                            String(this.patrol.session_id) === localStorage.getItem('active_patrol_session_id') ||
+                            String(this.patrol.sessionId) === localStorage.getItem('active_patrol_session_id'));
+          if (!isActive) {
+            // Cap to 12 hours to prevent pulling unassociated sightings from future days
+            endTime = startTime + (12 * 60 * 60 * 1000); 
+          }
+        }
         const userId = Number(this.patrol.user_id || this.patrol.ranger_id);
 
         console.log(`🔍 Filtering Sightings for User: ${userId}, Range: ${startStr} to ${endStr || 'NOW'}`);
