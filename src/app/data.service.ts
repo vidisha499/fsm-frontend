@@ -1395,7 +1395,10 @@ export class DataService {
       const beatDrafts = this.getAttendanceDrafts('beat');
       for (const draft of beatDrafts) {
         try {
-          if (draft.mode_type === 'exit') {
+          // Unify type check: Use 'isEntry' or 'mode_type'
+          const isExit = draft.mode_type === 'exit' || draft.isEntry === false;
+          
+          if (isExit) {
             await this.markAttendanceExit(draft).toPromise();
           } else {
             await this.markAttendance(draft).toPromise();
@@ -1409,7 +1412,37 @@ export class DataService {
       const onsiteDrafts = this.getAttendanceDrafts('onsite');
       for (const draft of onsiteDrafts) {
         try {
-          await this.markOnsiteAttendance(draft).toPromise();
+          // Onsite sync MUST use FormData to match the online flow and appear in "Attendance Requests"
+          const formData = new FormData();
+          const token = localStorage.getItem('api_token') || draft.api_token || '';
+          
+          // Map draft fields back to FormData keys expected by requestEntryAttendance
+          formData.append('api_token', token);
+          formData.append('attendance_type', draft.attendance_type || 'ONSITE');
+          formData.append('applicant_id', draft.applicant_id || localStorage.getItem('ranger_id') || '');
+          formData.append('company_id', draft.company_id || localStorage.getItem('company_id') || '');
+          formData.append('geo_id', draft.geo_id || '99999');
+          formData.append('type', draft.type || 'location');
+          formData.append('remark', draft.remark || 'Synced Offline Onsite Attendance');
+          formData.append('status', 'Pending');
+          formData.append('photo', draft.photo || '');
+          formData.append('date', draft.date || draft.createdAt?.split('T')[0] || new Date().toISOString().split('T')[0]);
+          
+          // Location handling (backend expects JSON string or lat,lng pair)
+          if (typeof draft.location === 'object') {
+            formData.append('location', JSON.stringify(draft.location));
+          } else {
+            // If it's a string from currentAddress, wrap it in the expected object
+            formData.append('location', JSON.stringify({ 
+              lat: draft.lat || 0, 
+              lng: draft.lng || 0, 
+              name: draft.location || 'On Location' 
+            }));
+          }
+
+          // Use the EXACT same method as online onsite attendance
+          await this.requestEntryAttendance(formData, { 'Bypass-Token': 'true' }).toPromise();
+          
           this.deleteAttendanceDraft(draft.draftId, 'onsite');
           syncCount++;
         } catch (e) { console.error("Sync Onsite Error", e); }
