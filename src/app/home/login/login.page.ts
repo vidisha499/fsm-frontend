@@ -194,41 +194,92 @@ async login() {
         localStorage.setItem('ranger_username', userData.name);
         localStorage.setItem('ranger_phone', userInfo.phone);
         
+        // Store company name if available (for instant sidebar display)
+        const companyNameFromLogin = userData.company_name 
+          || (userData.company ? userData.company.name : '') 
+          || userData.client_name || '';
+        if (companyNameFromLogin) {
+          localStorage.setItem('company_name', companyNameFromLogin);
+        }
+        
+
         console.log("Login UserData:", userData);
 
-        // Save the profile picture if it exists by checking all possible backend keys
+        // --- PHOTO RESOLUTION (Multi-source fallback chain) ---
         let profilePicRaw = userData.profile_pic || userData.profile_Pic || userData.profilePic || 
                             userData.photo || userData.image || userData.profile_image || 
                             userData.avatar || userData.user_photo || '';
                             
         let profilePic = profilePicRaw ? String(profilePicRaw).trim() : '';
 
-        // --- FALLBACK TO LOCAL CACHE (if backend strips base64 images from login response) ---
+        // --- FALLBACK 1: Local cache by mobile number ---
         if (!profilePic || profilePic === 'null' || profilePic === 'undefined') {
-          const cachedPhoto = localStorage.getItem(`cached_photo_${this.loginData.phone.trim()}`);
-          if (cachedPhoto) {
-            profilePic = cachedPhoto;
-          }
+          const cachedByPhone = localStorage.getItem(`cached_photo_${this.loginData.phone.trim()}`);
+          if (cachedByPhone) profilePic = cachedByPhone;
+        }
+        
+        // --- FALLBACK 2: Local cache by user ID ---
+        if ((!profilePic || profilePic === 'null') && userData.id) {
+          const cachedById = localStorage.getItem(`cached_photo_id_${userData.id}`);
+          if (cachedById) profilePic = cachedById;
         }
 
-        // If the backend returns a relative path or filename, prepend the correct domain
-        if (profilePic && profilePic !== 'null' && profilePic !== 'undefined' && !profilePic.startsWith('http') && !profilePic.startsWith('data:')) {
+        // --- URL resolution: relative path → full URL ---
+        if (profilePic && profilePic !== 'null' && profilePic !== 'undefined' 
+            && !profilePic.startsWith('http') && !profilePic.startsWith('data:')) {
           let cleaned = profilePic.startsWith('/') ? profilePic.substring(1) : profilePic;
-          
           if (cleaned.includes('fms.pugarch.in')) {
             profilePic = `https://${cleaned.replace('https://', '').replace('http://', '')}`;
           } else if (!cleaned.includes('/')) {
-            // It's just a filename like '1234.png'
             profilePic = `https://fms.pugarch.in/public/profilepics/${cleaned}`;
           } else {
             profilePic = `https://fms.pugarch.in/public/${cleaned}`;
           }
         }
 
-        if (profilePic && profilePic !== 'null' && profilePic !== 'undefined') {
+        if (profilePic && profilePic !== 'null' && profilePic !== 'undefined' && profilePic.length > 5) {
           localStorage.setItem('user_photo', profilePic);
+          // Also cache by user ID for next-device fallback
+          if (userData.id) localStorage.setItem(`cached_photo_id_${userData.id}`, profilePic);
         } else {
-          localStorage.removeItem('user_photo');
+          // --- 🔥 SIR'S INSTRUCTION: FETCH LATEST DETAILS FROM DB IMMEDIATELY ---
+        if (userData.id && userData.company_id) {
+          console.log("🚀 Calling /getUserDetails to fetch latest DB profile...");
+          this.dataService.getUserDetails(userData.id, userData.company_id).subscribe({
+            next: (detailRes: any) => {
+              const d = detailRes.data || detailRes;
+              console.log("📊 [DATABASE STATUS] Full User Object:", d);
+              
+              const dbPhoto = d.profile_pic || d.photo || d.image || d.profilePic || '';
+              const faceId = d.personIdFaceRecog || 'NOT GENERATED';
+
+              if (dbPhoto && dbPhoto !== 'null' && dbPhoto.length > 5) {
+                console.log("✅ [DATABASE CHECK] Profile Pic is SAVED:", dbPhoto);
+                console.log("🆔 [DATABASE CHECK] Face ID Status:", faceId);
+                
+                let resolvedUrl = String(dbPhoto).trim();
+                if (!resolvedUrl.startsWith('http') && !resolvedUrl.startsWith('data:')) {
+                  let c = resolvedUrl.startsWith('/') ? resolvedUrl.substring(1) : resolvedUrl;
+                  resolvedUrl = c.includes('/') 
+                    ? `https://fms.pugarch.in/public/${c}` 
+                    : `https://fms.pugarch.in/public/profilepics/${c}`;
+                }
+                localStorage.setItem('user_photo', resolvedUrl);
+              } else {
+                console.warn("❌ [DATABASE CHECK] Profile Pic is NULL or EMPTY in database!");
+                console.log("🆔 [DATABASE CHECK] Face ID Status:", faceId);
+                localStorage.removeItem('user_photo');
+              }
+              
+              // Update local storage with fresh data from DB
+              const updatedUserInfo = { ...userInfo, ...d };
+              localStorage.setItem('user_data', JSON.stringify(updatedUserInfo));
+            },
+            error: (err) => {
+              console.error("❌ Failed to fetch getUserDetails:", err);
+            }
+          });
+        }
         }
 
         this.presentToast(`Welcome, ${userData.name}!`, 'success');

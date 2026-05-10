@@ -146,13 +146,18 @@ export class HierarchyService {
   }
 
   private fetchOldSite(productionUrl: string, payload: any, observer: any) {
-    this.http.post<any>(productionUrl, payload, {
-      headers: new HttpHeaders().set('Bypass-Token', 'true'),
-    }).pipe(
+    // Postman collection mein getSites FormData se hai — plain JSON nahi
+    const formData = new FormData();
+    formData.append('api_token', payload.api_token || '');
+    formData.append('company_id', String(payload.company_id || ''));
+    formData.append('user_id', String(payload.user_id || ''));
+
+    this.http.post<any>(productionUrl, formData).pipe(
       timeout(10000),
       catchError((err) => {
-        // Silent recovery - no error in console
-        return of({ status: 'OFFLINE_RECOVERY', data: { beat_name: localStorage.getItem('assigned_beat_name') || 'General' } });
+        console.warn('getSites failed (500), using cached beat name:', err.status);
+        const cached = localStorage.getItem('assigned_beat_name') || 'General';
+        return of({ status: 'CACHED', data: { beat_name: cached } });
       })
     ).subscribe({
       next: (res) => {

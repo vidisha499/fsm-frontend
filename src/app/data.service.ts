@@ -74,7 +74,27 @@ export class DataService {
     });
   }
   verifyOtp(phone: string, otp: string) { return this.http.post(`${this.baseApiUrl}/verifyUser`, { phoneNo: phone, otp: otp }); }
-  updateProfilePic(photoBase64: string) { return this.http.post(`${this.baseApiUrl}/updateProfilePic`, { photo: photoBase64 }); }
+  updateProfilePic(photoBase64: string) { 
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    
+    try {
+      const byteCharacters = atob(photoBase64.split(',')[1]);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'image/jpeg' });
+      formData.append('photo', blob, 'profile.jpg');
+      formData.append('profile_pic', blob, 'profile.jpg');
+    } catch (e) {
+      formData.append('photo', photoBase64);
+    }
+
+    return this.http.post(`${this.baseApiUrl}/updateProfilePic`, formData); 
+  }
   
   // NEW AUTH ENDPOINTS
   resetPasswordAuto(payload: any) { return this.http.post(`${this.baseApiUrl}/resetPassword`, payload); }
@@ -84,6 +104,17 @@ export class DataService {
   addAdmin(payload: any) { return this.http.post(`${this.baseApiUrl}/addAdmin`, payload); }
   addSupervisor(payload: any) { return this.http.post(`${this.baseApiUrl}/addSupervisor`, payload); }
   addGuard(payload: any) { return this.http.post(`${this.baseApiUrl}/addGuard`, payload); }
+
+  // Fetch company info by looking at users of that company
+  // Using /getChatUsers (exists in Postman collection) which has company-level metadata
+  getCompanyDetails(companyId: any) {
+    const token = localStorage.getItem('api_token') || '';
+    const formData = new FormData();
+    formData.append('api_token', token);
+    formData.append('company_id', String(companyId));
+    // /getChatUsers returns list of users — first user's company_name field is the company
+    return this.http.post(`${this.baseApiUrl}/getChatUsers`, formData);
+  }
 
   // --- 4. DASHBOARD & ADMIN STATS ---
   // Replaced explicit api_token with interceptor
@@ -1326,7 +1357,11 @@ export class DataService {
   }
   listOrgEntities(layerId: any) {
     const token = localStorage.getItem('api_token') || '';
+    const companyId = localStorage.getItem('company_id') || '';
     const params: any = { api_token: token };
+    
+    if (companyId) params.company_id = String(companyId);
+    
     if (layerId && layerId !== 'all') {
       params.layer_id = String(layerId);
     }

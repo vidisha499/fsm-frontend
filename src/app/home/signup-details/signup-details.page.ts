@@ -7,6 +7,22 @@ import { NavController, ToastController, LoadingController,  } from '@ionic/angu
 import { DataService } from 'src/app/data.service';
 
 
+// Utility to convert Base64 to Blob for real file uploads
+function base64ToBlob(base64: string, contentType: string = 'image/jpeg') {
+  const byteCharacters = atob(base64.split(',')[1]);
+  const byteArrays = [];
+  for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+    const slice = byteCharacters.slice(offset, offset + 512);
+    const byteNumbers = new Array(slice.length);
+    for (let i = 0; i < slice.length; i++) {
+      byteNumbers[i] = slice.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    byteArrays.push(byteArray);
+  }
+  return new Blob(byteArrays, { type: contentType });
+}
+
 @Component({
   selector: 'app-signup-details',
   templateUrl: './signup-details.page.html',
@@ -283,9 +299,20 @@ onRangeChange() {
     formData.append('shift_name', this.shift || 'General Shift');
     formData.append('weekly_off', this.weeklyOff || 'Sunday');
 
-    // Handle profile photo
+    // 🖼️ AGGRESSIVE PHOTO UPLOAD: Sending with multiple possible keys
     if (this.profileImage) {
-      formData.append('profile_pic', this.profileImage);
+      try {
+        const imageBlob = base64ToBlob(this.profileImage);
+        formData.append('profile_pic', imageBlob, 'profile.jpg');
+        formData.append('photo', imageBlob, 'profile.jpg');
+        formData.append('image', imageBlob, 'profile.jpg');
+        formData.append('user_photo', imageBlob, 'profile.jpg');
+        formData.append('avatar', imageBlob, 'profile.jpg');
+      } catch (e) {
+        console.error("Blob conversion failed, sending as Base64 string:", e);
+        formData.append('profile_pic', this.profileImage);
+        formData.append('photo', this.profileImage);
+      }
     }
 
     console.log("Final Registration Request to /addUser (Signup)");
@@ -293,16 +320,49 @@ onRangeChange() {
     // 3. API Call via DataService - Using addUser for final signup to generate gen_id
     this.dataService.addUser(formData).subscribe({
 
-      next: async (response: any) => {
+      next: async (res: any) => {
         await loader.dismiss();
         
-        // Cache the profile picture locally
-        if (this.profileImage && this.mobile) {
-          localStorage.setItem(`cached_photo_${this.mobile}`, this.profileImage);
-        }
+        // 🔥 AGGRESSIVE CACHING for new users
+        localStorage.setItem('user_data', JSON.stringify(res.data));
+        localStorage.setItem('api_token', res.data.api_token);
+        localStorage.setItem('ranger_id', res.data.id.toString());
+        localStorage.setItem('ranger_username', this.firstName + ' ' + this.lastName);
+        localStorage.setItem('ranger_phone', this.mobile);
+        
+        // 🔥 SIR'S STRICT PROTOCOL: Wait for photo sync before allowing success
+        if (this.profileImage) {
+          console.log("🔄 Step 2: Syncing photo to database...");
+          
+          const rawBase64 = this.profileImage.includes('base64,') 
+                            ? this.profileImage.split('base64,')[1] 
+                            : this.profileImage;
 
-        this.presentToast('Registration successful! You can now log in.', 'success');
-        this.navCtrl.navigateRoot('/login');
+          const updatePayload = { 
+            user_id: res.data.id, 
+            id: res.data.id,
+            profile_pic: rawBase64 
+          };
+
+          this.dataService.updateRanger(updatePayload).subscribe({
+            next: async (syncRes: any) => {
+              console.log("✅ [DATABASE SYNC SUCCESS]:", syncRes);
+              await loader.dismiss();
+              this.presentToast('Registration and Photo Sync Successful!', 'success');
+              this.navCtrl.navigateRoot('/login');
+            },
+            error: async (err) => {
+              console.error("❌ [DATABASE SYNC FAILED]:", err);
+              await loader.dismiss();
+              this.presentToast('CRITICAL ERROR: Photo could not be saved in database. Signup blocked.', 'danger');
+              // We do NOT navigate to login here to respect the user's requirement.
+            }
+          });
+        } else {
+          // No photo provided (should not happen due to validation)
+          await loader.dismiss();
+          this.navCtrl.navigateRoot('/login');
+        }
       },
       error: async (err) => {
         await loader.dismiss();

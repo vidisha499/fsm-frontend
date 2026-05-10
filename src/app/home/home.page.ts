@@ -11,6 +11,22 @@ import { AlertController } from '@ionic/angular';
 import { Geolocation } from '@capacitor/geolocation';
 import { HierarchyService } from '../services/hierarchy.service';
 
+// Utility to convert Base64 to Blob for real file uploads
+function base64ToBlob(base64: string, contentType: string = 'image/jpeg') {
+  const byteCharacters = atob(base64.split(',')[1]);
+  const byteArrays = [];
+  for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+    const slice = byteCharacters.slice(offset, offset + 512);
+    const byteNumbers = new Array(slice.length);
+    for (let i = 0; i < slice.length; i++) {
+      byteNumbers[i] = slice.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    byteArrays.push(byteArray);
+  }
+  return new Blob(byteArrays, { type: contentType });
+}
+
 @Component({
   selector: 'app-home',
   templateUrl: 'home.page.html',
@@ -194,9 +210,14 @@ loadDashboardStats(companyId?: any) {
           this.cdr.detectChanges();
         },
         error: () => {
-          // Fallback to cached value or default
+          // Fallback to cached value or user_data metadata
           const cached = localStorage.getItem('assigned_beat_name');
-          this.assignedBeatName = cached || 'NOT ASSIGNED';
+          this.assignedBeatName = cached 
+            || userData.site_name 
+            || userData.beat 
+            || userData.range 
+            || 'NOT ASSIGNED';
+          this.cdr.detectChanges();
         }
       });
     }
@@ -225,14 +246,24 @@ async captureProfileImage(source: CameraSource) {
           return;
         }
 
-        // KEY FIX: Matching your DB schema 'profile_pic'
-        const updatedData = {
-          id: +rId,
-          profile_pic: image.base64String 
-        };
-
-        this.dataService.updateRanger(updatedData).subscribe({
+        // Use the specialized updateProfilePic method (Sir's Way)
+        this.dataService.updateProfilePic(this.profileImage).subscribe({
           next: () => {
+            // 🔥 Force cache locally as soon as update succeeds
+            if (this.profileImage) {
+              localStorage.setItem('user_photo', this.profileImage);
+              const rIdStr = String(rId);
+              localStorage.setItem(`cached_photo_id_${rIdStr}`, this.profileImage);
+              localStorage.setItem(`cached_photo_${this.rangerPhone}`, this.profileImage);
+              
+              // Trigger sidebar sync
+              this.dataService.userProfileUpdated$.next({
+                profile_pic: this.profileImage,
+                name: this.rangerName,
+                contact: this.rangerPhone
+              });
+            }
+
             setTimeout(() => {
               this.isSubmitting = false;
               this.showToast('Profile photo updated successfully');
