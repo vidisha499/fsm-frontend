@@ -55,66 +55,70 @@
         <div class="item-text"><span>Dashboard</span></div>
       </a>
 
-      <a *ngIf="isFeatureEnabled('attendance')" class="menu-item" (click)="goToPage('attendance')">
-        <div class="icon-box blue"><i class="fas fa-calendar-check"></i></div>
-        <div class="item-text"><span>Mark Attendance</span></div>
+      <!-- 2. Patrol/Beat Inspection -->
+      <a class="menu-item" (click)="goToPage('patrol-logs')" [class.active]="router.url.includes('patrol-logs')">
+        <div class="icon-box rose"><i class="fas fa-route"></i></div>
+        <div class="item-text"><span>Patrol/Beat Inspection</span></div>
       </a>
 
-
-      <!-- Attendance Requests: approval page — Admin/Manager only (Guards can submit but not manage) -->
-      <a *ngIf="isFeatureEnabled('attendance_request') && userRole === 'admin'" class="menu-item" (click)="goToPage('attendance-requests')">
-        <div class="icon-box amber"><i class="fas fa-user-check"></i></div>
-        <div class="item-text"><span>Attendance Requests</span></div>
-      </a>
-
+      <!-- 3. Asset Management -->
       <a *ngIf="isFeatureEnabled('asset_management')" class="menu-item" (click)="goToPage('assets-list')" [class.active]="router.url === '/home/assets-list'">
         <div class="icon-box indigo"><i class="fas fa-boxes"></i></div>
         <div class="item-text"><span>Asset Management</span></div>
       </a>
 
+      <!-- 4. Forest Events Dashboard -->
       <a *ngIf="isFeatureEnabled('forest_events')" class="menu-item" (click)="goToPage('forest-events')" [class.active]="router.url.includes('forest-events')">
         <div class="icon-box orange"><i class="fas fa-shield-virus"></i></div>
         <div class="item-text"><span>Forest Events Dashboard</span></div>
       </a>
 
-      <a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('org-management')" [class.active]="router.url.includes('org-management')">
-        <div class="icon-box purple"><i class="fas fa-sitemap"></i></div>
-        <div class="item-text"><span>Organization Management</span></div>
-      </a>
-
-      <a *ngIf="userDesignation === 'SUPERADMIN'" class="menu-item" (click)="goToPage('add-user')" [class.active]="router.url.includes('add-user')">
-        <div class="icon-box azure"><i class="fas fa-user-plus"></i></div>
-        <div class="item-text"><span>Add Approved User</span></div>
-      </a>
-
+      <!-- 5. Know Your Area -->
       <a *ngIf="isFeatureEnabled('know_your_area')" class="menu-item" (click)="goToPage('geofences')" [class.active]="router.url.includes('geofences')">
         <div class="icon-box orange"><i class="fas fa-draw-polygon"></i></div>
         <div class="item-text"><span>Know Your Area</span></div>
       </a>
 
+      <!-- 6. Plantations -->
       <a *ngIf="isFeatureEnabled('plantations')" class="menu-item" (click)="goToPage('plantations')" [class.active]="router.url.includes('plantations')">
         <div class="icon-box green"><i class="fas fa-leaf"></i></div>
         <div class="item-text"><span>Plantations</span></div>
       </a>
 
-      <!-- <a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('dynamic-forms')" [class.active]="router.url.includes('dynamic-forms')">
-        <div class="icon-box gold"><i class="fas fa-edit"></i></div>
-        <div class="item-text"><span>Change Forms</span></div>
+      <!-- 7. Mark Attendance -->
+      <a *ngIf="isFeatureEnabled('attendance')" class="menu-item" (click)="goToPage('attendance')">
+        <div class="icon-box blue"><i class="fas fa-calendar-check"></i></div>
+        <div class="item-text"><span>Mark Attendance</span></div>
       </a>
 
-      <a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('dynamic-labels')" [class.active]="router.url.includes('dynamic-labels')">
-        <div class="icon-box azure"><i class="fas fa-font"></i></div>
-        <div class="item-text"><span>{{ 'label_dynamic' | dynamicLabel }}</span></div>
-      </a> -->
-
-      <a *ngIf="isFeatureEnabled('attendance')" class="menu-item" (click)="goToPage('onsite-attendance')">
-        <div class="icon-box emerald"><i class="fas fa-map-marker-alt"></i></div>
-        <div class="item-text"><span>On Site/Beat Attendance</span></div>
-      </a>
-
+      <!-- 8. Reports -->
       <a *ngIf="isFeatureEnabled('patrol_report')" class="menu-item" (click)="goToPage('reports')" [class.active]="router.url.includes('reports')">
         <div class="icon-box rose"><i class="fas fa-file-contract"></i></div>
         <div class="item-text"><span>Reports</span></div>
+      </a>
+
+      <!-- 9. Organisation Management -->
+      <a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('org-management')" [class.active]="router.url.includes('org-management')">
+        <div class="icon-box purple"><i class="fas fa-sitemap"></i></div>
+        <div class="item-text"><span>Organization Management</span></div>
+      </a>
+
+      <!-- 10. Attendance Request -->
+      <a *ngIf="isFeatureEnabled('attendance_request') && userRole === 'admin'" class="menu-item" (click)="goToPage('attendance-requests')">
+        <div class="icon-box amber"><i class="fas fa-user-check"></i></div>
+        <div class="item-text"><span>Attendance Requests</span></div>
+      </a>
+
+      <!-- 11. Add Approved User -->
+      <a *ngIf="userDesignation === 'SUPERADMIN'" class="menu-item" (click)="goToPage('add-user')" [class.active]="router.url.includes('add-user')">
+        <div class="icon-box azure"><i class="fas fa-user-plus"></i></div>
+        <div class="item-text"><span>Add Approved User</span></div>
+      </a>
+
+      <!-- Hidden/Commented items -->
+      <!-- <a *ngIf="isFeatureEnabled('attendance')" class="menu-item" (click)="goToPage('onsite-attendance')">
+        <div class="icon-box emerald"><i class="fas fa-map-marker-alt"></i></div>
+        <div class="item-text"><span>On Site/Beat Attendance</span></div>
       </a>
 
       <a *ngIf="isFeatureEnabled('daily_updates')" class="menu-item" (click)="goToPage('daily-updates')" [class.active]="router.url.includes('daily-updates')">
@@ -130,41 +134,21 @@
       <a *ngIf="isFeatureEnabled('client_visits') || isFeatureEnabled('field_visits')" class="menu-item" (click)="goToPage('client-visits')" [class.active]="router.url.includes('client-visits')">
         <div class="icon-box blue"><i class="fas fa-briefcase"></i></div>
         <div class="item-text"><span>{{ 'label_client' | dynamicLabel }} Visits</span></div>
-      </a>
-
-      <!-- <a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('dynamic-forms')" [class.active]="router.url.includes('dynamic-forms')">
-        <div class="icon-box indigo">
-          <i class="fas fa-edit"></i>
-        </div>
-        <div class="item-text">
-          <span>Change Forms</span>
-        </div>
-      </a>
-
-      <a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('dynamic-labels')" [class.active]="router.url.includes('dynamic-labels')">
-        <div class="icon-box azure">
-          <i class="fas fa-font"></i>
-        </div>
-        <div class="item-text">
-          <span>{{ 'label_dynamic' | dynamicLabel }}</span>
-        </div>
       </a> -->
 
-      <a class="menu-item" (click)="goToPage('location')" [class.active]="router.url.includes('location')">
-        <div class="icon-box teal"><i class="fas fa-map-marker-alt"></i></div>
-        <div class="item-text"><span>{{ 'MENU.CURRENT_LOCATION' | translate }}</span></div>
-      </a>
-
+      <!-- 12. Account Settings -->
       <a class="menu-item" (click)="goToPage('settings')" [class.active]="router.url.includes('settings')">
         <div class="icon-box slate"><i class="fas fa-cog"></i></div>
         <div class="item-text"><span>{{ 'MENU.ACCOUNT_SETTINGS' | translate }}</span></div>
       </a>
 
+      <!-- 13. Change Language -->
       <a class="menu-item" (click)="toggleLanguageModal(true)">
         <div class="icon-box amber"><i class="fas fa-language"></i></div>
         <div class="item-text"><span>{{ 'MENU.CHANGE_LANGUAGE' | translate }}</span></div>
       </a>
 
+      <!-- 14. Logout -->
       <a class="menu-item logout-btn" (click)="logout()">
         <div class="icon-box red"><i class="fas fa-power-off"></i></div>
         <div class="item-text"><span>{{ 'MENU.LOGOUT' | translate }}</span></div>

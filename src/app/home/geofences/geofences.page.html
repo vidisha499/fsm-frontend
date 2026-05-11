@@ -1,12 +1,12 @@
-<ion-header class="beat-header shadow-md">
-  <ion-toolbar>
+<ion-header [translucent]="true" class="ion-no-border">
+  <ion-toolbar color="success">
     <ion-buttons slot="start">
-      <ion-back-button defaultHref="/home"></ion-back-button>
+      <ion-back-button defaultHref="/home" color="light"></ion-back-button>
     </ion-buttons>
-    <ion-title>Know Your Area</ion-title>
-    <ion-buttons slot="end" *ngIf="userRole !== 3">
-      <ion-button (click)="toggleFilters()" [color]="showFilters ? 'success' : 'light'" class="filter-toggle-btn">
-        <ion-icon slot="icon-only" [name]="showFilters ? 'close-circle' : 'funnel-outline'"></ion-icon>
+    <ion-title color="light">Know Your Area</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="toggleFilters()">
+        <ion-icon name="filter-outline" slot="icon-only" color="light"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
