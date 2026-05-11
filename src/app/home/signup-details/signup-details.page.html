@@ -80,33 +80,30 @@
           </div>
         </div>
 
-        <ng-container *ngIf="shouldShowHierarchy()">
+        <ng-container *ngIf="layers && layers.length > 0">
           <div class="section-divider">
             <span>ASSIGNMENT</span>
           </div>
 
-          <div class="input-pill">
-            <label>CLIENT / RANGE*</label>
+          <!-- Dynamic Hierarchy Dropdowns (Editable but Pre-filled) -->
+          <div class="input-pill" *ngFor="let layer of layers; let i = index">
+            <label>{{ layer.name | uppercase }}*</label>
             <div class="pill-content">
-              <i class="fas fa-map-marked-alt"></i>
-              <select [(ngModel)]="range" (change)="onRangeChange()" style="border: none; background: transparent; width: 100%; font-weight: 700; color: var(--dark-slate); outline: none; font-size: 14px;">
-                <option value="">Select Range</option>
-                <option *ngFor="let r of ranges" [value]="r.name || r">{{ r.name || r }}</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="input-pill">
-            <label>SITE / BEAT*</label>
-            <div class="pill-content">
-              <i class="fas fa-draw-polygon"></i>
-              <select [(ngModel)]="beat" style="border: none; background: transparent; width: 100%; font-weight: 700; color: var(--dark-slate); outline: none; font-size: 14px;">
-                <option value="">Select Beat</option>
-                <option *ngFor="let b of filteredBeats" [value]="b.name">{{ b.name }}</option>
+              <i class="fas fa-sitemap"></i>
+              <select [(ngModel)]="hierarchySelections[i]" (change)="onLayerChange(i)" style="border: none; background: transparent; width: 100%; font-weight: 700; color: var(--dark-slate); outline: none; font-size: 14px;">
+                <option [value]="null">Select {{ layer.name }}</option>
+                <option *ngFor="let ent of layerEntities[layer.id]" [value]="ent.id">
+                  {{ ent.name }}
+                </option>
               </select>
             </div>
           </div>
         </ng-container>
+
+        <div class="no-assignment" *ngIf="layers.length === 0">
+          <i class="fas fa-info-circle"></i>
+          <span>Loading organization structure...</span>
+        </div>
 
         <div class="input-pill">
           <label>SHIFT*</label>

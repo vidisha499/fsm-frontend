@@ -160,8 +160,15 @@ export class OrgManagementPage implements OnInit {
   // --- ORG STRUCTURE LOGIC ---
   async loadOrgLayers() {
     this.dataService.listOrgLayers().subscribe({
-      next: (res: any) => this.orgLayers = res?.data || res || [],
-      error: (err) => console.error('Org layers load failed', err)
+      next: (res: any) => {
+        const layers = res?.data || res || [];
+        this.orgLayers = layers.map((l: any) => {
+          if (String(l.id) === '9') return { ...l, name: 'Section' };
+          if (String(l.id) === '10') return { ...l, name: 'Beat' };
+          return l;
+        }).sort((a: any, b: any) => Number(a.id) - Number(b.id));
+      },
+      error: (err) => console.error('Layers load failed', err)
     });
   }
 
@@ -184,28 +191,72 @@ export class OrgManagementPage implements OnInit {
 
   filterEntities(layerId: any) {
     this.selectedLayer = layerId;
+    console.log("🎯 Filtering for Layer ID:", layerId);
+
     if (layerId === 'all') {
       this.filteredEntities = [...this.orgEntities];
     } else {
-      this.filteredEntities = this.orgEntities.filter(e => String(e.layer_id) === String(layerId));
+      // Find the layer object to get its name for a smarter match
+      const selectedLayerObj = this.orgLayers.find(l => String(l.id) === String(layerId));
+      const layerName = selectedLayerObj?.name?.toLowerCase();
+
+      this.filteredEntities = this.orgEntities.filter(e => {
+        const matchesId = String(e.layer_id) === String(layerId);
+        // Fallback: If ID doesn't match, check if the entity's layer name matches the tab name
+        const matchesName = layerName && e.layer_name && String(e.layer_name).toLowerCase().includes(layerName);
+        return matchesId || matchesName;
+      });
     }
+    console.log("✅ Filtered Count:", this.filteredEntities.length);
   }
 
-  async openAddOrgEntity() {
+  async openAddOrgLayer() {
     const alert = await this.alertCtrl.create({
       mode: 'md',
-      header: 'New Org Entity',
+      header: 'New Org Layer',
       inputs: [
-        { name: 'name', type: 'text', placeholder: 'Entity Name' },
-        { name: 'code', type: 'text', placeholder: 'Code (E001)' },
-        { name: 'layer_id', type: 'number', placeholder: 'Layer ID' },
-        { name: 'parent_id', type: 'number', placeholder: 'Parent ID' }
+        { name: 'name', type: 'text', placeholder: 'Layer Name' },
+        { name: 'rank', type: 'number', placeholder: 'Rank' }
       ],
       buttons: [
         { text: 'Cancel', role: 'cancel' },
         {
           text: 'Create',
           handler: (data) => {
+            this.dataService.createOrgLayer(data).subscribe({
+              next: () => {
+                this.showToast('Layer created', 'success');
+                this.loadOrgLayers();
+              }
+            });
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  async openAddOrgEntity() {
+    const alert = await this.alertCtrl.create({
+      mode: 'md',
+      header: 'New Org Entity',
+      message: 'Select a layer and enter entity details. Available Layers: ' + 
+               this.orgLayers.map(l => `${l.name} (ID: ${l.id})`).join(', '),
+      inputs: [
+        { name: 'name', type: 'text', placeholder: 'Entity Name (e.g. Nagpur Circle)' },
+        { name: 'code', type: 'text', placeholder: 'Code (e.g. NAG-01)' },
+        { name: 'layer_id', type: 'number', placeholder: 'Layer ID (See above list)' },
+        { name: 'parent_id', type: 'number', placeholder: 'Parent Entity ID (Optional)' }
+      ],
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Create',
+          handler: (data) => {
+            if (!data.name || !data.layer_id) {
+              this.showToast('Name and Layer ID are required', 'warning');
+              return;
+            }
             this.dataService.createOrgEntity(data).subscribe({
               next: () => {
                 this.showToast('Entity created', 'success');

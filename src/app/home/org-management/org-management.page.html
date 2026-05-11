@@ -64,8 +64,13 @@
     <div *ngIf="activeSegment === 'org'" class="section-fade-in">
       <div class="shdr">
         <div class="shdr-title">Org Layers & Entities</div>
-        <div class="shdr-link" (click)="openAddOrgEntity()">
-          <i class="fas fa-plus-circle"></i> ADD ENTITY
+        <div class="shdr-actions" style="display: flex; gap: 10px;">
+          <div class="shdr-link" (click)="openAddOrgLayer()">
+            <i class="fas fa-layer-group"></i> ADD LAYER
+          </div>
+          <div class="shdr-link" (click)="openAddOrgEntity()">
+            <i class="fas fa-plus-circle"></i> ADD ENTITY
+          </div>
         </div>
       </div>
 

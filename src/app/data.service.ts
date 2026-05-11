@@ -75,31 +75,21 @@ export class DataService {
   }
   verifyOtp(phone: string, otp: string) { return this.http.post(`${this.baseApiUrl}/verifyUser`, { phoneNo: phone, otp: otp }); }
   updateProfilePic(photoBase64: string) { 
-    const formData = new FormData();
     const token = localStorage.getItem('api_token') || '';
-    formData.append('api_token', token);
-    
-    try {
-      const byteCharacters = atob(photoBase64.split(',')[1]);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: 'image/jpeg' });
-      formData.append('photo', blob, 'profile.jpg');
-      formData.append('profile_pic', blob, 'profile.jpg');
-    } catch (e) {
-      formData.append('photo', photoBase64);
-    }
-
-    return this.http.post(`${this.baseApiUrl}/updateProfilePic`, formData); 
+    const payload = {
+      api_token: token,
+      photo: photoBase64 // Full Data URI as per Postman
+    };
+    return this.http.post(`${this.baseApiUrl}/updateProfilePic`, payload); 
   }
   
   // NEW AUTH ENDPOINTS
   resetPasswordAuto(payload: any) { return this.http.post(`${this.baseApiUrl}/resetPassword`, payload); }
   addRegistration(payload: any) { return this.http.post(`${this.baseApiUrl}/addRegistration`, payload); }
-  addUser(payload: any) { return this.http.post(`${this.baseApiUrl}/addUser`, payload); }
+  addUser(payload: any) { 
+    // Sending as JSON to match Sir's modern V2/Postman style
+    return this.http.post(`${this.baseApiUrl}/addUser`, payload); 
+  }
   zilllogin(payload: any) { return this.http.post(`${this.baseApiUrl}/zilllogin`, payload); }
   addAdmin(payload: any) { return this.http.post(`${this.baseApiUrl}/addAdmin`, payload); }
   addSupervisor(payload: any) { return this.http.post(`${this.baseApiUrl}/addSupervisor`, payload); }
@@ -141,19 +131,14 @@ export class DataService {
 
   // --- 5. RANGER/PROFILE MANAGEMENT ---
   updateRanger(data: any) {
-    // Replaced deprecated /rangers/update with Sir's /updateUserDetails endpoint.
-    // Conforming strictly to FormData API payload requirements.
-    const formData = new FormData();
     const token = localStorage.getItem('api_token') || '';
-    formData.append('api_token', token);
+    const payload = {
+      api_token: token,
+      ...data
+    };
     
-    for (const key in data) {
-      if (data.hasOwnProperty(key) && data[key] !== null && data[key] !== undefined) {
-        formData.append(key, String(data[key]));
-      }
-    }
-    
-    return this.http.post(`${this.baseApiUrl}/updateUserDetails`, formData);
+    const headers = { 'Bypass-Token': 'true' };
+    return this.http.post(`${this.baseApiUrl}/updateUserDetails`, payload, { headers });
   }
 
   changePassword(data: any) {
@@ -611,27 +596,7 @@ export class DataService {
   getAssetsTrend(companyId: number): Observable<any> { return this.getAssetTrend(companyId); }
   getAssetCategories(companyId: any): Observable<any[]> { return this.getCategories(companyId); }
   getAssetStatuses(companyId: number): Observable<any> { return this.getStatuses(companyId); }
-  // getCategories(companyId: any): Observable<any> { 
-  //   const formData = new FormData();
-  //   const token = localStorage.getItem('api_token') || '';
-  //   formData.append('api_token', token);
-  //   formData.append('company_id', companyId.toString());
-    
-  //   const headers = { 
-  //     'Accept': 'application/json'
-  //   };
-    
-  //   return this.http.post(`${this.baseApiUrl}/assets/categories`, formData, { headers }); 
-  // }
-  // getStatuses(companyId: any): Observable<any> { 
-  //   const formData = new FormData();
-  //   const token = localStorage.getItem('api_token') || '';
-  //   formData.append('api_token', token);
-  //   formData.append('company_id', companyId.toString());
-    
-
-  // --- UPDATED: EXACT MATCH WITH POSTMAN COLLECTION ---
-
+  
   getCategories(companyId: any): Observable<any> { 
     const formData = new FormData();
     const token = localStorage.getItem('api_token') || '';
@@ -1350,6 +1315,34 @@ export class DataService {
   }
 
   // --- 21. DYNAMIC ORG STRUCTURE ---
+  // --- 11. V2 DYNAMIC HIERARCHY & ROLES (NEW) ---
+  listV2Layers() {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/hierarchy-layers`, { api_token: token });
+  }
+
+  listV2Entities(layerId: any, parentId: any = null) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/hierarchy-entities`, { 
+      api_token: token, 
+      layer_id: layerId, 
+      parent_id: parentId 
+    });
+  }
+
+  listV2Roles() {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/dynamic-roles`, { api_token: token });
+  }
+
+  saveV2Assignment(payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/save-assignment`, { 
+      api_token: token, 
+      ...payload 
+    });
+  }
+
   listOrgLayers() {
     const token = localStorage.getItem('api_token') || '';
     return this.http.get(`${this.baseApiUrl}/org/layers`, { params: { api_token: token } });
@@ -1376,7 +1369,10 @@ export class DataService {
   }
   updateOrgEntity(entityId: any, payload: any) {
     const token = localStorage.getItem('api_token') || '';
-    return this.http.post(`${this.baseApiUrl}/org/entities/${entityId}`, { api_token: token, ...payload });
+    const formData = new FormData();
+    formData.append('api_token', token);
+    for (const key in payload) { formData.append(key, payload[key]); }
+    return this.http.post(`${this.baseApiUrl}/org/entities/${entityId}`, formData);
   }
 
   deleteOrgEntity(entityId: any) {
