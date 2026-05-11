@@ -23,8 +23,8 @@ export class GeofencesPage implements OnInit, OnDestroy {
   sections: any[] = [];
   beats: any[] = [];
 
-  selectedRangeId?: number;
-  selectedSectionId?: number;
+  selectedRangeId?: number | string;
+  selectedSectionId?: number | string;
   selectedBeatId?: number | string;
 
   loading = false;
@@ -77,21 +77,27 @@ export class GeofencesPage implements OnInit, OnDestroy {
   }
 
   ionViewWillEnter() {
+    console.log("📍 [GEOFENCES] ionViewWillEnter called");
     this.loading = true;
     try {
       this.apiToken = localStorage.getItem('api_token') || "";
       const roleStr = localStorage.getItem('user_role');
       this.userRole = roleStr ? parseInt(roleStr, 10) : 0;
+      
+      // Get Actual Company ID
+      const companyId = this.dataService.getUserCompanyId();
+      console.log("📍 [GEOFENCES] User Role:", this.userRole, "Company ID:", companyId, "Token Exists:", !!this.apiToken);
 
       this.loadYears();
       this.loadLayers();
-      this.loadRanges();
+      
+      // Initial Load: Use Company ID instead of hardcoded '0'
+      this.loadRanges(companyId || '0');
 
-      // Fetch beats from the newly integrated API
       this.fetchBeatBoundaries();
       
     } catch (e) {
-      console.error("Geofences: Failed to init", e);
+      console.error("📍 [GEOFENCES] Failed to init", e);
     } finally {
       this.loading = false;
     }
@@ -136,10 +142,11 @@ export class GeofencesPage implements OnInit, OnDestroy {
   }
 
   loadLayers(level?: string, id?: any) {
-    // GET /layers — from HierarchicalBoundaryController@getLayers
+    console.log("📍 [GEOFENCES] loadLayers called with:", { level, id });
     this.dataService.getLayers(level, id).subscribe({
       next: (res: any) => {
         const data = res?.data || res || [];
+        console.log("📍 [GEOFENCES] Layers Response:", data);
         const layerColors = ['#e6c100', '#3b82f6', '#ef4444', '#10b981', '#f97316'];
         if (Array.isArray(data) && data.length > 0) {
           this.layers = data.map((l: any, idx: number) => ({
@@ -153,7 +160,7 @@ export class GeofencesPage implements OnInit, OnDestroy {
             lightColor: this.hexToRgba(l.color || layerColors[idx % layerColors.length], 0.1),
           }));
         } else {
-          // Fallback with sensible defaults
+          console.warn("📍 [GEOFENCES] No layers found, using fallbacks");
           this.layers = [
             { key: 'administrative_boundaries', label: 'Administrative Boundaries', color: '#e6c100', visible: true, overlays: [], icon: 'layers-outline', lightColor: this.hexToRgba('#e6c100', 0.1) },
             { key: 'drainage', label: 'Drainage', color: '#3b82f6', visible: false, overlays: [], icon: 'layers-outline', lightColor: this.hexToRgba('#3b82f6', 0.1) },
@@ -162,7 +169,8 @@ export class GeofencesPage implements OnInit, OnDestroy {
         }
         this.cd.detectChanges();
       },
-      error: () => {
+      error: (err) => {
+        console.error("📍 [GEOFENCES] Layers Error:", err);
         this.layers = [
           { key: 'administrative_boundaries', label: 'Administrative Boundaries', color: '#e6c100', visible: true, overlays: [], icon: 'layers-outline', lightColor: this.hexToRgba('#e6c100', 0.1) },
           { key: 'drainage', label: 'Drainage', color: '#3b82f6', visible: false, overlays: [], icon: 'layers-outline', lightColor: this.hexToRgba('#3b82f6', 0.1) },
@@ -173,18 +181,18 @@ export class GeofencesPage implements OnInit, OnDestroy {
   }
 
   loadYears() {
-    // GET /years — from HierarchicalBoundaryController@getYears
+    console.log("📍 [GEOFENCES] loadYears called");
     this.dataService.getYears().subscribe({
       next: (res: any) => {
         const data = res?.data || res || [];
-        const allOption = { id: 'all', name: this.translate.instant('COMMON.all') || 'All' };
+        console.log("📍 [GEOFENCES] Years Response:", data);
+        const allOption = { id: 'all', name: 'All' };
         if (Array.isArray(data) && data.length > 0) {
           this.availableYears = [allOption, ...data.map((y: any) => ({
             id: y.year || y.id || String(y),
             name: y.year || y.name || String(y)
           }))];
         } else {
-          // Fallback: last 3 years
           const currentYear = new Date().getFullYear();
           this.availableYears = [allOption,
             { id: String(currentYear), name: String(currentYear) },
@@ -195,7 +203,8 @@ export class GeofencesPage implements OnInit, OnDestroy {
         if (!this.selectedYear) this.selectedYear = 'all';
         this.cd.detectChanges();
       },
-      error: () => {
+      error: (err) => {
+        console.error("📍 [GEOFENCES] Years Error:", err);
         const currentYear = new Date().getFullYear();
         this.availableYears = [
           { id: 'all', name: 'All' },
@@ -295,17 +304,27 @@ export class GeofencesPage implements OnInit, OnDestroy {
     L.tileLayer(url, { maxZoom: 20, subdomains:['mt0','mt1','mt2','mt3'] }).addTo(this.map);
   }
 
-  loadRanges() {
-    this.dataService.getBeatBoundaries(3).subscribe({
+  loadRanges(targetCompanyId: string = '0') {
+    console.log("📍 [GEOFENCES] loadRanges called using getRanges API");
+    this.dataService.getRanges().subscribe({
       next: (res: any) => {
         const data = res?.data || res || [];
-        this.ranges = Array.isArray(data) ? data.map((r: any) => ({
-          id: r.id || r.range_id || r.ID,
-          name: r.name || r.range_name || r.Name || 'Unnamed Range'
-        })) : [];
+        console.log("📍 [GEOFENCES] Ranges Response from getRanges:", data);
+
+        this.ranges = data.map((r: any) => ({
+          id: r.id || r.fid || r.range_id || r.ID || r.name, 
+          name: r.name || r.range_name || r.Name || 'Unnamed Range',
+          level: 'range'
+        }));
+
+        if (this.ranges.length === 0) {
+          this.ranges = [{ id: 'none', name: 'No Data Found', level: 'none' }];
+        }
+        
         this.cd.detectChanges();
       },
-      error: () => {
+      error: (err) => {
+        console.error("📍 [GEOFENCES] Ranges Error:", err);
         this.ranges = [];
         this.cd.detectChanges();
       }
@@ -320,22 +339,41 @@ export class GeofencesPage implements OnInit, OnDestroy {
 
     if (!this.selectedRangeId) { this.cd.detectChanges(); return; }
 
-    this.dataService.getBeatBoundaries(4, this.selectedRangeId).subscribe({
+    const selectedRange = this.ranges.find(r => r.id === this.selectedRangeId);
+    const levelToFetch = selectedRange?.level || 'range';
+
+    console.log(`📍 [GEOFENCES] onRangeChange: Selected ID ${this.selectedRangeId} has level ${levelToFetch}`);
+
+    // If the selected item is already a BEAT, we don't need to fetch sections
+    if (levelToFetch === 'beat') {
+      this.selectedBeatId = this.selectedRangeId;
+      console.log("📍 [GEOFENCES] Item is already a beat. Skipping section fetch.");
+      this.cd.detectChanges();
+      return;
+    }
+
+    this.dataService.getBoundaryData(levelToFetch, this.selectedRangeId, 'all').subscribe({
       next: (res: any) => {
-        const data = res?.data || res || [];
-        this.sections = Array.isArray(data) ? data.map((s: any) => ({
-          id: s.id || s.section_id || s.ID,
-          name: s.name || s.section_name || s.Name || 'Unnamed Section'
-        })) : [];
+        const rawData = res?.data || res || {};
+        const children = Array.isArray(rawData) ? rawData : (rawData.children || []);
+
+        this.sections = children.map((s: any) => ({
+          id: s.id || s.fid || s.section_id || s.ID,
+          name: s.name || s.section_name || s.Name || 'Unnamed Section',
+          level: s.level || 'section'
+        }));
         
-        // If no sections found, maybe range has beats directly? 
-        // This handles Range -> Beat hierarchy
         if (this.sections.length === 0) {
-           this.onSectionChange(); // Try fetching beats directly
+          this.sections = [{ id: 'none', name: 'No Data Found', level: 'none' }];
+          this.onSectionChange(); 
         }
         this.cd.detectChanges();
       },
-      error: () => { this.sections = []; this.cd.detectChanges(); }
+      error: (err) => { 
+        console.error("📍 [GEOFENCES] Section Error:", err);
+        this.sections = []; 
+        this.cd.detectChanges(); 
+      }
     });
   }
 
@@ -343,30 +381,40 @@ export class GeofencesPage implements OnInit, OnDestroy {
     this.selectedBeatId = undefined;
     this.beats = [];
 
-    // Level 5 is Beats. If Level 4 was empty, we use RangeId as parent to check direct beats.
+    const selectedSection = this.sections.find(s => s.id === this.selectedSectionId);
+    const parentLevel = selectedSection ? (selectedSection.level || 'section') : 'range';
     const parentId = this.selectedSectionId || this.selectedRangeId;
+    
     if (!parentId) return;
 
-    this.dataService.getBeatBoundaries(5, parentId).subscribe({
+    console.log(`📍 [GEOFENCES] onSectionChange: Fetching beats for ${parentLevel} ID ${parentId}`);
+
+    this.dataService.getBoundaryData(parentLevel, parentId, 'all').subscribe({
       next: (res: any) => {
-        const data = res?.data || res || [];
-        const allOption = { id: 'all', name: 'All' }; // Plain text fallback
+        const rawData = res?.data || res || {};
+        const children = Array.isArray(rawData) ? rawData : (rawData.children || []);
+        const allOption = { id: 'all', name: 'All', level: 'beat' }; 
         
-        if (Array.isArray(data) && data.length > 0) {
-          this.beats = [allOption, ...data.map((b: any) => ({
+        if (children.length > 0) {
+          this.beats = [allOption, ...children.map((b: any) => ({
             ...b,
-            id: b.id || b.beat_id || b.ID,
-            name: b.name || b.beat_name || b.Name || 'Unnamed Beat'
+            id: b.id || b.fid || b.beat_id || b.ID,
+            name: b.name || b.beat_name || b.Name || 'Unnamed Beat',
+            level: b.level || 'beat'
           }))];
           this.selectedBeatId = 'all';
           this.drawBoundary('beat', 'all');
         } else {
-          this.beats = [allOption];
+          this.beats = [allOption, { id: 'none', name: 'No Data Found', level: 'none' }];
           this.selectedBeatId = 'all';
         }
         this.cd.detectChanges();
       },
-      error: () => { this.beats = []; this.cd.detectChanges(); }
+      error: (err) => { 
+        console.error("📍 [GEOFENCES] Beat Error:", err);
+        this.beats = []; 
+        this.cd.detectChanges(); 
+      }
     });
   }
 
@@ -382,34 +430,32 @@ export class GeofencesPage implements OnInit, OnDestroy {
   }
 
   applyFilters() {
-    let level = 'all';
-    let id: any = 'all';
+    // Sir's Postman defaults: level='company', id='0', year='all'
+    let level = this.selectedBeatId && this.selectedBeatId !== 'all' ? 'beat' : 
+                (this.selectedSectionId && this.selectedSectionId !== 'none' ? 'section' : 
+                (this.selectedRangeId && this.selectedRangeId !== 'none' ? 'range' : 'company'));
+    
+    let id: any = (level === 'beat') ? this.selectedBeatId :
+                  (level === 'section' ? this.selectedSectionId :
+                  (level === 'range' ? this.selectedRangeId : '0'));
 
-    if (this.selectedBeatId && this.selectedBeatId !== 'all') {
-      level = 'beat';
-      id = this.selectedBeatId;
-    } else if (this.selectedSectionId) {
-      level = 'section';
-      id = this.selectedSectionId;
-    } else if (this.selectedRangeId) {
-      level = 'range';
-      id = this.selectedRangeId;
-    }
+    const year = this.selectedYear || 'all';
 
+    console.log("📍 [GEOFENCES] Apply Filters called with:", { level, id, year });
     this.loading = true;
     
-    // 1. Fetch Boundary GeoJSON Data
-    this.dataService.getBoundaryData(level, id, this.selectedYear).subscribe({
+    // 1. Fetch Boundary GeoJSON Data using Sir's params
+    this.dataService.getBoundaryData(level, id, year).subscribe({
       next: (res: any) => {
         const data = res?.data || res || [];
-        // Handle drawing logic here (similar to drawBoundary but with API results)
+        console.log("📍 [GEOFENCES] Boundary Data Response:", data);
         this.processMapData(data, level);
         this.loading = false;
-        this.showFilters = false; // Hide card after applying
+        this.showFilters = false; 
         this.cd.detectChanges();
       },
       error: (err) => {
-        console.error("Failed to fetch boundary data", err);
+        console.error("📍 [GEOFENCES] Failed to fetch boundary data", err);
         this.loading = false;
         this.cd.detectChanges();
       }
@@ -421,62 +467,131 @@ export class GeofencesPage implements OnInit, OnDestroy {
 
   private processMapData(data: any, level: string) {
     if (!this.map) return;
+    console.log(`📍 [GEOFENCES] processMapData starting for level: ${level}`);
     this.clearAll();
 
-    const items = Array.isArray(data) ? data : (data.features || [data]);
     const bounds = L.latLngBounds([]);
-
-    items.forEach((item: any) => {
-      let coords = item.boundary_coordinates || item.geometry?.coordinates || item.coordinates;
-      if (!coords) return;
-
+    const drawSinglePolygon = (coords: any[], name: string, entityLevel: string) => {
+      if (!coords || coords.length === 0) return;
       try {
-        if (typeof coords === 'string') coords = JSON.parse(coords);
+        const processed = this.formatCoordinates(coords);
         
-        // Handle GeoJSON format or custom [lat,lng] array
-        let latlngs: any;
-        if (item.type === 'Feature') {
-          latlngs = L.geoJSON(item).getBounds();
-          L.geoJSON(item, {
-            style: { color: '#e6c100', weight: 2, fillOpacity: 0.2 }
-          }).addTo(this.layerGroup);
-          bounds.extend(latlngs);
-        } else {
-          // Traditional coordinates array processing
-          const processedCoords = this.formatCoordinates(coords);
-          if (processedCoords.length > 0) {
-            const polygon = L.polygon(processedCoords, {
-              color: '#e6c100', weight: 2, fillOpacity: 0.2
-            }).addTo(this.layerGroup);
-            polygon.bindTooltip(item.name || 'Area', { permanent: false });
-            bounds.extend(polygon.getBounds());
-          }
+        if (processed.length === 0) {
+          console.warn(`📍 [GEOFENCES] No valid points for ${name} after formatting.`);
+          return;
         }
+
+        console.log(`📍 [GEOFENCES] Drawing ${name} with ${processed.length} points`);
+        
+        const polygon = L.polygon(processed, {
+          color: this.getLevelColor(entityLevel),
+          fillColor: this.getLevelColor(entityLevel),
+          fillOpacity: 0.2,
+          weight: 2
+        }).addTo(this.layerGroup);
+        
+        polygon.bindTooltip(name || 'Area', { permanent: false });
+        bounds.extend(polygon.getBounds());
       } catch (e) {
-        console.warn("Failed to process coordinates for item", item, e);
+        console.error("📍 [GEOFENCES] Error drawing part:", name, e);
       }
-    });
+    };
+
+    const processEntity = (entity: any) => {
+      const entityName = entity.name || 'Area';
+      const entityLevel = entity.level || level;
+      
+      console.log(`📍 [GEOFENCES] Processing: ${entityName}`);
+
+      let rawCoords = entity.coordinates || entity.boundary_coordinates || (entity.geometry ? entity.geometry.coordinates : null);
+      
+      if (!rawCoords) {
+        console.warn(`📍 [GEOFENCES] No coordinates found for ${entityName}`);
+        return;
+      }
+
+      // 1. If it's a string, parse it
+      if (typeof rawCoords === 'string') {
+        const parts = rawCoords.split(" | ");
+        parts.forEach((part: string) => {
+          const allPoints: L.LatLngTuple[] = [];
+          const matches = part.match(/-?\d+\.?\d*/g);
+          if (matches && matches.length >= 2) {
+            const step = (part.includes(',') && part.split(',').length > 5) ? 3 : 2;
+            for (let i = 0; i < matches.length; i += step) {
+              if (i + 1 < matches.length) {
+                const lng = parseFloat(matches[i]);
+                const lat = parseFloat(matches[i+1]);
+                if (!isNaN(lat) && !isNaN(lng)) allPoints.push([lat, lng]);
+              }
+            }
+          }
+          if (allPoints.length > 0) drawSinglePolygon(allPoints, entityName, entityLevel);
+        });
+      }
+      // 2. If it's an array, handle nesting
+      else if (Array.isArray(rawCoords)) {
+        // If it's a 3D array [[[lng,lat],...]], unwrap it
+        if (Array.isArray(rawCoords[0]) && Array.isArray(rawCoords[0][0])) {
+          rawCoords.forEach(inner => drawSinglePolygon(inner, entityName, entityLevel));
+        } else {
+          drawSinglePolygon(rawCoords, entityName, entityLevel);
+        }
+      }
+    };
+
+    let items: any[] = [];
+    if (Array.isArray(data)) {
+      items = data;
+    } else if (data.children && data.children.length > 0) {
+      items = data.children;
+    } else if (data.features && data.features.length > 0) {
+      items = data.features;
+    } else if (data && typeof data === 'object') {
+      items = [data];
+    }
+
+    console.log(`📍 [GEOFENCES] Found ${items.length} items to process.`);
+    items.forEach((item: any) => processEntity(item));
 
     if (bounds.isValid()) {
-      this.map.fitBounds(bounds, { padding: [20, 20] });
+      this.map.fitBounds(bounds, { padding: [40, 40] });
     }
   }
 
-  private formatCoordinates(coords: any): L.LatLngTuple[] {
-    if (!Array.isArray(coords)) return [];
-    if (coords.length === 0) return [];
+  private getLevelColor(level: string): string {
+    switch(level?.toLowerCase()) {
+      case 'company': return '#e6c100';
+      case 'range': return '#3b82f6';
+      case 'section': return '#f97316';
+      case 'beat': return '#10b981';
+      default: return '#3b82f6';
+    }
+  }
 
-    return coords.map((c: any): L.LatLngTuple => {
-      if (Array.isArray(c) && c.length >= 2) {
-        if (c[0] > 60) return [Number(c[1]), Number(c[0])] as L.LatLngTuple;
-        return [Number(c[0]), Number(c[1])] as L.LatLngTuple;
-      } else if (c && typeof c === 'object') {
-        const lat = c.lat || c.latitude || 0;
-        const lng = c.lng || c.longitude || 0;
-        return [Number(lat), Number(lng)] as L.LatLngTuple;
+  private formatCoordinates(coords: any[]): L.LatLngTuple[] {
+    if (!Array.isArray(coords)) return [];
+    
+    return coords.map((c: any): L.LatLngTuple | null => {
+      let lat: number, lng: number;
+
+      if (Array.isArray(c)) {
+        // [lng, lat] format usually has lng > 60 for India
+        if (c[0] > 60) {
+          lng = Number(c[0]);
+          lat = Number(c[1]);
+        } else {
+          lat = Number(c[0]);
+          lng = Number(c[1]);
+        }
+      } else {
+        lat = Number(c.lat || c.latitude || 0);
+        lng = Number(c.lng || c.longitude || 0);
       }
-      return [0, 0] as L.LatLngTuple;
-    }).filter(c => c[0] !== 0);
+
+      if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) return null;
+      return [lat, lng] as L.LatLngTuple;
+    }).filter((c): c is L.LatLngTuple => c !== null);
   }
 
   resetFilters() {

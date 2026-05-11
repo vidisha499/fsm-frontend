@@ -929,13 +929,16 @@ export class DataService {
   }
   // --- 15. HIERARCHY & MAP DATA ---
   getBeatMapData() { return this.http.get(`${this.baseApiUrl}boundaries/beat-map-data`); }
-  getBoundaryData(level?: string | number, id?: string | number, year?: string | number) {
+  getBoundaryData(level?: any, id?: any, year?: any) {
     const token = localStorage.getItem('api_token') || '';
     const headers = { 'Bypass-Token': 'true' };
     const params: any = { api_token: token };
-    if (level !== undefined && level !== null) params.level = String(level);
-    if (id !== undefined && id !== null) params.id = String(id);
-    if (year !== undefined && year !== null) params.year = String(year);
+
+    // Sir's Screenshot defaults: level=company, id=0, year=all
+    params.level = level || 'company';
+    params.id = (id !== undefined && id !== null) ? String(id) : '0';
+    params.year = year || 'all';
+
     return this.http.get(`${this.baseApiUrl}/boundaries/data`, { params, headers });
   }
   getLayers(level?: string | number, id?: string | number) {
