@@ -55,53 +55,66 @@
         </div>
 
         <div class="input-pill">
-          <label>ROLE CATEGORY</label>
+          <label>SELECT ROLE</label>
           <div class="pill-content">
-            <i class="fas fa-layer-group"></i>
-            <select [(ngModel)]="userData.roleCategory" (change)="userData.roleId = null">
-              <option value="static">Static (Standard Roles)</option>
-              <option value="dynamic">Dynamic (Custom Roles)</option>
+            <i class="fas fa-user-shield"></i>
+            <select [(ngModel)]="userData.roleId" (change)="onRoleSelectChange($event)">
+              <option [value]="null">Select Role</option>
+              
+              <!-- Static Roles -->
+              <option *ngFor="let role of staticRoles" [value]="role.id">
+                {{ role.name }} (ID: {{ role.id }})
+              </option>
+
+              <!-- Special Dynamic Option at the end -->
+              <option value="dynamic_selection">-- Dynamic (Custom Role) --</option>
             </select>
           </div>
         </div>
 
-        <div class="input-pill">
-          <label>SELECT ROLE</label>
+        <!-- Secondary Dropdown for Dynamic Roles (Only shows if Dynamic is selected above) -->
+        <div class="input-pill animate__animated animate__fadeIn" *ngIf="isDynamicSelected">
+          <label>CHOOSE DYNAMIC ROLE</label>
           <div class="pill-content">
-            <i class="fas fa-user-shield"></i>
-            <select [(ngModel)]="userData.roleId">
-              <option [value]="null">Select Role</option>
-              
-              <!-- Shows Static Roles if category is static -->
-              <ng-container *ngIf="userData.roleCategory === 'static'">
-                <option *ngFor="let role of staticRoles" [value]="role.id">
-                  {{ role.name }} (ID: {{ role.id }})
-                </option>
-              </ng-container>
-
-              <!-- Shows Dynamic Roles if category is dynamic -->
-              <ng-container *ngIf="userData.roleCategory === 'dynamic'">
-                <option *ngFor="let role of dynamicRoles" [value]="role.id">
-                  {{ role.name }} (ID: {{ role.id }})
-                </option>
-              </ng-container>
+            <i class="fas fa-id-badge"></i>
+            <select [(ngModel)]="userData.dynamicRoleId" (change)="userData.roleId = userData.dynamicRoleId">
+              <option [value]="null">Select Custom Role</option>
+              <option *ngFor="let role of dynamicRoles" [value]="role.id">
+                {{ role.name }} (ID: {{ role.id }})
+              </option>
             </select>
           </div>
         </div>
 
         <ng-container *ngIf="shouldShowHierarchy()">
-          <div class="input-pill" *ngFor="let layer of layers; let i = index">
-            <label>{{ layer.name | uppercase }}</label>
-            <div class="pill-content">
-              <i class="fas fa-sitemap"></i>
-              <select [(ngModel)]="hierarchySelections[i]" (change)="onLayerChange(i)">
-                <option [value]="null">Select {{ layer.name }}</option>
-                <option *ngFor="let ent of layerEntities[layer.id]" [value]="ent.id">
-                  {{ ent.name }}
-                </option>
-              </select>
+          <ng-container *ngFor="let layer of layers; let i = index">
+
+            <!-- Dropdown: show only if shouldShowLayer returns true -->
+            <div class="input-pill" *ngIf="shouldShowLayer(i)">
+              <label>{{ layer.name | uppercase }}</label>
+              <div class="pill-content">
+                <i class="fas fa-sitemap"></i>
+                <select [(ngModel)]="hierarchySelections[i]" (change)="onLayerChange(i)">
+                  <option [value]="null">Select {{ layer.name }}</option>
+                  <option *ngFor="let ent of layerEntities[layer.id]" [value]="ent.id">
+                    {{ ent.name }}
+                  </option>
+                </select>
+              </div>
             </div>
-          </div>
+
+            <!-- Checkbox: show only after value selected AND not last layer -->
+            <div class="stop-here-row"
+                 *ngIf="shouldShowLayer(i) && hierarchySelections[i] && i < layers.length - 1">
+              <label class="stop-here-label">
+                <input type="checkbox"
+                       [(ngModel)]="stopHereFlags[i]"
+                       (change)="onStopHereChange(i)">
+                <span>Assign at <b>{{ layer.name }}</b> level only</span>
+              </label>
+            </div>
+
+          </ng-container>
         </ng-container>
 
         <button class="mark-btn" (click)="saveUser()" [disabled]="isSaving">

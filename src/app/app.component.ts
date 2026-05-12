@@ -247,7 +247,7 @@ export class AppComponent implements OnInit {
 loadUserData() {
   console.log("🟢 Step 1: Checking localStorage for existing token/session...");
   let rawRole = localStorage.getItem('user_role');
-  const data = localStorage.getItem('user_data');
+  const userDataStr = localStorage.getItem('user_data');
   const token = localStorage.getItem('api_token');
   
   if (token) {
@@ -256,24 +256,17 @@ loadUserData() {
 
   let parsedUser: any = null;
   
-  if (data) {
+  if (!userDataStr || userDataStr === 'undefined' || userDataStr === 'null') {
+    console.warn("⚠️ No valid user_data found in localStorage. Proceeding as Guest.");
+    // We don't necessarily want to redirect to login here if it's the app boot, 
+    // but for this specific flow we need the role.
+    if (!token) return; 
+  } else {
     try {
-      parsedUser = JSON.parse(data);
+      parsedUser = JSON.parse(userDataStr);
+      rawRole = parsedUser?.role_id?.toString() || rawRole;
     } catch (e) {
       console.error("Error parsing user_data:", e);
-    }
-  }
-
-  // Fallback role detection
-  if (!rawRole) {
-    const userData = localStorage.getItem('user_data');
-    if (userData) {
-      try {
-        const user = JSON.parse(userData);
-        rawRole = user.role_id?.toString();
-      } catch (e) {
-        console.error("Error parsing user_data for role:", e);
-      }
     }
   }
 

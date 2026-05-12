@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import { NavController, ToastController, LoadingController,  } from '@ionic/angular';
 import { DataService } from 'src/app/data.service';
+import moment from 'moment';
 
 
 // Utility to convert Base64 to Blob for real file uploads
@@ -55,6 +56,12 @@ weeklyOff: string = '';
 ranges: any[] = [];
 allBeats: any[] = [];
 filteredBeats: any[] = [];
+assignedNodes: any[] = [];  
+
+// Dynamic Hierarchy properties (Same as Add User)
+layers: any[] = [];
+layerEntities: { [key: string]: any[] } = {};
+hierarchySelections: any[] = [];
 
   constructor(
     private route: ActivatedRoute,
@@ -120,66 +127,117 @@ ngOnInit() {
         this.lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
       }
 
+      // Fetch assigned hierarchy nodes for this user (by user ID)
+      if (data.id) {
+        this.dataService.getUserAssignments(data.id).subscribe({
+          next: (res: any) => {
+            const raw = res?.data || res || [];
+            this.assignedNodes = Array.isArray(raw) ? raw : [raw];
+            console.log('📍 Assigned Nodes:', this.assignedNodes);
+          },
+          error: () => console.warn('⚠️ Could not fetch user assignments')
+        });
+      }
+
       this.loadHierarchy(data.company_id || 1);
     }
   });
 }
 
   loadHierarchy(companyId: any) {
-    // We use the Public Hierarchy (GET) which doesn't need a token
-    this.dataService.getPublicHierarchy(companyId).subscribe({
+    // 1. Load Layers (Public)
+    this.dataService.listOrgLayers().subscribe({
       next: (res: any) => {
-        this.ranges = res.ranges || [];
-        this.allBeats = res.beats || [];
+        const rawLayers = res?.data || res || [];
+        // Map 9 -> Section, 10 -> Beat (Consistency)
+        this.layers = rawLayers.map((l: any) => {
+          if (String(l.id) === '9') return { ...l, name: 'Section' };
+          if (String(l.id) === '10') return { ...l, name: 'Beat' };
+          return l;
+        }).sort((a: any, b: any) => Number(a.id) - Number(b.id));
+
+        this.hierarchySelections = new Array(this.layers.length).fill(null);
         
-        // Anti-Null Fallback: If lists are empty or missing the pre-assigned value, add it manually
-        if (this.verifiedData.range && !this.ranges.find(r => (r.name || r) === this.verifiedData.range)) {
-          this.ranges.push({ id: 0, name: this.verifiedData.range });
-        }
-
-        // Smart Auto-Detect: If Range is null but Beat exists, find Range from hierarchy
-        if (!this.range && this.verifiedData.beat) {
-          const foundBeat = this.allBeats.find(b => b.name === this.verifiedData.beat);
-          if (foundBeat && foundBeat.parentName) {
-            console.log('🧠 Smart Detect: Found Range from Beat:', foundBeat.parentName);
-            this.range = foundBeat.parentName;
-            this.onRangeChange();
+        // 2. Load all entities to build the selection path
+        this.dataService.listOrgEntities('').subscribe((entRes: any) => {
+          const allEntities = entRes?.data || entRes || [];
+          
+          // Initial Load: Show only top-level nodes (Parent is null/0)
+          if (this.layers.length > 0) {
+            const firstLayerId = this.layers[0].id;
+            this.layerEntities[firstLayerId] = allEntities.filter((n: any) => 
+              Number(n.layer_id) === Number(firstLayerId) && (!n.parent_id || n.parent_id == '0')
+            );
           }
-        }
 
-        // After loading, ensure the autofilled values are preserved
-        if (this.verifiedData.range) {
-          this.range = this.verifiedData.range;
-          this.onRangeChange(); 
-        }
-
-        if (this.verifiedData.beat) {
-          // If the beat is not in the filtered list, add it as a manual option
-          if (!this.filteredBeats.find(b => b.name === this.verifiedData.beat)) {
-            this.filteredBeats.push({ name: this.verifiedData.beat, parentName: this.range });
+          // 3. AUTO-FILL Logic: If we have assignedNodes from Admin
+          if (this.assignedNodes.length > 0) {
+            this.prefillHierarchy(allEntities);
           }
-          this.beat = this.verifiedData.beat;
-        }
-      },
-      error: (err) => {
-        console.error('Public Hierarchy fetch failed, using fallbacks', err);
-        // Even if it fails, we keep the verified data
-        if (this.verifiedData.range) {
-          this.ranges = [{ id: 0, name: this.verifiedData.range }];
-          this.range = this.verifiedData.range;
-          this.onRangeChange();
-        }
-        if (this.verifiedData.beat) {
-          this.filteredBeats = [{ name: this.verifiedData.beat, parentName: this.range }];
-          this.beat = this.verifiedData.beat;
+        });
+      }
+    });
+  }
+
+  prefillHierarchy(allEntities: any[]) {
+    // We assume assignedNodes has the path or at least the deepest node
+    // Let's find the deepest assigned node
+    const deepestAssigned = this.assignedNodes[this.assignedNodes.length - 1];
+    const deepestId = deepestAssigned?.entity_id || deepestAssigned?.id;
+
+    if (!deepestId) return;
+
+    // Trace path from deepest to top
+    let currentId = deepestId;
+    const path: any[] = [];
+
+    while (currentId) {
+      const node = allEntities.find(n => String(n.id) === String(currentId));
+      if (node) {
+        path.unshift(node); // Add to beginning
+        currentId = node.parent_id && node.parent_id != '0' ? node.parent_id : null;
+      } else {
+        currentId = null;
+      }
+    }
+
+    // Now fill the selections and load entities for each level
+    path.forEach(node => {
+      const layerIndex = this.layers.findIndex(l => Number(l.id) === Number(node.layer_id));
+      if (layerIndex !== -1) {
+        this.hierarchySelections[layerIndex] = node.id;
+        
+        // Load children for the next layer
+        if (layerIndex + 1 < this.layers.length) {
+          const nextLayer = this.layers[layerIndex + 1];
+          this.layerEntities[nextLayer.id] = allEntities.filter(n => 
+            Number(n.layer_id) === Number(nextLayer.id) && Number(n.parent_id) === Number(node.id)
+          );
         }
       }
     });
   }
 
-onRangeChange() {
-  this.filteredBeats = this.allBeats.filter(b => b.parentName === this.range);
-}
+  onLayerChange(layerIndex: number) {
+    const selectedEntityId = this.hierarchySelections[layerIndex];
+    
+    // Clear all subsequent selections
+    for (let i = layerIndex + 1; i < this.layers.length; i++) {
+      this.hierarchySelections[i] = null;
+      this.layerEntities[this.layers[i].id] = [];
+    }
+
+    // Load next level
+    if (selectedEntityId && layerIndex + 1 < this.layers.length) {
+      const nextLayer = this.layers[layerIndex + 1];
+      this.dataService.listOrgEntities('').subscribe((res: any) => {
+        const allNodes = res?.data || res || [];
+        this.layerEntities[nextLayer.id] = allNodes.filter((n: any) => 
+          Number(n.layer_id) === Number(nextLayer.id) && Number(n.parent_id) === Number(selectedEntityId)
+        );
+      });
+    }
+  }
 
 
   togglePassword(field: string) {
@@ -199,11 +257,11 @@ onRangeChange() {
   async captureImage() {
     try {
       const image = await Camera.getPhoto({
-        quality: 60, // Reduced quality to keep payload small
+        quality: 70, 
         allowEditing: false,
         resultType: CameraResultType.DataUrl,
         source: CameraSource.Camera,
-        width: 600 // Fixed width for consistent recognition profile
+        width: 800 
       });
       this.profileImage = image.dataUrl;
     } catch (error) {
@@ -252,101 +310,122 @@ onRangeChange() {
     await loader.present();
     console.log("Verified Data Check:", this.verifiedData);
 
-    // 2. Payload Construction using FormData
-    const formData = new FormData();
-    console.log("🚀 Registering Mobile:", this.mobile);
-    
-    formData.append('name', `${this.firstName} ${this.lastName}`.trim());
+    // 2. Payload Construction (EXACT MATCH WITH SIR'S CODE)
     const finalMobile = String(this.mobile || '').trim();
-    
-    // 💡 Preserving gen_id if provided by backend during verification
-    if (this.verifiedData?.gen_id) {
-      formData.append('gen_id', this.verifiedData.gen_id);
-    }
-    
-    formData.append('name', `${this.firstName} ${this.lastName}`.trim());
-    const showH = this.shouldShowHierarchy();
-    if (showH) {
-      formData.append('range', this.range || '');
-      formData.append('beat', this.beat || '');
-      formData.append('site_id', this.verifiedData?.site_id || '');
-    }
-    
-    formData.append('gender', this.gender || '');
-    formData.append('dob', this.dob || '');
-    
-    // Contact Aliases
-    formData.append('contact', finalMobile);
-    formData.append('mobile', finalMobile);
-    formData.append('phone', finalMobile);
-    formData.append('phoneNo', finalMobile);
-    formData.append('username', finalMobile);
-    
-    formData.append('email', this.email || '');
-    formData.append('password', this.password);
-    formData.append('address', this.address || '');
-    
-    // Assignments & Roles
-    const roleId = this.verifiedData?.role_id || this.verifiedData?.roleId || 3;
+    let roleId = this.verifiedData?.role_id || this.verifiedData?.roleId || 3;
+    if (Number(roleId) === 11) roleId = 3; 
     const companyId = this.verifiedData?.company_id || this.verifiedData?.companyId || '';
-
-    formData.append('role_id', String(roleId));
-    formData.append('company_id', String(companyId));
     
-    // System Settings
-    formData.append('attendance_type', 'multiple');
-    formData.append('status', '1');
-    formData.append('shift_name', this.shift || 'General Shift');
-    formData.append('weekly_off', this.weeklyOff || 'Sunday');
+    // --- SIR'S CUSTOM LOGIC ---
+    // 1. Generate emp_id (e.g. JD-123456)
+    const empId = this.firstName.slice(0, 1).toUpperCase()
+                  .concat(this.lastName.slice(0, 1).toUpperCase())
+                  .concat("-")
+                  .concat(Math.floor(100000 + Math.random() * 100000).toString());
 
-    // 🖼️ AGGRESSIVE PHOTO UPLOAD: Sending with multiple possible keys
-    if (this.profileImage) {
-      try {
-        const imageBlob = base64ToBlob(this.profileImage);
-        formData.append('profile_pic', imageBlob, 'profile.jpg');
-        formData.append('photo', imageBlob, 'profile.jpg');
-        formData.append('image', imageBlob, 'profile.jpg');
-        formData.append('user_photo', imageBlob, 'profile.jpg');
-        formData.append('avatar', imageBlob, 'profile.jpg');
-      } catch (e) {
-        console.error("Blob conversion failed, sending as Base64 string:", e);
-        formData.append('profile_pic', this.profileImage);
-        formData.append('photo', this.profileImage);
+    // 2. Generate date_range (1 year validity)
+    const date_range = moment().format("YYYY-MM-DD") + " to " + moment().add(1, 'year').format("YYYY-MM-DD");
+
+    // Extract Deepest selection for dynamic hierarchy
+    let deepestEntityId: any = null;
+    let deepestEntityName: string = '';
+    let rangeName: string = '';
+
+    for (let i = this.hierarchySelections.length - 1; i >= 0; i--) {
+      if (this.hierarchySelections[i]) {
+        deepestEntityId = this.hierarchySelections[i];
+        const layerId = this.layers[i].id;
+        const ent = this.layerEntities[layerId]?.find(e => String(e.id) === String(deepestEntityId));
+        deepestEntityName = ent?.name || '';
+        
+        // Find top-level name for legacy range mapping
+        if (this.hierarchySelections[0]) {
+          const firstLayerId = this.layers[0].id;
+          const firstEnt = this.layerEntities[firstLayerId]?.find(e => String(e.id) === String(this.hierarchySelections[0]));
+          rangeName = firstEnt?.name || '';
+        }
+        break;
       }
     }
 
-    console.log("Final Registration Request to /addUser (Signup)");
+    const payload: any = {
+      api_token: "Fj4HXJhcQZ99ssKkqypXGAEQEXxERYX7K7adeZ0JZkGgQmseUSOaGaGyasjh", 
+      emp_id: empId,
+      name: `${this.firstName} ${this.lastName}`.trim(),
+      mobile: finalMobile,
+      phone: finalMobile,
+      email: this.email || '',
+      gender: this.gender || '',
+      address: this.address || '',
+      password: this.password,
+      role_id: String(roleId),
+      company_id: String(companyId),
+      company_name: "Forest Department",
+      attendance_type: 'multiple',
+      status: '1',
+      shift_name: this.shift || 'General Shift',
+      weekly_off: this.weeklyOff || 'Sunday',
+      date_range: date_range,
+      client_id: rangeName || '',
+      site_id: deepestEntityId || '',
+      site_name: deepestEntityName || '',
+      shift_id: '1'
+    };
 
-    // 3. API Call via DataService - Using addUser for final signup to generate gen_id
-    this.dataService.addUser(formData).subscribe({
+    // 🖼️ SIR'S TRIPLE-PHOTO LOGIC: Backend AI expects multiple angles
+    if (this.profileImage) {
+      const photoStr = this.profileImage.includes('base64,') ? this.profileImage : `data:image/jpg;base64,${this.profileImage}`;
+      payload['photo'] = photoStr;     // Main
+      payload['left_img'] = photoStr;  // Left (Simulated)
+      payload['right_img'] = photoStr; // Right (Simulated)
+    }
+
+    console.log("Final Registration Request to /addUser (JSON Style)");
+
+    // 3. API Call via DataService
+    this.dataService.addUser(payload).subscribe({
 
       next: async (res: any) => {
+        // ✅ TOTAL SUCCESS: Backend says it's done!
+        if (res && res.status === 'SUCCESS') {
+          await loader.dismiss();
+          this.presentToast('Registration Successful! Please login now.', 'success');
+          this.navCtrl.navigateRoot('/login');
+          return;
+        }
+
+        // 🔥 FALLBACK SAFETY CHECK
+        if (!res || !res.data) {
+          await loader.dismiss();
+          console.error("❌ Registration Hitch:", res);
+          this.presentToast('Registration failed to return data. Please contact Sir.', 'warning');
+          return;
+        }
+
         await loader.dismiss();
         
         // 🔥 AGGRESSIVE CACHING for new users
         localStorage.setItem('user_data', JSON.stringify(res.data));
-        localStorage.setItem('api_token', res.data.api_token);
-        localStorage.setItem('ranger_id', res.data.id.toString());
+        if (res.data.api_token) localStorage.setItem('api_token', res.data.api_token);
+        if (res.data.id) localStorage.setItem('ranger_id', res.data.id.toString());
         localStorage.setItem('ranger_username', this.firstName + ' ' + this.lastName);
         localStorage.setItem('ranger_phone', this.mobile);
         
         // 🔥 SIR'S STRICT PROTOCOL: Wait for photo sync before allowing success
         if (this.profileImage) {
-          console.log("🔄 Step 2: Syncing photo to database...");
+          console.log("🔄 Step 2: Syncing photo to database (JSON + Full Prefix)...");
           
-          const rawBase64 = this.profileImage.includes('base64,') 
-                            ? this.profileImage.split('base64,')[1] 
-                            : this.profileImage;
-
           const updatePayload = { 
             user_id: res.data.id, 
             id: res.data.id,
-            profile_pic: rawBase64 
+            profile_pic: this.profileImage, // Full prefix for AI
+            photo: this.profileImage 
           };
 
-          this.dataService.updateRanger(updatePayload).subscribe({
+          // 💡 SWITCHING TO SIR'S POSTMAN API: updateProfilePic
+          this.dataService.updateProfilePic(this.profileImage).subscribe({
             next: async (syncRes: any) => {
-              console.log("✅ [DATABASE SYNC SUCCESS]:", syncRes);
+              console.log("✅ [DATABASE PHOTO SYNC SUCCESS]:", syncRes);
               await loader.dismiss();
               this.presentToast('Registration and Photo Sync Successful!', 'success');
               this.navCtrl.navigateRoot('/login');
