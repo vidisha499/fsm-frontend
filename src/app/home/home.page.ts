@@ -192,31 +192,38 @@ loadDashboardStats(companyId?: any) {
     const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
     const rangerId = userData.id;
 
+    // --- NEW: Check cache FIRST for instant UI update ---
+    const cached = localStorage.getItem('assigned_beat_name');
+    if (cached && cached !== 'General' && cached !== 'FETCHING...') {
+      this.assignedBeatName = cached;
+      this.cdr.detectChanges();
+    }
+
     if (rangerId) {
       this.hierarchyService.getAssignedBeat(rangerId).subscribe({
         next: (res: any) => {
           const data = res.data || res;
+          let newName = 'General';
+
           if (Array.isArray(data) && data.length > 0) {
-            // Old getSites API format
-            this.assignedBeatName = data[0].site_name || data[0].name || 'General';
+            newName = data[0].site_name || data[0].name || 'General';
           } else if (data && (data.beat_name || data.beatName || data.name)) {
-            // New dynamic API format
-            this.assignedBeatName = data.beat_name || data.beatName || data.name;
-          } else {
-            this.assignedBeatName = 'General';
+            newName = data.beat_name || data.beatName || data.name;
           }
-          // Cache for quick access
-          localStorage.setItem('assigned_beat_name', this.assignedBeatName);
-          this.cdr.detectChanges();
+
+          if (newName !== 'General') {
+            this.assignedBeatName = newName;
+            localStorage.setItem('assigned_beat_name', newName);
+            this.cdr.detectChanges();
+          }
         },
         error: () => {
-          // Fallback to cached value or user_data metadata
-          const cached = localStorage.getItem('assigned_beat_name');
-          this.assignedBeatName = cached 
+          // Final fallback
+          this.assignedBeatName = localStorage.getItem('assigned_beat_name') 
             || userData.site_name 
             || userData.beat 
-            || userData.range 
-            || 'NOT ASSIGNED';
+            || userData.beat_name
+            || 'General';
           this.cdr.detectChanges();
         }
       });

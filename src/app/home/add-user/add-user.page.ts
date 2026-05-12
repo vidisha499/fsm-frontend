@@ -59,64 +59,79 @@ export class AddUserPage implements OnInit {
   }
 
   async loadInitialData() {
-    const loader = await this.loadingCtrl.create({ message: 'Loading Roles & Hierarchy...' });
+    const loader = await this.loadingCtrl.create({ message: 'Syncing Hierarchy...' });
     await loader.present();
 
+    const companyId = localStorage.getItem('company_id');
+
     try {
+      // 1. Load Roles
       this.dataService.getRoleIdList().subscribe({
         next: (res: any) => {
           const allRoles = res?.data || [];
-          console.log("🎭 Roles Loaded:", allRoles);
-          
-          // Categorize them
           this.staticRoles = allRoles.filter((r: any) => [1, 2, 3, 4, 7].includes(Number(r.id)));
           this.dynamicRoles = allRoles.filter((r: any) => ![1, 2, 3, 4, 7].includes(Number(r.id)));
-          
           this.staticRoles.forEach(r => r.name = r.role_name || r.name);
           this.dynamicRoles.forEach(r => r.name = r.role_name || r.name);
           this.cdr.detectChanges();
-        },
-        error: (err) => console.error("❌ Error loading Roles:", err)
+        }
       });
 
-      // 2. Load Hierarchy Nodes from Org Management (Official Source)
-      this.dataService.listOrgEntities('').subscribe({
-        next: (res: any) => {
-          const nodes = res?.data || res || [];
-          console.log("📂 Org Entities Loaded for Dropdowns:", nodes);
+      // 2. Load ACTUAL Layers from Org Management
+      this.dataService.listOrgLayers(companyId).subscribe({
+        next: (layerRes: any) => {
+          const rawLayers = layerRes?.data || [];
+          console.log("📏 Actual Org Layers:", rawLayers);
           
-          if (nodes.length > 0) {
-            // Group nodes by Layer ID to simulate layers
-            const layerMap = new Map<number, string>();
-            nodes.forEach((n: any) => {
-              if (n.layer_id && !layerMap.has(Number(n.layer_id))) {
-                // Map layer names (Fallback if layer name not in node)
-                const names: any = { 
-                  1: 'Circle', 2: 'Division', 3: 'Range', 4: 'Beat', 5: 'Section',
-                  6: 'Circle', 7: 'Division', 8: 'Range', 9: 'Section', 10: 'Beat'
-                };
-                const lId = Number(n.layer_id);
-                layerMap.set(lId, n.layer_name || names[lId] || `Level ${lId}`);
+          if (rawLayers.length > 0) {
+            if (companyId === '64') {
+              // 🔥 SPECIAL FORCE: For Company 64, we know the hierarchy is 8 (Range) -> 9 (Section) -> 10 (Beat)
+              // We ignore their broken ranks (Beat has rank 1, which is wrong)
+              const forcedIds = [8, 9, 10];
+              this.layers = forcedIds.map(id => {
+                const l = rawLayers.find((rl: any) => Number(rl.id) === id);
+                let name = l?.name || l?.layer_name || (id === 9 ? 'Section' : id === 10 ? 'Beat' : 'Layer');
+                if (id === 9) name = 'Section';
+                if (id === 10) name = 'Beat';
+                return { id: id, name: name };
+              }).filter(l => !!l);
+            } else {
+              // Standard Logic for other companies
+              this.layers = rawLayers
+                .sort((a: any, b: any) => (Number(a.rank || 0)) - (Number(b.rank || 0)))
+                .filter((l: any) => Number(l.rank || 0) >= 3)
+                .map((l: any) => ({
+                  id: Number(l.id),
+                  name: l.name || l.layer_name
+                }));
+            }
+
+            console.log("🎯 Processed & Sorted Layers:", this.layers);
+
+            // 3. Load ALL Entities for these layers
+            this.dataService.listOrgEntities('all', companyId).subscribe({
+              next: (entRes: any) => {
+                const nodes = entRes?.data || entRes || [];
+                console.log("📦 All Entities for Dropdowns:", nodes);
+
+                this.layers.forEach(layer => {
+                  this.layerEntities[layer.id] = nodes.filter((n: any) => Number(n.layer_id) === layer.id);
+                });
+
+                // Initialize flags
+                this.stopHereFlags = new Array(this.layers.length).fill(true);
+                this.cdr.detectChanges();
+                loader.dismiss();
+              },
+              error: () => {
+                this.loadOldHierarchy();
+                loader.dismiss();
               }
             });
-
-            this.layers = Array.from(layerMap.entries())
-              .sort((a, b) => a[0] - b[0])
-              .map(([id, name]) => ({ id, name }));
-
-            // Map entities by layer
-            this.layers.forEach(layer => {
-              this.layerEntities[layer.id] = nodes.filter((n: any) => Number(n.layer_id) === layer.id);
-            });
-
-            console.log("🎯 Dynamic Layers Prepared:", this.layers);
-            // Initialize stopHereFlags as all true (CHECKED BY DEFAULT)
-            this.stopHereFlags = new Array(this.layers.length).fill(true);
           } else {
-            console.log("⚠️ No entities found. Loading fallback sites...");
             this.loadOldHierarchy();
+            loader.dismiss();
           }
-          loader.dismiss();
         },
         error: () => {
           this.loadOldHierarchy();
@@ -127,6 +142,7 @@ export class AddUserPage implements OnInit {
       loader.dismiss();
     }
   }
+
 
   loadOldHierarchy() {
     const companyId = localStorage.getItem('company_id') || '1';
@@ -198,17 +214,17 @@ export class AddUserPage implements OnInit {
       this.layerEntities[this.layers[i].id] = [];
     }
 
-    // 2. Load next layer entities from the MASTER hierarchy list (Official Source)
+    // 2. Load next layer entities from LOCAL CACHE (Faster)
     if (selectedEntityId && layerIndex + 1 < this.layers.length) {
       const nextLayer = this.layers[layerIndex + 1];
-      console.log(`🎯 Filtering Level ${nextLayer.id} for Parent: ${selectedEntityId}`);
       
-      this.dataService.listOrgEntities('').subscribe((res: any) => {
+      // Get all entities again from the master list (cached or re-fetched if needed)
+      this.dataService.listOrgEntities('all').subscribe((res: any) => {
         const allNodes = res?.data || res || [];
-        // Filter: same layer ID AND parent ID matches selected ID
         this.layerEntities[nextLayer.id] = allNodes.filter((n: any) => 
           Number(n.layer_id) === Number(nextLayer.id) && Number(n.parent_id) === Number(selectedEntityId)
         );
+        console.log(`🎯 Populated ${this.layerEntities[nextLayer.id].length} entities for Level ${nextLayer.id}`);
         this.cdr.detectChanges();
       });
     }
@@ -222,13 +238,16 @@ export class AddUserPage implements OnInit {
     } else {
       this.isDynamicSelected = false;
       this.userData.dynamicRoleId = null;
+      this.userData.roleId = val;
     }
     this.cdr.detectChanges();
   }
 
   shouldShowHierarchy(): boolean {
     if (!this.userData.roleId || this.userData.roleId === 'null') return false;
-    const globalRoles = [1, 2, 7];
+    // Only Super Admin (1) and specialized global roles (7) are truly global.
+    // Admin/Supervisor (2) should be assignable to specific nodes.
+    const globalRoles = [1, 7];
     return !globalRoles.includes(Number(this.userData.roleId));
   }
 
@@ -351,6 +370,7 @@ export class AddUserPage implements OnInit {
       password: '123456',
       role_id: String(this.userData.roleId),
       company_id: String(this.userData.companyId),
+      company_name: localStorage.getItem('company_name') || 'Forest Department',
       status: '1',
       
       // Dynamic Hierarchy Mappings
@@ -380,35 +400,20 @@ export class AddUserPage implements OnInit {
     this.dataService.addRegistration(payload).subscribe({
       next: async (res: any) => {
         this.isSaving = false;
-
-        // Get the newly created user's ID from response
         const newUserId = res?.data?.id || res?.user?.id || res?.id || null;
         console.log("✅ User Registered. ID:", newUserId);
 
-        if (newUserId && this.shouldShowHierarchy()) {
-          const allSelections = this.hierarchySelections.filter(s => s !== null && s !== undefined);
-
-          // Hamesha sirf SABSE LAST (deepest) selection assign karo
-          // Parent selections (Range, Section) sirf filtering ke liye hain
-          // Example: Range → Section select kiya → sirf Section assign hogi
-          //          Range → Section → Beat select kiya → sirf Beat assign hogi
-          const deepestSelection = allSelections.length > 0 
-            ? allSelections[allSelections.length - 1] 
-            : null;
-
-          if (deepestSelection) {
-            const layerIndex = allSelections.length - 1;
-            const layerName = this.layers[layerIndex]?.name || 'Entity';
-            console.log(`🔗 Assigning user to deepest node [${layerName}]: ${deepestSelection}`);
-
-            this.dataService.assignUserToNode({
-              user_id: newUserId,
-              entity_id: deepestSelection
-            }).subscribe({
-              next: (r: any) => console.log(`✅ Assigned to ${layerName} (${deepestSelection}):`, r),
-              error: (e: any) => console.warn(`⚠️ Assignment failed:`, e)
-            });
-          }
+        if (newUserId && deepestEntityId) {
+          console.log(`🔗 Attempting Assignment: User ${newUserId} -> Entity ${deepestEntityId}`);
+          
+          // 🚀 SYNC TO DYNAMIC HIERARCHY
+          this.dataService.assignUserToNode({
+            user_id: Number(newUserId),
+            entity_id: Number(deepestEntityId)
+          }).subscribe({
+            next: (r: any) => console.log(`✅ [SYNC] Assignment Successful:`, r),
+            error: (e: any) => console.warn(`⚠️ [SYNC] Assignment Failed:`, e)
+          });
         }
 
         const toast = await this.toastCtrl.create({

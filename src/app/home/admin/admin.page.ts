@@ -1484,20 +1484,21 @@ changeTimeframe(newTimeframe: string) {
                                             rDate.includes(todayISO) ||
                                             rDate.toLowerCase().includes('today');
 
-                             // Count as On-Duty if today and NOT rejected
-                             const status = String(record.status || '').toLowerCase();
-                             const isRejected = status === 'rejected' || status === 'failed';
-                             
-                             // If it's an approved Onsite request or a standard log, it counts
-                             if (isToday && !isRejected) {
-                                const uId = record.guard_id || record.guardId || record.user_id || record.userId || record.staff_id || record.ranger_id || record.added_by || record.created_by;
-                                if (uId) {
-                                  activeIds.add(uId.toString());
-                                  return true;
-                                }
-                             }
-                             return false;
-                          };
+                              // Count as On-Duty ONLY if APPROVED
+                              // Note: status '1' in legacy beat attendance is considered "marked/approved"
+                              // but for onsite requests, it must explicitly be 'approved'
+                              const status = String(record.status || '').toLowerCase().trim();
+                              const isApproved = status === 'approved' || (status === '1' && !record.request_id);
+                              
+                              if (isToday && isApproved) {
+                                 const uId = record.guard_id || record.guardId || record.user_id || record.userId || record.staff_id || record.ranger_id || record.added_by || record.created_by;
+                                 if (uId) {
+                                   activeIds.add(uId.toString());
+                                   return true;
+                                 }
+                              }
+                              return false;
+                           };
 
                            logsArray.forEach(processRecord);
                            reqArray.forEach(processRecord);

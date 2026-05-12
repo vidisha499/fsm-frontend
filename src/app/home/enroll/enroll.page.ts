@@ -112,6 +112,9 @@ export class EnrollPage implements OnInit {
             gen_id: u.gen_id || u.genId || null, // Capture gen_id if it exists
             role_id: u.role_id || u.roleId || 4,
             company_id: u.company_id || u.companyId,
+            site_id: u.site_id || u.entity_id || u.beat_id || null, 
+            entity_id: u.entity_id || u.site_id || null,
+            client_id: u.client_id || u.range_id || u.division_id || null, // Capture Range ID!
             range: u.range || u.division || u.address || u.department || u.client_name || u.block || null,
             beat: u.site_name || u.beat || u.beat_name || u.designation || null
           };

@@ -252,15 +252,37 @@ private parseLocation(loc: any): string {
 private processLogsResponse(res: any, loader: any) {
   const rawArray = Array.isArray(res) ? res : this.extractLogsArray(res);
   
-  // De-duplicate logs to prevent showing the same record twice
+  // De-duplicate logs using a normalized ISO timestamp as the key
   const uniqueMap = new Map();
   rawArray.forEach((log: any) => {
-    const uniqueId = String(log.id || log.attendance_id || log.request_id || (String(log.time || '') + String(log.date || '')));
-    if (!uniqueMap.has(uniqueId)) {
-      uniqueMap.set(uniqueId, log);
+    let rawDate = log.timestamp || log.entryDateTime || log.created_at || log.createdAt || '';
+    let isoKey = '';
+    try { 
+      if (rawDate) {
+        // Normalize date format (Handle DD-MM-YYYY if needed)
+        if (typeof rawDate === 'string' && rawDate.includes('-') && rawDate.split('-')[0].length === 2) {
+          const parts = rawDate.split(' ');
+          const dateParts = parts[0].split('-');
+          rawDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}${parts[1] ? ' ' + parts[1] : ''}`;
+        }
+        isoKey = new Date(rawDate).toISOString(); 
+      }
+    } catch (e) { isoKey = rawDate; }
+
+    if (!isoKey) return;
+
+    const existing = uniqueMap.get(isoKey);
+    const currentStatus = String(log.status || '').toLowerCase().trim();
+
+    if (!existing) {
+      uniqueMap.set(isoKey, log);
     } else {
-      // If duplicate, prefer the one from requests if it contains status/isRequest flag
-      if (log.isRequest) uniqueMap.set(uniqueId, log);
+      // 🏆 PRIORITY: ONLY 'approved' string wins
+      const existingStatus = String(existing.status || '').toLowerCase().trim();
+      if (currentStatus === 'approved') {
+        uniqueMap.set(isoKey, log);
+      }
+      // If current is NOT approved, keep the existing one (especially if existing is already approved)
     }
   });
 
@@ -269,7 +291,17 @@ private processLogsResponse(res: any, loader: any) {
   const fetchedLogs = logsArray.map((log: any) => {
     let rawDate = log.timestamp || log.entryDateTime || log.created_at || log.createdAt || '';
     let formattedDate = '';
-    try { if (rawDate) formattedDate = new Date(rawDate).toISOString(); } catch (e) { formattedDate = rawDate; }
+    try { 
+      if (rawDate) {
+        // Normalize for ISO conversion
+        if (typeof rawDate === 'string' && rawDate.includes('-') && rawDate.split('-')[0].length === 2) {
+           const parts = rawDate.split(' ');
+           const dateParts = parts[0].split('-');
+           rawDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}${parts[1] ? ' ' + parts[1] : ''}`;
+        }
+        formattedDate = new Date(rawDate).toISOString(); 
+      }
+    } catch (e) { formattedDate = rawDate; }
       
     const isOnsite = log.isRequest || 
                      String(log.site_id) === '99999' || String(log.geo_id) === '99999' ||
@@ -310,12 +342,9 @@ private processLogsResponse(res: any, loader: any) {
 
   // Merge Offline Drafts
   const drafts = this.dataService.getAttendanceDrafts(this.selectedMode);
-  this.allLogs = [...drafts, ...fetchedLogs];
-
-  console.log('📊 Total fetched logs:', fetchedLogs.length, '| Mode:', this.selectedMode);
-  if (fetchedLogs.length > 0) {
-    console.log('📋 Sample log:', JSON.stringify(fetchedLogs[0]));
-  }
+  this.allLogs = [...drafts, ...fetchedLogs].sort((a, b) => {
+    return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+  });
 
   // Filter logic
   const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD

@@ -1372,25 +1372,36 @@ export class DataService {
     });
   }
 
-  listOrgLayers() {
-    const token = localStorage.getItem('api_token') || '';
-    return this.http.get(`${this.baseApiUrl}/org/layers`, { params: { api_token: token } });
+  listOrgLayers(companyId?: any, authToken?: string) {
+    const token = authToken || localStorage.getItem('api_token') || '';
+    const storedCompanyId = localStorage.getItem('company_id') || '';
+    const headers = { 'Bypass-Token': 'true' };
+    const params: any = {};
+    if (token) params.api_token = token;
+    
+    const finalCompanyId = companyId || storedCompanyId;
+    if (finalCompanyId) params.company_id = String(finalCompanyId);
+
+    return this.http.get(`${this.baseApiUrl}/org/layers`, { params, headers });
   }
   createOrgLayer(payload: any) {
     const token = localStorage.getItem('api_token') || '';
     return this.http.post(`${this.baseApiUrl}/org/layers`, { api_token: token, ...payload });
   }
-  listOrgEntities(layerId: any) {
-    const token = localStorage.getItem('api_token') || '';
-    const companyId = localStorage.getItem('company_id') || '';
-    const params: any = { api_token: token };
+  listOrgEntities(layerId: any, companyId?: any, authToken?: string) {
+    const token = authToken || localStorage.getItem('api_token') || '';
+    const storedCompanyId = localStorage.getItem('company_id') || '';
+    const headers = { 'Bypass-Token': 'true' };
+    const params: any = {};
+    if (token) params.api_token = token;
     
-    if (companyId) params.company_id = String(companyId);
+    const finalCompanyId = companyId || storedCompanyId;
+    if (finalCompanyId) params.company_id = String(finalCompanyId);
     
     if (layerId && layerId !== 'all') {
       params.layer_id = String(layerId);
     }
-    return this.http.get(`${this.baseApiUrl}/org/entities`, { params });
+    return this.http.get(`${this.baseApiUrl}/org/entities`, { params, headers });
   }
   createOrgEntity(payload: any) {
     const token = localStorage.getItem('api_token') || '';
@@ -1402,7 +1413,7 @@ export class DataService {
     formData.append('api_token', token);
     for (const key in payload) { formData.append(key, payload[key]); }
     return this.http.post(`${this.baseApiUrl}/org/entities/${entityId}`, formData);
-  }
+   }
 
   deleteOrgEntity(entityId: any) {
     const token = localStorage.getItem('api_token') || '';
@@ -1623,5 +1634,23 @@ export class DataService {
     formData.append('api_token', token);
     formData.append('notification_id', String(notificationId));
     return this.http.post(`${this.baseApiUrl}/markNotificationRead`, formData);
+  }
+
+  // --- PERMISSION MANAGEMENT (V2) ---
+  listMasterPermissions() {
+    const token = localStorage.getItem('api_token') || '';
+    const url = 'https://fms.pugarch.in/public/api/v2/permissions';
+    const headers = { 'Content-Type': 'application/json' };
+    return this.http.post(url, { api_token: token }, { headers, params: { skip_url_token: 'true' } });
+  }
+
+  getRolePermissions(roleId: any) {
+    const token = localStorage.getItem('api_token') || '';
+    const url = 'https://fms.pugarch.in/public/api/v2/role-permissions';
+    const headers = { 'Content-Type': 'application/json' };
+    return this.http.post(url, { 
+      api_token: token, 
+      role_id: Number(roleId) 
+    }, { headers, params: { skip_url_token: 'true' } });
   }
 }

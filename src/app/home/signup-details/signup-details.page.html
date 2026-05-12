@@ -100,10 +100,33 @@
           </div>
         </ng-container>
 
-        <div class="no-assignment" *ngIf="layers.length === 0">
-          <i class="fas fa-info-circle"></i>
-          <span>Loading organization structure...</span>
-        </div>
+        <!-- FALLBACK LOCATION (If dynamic hierarchy is missing for this company) -->
+        <ng-container *ngIf="layers.length === 0">
+          <div class="section-divider">
+            <span>ASSIGNED LOCATION</span>
+          </div>
+
+          <div class="input-pill">
+            <label>RANGE (ASSIGNED)</label>
+            <div class="pill-content">
+              <i class="fas fa-map-marked-alt"></i>
+              <input [(ngModel)]="range" type="text" placeholder="Enter Range Name">
+            </div>
+          </div>
+
+          <div class="input-pill">
+            <label>BEAT (ASSIGNED)</label>
+            <div class="pill-content">
+              <i class="fas fa-map-marker-alt"></i>
+              <input [(ngModel)]="beat" type="text" placeholder="Enter Beat Name">
+            </div>
+          </div>
+
+          <div class="no-assignment" *ngIf="!verifiedData.range && !verifiedData.beat">
+            <i class="fas fa-info-circle"></i>
+            <span>No specific organization node assigned yet.</span>
+          </div>
+        </ng-container>
 
         <div class="input-pill">
           <label>SHIFT*</label>

@@ -1,10 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { HttpClient } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import { NavController, ToastController, LoadingController,  } from '@ionic/angular';
 import { DataService } from 'src/app/data.service';
+import { HierarchyService } from 'src/app/services/hierarchy.service';
 import moment from 'moment';
 
 
@@ -69,7 +70,9 @@ hierarchySelections: any[] = [];
     private navCtrl: NavController,
     private toastCtrl: ToastController,
     private loadingCtrl: LoadingController,
-    private dataService: DataService
+    private dataService: DataService,
+    private hierarchyService: HierarchyService,
+    private cdr: ChangeDetectorRef
   ) { }
 
 //   ngOnInit() {
@@ -145,47 +148,73 @@ ngOnInit() {
 }
 
   loadHierarchy(companyId: any) {
-    // 1. Load Layers (Public)
-    this.dataService.listOrgLayers().subscribe({
+    console.log("📂 [SIGNUP] Loading Hierarchy for Company:", companyId);
+    const token = this.verifiedData.api_token || ''; // Get token from verification!
+    
+    this.dataService.listOrgLayers(companyId, token).subscribe({
       next: (res: any) => {
-        const rawLayers = res?.data || res || [];
-        // Map 9 -> Section, 10 -> Beat (Consistency)
+        console.log("📊 [SIGNUP] Layers Response:", res);
+        let rawLayers = res?.data || res || [];
+        if (!Array.isArray(rawLayers) && res?.data) rawLayers = res.data;
+        if (!Array.isArray(rawLayers)) rawLayers = [];
+
         this.layers = rawLayers.map((l: any) => {
-          if (String(l.id) === '9') return { ...l, name: 'Section' };
-          if (String(l.id) === '10') return { ...l, name: 'Beat' };
-          return l;
+          let lName = l.name;
+          if (String(l.id) === '9') lName = 'Section';
+          if (String(l.id) === '10') lName = 'Beat';
+          return { ...l, name: lName };
         }).sort((a: any, b: any) => Number(a.id) - Number(b.id));
 
+        console.log("🛠️ [SIGNUP] Processed Layers:", this.layers);
         this.hierarchySelections = new Array(this.layers.length).fill(null);
         
-        // 2. Load all entities to build the selection path
-        this.dataService.listOrgEntities('').subscribe((entRes: any) => {
-          const allEntities = entRes?.data || entRes || [];
-          
-          // Initial Load: Show only top-level nodes (Parent is null/0)
-          if (this.layers.length > 0) {
-            const firstLayerId = this.layers[0].id;
-            this.layerEntities[firstLayerId] = allEntities.filter((n: any) => 
-              Number(n.layer_id) === Number(firstLayerId) && (!n.parent_id || n.parent_id == '0')
-            );
-          }
+        this.dataService.listOrgEntities('', companyId, token).subscribe({
+          next: (entRes: any) => {
+            console.log("📦 [SIGNUP] Entities Response:", entRes);
+            let allEntities = entRes?.data || entRes || [];
+            if (!Array.isArray(allEntities) && entRes?.data) allEntities = entRes.data;
+            if (!Array.isArray(allEntities)) allEntities = [];
 
-          // 3. AUTO-FILL Logic: If we have assignedNodes from Admin
-          if (this.assignedNodes.length > 0) {
-            this.prefillHierarchy(allEntities);
-          }
+            if (this.layers.length > 0) {
+              const firstLayerId = this.layers[0].id;
+              this.layerEntities[firstLayerId] = allEntities.filter((n: any) => 
+                Number(n.layer_id) === Number(firstLayerId) && (!n.parent_id || n.parent_id == '0')
+              );
+            }
+
+            if (this.assignedNodes.length > 0 || this.verifiedData.beat || this.verifiedData.range) {
+              this.prefillHierarchy(allEntities);
+            }
+            this.cdr.detectChanges(); // Force UI update
+          },
+          error: (err) => console.error("❌ [SIGNUP] Entities load error:", err)
         });
-      }
+      },
+      error: (err) => console.error("❌ [SIGNUP] Layers load error:", err)
     });
   }
 
   prefillHierarchy(allEntities: any[]) {
-    // We assume assignedNodes has the path or at least the deepest node
-    // Let's find the deepest assigned node
-    const deepestAssigned = this.assignedNodes[this.assignedNodes.length - 1];
-    const deepestId = deepestAssigned?.entity_id || deepestAssigned?.id;
+    // Priority 1: assignedNodes (from Admin assignment table)
+    // Priority 2: verifiedData.beat/range (from direct user table fallbacks)
+    let deepestId: any = null;
 
-    if (!deepestId) return;
+    if (this.assignedNodes.length > 0) {
+      const deepestAssigned = this.assignedNodes[this.assignedNodes.length - 1];
+      deepestId = deepestAssigned?.entity_id || deepestAssigned?.id;
+    } else if (this.verifiedData.beat) {
+      // Find entity by name if ID is missing
+      const found = allEntities.find(e => e.name === this.verifiedData.beat);
+      deepestId = found?.id;
+    } else if (this.verifiedData.range) {
+      const found = allEntities.find(e => e.name === this.verifiedData.range);
+      deepestId = found?.id;
+    }
+
+    if (!deepestId) {
+      console.warn("🔍 Could not find deepestId for prefill");
+      return;
+    }
 
     // Trace path from deepest to top
     let currentId = deepestId;
@@ -230,12 +259,14 @@ ngOnInit() {
     // Load next level
     if (selectedEntityId && layerIndex + 1 < this.layers.length) {
       const nextLayer = this.layers[layerIndex + 1];
-      this.dataService.listOrgEntities('').subscribe((res: any) => {
-        const allNodes = res?.data || res || [];
+      const companyId = this.verifiedData?.company_id || this.verifiedData?.companyId;
+      this.dataService.listOrgEntities('', companyId).subscribe({
+        next: (res: any) => {
+          const allNodes = res?.data || res || [];
         this.layerEntities[nextLayer.id] = allNodes.filter((n: any) => 
           Number(n.layer_id) === Number(nextLayer.id) && Number(n.parent_id) === Number(selectedEntityId)
         );
-      });
+      }});
     }
   }
 
@@ -326,26 +357,38 @@ ngOnInit() {
     // 2. Generate date_range (1 year validity)
     const date_range = moment().format("YYYY-MM-DD") + " to " + moment().add(1, 'year').format("YYYY-MM-DD");
 
-    // Extract Deepest selection for dynamic hierarchy
-    let deepestEntityId: any = null;
+    // --- INITIAL VALUE: Use original IDs if available ---
+    let deepestEntityId: any = this.verifiedData.site_id || this.verifiedData.entity_id || null;
+    let deepestClientId: any = this.verifiedData.client_id || null;
     let deepestEntityName: string = '';
     let rangeName: string = '';
 
     for (let i = this.hierarchySelections.length - 1; i >= 0; i--) {
       if (this.hierarchySelections[i]) {
         deepestEntityId = this.hierarchySelections[i];
-        const layerId = this.layers[i].id;
-        const ent = this.layerEntities[layerId]?.find(e => String(e.id) === String(deepestEntityId));
-        deepestEntityName = ent?.name || '';
         
         // Find top-level name for legacy range mapping
         if (this.hierarchySelections[0]) {
+          deepestClientId = this.hierarchySelections[0];
           const firstLayerId = this.layers[0].id;
           const firstEnt = this.layerEntities[firstLayerId]?.find(e => String(e.id) === String(this.hierarchySelections[0]));
           rangeName = firstEnt?.name || '';
         }
+
+        const layerId = this.layers[i].id;
+        const ent = this.layerEntities[layerId]?.find(e => String(e.id) === String(deepestEntityId));
+        deepestEntityName = ent?.name || '';
         break;
       }
+    }
+
+    // --- FALLBACK: If no dynamic selections, use the editable fields ---
+    if (!deepestEntityName) deepestEntityName = this.beat || this.verifiedData.beat || '';
+    if (!rangeName) rangeName = this.range || this.verifiedData.range || '';
+
+    if (!rangeName && !deepestEntityName) {
+      await loader.dismiss();
+      return this.presentToast('ERROR: Location assignment (Range or Beat) is required for Signup.', 'danger');
     }
 
     const payload: any = {
@@ -358,19 +401,35 @@ ngOnInit() {
       gender: this.gender || '',
       address: this.address || '',
       password: this.password,
-      role_id: String(roleId),
+      role_id: Number(roleId), // Send as Number
+      custom_role_id: Number(roleId), // Some APIs expect this
       company_id: String(companyId),
-      company_name: "Forest Department",
+      company_name: localStorage.getItem('company_name') || this.verifiedData.company_name || 'Forest Department',
       attendance_type: 'multiple',
       status: '1',
       shift_name: this.shift || 'General Shift',
       weekly_off: this.weeklyOff || 'Sunday',
       date_range: date_range,
-      client_id: rangeName || '',
-      site_id: deepestEntityId || '',
+      // client_id moved down to avoid duplication
+      site_id: deepestEntityId ? Number(deepestEntityId) : '',
+      entity_id: deepestEntityId ? Number(deepestEntityId) : '', 
+      beat_id: deepestEntityId ? Number(deepestEntityId) : '', // Added for extra safety
+      location_id: deepestEntityId ? Number(deepestEntityId) : '', // Added for extra safety
       site_name: deepestEntityName || '',
+      beat: deepestEntityName || '', // Duplicate for safety
+      beat_name: deepestEntityName || '',
+      client_id: deepestClientId ? Number(deepestClientId) : '',
+      division_id: deepestClientId ? Number(deepestClientId) : '', // Added for extra safety
+      range: rangeName || '', // Duplicate for safety
+      range_name: rangeName || '',
       shift_id: '1'
     };
+
+    console.log("🚀 [SIGNUP ATTEMPT] DATA BEING SENT:");
+    console.log(`📍 SITE_ID (Entity ID): ${payload.site_id}`);
+    console.log(`📍 SITE_NAME (Beat/Range): ${payload.site_name}`);
+    console.log(`📍 ROLE_ID: ${payload.role_id}`);
+    console.log("📦 FULL PAYLOAD:", payload);
 
     // 🖼️ SIR'S TRIPLE-PHOTO LOGIC: Backend AI expects multiple angles
     if (this.profileImage) {
@@ -403,6 +462,27 @@ ngOnInit() {
         }
 
         await loader.dismiss();
+        
+        // 🔥 IMMEDIATE CACHE: Save the name locally so Dashboard shows it even if API fails
+        if (payload.site_name) {
+          localStorage.setItem('assigned_beat_name', payload.site_name);
+        }
+
+        // 🚀 SYNC TO DYNAMIC HIERARCHY (Vercel Backend)
+        const userId = res.data?.id || res.id;
+        if (payload.site_id && userId) {
+          const assignmentPayload = {
+            user_id: Number(userId), // Using user_id for Vercel
+            entity_id: Number(payload.site_id),
+            role_id: Number(payload.role_id),
+            company_id: Number(payload.company_id),
+            status: 'active'
+          };
+          this.hierarchyService.assignBeat(assignmentPayload).subscribe({
+            next: () => console.log("✅ [SYNC] Assignment saved to Vercel Database."),
+            error: (err: any) => console.warn("⚠️ [SYNC] Vercel sync failed.", err)
+          });
+        }
         
         // 🔥 AGGRESSIVE CACHING for new users
         localStorage.setItem('user_data', JSON.stringify(res.data));

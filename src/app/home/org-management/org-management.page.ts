@@ -26,8 +26,9 @@ export class OrgManagementPage implements OnInit {
   
   // Permissions Data
   selectedRoleForPerms: any = null;
-  availableModules: any[] = [];
-  modulePermissions: { [key: string]: { view: boolean, create: boolean, update: boolean, delete: boolean } } = {};
+  allPermissions: any[] = []; // Master list from checkList (v2)
+  userPermissions: any = {};  // { module: { action: true/false } }
+  isPermissionsLoading: boolean = false;
   
   // Assignments Data
   assignments: any[] = [];
@@ -51,7 +52,7 @@ export class OrgManagementPage implements OnInit {
     this.loadOrgEntities();
     this.loadCustomRoles();
     this.loadAssignments();
-    this.availableModules = this.getAvailableModules();
+    this.loadMasterPermissions();
   }
 
   onSegmentChange() {
@@ -331,46 +332,6 @@ export class OrgManagementPage implements OnInit {
   }
 
 
-  getAvailableModules() {
-    // Collect all unique module_keys from existing roles + our standard list
-    const standardModules = [
-      { key: 'attendance', label: 'Attendance' },
-      { key: 'patrol', label: 'Patrol / Patrolling' },
-      { key: 'assets', label: 'Asset Management' },
-      { key: 'criminal', label: 'Criminal Activity' },
-      { key: 'fire', label: 'Fire Records' },
-      { key: 'events', label: 'Forest Events' },
-      { key: 'tasks', label: 'Tasks & Assignments' },
-      { key: 'analytics', label: 'Advanced Analytics' },
-      { key: 'reports', label: 'Reports & Logs' },
-      { key: 'chat', label: 'Communication (Chat)' },
-      { key: 'daily_updates', label: 'Daily Updates' },
-      { key: 'client_visits', label: 'Client Visits' },
-      { key: 'geofences', label: 'Geofencing' },
-      { key: 'dynamic_forms', label: 'Dynamic Forms' },
-      { key: 'dynamic_labels', label: 'Dynamic Labels' },
-      { key: 'org_management', label: 'Org Management' },
-      { key: 'notifications', label: 'Notifications' }
-    ];
-
-    // Extract from existing roles to be truly dynamic
-    const existingKeys = new Set();
-    this.customRoles.forEach(role => {
-      if (role.permissions && Array.isArray(role.permissions)) {
-        role.permissions.forEach((p: any) => existingKeys.add(p.module_key));
-      }
-    });
-
-    // Merge them
-    const finalModules = [...standardModules];
-    existingKeys.forEach(key => {
-      if (key && !finalModules.find(m => m.key === key)) {
-        finalModules.push({ key: key as string, label: (key as string).replace(/_/g, ' ').toUpperCase() });
-      }
-    });
-
-    return finalModules;
-  }
 
   async openAddRole() {
     const alert = await this.alertCtrl.create({
@@ -445,56 +406,104 @@ export class OrgManagementPage implements OnInit {
     });
   }
 
-  // --- PERMISSIONS TAB LOGIC ---
-  onRoleSelectForPerms() {
-    if (!this.selectedRoleForPerms) return;
-    this.modulePermissions = {};
-    const perms = this.selectedRoleForPerms.permissions || [];
-    perms.forEach((p: any) => {
-      this.modulePermissions[p.module_key] = {
-        view: p.permissions?.view || false,
-        create: p.permissions?.create || false,
-        update: p.permissions?.update || p.permissions?.edit || false,
-        delete: p.permissions?.delete || false
-      };
+  // --- PERMISSIONS TAB LOGIC (V2) ---
+  loadMasterPermissions() {
+    this.dataService.listMasterPermissions().subscribe({
+      next: (res: any) => {
+        const raw = res?.data || res || [];
+        console.log("📊 [PERMS] Master List Raw:", raw);
+        
+        if (raw.length > 0 && raw[0].actions && raw[0].actions.length > 0) {
+          console.log("🔍 [PERMS] FIRST ACTION KEYS:", Object.keys(raw[0].actions[0]));
+          console.log("🔍 [PERMS] FIRST ACTION DATA:", JSON.stringify(raw[0].actions[0]));
+        }
+
+        this.allPermissions = raw.map((item: any) => ({
+          name: item.module,
+          actions: (item.actions || []).map((act: any) => {
+            // If it's a string, wrap it. If it's an object, keep it.
+            const actionLabel = typeof act === 'string' ? act : (act.action || act.name || act.label || 'Unknown');
+            return {
+              action: actionLabel,
+              original: act // Keep original just in case
+            };
+          })
+        }));
+
+        console.log("🛠️ [PERMS] Grouped for UI:", this.allPermissions);
+      },
+      error: (err) => console.error("❌ Master Permissions failed", err)
     });
   }
 
-  isModuleAssigned(key: string) {
-    return !!this.modulePermissions[key];
-  }
+  onRoleSelectForPerms() {
+    if (!this.selectedRoleForPerms) return;
+    
+    this.isPermissionsLoading = true;
+    this.userPermissions = {};
 
-  toggleModuleAccess(key: string) {
-    if (this.modulePermissions[key]) {
-      delete this.modulePermissions[key];
-    } else {
-      this.modulePermissions[key] = { view: true, create: false, update: false, delete: false };
-    }
+    // Initialize all master perms to false for this role
+    this.allPermissions.forEach(mod => {
+      this.userPermissions[mod.name] = {};
+      if (mod.actions) {
+        mod.actions.forEach((act: any) => {
+          // Now act is the object we mapped above: { action: 'view', original: 'view' }
+          const actionName = act.action;
+          if (actionName) this.userPermissions[mod.name][actionName] = false;
+        });
+      }
+    });
+
+    this.dataService.getRolePermissions(this.selectedRoleForPerms.id).subscribe({
+      next: (res: any) => {
+        console.log(`🔑 [PERMS] Defaults for Role ${this.selectedRoleForPerms.id}:`, res);
+        this.isPermissionsLoading = false;
+        const defaults = res?.data || res || [];
+        
+        if (Array.isArray(defaults)) {
+          // Format 1: Array of action objects
+          defaults.forEach((d: any) => {
+            const actionName = d.action || d.name || d.label;
+            if (this.userPermissions[d.module] && actionName) {
+              this.userPermissions[d.module][actionName] = true;
+            }
+          });
+        } else if (typeof defaults === 'object') {
+          // Format 2: Object mapping { module: { action: true } }
+          // Just merge it into userPermissions
+          for (let mod in defaults) {
+            if (this.userPermissions[mod]) {
+              for (let act in defaults[mod]) {
+                this.userPermissions[mod][act] = !!defaults[mod][act];
+              }
+            }
+          }
+        }
+        console.log("✅ [PERMS] Final User State Mapping:", this.userPermissions);
+      },
+      error: (err) => {
+        this.isPermissionsLoading = false;
+        console.error("❌ Role Permissions failed", err);
+      }
+    });
   }
 
   saveRolePermissions() {
     if (!this.selectedRoleForPerms) return;
     
-    const formattedPerms = Object.keys(this.modulePermissions).map(key => ({
-      module_key: key,
-      permissions: {
-        view: this.modulePermissions[key].view,
-        create: this.modulePermissions[key].create,
-        edit: this.modulePermissions[key].update, // mapping update to edit for backend
-        delete: this.modulePermissions[key].delete
-      }
-    }));
-
+    // Send granular permissions as a mapping
     const payload = {
       ...this.selectedRoleForPerms,
-      permissions: formattedPerms
+      permissions: JSON.stringify(this.userPermissions)
     };
     
+    console.log("📤 [PERMS] SAVING PAYLOAD:", payload);
+
     this.dataService.updateCustomRole(this.selectedRoleForPerms.id, payload).subscribe({
       next: () => {
         this.showToast('Permissions updated successfully', 'success');
-        this.loadCustomRoles(); // Refresh the roles data
-        this.cancelPermissions(); // Close the card upon saving
+        this.loadCustomRoles(); 
+        this.cancelPermissions(); 
       },
       error: (err) => this.showToast('Failed to update permissions', 'danger')
     });
@@ -502,7 +511,7 @@ export class OrgManagementPage implements OnInit {
 
   cancelPermissions() {
     this.selectedRoleForPerms = null;
-    this.modulePermissions = {};
+    this.userPermissions = {};
   }
 
   // --- ASSIGNMENTS LOGIC ---

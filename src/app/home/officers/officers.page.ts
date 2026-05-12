@@ -106,10 +106,10 @@ export class OfficersPage implements OnInit {
             isMatch = rTS >= fromTS && rTS <= toTS;
           }
 
-          const status = String(record.status || '').toLowerCase();
-          const isRejected = status === 'rejected' || status === 'failed';
+          const status = String(record.status || '').toLowerCase().trim();
+          const isApproved = status === 'approved' || (status === '1' && !record.request_id);
 
-          if (isMatch && !isRejected) {
+          if (isMatch && isApproved) {
             const uId = (record.guard_id || record.guardId || record.user_id || record.userId || record.staff_id || record.ranger_id || '').toString();
             if (uId) {
               attendedOfficerIds.add(uId);
