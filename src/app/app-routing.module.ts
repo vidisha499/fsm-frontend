@@ -188,6 +188,18 @@ loadChildren:() => import('./home/reports/reports.module').then( m => m.ReportsP
   {
     path: 'add-user',
     loadChildren: () => import('./home/add-user/add-user.module').then(m => m.AddUserPageModule)
+  },
+  {
+    path: 'plantations',
+    loadChildren: () => import('./home/plantations/plantations.module').then(m => m.PlantationsPageModule)
+  },
+  {
+    path: 'add-plantation',
+    loadChildren: () => import('./home/plantations/add-plantation/add-plantation.module').then(m => m.AddPlantationPageModule)
+  },
+  {
+    path: 'plantation-detail/:id',
+    loadChildren: () => import('./home/plantations/plantation-detail/plantation-detail.module').then(m => m.PlantationDetailPageModule)
   }
 ];
 
@@ -197,4 +209,4 @@ loadChildren:() => import('./home/reports/reports.module').then( m => m.ReportsP
   ],
   exports: [RouterModule]
 })
-export class AppRoutingModule { }
+export class AppRoutingModule { } // Rebuild trigger v2

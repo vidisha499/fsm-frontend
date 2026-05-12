@@ -1,0 +1,80 @@
+<ion-header class="ion-no-border">
+  <div class="custom-header-container">
+    <!-- Top Nav Row -->
+    <div class="nav-row">
+      <div class="circle-btn" (click)="goBack()">
+        <ion-icon name="arrow-back-outline"></ion-icon>
+      </div>
+      
+      <div class="header-title-wrap">
+        <h1 class="main-title">Plantation Management</h1>
+        <span class="sub-record-text">{{ plantations.length }} RECORDS</span>
+      </div>
+
+      <div class="circle-btn" (click)="refreshData()">
+        <ion-icon name="refresh-outline"></ion-icon>
+      </div>
+    </div>
+
+    <!-- Search Row -->
+    <div class="search-row-wrap">
+      <div class="search-inner-box">
+        <ion-icon name="search-outline" class="s-icon"></ion-icon>
+        <input type="text" 
+               placeholder="Search by Site Name or Soil Type..." 
+               [(ngModel)]="searchQuery"
+               (input)="onSearch($event)">
+      </div>
+    </div>
+  </div>
+</ion-header>
+
+<ion-content>
+  <!-- Pull to Refresh -->
+  <ion-refresher slot="fixed" (ionRefresh)="refreshData($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <!-- Loading State -->
+  <div class="loading-wrap" *ngIf="loading && plantations.length === 0">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Fetching plantations...</p>
+  </div>
+
+  <!-- Plantation List -->
+  <div class="plantation-list-container" *ngIf="filteredPlantations.length > 0">
+    <div class="plantation-card" *ngFor="let p of filteredPlantations" (click)="viewPlantation(p.id)">
+      <div class="card-inner">
+        <div class="card-left">
+          <div class="site-icon">
+            <i class="fas fa-tree"></i>
+          </div>
+          <div class="site-meta">
+            <h4>{{ p.siteName || 'Unnamed Site' }}</h4>
+            <div class="soil-tag">{{ p.soilType || 'N/A' }}</div>
+          </div>
+        </div>
+        <div class="card-right">
+          <div class="area-val">{{ p.totalArea || 0 }}</div>
+          <div class="area-unit">HECTARES</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state-wrap" *ngIf="!loading && filteredPlantations.length === 0">
+    <div class="leaf-icon-bg">
+      <ion-icon name="leaf-outline"></ion-icon>
+    </div>
+    <h2 class="no-data-title">NO PLANTATIONS FOUND</h2>
+    <p class="no-data-desc">No active reforestation programs match your search.</p>
+  </div>
+
+  <!-- FAB -->
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button class="custom-fab-btn" (click)="addPlantation()">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>

@@ -1,0 +1,149 @@
+<ion-header class="ion-no-border">
+  <div class="custom-header-container">
+    <div class="nav-row">
+      <div class="circle-btn" (click)="goBack()">
+        <ion-icon name="arrow-back-outline"></ion-icon>
+      </div>
+      
+      <div class="header-title-wrap">
+        <h1 class="main-title">Plantation Summary</h1>
+        <span class="sub-record-text">{{ plantation?.siteName || plantation?.name || 'B12 TEST' }}</span>
+      </div>
+
+      <div class="circle-btn" (click)="refreshData()">
+        <ion-icon name="refresh-outline"></ion-icon>
+      </div>
+    </div>
+
+    <!-- Progress Tracker (Pixel Perfect matching screenshot) -->
+    <div class="progress-tracker-wrap">
+      <div class="progress-line-bg">
+        <div class="progress-line-fill" [style.width.%]="(getCurrentMilestoneIndex() / (milestones.length - 1)) * 100"></div>
+        <div class="milestone-dots">
+          <div class="dot" *ngFor="let m of milestones; let i = index" 
+               [class.active]="i <= getCurrentMilestoneIndex()"></div>
+        </div>
+      </div>
+      <div class="milestone-labels">
+        <span *ngFor="let m of milestones; let i = index" 
+              [class.active]="i <= getCurrentMilestoneIndex()">{{ m.label }}</span>
+      </div>
+    </div>
+  </div>
+</ion-header>
+
+<ion-content>
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="loading">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Fetching real-time data...</p>
+  </div>
+
+  <div class="detail-container" *ngIf="!loading && plantation">
+    <!-- Plantation Code Card -->
+    <div class="code-card">
+      <div class="code-tag">PLANTATION CODE</div>
+      <h2 class="code-val">{{ plantation.plantation_code || plantation.code || 'PLT006' }}</h2>
+    </div>
+
+    <!-- Admin Actions Row -->
+    <div class="action-card" *ngIf="userRole == '1' || userRole == '2'">
+      <div class="status-info">
+        <i class="far fa-clock"></i>
+        <span>PENDING APPROVAL</span>
+      </div>
+      <div class="btn-group">
+        <ion-button class="approve-btn" (click)="handleAction('APPROVE')">APPROVE</ion-button>
+        <ion-button class="reject-btn" (click)="handleAction('REJECT')">REJECT</ion-button>
+      </div>
+    </div>
+
+    <!-- Specifications Details -->
+    <div class="specs-card">
+      <div class="card-title">
+        <ion-icon name="information-circle-outline"></ion-icon>
+        <h3>Specifications</h3>
+      </div>
+
+      <div class="specs-grid">
+        <div class="spec-item">
+          <label>AREA</label>
+          <div class="val">{{ plantation.totalArea || plantation.area || '0.00' }} Hectares</div>
+        </div>
+        <div class="spec-item">
+          <label>SOIL TYPE</label>
+          <div class="val">{{ plantation.soilType || 'Laterite' }}</div>
+        </div>
+        <div class="spec-item">
+          <label>SPECIES</label>
+          <div class="val">{{ plantation.species || 'N/A' }}</div>
+        </div>
+        <div class="spec-item">
+          <label>COUNT</label>
+          <div class="val">{{ plantation.plant_count || '0' }} Plants</div>
+        </div>
+      </div>
+
+      <!-- Location Coordinate Box -->
+      <div class="location-box">
+        <ion-icon name="location-outline"></ion-icon>
+        <span>{{ plantation.latitude | number:'1.4-4' }}, {{ plantation.longitude | number:'1.4-4' }}</span>
+      </div>
+    </div>
+
+    <!-- Timeline / Meta Info -->
+    <div class="meta-row">
+      <div class="date-card">
+        <ion-icon name="calendar-outline"></ion-icon>
+        <span>Start: {{ (plantation.created_at || '2026-05-11') | date:'dd MMM yyyy' }}</span>
+      </div>
+
+      <div class="fencing-card" [class.done]="plantation.fencing_status === 'COMPLETED'">
+        <div class="icon-wrap">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <span>Fencing: {{ plantation.fencing_status || 'PENDING' }}</span>
+      </div>
+    </div>
+
+    <!-- Observation Visits Section -->
+    <div class="observation-section">
+      <div class="section-header">
+        <div class="title-left">
+          <ion-icon name="eye-outline"></ion-icon>
+          <h3>Observation Visits</h3>
+        </div>
+        <div class="add-visit-btn">
+          <ion-icon name="add"></ion-icon>
+          <span>ADD VISIT</span>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div class="observation-empty-card" *ngIf="!plantation?.observations || plantation?.observations?.length === 0">
+        <p>No observation records yet.</p>
+      </div>
+
+      <!-- Observation List -->
+      <div class="observation-list" *ngIf="plantation?.observations?.length > 0">
+        <div class="obs-item" *ngFor="let obs of plantation.observations">
+          <div class="obs-left">
+            <div class="obs-date">{{ obs.date | date:'dd MMM yyyy' }}</div>
+            <div class="obs-comment">{{ obs.comment }}</div>
+          </div>
+          <div class="obs-right">
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</ion-content>
+
+<ion-footer class="ion-no-border">
+  <div class="footer-wrap">
+    <ion-button expand="block" class="main-action-btn">
+      UPDATE MILESTONES / PROGRESS
+    </ion-button>
+  </div>
+</ion-footer>

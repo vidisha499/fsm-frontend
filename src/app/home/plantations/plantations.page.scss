@@ -1,0 +1,256 @@
+ion-header {
+  background: #f8fafc;
+  
+  .custom-header-container {
+       background: linear-gradient(180deg, rgba(13, 148, 136, 0.8) 0%, rgba(6, 78, 59, 1) 100%), 
+                url('https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&q=80&w=800'); // Correct dark slate from screenshot
+    padding: calc(env(safe-area-inset-top, 20px) + 25px) 20px 35px; // Extra padding for notification bar
+    border-bottom-left-radius: 45px;
+    border-bottom-right-radius: 45px;
+    box-shadow: 0 12px 25px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+  }
+
+  .nav-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .circle-btn {
+      width: 48px;
+      height: 48px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 20px;
+      
+      &:active {
+        background: rgba(255, 255, 255, 0.2);
+      }
+    }
+
+    .header-title-wrap {
+      text-align: center;
+      flex: 1;
+
+      .main-title {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 800;
+        color: white;
+        letter-spacing: -0.5px;
+      }
+
+      .sub-record-text {
+        font-size: 11px;
+        font-weight: 900;
+        color: #10b981; // Keep the green for records
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        display: block;
+        margin-top: 4px;
+      }
+    }
+  }
+
+  .search-row-wrap {
+    .search-inner-box {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      padding: 14px 20px;
+      gap: 15px;
+
+      .s-icon {
+        color: rgba(255, 255, 255, 0.4);
+        font-size: 18px;
+      }
+
+      input {
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 15px;
+        font-weight: 500;
+        width: 100%;
+        outline: none;
+
+        &::placeholder {
+          color: rgba(255, 255, 255, 0.3);
+        }
+      }
+    }
+  }
+}
+
+ion-content {
+  --background: #f8fafc;
+
+  .empty-state-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 70%;
+    padding: 0 40px;
+    text-align: center;
+
+    .leaf-icon-bg {
+      width: 150px;
+      height: 150px;
+      background: #f0fdf4;
+      border-radius: 45px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 35px;
+      
+      ion-icon {
+        font-size: 75px;
+        color: #10b981;
+      }
+    }
+
+    .no-data-title {
+      font-size: 22px;
+      font-weight: 900;
+      color: #0f172a;
+      margin: 0 0 12px;
+      letter-spacing: -0.5px;
+    }
+
+    .no-data-desc {
+      font-size: 16px;
+      color: #64748b;
+      line-height: 1.6;
+      font-weight: 500;
+    }
+  }
+}
+
+// Custom FAB Button Color (Matching Header as requested)
+.custom-fab-btn {
+  --background: #1e293b; // Matching Header dark color
+  --background-activated: #0f172a;
+  --box-shadow: 0 10px 25px rgba(30, 41, 59, 0.4);
+  width: 65px;
+  height: 65px;
+  margin-bottom: 20px; // Move it up
+
+  ion-icon {
+    font-size: 28px;
+    color: white;
+  }
+}
+/* --- Loading State --- */
+.loading-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  
+  ion-spinner {
+    --color: #10b981;
+    width: 40px;
+    height: 40px;
+    margin-bottom: 12px;
+  }
+
+  p {
+    color: #64748b;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+}
+
+/* --- Plantation List --- */
+.plantation-list-container {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.plantation-card {
+  background: white;
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f1f5f9;
+  
+  &:active {
+    background: #f8fafc;
+  }
+
+  .card-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .card-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+
+    .site-icon {
+      width: 46px;
+      height: 46px;
+      background: #f0fdf4;
+      color: #10b981;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+    }
+
+    .site-meta {
+      h4 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1e293b;
+      }
+
+      .soil-tag {
+        display: inline-block;
+        margin-top: 4px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: #64748b;
+        background: #f1f5f9;
+        padding: 2px 8px;
+        border-radius: 6px;
+        text-transform: uppercase;
+      }
+    }
+  }
+
+  .card-right {
+    text-align: right;
+
+    .area-val {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: #10b981;
+      line-height: 1;
+    }
+
+    .area-unit {
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: #94a3b8;
+      margin-top: 3px;
+    }
+  }
+}

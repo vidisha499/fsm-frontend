@@ -975,10 +975,39 @@ export class DataService {
   }
 
   // --- 15.1 PLANTATIONS ---
-  getPlantations() { return this.http.get(`${this.baseApiUrl}/plantations`); }
-  createPlantation(payload: any) { return this.http.post(`${this.baseApiUrl}/plantations`, payload); }
-  getPlantationById(id: string | number) { return this.http.get(`${this.baseApiUrl}/plantations/${id}`); }
-  addPlantationObservation(id: string | number, payload: any) { return this.http.post(`${this.baseApiUrl}/plantations/${id}/observations`, payload); }
+  getPlantations() {
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    return this.http.post(`${this.baseApiUrl}/getPlantations`, formData);
+  }
+
+  addPlantation(payload: any) {
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    for (const key in payload) {
+      formData.append(key, payload[key]);
+    }
+    return this.http.post(`${this.baseApiUrl}/addPlantation`, formData);
+  }
+
+  getPlantationDetails(id: any) {
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    formData.append('id', id);
+    return this.http.post(`${this.baseApiUrl}/getPlantationDetails`, formData);
+  }
+
+  updatePlantationStatus(id: any, status: string) {
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    formData.append('id', id);
+    formData.append('status', status);
+    return this.http.post(`${this.baseApiUrl}/updatePlantationStatus`, formData);
+  }
 
   // --- 16. COMMUNICATION (CHAT/NOTIFY) ALIGNED WITH SIR'S API ---
   postUpdate(payload: any) {

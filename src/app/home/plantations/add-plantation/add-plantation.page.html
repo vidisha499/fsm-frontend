@@ -1,0 +1,132 @@
+<ion-header class="ion-no-border">
+  <div class="stepper-header-wrap">
+    <div class="top-row">
+      <div class="close-btn-sq" (click)="goBack()">
+        <ion-icon name="arrow-back-outline"></ion-icon>
+      </div>
+      <div class="header-titles">
+        <h1>Add New Plantation</h1>
+        <span class="step-indicator">STEP {{ currentStep }} OF {{ totalSteps }}</span>
+      </div>
+    </div>
+
+    <!-- Stepper Progress -->
+    <div class="stepper-progress">
+      <div class="step-line">
+        <div class="progress-fill" [style.width.%]="((currentStep - 1) / (totalSteps - 1)) * 100"></div>
+      </div>
+      <div class="dots-row">
+        <div *ngFor="let step of [1,2,3,4]" 
+             class="step-dot" 
+             [class.active]="step <= currentStep"
+             [class.current]="step === currentStep">
+          {{ step }}
+        </div>
+      </div>
+    </div>
+  </div>
+</ion-header>
+
+<ion-content>
+  <div class="form-container">
+    
+    <!-- Section 1: Site Identification -->
+    <div class="form-section-header">
+      <div class="icon-sq"><ion-icon name="location-outline"></ion-icon></div>
+      <h2>Site Identification</h2>
+    </div>
+
+    <div class="input-group">
+      <label>Site Name</label>
+      <div class="custom-input-box">
+        <input type="text" placeholder="Enter Site Name..." [(ngModel)]="formData.siteName">
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label>Total Area (Hectares)</label>
+      <div class="custom-input-box">
+        <input type="number" [(ngModel)]="formData.totalArea">
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label>Soil Type</label>
+      <div class="custom-input-box select-box">
+        <select [(ngModel)]="formData.soilType">
+          <option value="" disabled>Select Soil Type</option>
+          <option value="alluvial">Alluvial Soil</option>
+          <option value="black">Black Soil</option>
+          <option value="red">Red Soil</option>
+          <option value="laterite">Laterite Soil</option>
+          <option value="desert">Desert Soil</option>
+          <option value="mountain">Mountain Soil</option>
+        </select>
+        <ion-icon name="chevron-down-outline" class="select-arrow"></ion-icon>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label>Species</label>
+      <div class="custom-input-box">
+        <input type="text" placeholder="Enter Tree Species (e.g. Teak, Sal)..." [(ngModel)]="formData.species">
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label>Plant Count</label>
+      <div class="custom-input-box">
+        <input type="number" placeholder="Enter number of plants..." [(ngModel)]="formData.plant_count">
+      </div>
+    </div>
+
+    <!-- Map Preview - Revamped -->
+    <div class="map-preview-card">
+      <div class="card-header">
+        <label>Site Location (Geomapping)</label>
+      </div>
+      <div class="map-placeholder">
+        <div id="plantation-map" class="leaflet-map-box"></div>
+        <div class="google-logo">
+          <img src="https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png" alt="Google">
+        </div>
+        <div class="map-marker-pin-overlay" (click)="useCurrentLocation()">
+          <ion-icon name="locate"></ion-icon>
+        </div>
+      </div>
+
+      <!-- Lat/Lng Display -->
+      <div class="coordinates-row">
+        <div class="coord-box">
+          <span class="coord-label">LATITUDE</span>
+          <span class="coord-value">{{ formData.latitude.toFixed(6) }}</span>
+        </div>
+        <div class="coord-box">
+          <span class="coord-label">LONGITUDE</span>
+          <span class="coord-value">{{ formData.longitude.toFixed(6) }}</span>
+        </div>
+      </div>
+
+      <!-- Current Location Button -->
+      <button class="current-loc-btn" (click)="useCurrentLocation()">
+        <ion-icon name="locate-outline"></ion-icon>
+        USE CURRENT LOCATION
+      </button>
+
+      <p class="map-subtext">Drag marker or click map to set location</p>
+    </div>
+
+  </div>
+</ion-content>
+
+<!-- Swipe Continue Button -->
+<ion-footer class="ion-no-border">
+  <div class="swipe-button-container">
+    <div class="swipe-track">
+      <div class="swipe-text">Continue <ion-icon name="chevron-forward-outline"></ion-icon></div>
+      <div class="swipe-handle" (click)="nextStep()">
+        <ion-icon name="chevron-forward"></ion-icon>
+      </div>
+    </div>
+  </div>
+</ion-footer>
