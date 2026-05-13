@@ -144,7 +144,18 @@ export class AttendancePage implements OnInit, OnDestroy {
     const companyId = this.dataService.getUserCompanyId();
     const token = localStorage.getItem('api_token');
     
-    // Sir's API Payload for getGeofences
+    // 1. Load from cache first for offline support
+    const cached = localStorage.getItem('cached_beats');
+    if (cached) {
+      try {
+        this.beats = JSON.parse(cached);
+        if (this.beats.length > 0 && !this.selectedBeat) {
+          this.selectedBeat = this.beats[0];
+        }
+      } catch (e) { console.error("Cache parse error", e); }
+    }
+
+    // 2. Fetch fresh data from API
     const payload = {
       api_token: token,
       company_id: companyId
@@ -152,16 +163,20 @@ export class AttendancePage implements OnInit, OnDestroy {
 
     this.dataService.getGeofences(payload).subscribe({
       next: (res: any) => {
-        if (res && res.data) {
+        if (res && res.data && Array.isArray(res.data)) {
           this.beats = res.data;
-          // Auto-select first beat if available
-          if (this.beats.length > 0) {
+          
+          // 3. Update cache
+          localStorage.setItem('cached_beats', JSON.stringify(this.beats));
+
+          // Auto-select first beat if nothing selected yet
+          if (this.beats.length > 0 && !this.selectedBeat) {
             this.selectedBeat = this.beats[0];
           }
         }
       },
       error: (err) => {
-        console.error("Error fetching geofences:", err);
+        console.error("Error fetching fresh geofences:", err);
       }
     });
   }

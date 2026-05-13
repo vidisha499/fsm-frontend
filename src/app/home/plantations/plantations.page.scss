@@ -2,15 +2,15 @@ ion-header {
   background: #f8fafc;
   
   .custom-header-container {
-       background: linear-gradient(180deg, rgba(13, 148, 136, 0.8) 0%, rgba(6, 78, 59, 1) 100%), 
-                url('https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&q=80&w=800'); // Correct dark slate from screenshot
-    padding: calc(env(safe-area-inset-top, 20px) + 25px) 20px 35px; // Extra padding for notification bar
-    border-bottom-left-radius: 45px;
-    border-bottom-right-radius: 45px;
-    box-shadow: 0 12px 25px rgba(0,0,0,0.2);
+     background: linear-gradient(180deg, rgba(13, 148, 136, 0.8) 0%, rgba(6, 78, 59, 1) 100%), 
+                url('https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&q=80&w=800');
+    padding: calc(env(safe-area-inset-top, 20px) + 20px) 20px 30px;
+    border-bottom-left-radius: 40px;
+    border-bottom-right-radius: 40px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
     display: flex;
     flex-direction: column;
-    gap: 25px;
+    gap: 20px;
   }
 
   .nav-row {
@@ -19,72 +19,68 @@ ion-header {
     justify-content: space-between;
 
     .circle-btn {
-      width: 48px;
-      height: 48px;
+      width: 44px;
+      height: 44px;
       background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 14px;
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
       color: white;
-      font-size: 20px;
-      
-      &:active {
-        background: rgba(255, 255, 255, 0.2);
-      }
+      font-size: 18px;
     }
 
     .header-title-wrap {
-      text-align: center;
+      text-align: left;
       flex: 1;
+      padding-left: 15px;
 
       .main-title {
         margin: 0;
-        font-size: 20px;
+        font-size: 19px;
         font-weight: 800;
         color: white;
-        letter-spacing: -0.5px;
+        letter-spacing: -0.3px;
       }
 
       .sub-record-text {
         font-size: 11px;
         font-weight: 900;
-        color: #10b981; // Keep the green for records
+        color: #10b981;
         letter-spacing: 1.5px;
         text-transform: uppercase;
         display: block;
-        margin-top: 4px;
+        margin-top: 2px;
       }
     }
   }
 
   .search-row-wrap {
     .search-inner-box {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 20px;
       display: flex;
       align-items: center;
-      padding: 14px 20px;
-      gap: 15px;
+      padding: 12px 18px;
+      gap: 12px;
 
       .s-icon {
-        color: rgba(255, 255, 255, 0.4);
-        font-size: 18px;
+        color: rgba(255, 255, 255, 0.3);
+        font-size: 16px;
       }
 
       input {
         background: transparent;
         border: none;
         color: white;
-        font-size: 15px;
+        font-size: 14px;
         font-weight: 500;
         width: 100%;
         outline: none;
 
         &::placeholder {
-          color: rgba(255, 255, 255, 0.3);
+          color: rgba(255, 255, 255, 0.25);
         }
       }
     }
@@ -136,11 +132,11 @@ ion-content {
   }
 }
 
-// Custom FAB Button Color (Matching Header as requested)
+// Custom FAB Button Color
 .custom-fab-btn {
-  --background: #1e293b; // Matching Header dark color
-  --background-activated: #0f172a;
-  --box-shadow: 0 10px 25px rgba(30, 41, 59, 0.4);
+  --background: #0d9488; 
+  --background-activated: #0b7a6f;
+  --box-shadow: 0 10px 25px rgba(13, 148, 136, 0.3);
   width: 65px;
   height: 65px;
   margin-bottom: 20px; // Move it up
@@ -182,75 +178,132 @@ ion-content {
 
 .plantation-card {
   background: white;
-  border-radius: 18px;
-  padding: 18px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-radius: 28px;
+  padding: 16px;
+  margin-bottom: 2px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
   border: 1px solid #f1f5f9;
+  transition: all 0.2s ease;
   
   &:active {
+    transform: scale(0.98);
     background: #f8fafc;
   }
 
-  .card-inner {
+  .card-content-row {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 16px;
   }
 
-  .card-left {
+  .status-icon-box {
+    width: 56px;
+    height: 56px;
+    background: #0ea5e9; // Default blue
+    border-radius: 18px;
     display: flex;
     align-items: center;
-    gap: 14px;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    flex-shrink: 0;
 
-    .site-icon {
-      width: 46px;
-      height: 46px;
-      background: #f0fdf4;
-      color: #10b981;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.3rem;
+    &.completed {
+      background: #15803d; // Green for completed
     }
+  }
 
-    .site-meta {
+  .meta-info {
+    flex: 1;
+    overflow: hidden;
+
+    .title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 4px;
+
       h4 {
         margin: 0;
-        font-size: 1rem;
-        font-weight: 700;
+        font-size: 16px;
+        font-weight: 800;
         color: #1e293b;
+        letter-spacing: -0.3px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
-      .soil-tag {
-        display: inline-block;
-        margin-top: 4px;
-        font-size: 0.7rem;
-        font-weight: 600;
+      .code-badge {
+        font-size: 10px;
+        font-weight: 800;
         color: #64748b;
         background: #f1f5f9;
-        padding: 2px 8px;
+        padding: 4px 8px;
         border-radius: 6px;
-        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+    }
+
+    .stats-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+
+      .area-text {
+        font-size: 13px;
+        font-weight: 700;
+        color: #64748b;
+      }
+
+      .dot-separator {
+        width: 3px;
+        height: 3px;
+        background: #cbd5e1;
+        border-radius: 50%;
+      }
+
+      .phase-text {
+        font-size: 13px;
+        font-weight: 800;
+        color: #0ea5e9; // Blue for Identification/Default
+        letter-spacing: -0.2px;
+
+        &.completed-text {
+          color: #15803d; // Green for completed
+        }
+      }
+
+      .status-indicator-badge {
+        font-size: 10px;
+        font-weight: 800;
+        padding: 4px 10px;
+        border-radius: 10px;
+        letter-spacing: 0.3px;
+
+        &.pending {
+          background: #ffedd5;
+          color: #ea580c;
+        }
+
+        &.approved {
+          background: #dcfce7;
+          color: #15803d;
+        }
+
+        &.rejected {
+          background: #fee2e2;
+          color: #b91c1c;
+        }
       }
     }
   }
 
-  .card-right {
-    text-align: right;
-
-    .area-val {
-      font-size: 1.3rem;
-      font-weight: 800;
-      color: #10b981;
-      line-height: 1;
-    }
-
-    .area-unit {
-      font-size: 0.6rem;
-      font-weight: 700;
-      color: #94a3b8;
-      margin-top: 3px;
-    }
+  .chevron-box {
+    color: #cbd5e1;
+    font-size: 20px;
+    padding-left: 4px;
   }
 }
+

@@ -492,6 +492,13 @@ export class AddUserPage implements OnInit {
 
     const resolvedCustomRoleId = this.userData.dynamicRoleId || this.userData.roleId;
 
+    // Find the actual name of the dynamic role to send as designation
+    let dynamicRoleName = deepestEntityName || 'Officer';
+    if (this.userData.dynamicRoleId) {
+      const selectedRole = this.dynamicRoles.find(r => String(r.id) === String(this.userData.dynamicRoleId));
+      if (selectedRole) dynamicRoleName = selectedRole.displayName;
+    }
+
     const payload: any = {
       name: `${this.userData.firstName} ${this.userData.lastName}`.trim(),
       firstName: this.userData.firstName,
@@ -499,34 +506,63 @@ export class AddUserPage implements OnInit {
       mobile: this.userData.contact,
       email: this.userData.email || (this.userData.contact + '@fsm.com'),
       password: '123456',
-      role_id: String(this.userData.roleId), // Will be '10' if dynamic is picked
+      role_id: String(this.userData.roleId),
       company_id: String(this.userData.companyId),
       company_name: localStorage.getItem('company_name') || '',
       entity_id: deepestEntityId,
       site_id: deepestEntityId,
+      siteId: deepestEntityId, 
       site_name: deepestEntityName || 'Officer',
       attendance_type: 'multiple',
       custom_role_id: String(this.userData.dynamicRoleId || this.userData.roleId),
       dynamic_role_id: String(this.userData.dynamicRoleId || this.userData.roleId), 
-      designation: deepestEntityName || 'Officer',
+      designation: dynamicRoleName,
       emp_id: `FSM-${Date.now().toString().slice(-6)}`,
       permissions: JSON.stringify(this.rolePermissions) 
     };
 
-    console.log("🚀 V2 Registering User (Direct AddUser):", payload);
+    console.log("🚀 V2 Registering User (addRegistration):", payload);
 
-    this.dataService.addUser(payload).subscribe({
+    // Revert to Stringify since the DB column expects a string
+    const finalPayload = { ...payload, permissions: JSON.stringify(this.rolePermissions) };
+
+    this.dataService.addRegistration(finalPayload).subscribe({
       next: async (res: any) => {
         this.isSaving = false;
-        console.log("📥 [V2 ADD-USER RESPONSE]:", res);
+        console.log("📥 [V2 REGISTER RESPONSE]:", res);
 
         const isSuccess = res?.status?.toLowerCase() === 'success' ||
                           res?.message?.toLowerCase().includes('success') ||
-                          res?.status === 'SUCCESS' ||
                           res?.code === 200;
 
+        if (isSuccess) {
+          const newUserId = res?.data?.id || res?.id;
+          
+          // 🚀 V2 SYNC: Link to Hierarchy and Role immediately
+          if (newUserId) {
+            const assignmentPayload = {
+              user_id: newUserId,
+              role_id: payload.role_id,
+              custom_role_id: payload.custom_role_id,
+              entity_id: payload.entity_id,
+              company_id: payload.company_id,
+              permissions: payload.permissions,
+              role_name: payload.designation
+            };
+
+            this.dataService.saveV2Assignment(assignmentPayload).subscribe({
+              next: (assignRes: any) => console.log("🔗 [ADD-USER] V2 Assignment Linked:", assignRes),
+              error: (assignErr: any) => console.error("❌ [ADD-USER] V2 Assignment Failed:", assignErr)
+            });
+          }
+
+          this.showToast('User registered successfully!', 'success');
+          this.navCtrl.back();
+          return;
+        }
+
         if (!isSuccess) {
-          this.showToast('User creation failed: ' + (res?.message || 'Unknown error'), 'danger');
+          this.showToast('Registration failed: ' + (res?.message || 'Unknown error'), 'danger');
           return;
         }
 

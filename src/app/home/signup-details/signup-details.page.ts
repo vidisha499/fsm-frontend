@@ -221,15 +221,15 @@ export class SignupDetailsPage implements OnInit {
       dob: this.dob,
       address: this.address,
       role_id: String(this.verifiedData.role_id || 3),
-      custom_role_id: String(this.verifiedData.role_id || 3), 
-      dynamic_role_id: String(this.verifiedData.role_id || 3),
-      permissions: "[]", 
+      custom_role_id: String(this.verifiedData.custom_role_id || this.verifiedData.role_id || 3), 
+      dynamic_role_id: String(this.verifiedData.custom_role_id || this.verifiedData.role_id || 3),
+      permissions: this.verifiedData.permissions || "[]", 
       company_id: String(this.verifiedData.company_id || '64'),
       company_name: this.verifiedData.company_name || '', 
       entity_id: deepestEntityId,
       site_id: deepestEntityId, 
       site_name: deepestEntityName,
-      designation: deepestEntityName || 'Officer', 
+      designation: this.verifiedData.designation || this.verifiedData.role_name || deepestEntityName || 'Officer', 
       attendance_type: 'multiple', 
       shift_name: this.shift || 'General Shift',
       weekly_off: this.weeklyOff || 'Sunday',
@@ -238,8 +238,49 @@ export class SignupDetailsPage implements OnInit {
       photo: this.profileImage
     };
 
+    console.log("📝 [SIGNUP] Final Payload being sent to Backend:", payload);
+    console.log("🔒 [SIGNUP] Permissions for this user:", payload.permissions);
+
     this.dataService.addUser(payload).subscribe({
       next: async (res: any) => {
+        const newUserId = res?.data?.id || res?.id;
+        
+        // 🚀 After user is created, LINK them to Hierarchy and Role
+        if (newUserId) {
+          const assignmentPayload = {
+            user_id: newUserId,
+            role_id: payload.role_id,
+            custom_role_id: payload.custom_role_id,
+            entity_id: payload.entity_id,
+            company_id: payload.company_id,
+            permissions: payload.permissions,
+            role_name: payload.designation
+          };
+
+           this.dataService.saveV2Assignment(assignmentPayload).subscribe({
+            next: (assignRes: any) => console.log("🔗 [SIGNUP] V2 Assignment Linked Successfully:", assignRes),
+            error: (assignErr: any) => console.error("❌ [SIGNUP] V2 Assignment Failed:", assignErr)
+          });
+        }
+
+        // 🔥 SAVE ALL IMPORTANT DATA TO LOCALSTORAGE
+        localStorage.setItem('user_role', String(payload.role_id));
+        localStorage.setItem('user_custom_role_id', String(payload.custom_role_id));
+        localStorage.setItem('user_role_name', String(payload.designation || ''));
+        localStorage.setItem('user_permissions', String(payload.permissions));
+        localStorage.setItem('user_entity_id', String(payload.entity_id || ''));
+        localStorage.setItem('user_site_id', String(payload.site_id || ''));
+        localStorage.setItem('user_site_name', String(payload.site_name || ''));
+
+        console.log("💾 [SIGNUP] Saved to LocalStorage:");
+        console.log("   Role ID:", payload.role_id);
+        console.log("   Custom Role ID:", payload.custom_role_id);
+        console.log("   Role Name:", payload.designation);
+        console.log("   Permissions:", payload.permissions);
+        console.log("   Entity ID:", payload.entity_id);
+        console.log("   Site ID:", payload.site_id);
+        console.log("   Site Name:", payload.site_name);
+
         await loader.dismiss();
         this.presentToast('Registration Successful!', 'success');
         this.navCtrl.navigateRoot('/login');

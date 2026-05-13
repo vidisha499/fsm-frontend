@@ -7,7 +7,7 @@
       
       <div class="header-title-wrap">
         <h1 class="main-title">Plantation Summary</h1>
-        <span class="sub-record-text">{{ plantation?.siteName || plantation?.name || 'B12 TEST' }}</span>
+        <span class="sub-record-text">{{ plantation?.siteName || plantation?.name || 'NAME UNAVAILABLE' }}</span>
       </div>
 
       <div class="circle-btn" (click)="refreshData()">
@@ -42,19 +42,33 @@
   <div class="detail-container" *ngIf="!loading && plantation">
     <!-- Plantation Code Card -->
     <div class="code-card">
-      <div class="code-tag">PLANTATION CODE</div>
-      <h2 class="code-val">{{ plantation.plantation_code || plantation.code || 'PLT006' }}</h2>
-    </div>
-
-    <!-- Admin Actions Row -->
-    <div class="action-card" *ngIf="userRole == '1' || userRole == '2'">
-      <div class="status-info">
-        <i class="far fa-clock"></i>
-        <span>PENDING APPROVAL</span>
+      <div class="code-left">
+        <div class="code-tag">PLANTATION CODE</div>
+        <h2 class="code-val">{{ plantation?.plantation_code || plantation?.code || 'N/A' }}</h2>
       </div>
-      <div class="btn-group">
-        <ion-button class="approve-btn" (click)="handleAction('APPROVE')">APPROVE</ion-button>
-        <ion-button class="reject-btn" (click)="handleAction('REJECT')">REJECT</ion-button>
+      <div class="code-right">
+        <!-- Show clickable buttons if not yet processed AND user is Admin/SuperAdmin -->
+        <ng-container *ngIf="(plantation?.status !== 'Approved' && plantation?.status !== 'APPROVED' && plantation?.status !== 'APPROVE' && plantation?.status !== 1 && plantation?.status !== 'Rejected' && plantation?.status !== 'REJECTED' && plantation?.status !== 'REJECT') && (userRole == '1' || userRole == '2' || userRole == 1 || userRole == 2)">
+          <ion-button class="approve-badge-btn" (click)="handleAction('APPROVE')">APPROVE</ion-button>
+          <ion-button class="reject-badge-btn" (click)="handleAction('REJECT')">REJECT</ion-button>
+        </ng-container>
+        
+        <!-- PENDING badge for Regular Users -->
+        <div class="pending-pill" *ngIf="(userRole != '1' && userRole != '2' && userRole != 1 && userRole != 2) && (plantation?.status !== 'Approved' && plantation?.status !== 'APPROVED' && plantation?.status !== 'APPROVE' && plantation?.status !== 1 && plantation?.status !== '1' && plantation?.status !== 'Rejected' && plantation?.status !== 'REJECTED' && plantation?.status !== 'REJECT' && !plantation?.is_approved && plantation?.is_approved !== 1 && plantation?.is_approved !== '1')">
+          PENDING APPROVAL
+        </div>
+
+        <!-- Show non-clickable APPROVED badge if approved -->
+        <ion-button class="approve-badge-btn approved-state" *ngIf="plantation?.status === 'Approved' || plantation?.status === 'APPROVED' || plantation?.status === 'APPROVE' || plantation?.status === 1 || plantation?.status === '1' || plantation?.is_approved == 1 || plantation?.is_approved == '1'" disabled="true">
+          <ion-icon name="checkmark-circle" slot="start"></ion-icon>
+          APPROVED
+        </ion-button>
+
+        <!-- Show non-clickable REJECTED badge if rejected -->
+        <ion-button class="reject-badge-btn rejected-state" *ngIf="plantation?.status === 'Rejected' || plantation?.status === 'REJECTED' || plantation?.status === 'REJECT'" disabled="true">
+          <ion-icon name="close-circle" slot="start"></ion-icon>
+          REJECTED
+        </ion-button>
       </div>
     </div>
 
@@ -68,24 +82,24 @@
       <div class="specs-grid">
         <div class="spec-item">
           <label>AREA</label>
-          <div class="val">{{ plantation.totalArea || plantation.area || '0.00' }} Hectares</div>
+          <div class="val">{{ plantation?.totalArea || plantation?.area || '0.00' }} Hectares</div>
         </div>
         <div class="spec-item">
           <label>SOIL TYPE</label>
-          <div class="val">{{ plantation.soilType || 'Laterite' }}</div>
+          <div class="val">{{ plantation?.soilType || plantation?.soil_type || 'N/A' }}</div>
         </div>
         <div class="spec-item">
           <label>SPECIES</label>
-          <div class="val">{{ plantation.species || 'N/A' }}</div>
+          <div class="val">{{ plantation?.species || 'N/A' }}</div>
         </div>
         <div class="spec-item">
           <label>COUNT</label>
-          <div class="val">{{ plantation.plant_count || '0' }} Plants</div>
+          <div class="val">{{ plantation?.plant_count || '0' }} Plants</div>
         </div>
       </div>
 
       <!-- Location Coordinate Box -->
-      <div class="location-box">
+      <div class="location-box" *ngIf="plantation?.latitude && plantation?.longitude">
         <ion-icon name="location-outline"></ion-icon>
         <span>{{ plantation.latitude | number:'1.4-4' }}, {{ plantation.longitude | number:'1.4-4' }}</span>
       </div>
@@ -95,14 +109,15 @@
     <div class="meta-row">
       <div class="date-card">
         <ion-icon name="calendar-outline"></ion-icon>
-        <span>Start: {{ (plantation.created_at || '2026-05-11') | date:'dd MMM yyyy' }}</span>
+        <span *ngIf="plantation?.created_at">Start: {{ plantation.created_at | date:'dd MMM yyyy' }}</span>
+        <span *ngIf="!plantation?.created_at">Start: N/A</span>
       </div>
 
-      <div class="fencing-card" [class.done]="plantation.fencing_status === 'COMPLETED'">
+      <div class="fencing-card" [class.done]="plantation?.fencing_status === 'COMPLETED'">
         <div class="icon-wrap">
           <i class="fas fa-shield-alt"></i>
         </div>
-        <span>Fencing: {{ plantation.fencing_status || 'PENDING' }}</span>
+        <span>Fencing: {{ plantation?.fencing_status || 'N/A' }}</span>
       </div>
     </div>
 
@@ -113,7 +128,7 @@
           <ion-icon name="eye-outline"></ion-icon>
           <h3>Observation Visits</h3>
         </div>
-        <div class="add-visit-btn">
+        <div class="add-visit-btn" (click)="addObservation()">
           <ion-icon name="add"></ion-icon>
           <span>ADD VISIT</span>
         </div>
@@ -128,8 +143,8 @@
       <div class="observation-list" *ngIf="plantation?.observations?.length > 0">
         <div class="obs-item" *ngFor="let obs of plantation.observations">
           <div class="obs-left">
-            <div class="obs-date">{{ obs.date | date:'dd MMM yyyy' }}</div>
-            <div class="obs-comment">{{ obs.comment }}</div>
+            <div class="obs-date">{{ (obs.visit_date || obs.created_at || '2026-05-13') | date:'dd MMM yyyy' }}</div>
+            <div class="obs-comment">{{ obs.remark || 'Observation recorded.' }}</div>
           </div>
           <div class="obs-right">
             <ion-icon name="chevron-forward-outline"></ion-icon>
@@ -142,8 +157,26 @@
 
 <ion-footer class="ion-no-border">
   <div class="footer-wrap">
-    <ion-button expand="block" class="main-action-btn">
-      UPDATE MILESTONES / PROGRESS
-    </ion-button>
+    <div class="swipe-container">
+      <div class="swipe-text">Update Milestones / Progress <ion-icon name="chevron-forward"></ion-icon></div>
+      <div class="swipe-thumb" #swipeThumb
+           (touchstart)="onSwipeStart($event)" 
+           (touchmove)="onSwipeMove($event)" 
+           (touchend)="onSwipeEnd($event)">
+        <ion-icon name="chevron-forward"></ion-icon>
+      </div>
+    </div>
   </div>
 </ion-footer>
+
+<!-- Success Modal Overlay -->
+<div class="custom-modal-overlay" *ngIf="showSuccessModal">
+  <div class="custom-modal-box">
+    <div class="icon-circle">
+      <ion-icon name="checkmark"></ion-icon>
+    </div>
+    <h2>Success</h2>
+    <p>{{ successModalMessage }}</p>
+    <ion-button expand="block" class="ok-btn" (click)="closeSuccessModal()">OK</ion-button>
+  </div>
+</div>

@@ -133,6 +133,7 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.showAllSidebarKeys();
     this.loadUserData();
 
     // 🔥 SYNC FIX: Listen for label updates and force UI refresh
@@ -179,35 +180,69 @@ export class AppComponent implements OnInit {
     }
 
     const permsStr = localStorage.getItem('user_permissions');
-    if (!permsStr) {
-      // Fallback: If no permissions data is loaded yet (or user has no custom role), 
-      // allow default access to prevent breaking the app for standard users.
-      // If a custom role is assigned with 0 permissions, permsStr will be "[]" and will correctly return false.
+    const featuresStr = localStorage.getItem('user_features');
+    
+    if (!permsStr && !featuresStr) {
+      // Fallback: If no permissions or features data is found, show everything for safety
       return true;
     }
 
     try {
-      const perms = JSON.parse(permsStr);
+      let perms: any[] = [];
+      if (permsStr) perms = JSON.parse(permsStr);
       
-      // Map frontend feature keys to backend module keys if they differ
-      let keyToCheck = feature;
-      if (feature === 'patrol_report') keyToCheck = 'patrol';
-      if (feature === 'attendance_request') keyToCheck = 'attendance';
-      if (feature === 'asset_management') keyToCheck = 'assets';
-      if (feature === 'forest_events') keyToCheck = 'events';
-      if (feature === 'field_visits') keyToCheck = 'client_visits';
-      // Note: 'chat' remains 'chat', 'daily_updates' remains 'daily_updates'
-
-      const modulePerm = perms.find((p: any) => p.module_key === keyToCheck);
-      
-      // The user must have 'view' permission enabled to see the feature in the sidebar
-      if (modulePerm && modulePerm.permissions && modulePerm.permissions.view) {
-        return true;
+      // If no perms found, try parsing the features array from login response
+      if (perms.length === 0 && featuresStr) {
+        const features = JSON.parse(featuresStr);
+        return features.some((f: any) => 
+          (f.module_key === feature || f.name?.toLowerCase().includes(feature.toLowerCase()) || String(f).toLowerCase().includes(feature.toLowerCase()))
+        );
       }
-      return false;
+      
+      // 🔥 ALIAS MAPPING: Sidebar key → Backend permission keywords
+      const aliasMap: any = {
+        'patrol_report': ['patrol_report', 'report', 'forest reports', 'patrolling'],
+        'attendance': ['attendance'],
+        'attendance_request': ['attendance'],
+        'asset_management': ['asset', 'assets'],
+        'forest_events': ['forest events', 'events', 'incidence'],
+        'know_your_area': ['know your area', 'geofence', 'area'],
+        'plantations': ['plantation', 'plantations'],
+        'chat': ['chat', 'communication'],
+        'daily_updates': ['daily_updates', 'daily updates'],
+        'client_visits': ['client_visits', 'field_visits', 'visits']
+      };
+      
+      const keyToCheck = feature.toLowerCase();
+      const aliases = aliasMap[keyToCheck] || [keyToCheck];
+
+      // console.log(`🔍 [FEATURE CHECK] Checking: ${feature} | Aliases:`, aliases);
+      
+      // Check if any permission string contains any of our aliases
+      return perms.some((p: any) => {
+        const pStr = String(p.module_key || p.name || p).toLowerCase();
+        return aliases.some((alias: string) => pStr.includes(alias) || alias.includes(pStr));
+      });
     } catch (e) {
       return false;
     }
+  }
+
+  showAllSidebarKeys() {
+    const aliasMap: any = {
+      'asset_management': ['asset', 'assets'],
+      'forest_events': ['forest events', 'events', 'incidence'],
+      'know_your_area': ['know your area', 'geofence', 'area'],
+      'plantations': ['plantation', 'plantations'],
+      'attendance': ['attendance'],
+      'patrol_report': ['patrol_report', 'report', 'forest reports', 'patrolling'],
+      'attendance_request': ['attendance'],
+      'daily_updates': ['daily_updates', 'daily updates'],
+      'chat': ['chat', 'communication'],
+      'client_visits': ['client_visits', 'field_visits', 'visits']
+    };
+    console.log("%c🔑 [FRONTEND] ALL SIDEBAR KEYS & MAPPINGS:", "color: #0088ff; font-weight: bold; font-size: 14px;");
+    console.table(aliasMap);
   }
 
   // 🔥 NEW: Automatic Sync when Network Restored
@@ -245,10 +280,24 @@ export class AppComponent implements OnInit {
   // }
 
 loadUserData() {
+  console.log("🚀 APP START: Loading User Data Logic...");
   console.log("🟢 Step 1: Checking localStorage for existing token/session...");
   let rawRole = localStorage.getItem('user_role');
   const userDataStr = localStorage.getItem('user_data');
   const token = localStorage.getItem('api_token');
+
+  if (userDataStr) {
+    const parsed = JSON.parse(userDataStr);
+    if (parsed.features) {
+      localStorage.setItem('user_features', JSON.stringify(parsed.features));
+      console.log("🛠️ [APP] Features found for this user:", parsed.features);
+    }
+  }
+
+  const perms = localStorage.getItem('user_permissions');
+  if (perms) {
+    console.log("🔒 [APP] Active Permissions from LocalStorage:", JSON.parse(perms));
+  }
   
   if (token) {
     console.log("🟢 Step 2: Active session found! Using token for background sync.");
@@ -294,61 +343,121 @@ loadUserData() {
     }
   }
 
+  // 🔥 INSTANT FALLBACK: Use saved role name from signup/add-user
+  const savedRoleName = localStorage.getItem('user_role_name');
+  if (savedRoleName && savedRoleName !== 'null' && savedRoleName.trim() !== '') {
+    this.userDesignation = savedRoleName.toUpperCase();
+  }
+
   console.log("Mapped Role for HTML:", this.userRole, "Designation:", this.userDesignation);
+  
+  // 🔥 FULL LOCALSTORAGE DUMP — LOGIN KE BAAD
+  console.log("%c═══════════════════════════════════════════════", "color: #00ff00; font-weight: bold;");
+  console.log("%c💾 [LOGIN] ALL LOCALSTORAGE VALUES:", "color: #00ff00; font-weight: bold; font-size: 14px;");
+  console.log("   🔑 api_token:", localStorage.getItem('api_token')?.substring(0, 20) + '...');
+  console.log("   👤 user_role:", localStorage.getItem('user_role'));
+  console.log("   🏷️ user_role_name:", localStorage.getItem('user_role_name'));
+  console.log("   🎭 user_custom_role_id:", localStorage.getItem('user_custom_role_id'));
+  console.log("   🔒 user_permissions:", localStorage.getItem('user_permissions'));
+  console.log("   🌐 user_features:", localStorage.getItem('user_features')?.substring(0, 100) + '...');
+  console.log("   📍 user_entity_id:", localStorage.getItem('user_entity_id'));
+  console.log("   🏠 user_site_id:", localStorage.getItem('user_site_id'));
+  console.log("   📌 user_site_name:", localStorage.getItem('user_site_name'));
+  console.log("   🏢 company_name:", localStorage.getItem('company_name'));
+  console.log("%c═══════════════════════════════════════════════", "color: #00ff00; font-weight: bold;");
   
   // 🔥 FETCH DYNAMIC ROLE FROM ASSIGNMENTS API
   const rangerId = localStorage.getItem('ranger_id') || localStorage.getItem('user_id') || (parsedUser ? parsedUser.id : null);
+  console.log("🔍 [ASSIGNMENT] Checking rangerId:", rangerId);
   if (rangerId) {
+    console.log("📡 [ASSIGNMENT] Calling getUserAssignments for ID:", rangerId);
     this.dataService.getUserAssignments(rangerId).subscribe({
       next: (res: any) => {
+        console.log("📥 [ASSIGNMENT] Raw Response:", res);
         const assignments = res?.data || res || [];
         if (Array.isArray(assignments) && assignments.length > 0) {
           const activeAssign = assignments[0];
-          const dynamicRole = activeAssign.role?.name || activeAssign.role_name;
+          console.log("✅ [ASSIGNMENT] Active Assignment Found:", activeAssign);
+          
+          // 🔥 SYNC PERMISSIONS from Custom Array (V2) or Role Object
+          const customPerms = activeAssign.permissions?.custom || activeAssign.role?.permissions;
+          if (customPerms) {
+            localStorage.setItem('user_permissions', JSON.stringify(customPerms));
+            console.log("🔒 [ASSIGNMENT] Permissions synced:", customPerms);
+          }
+
+          // 🔥 SAVE ENTITY/SITE from Assignment
+          const entityId = activeAssign.entity_id || activeAssign.entity?.id;
+          const entityName = activeAssign.entity_name || activeAssign.entity?.name;
+          if (entityId) {
+            localStorage.setItem('user_entity_id', String(entityId));
+            localStorage.setItem('user_site_id', String(entityId));
+          }
+          if (entityName) {
+            localStorage.setItem('user_site_name', entityName);
+          }
+
+          // 🔥 DATA EXTRACTION for Sidebar
+          const dynamicRole = activeAssign.role?.name || activeAssign.role_name || parsedUser.role_name || parsedUser.designation || '';
           const dynamicRoleId = activeAssign.role_id || activeAssign.role?.id;
-          
-          if (activeAssign.role && activeAssign.role.permissions !== undefined) {
-            localStorage.setItem('user_permissions', JSON.stringify(activeAssign.role.permissions));
-          }
-          
-          // Store Node assignment names for UI display
-          if (activeAssign.entity_name) {
-            // Depending on the layer, it might be a range or beat
-            const layerId = String(activeAssign.entity?.layer_id || activeAssign.layer_id || '');
-            if (layerId === '1' || activeAssign.entity_name.toLowerCase().includes('range')) {
-              this.userRange = activeAssign.entity_name;
-            } else if (layerId === '2' || activeAssign.entity_name.toLowerCase().includes('beat')) {
-              this.userBeat = activeAssign.entity_name;
-            } else {
-              this.userBeat = activeAssign.entity_name; // Fallback
-            }
-          }
-          
+          const isLocationName = dynamicRole.toUpperCase().includes('BEAT') || dynamicRole.toUpperCase().includes('RANGE');
+
           // Safeguard: Never overwrite Superadmin (1) or Admin (2) roles
           const baseRole = localStorage.getItem('user_role') || (parsedUser ? parsedUser.role_id : null);
           const isSuperAdminOrAdmin = baseRole == '1' || baseRole == '2';
-          
-          if (dynamicRole) {
+
+          // 🔥 MATCH ROLE BY PERMISSIONS (since assignment returns role:null)
+          if ((!dynamicRole || isLocationName) && !isSuperAdminOrAdmin) {
+            const userPerms = customPerms || [];
+            this.dataService.getRoleIdList().subscribe((roles: any) => {
+              const rList = Array.isArray(roles) ? roles : [];
+              if (userPerms.length > 0) {
+                const matchedRole = rList.find((r: any) => {
+                  const rPerms = r.permissions || [];
+                  return rPerms.length === userPerms.length &&
+                         rPerms.every((p: string) => userPerms.includes(p));
+                });
+                if (matchedRole) {
+                  const roleName = matchedRole.displayName || matchedRole.name;
+                  this.userDesignation = roleName.toUpperCase();
+                  (this as any).hasDynamicRole = true;
+                  localStorage.setItem('user_role_name', roleName);
+                  localStorage.setItem('user_custom_role_id', String(matchedRole.id));
+                  console.log("🏷️ [MATCH] Role found by permissions:", roleName, "ID:", matchedRole.id);
+                  this.cdr.detectChanges();
+                }
+              }
+            });
+          }
+
+          if (dynamicRole && !isLocationName) {
             (this as any).hasDynamicRole = true;
-            
-            // Only update role if they are NOT an admin
             if (!isSuperAdminOrAdmin) {
               this.userDesignation = dynamicRole.toUpperCase();
               if (dynamicRoleId) {
                 localStorage.setItem('user_role', String(dynamicRoleId));
                 this.userRole = 'ranger';
-                
                 if (parsedUser) {
                   parsedUser.role_id = dynamicRoleId;
                   parsedUser.role_name = dynamicRole;
                   localStorage.setItem('user_data', JSON.stringify(parsedUser));
                 }
               }
-            } else {
-              console.log("🛡️ Superadmin/Admin role protected from dynamic overwrite.");
             }
-            this.cdr.detectChanges();
+          } else if (activeAssign.entity_name || activeAssign.entity?.name) {
+            this.userDesignation = (activeAssign.entity_name || activeAssign.entity?.name).toUpperCase();
           }
+          
+          // Store Node assignment names for UI display
+          if (activeAssign.entity_name) {
+            const layerId = String(activeAssign.entity?.layer_id || activeAssign.layer_id || '');
+            if (layerId === '1' || activeAssign.entity_name.toLowerCase().includes('range')) {
+              this.userRange = activeAssign.entity_name;
+            } else {
+              this.userBeat = activeAssign.entity_name;
+            }
+          }
+          this.cdr.detectChanges();
         }
       },
       error: (err) => {
@@ -454,25 +563,31 @@ loadUserData() {
               });
             }
 
-            
-            // Sync Role/Designation with multiple fallback keys
+            // 🔥 SYNC SITE_ID if missing
+            if (!parsedUser.site_id && data.site_id) {
+              parsedUser.site_id = data.site_id;
+              localStorage.setItem('user_data', JSON.stringify(parsedUser));
+            }
+
+            // 🔥 PRIORITIZE ROLE NAME from Assignment or Role Object
             if (!(this as any).hasDynamicRole) {
-              const freshRole = data.role_name || data.role?.name || data.designation || parsedUser.role_name || '';
+              const freshRole = data.role?.name || data.role_name || data.designation || parsedUser.role_name || '';
               if (freshRole) {
                 this.userDesignation = freshRole.toUpperCase();
                 parsedUser.role_name = freshRole;
               }
             }
             
-            // Sync Range and Beat from DB if not already populated by assignments
-            if (!this.userRange) this.userRange = data.range || data.department || '';
-            if (!this.userBeat) this.userBeat = data.beat || data.designation || data.site_name || '';
-
             // 🖼️ SYNC PROFILE PHOTO — only overwrite if API returns a REAL photo
             const rawPhoto = data.profile_pic || data.photo || data.image || data.profile_image || data.avatar || data.profilePic || data.user_photo;
             const faceId = data.personIdFaceRecog || 'NOT GENERATED';
 
-            console.log("📊 [DATABASE STATUS CHECK] Full Object:", data);
+            // 🔥 SYNC PERMISSIONS if backend returns them
+            if (data.permissions) {
+              const perms = Array.isArray(data.permissions) ? data.permissions : JSON.parse(data.permissions || '[]');
+              localStorage.setItem('user_permissions', JSON.stringify(perms));
+              console.log("🔒 [SYNC] Permissions updated from DB:", perms);
+            }
 
             if (rawPhoto && rawPhoto !== 'null' && rawPhoto !== 'undefined' && String(rawPhoto).length > 5) {
               console.log("✅ [DATABASE CHECK] Profile Pic exists in DB:", rawPhoto);

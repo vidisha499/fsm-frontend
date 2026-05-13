@@ -951,31 +951,52 @@ export class DataService {
     return this.http.post(`${this.baseApiUrl}/getPlantations`, formData);
   }
 
-  addPlantation(payload: any) {
+  createPlantation(payload: any) {
     const formData = new FormData();
     const token = localStorage.getItem('api_token') || '';
     formData.append('api_token', token);
     for (const key in payload) {
       formData.append(key, payload[key]);
     }
-    return this.http.post(`${this.baseApiUrl}/addPlantation`, formData);
+    return this.http.post(`${this.baseApiUrl}/createPlantation`, formData);
   }
 
-  getPlantationDetails(id: any) {
+  getPlantationDetail(id: any) {
     const formData = new FormData();
     const token = localStorage.getItem('api_token') || '';
     formData.append('api_token', token);
     formData.append('id', id);
-    return this.http.post(`${this.baseApiUrl}/getPlantationDetails`, formData);
+    return this.http.post(`${this.baseApiUrl}/getPlantationDetail`, formData);
   }
 
-  updatePlantationStatus(id: any, status: string) {
+  approvePlantation(id: any) {
     const formData = new FormData();
     const token = localStorage.getItem('api_token') || '';
     formData.append('api_token', token);
     formData.append('id', id);
-    formData.append('status', status);
-    return this.http.post(`${this.baseApiUrl}/updatePlantationStatus`, formData);
+    formData.append('status', 'Approved');
+    formData.append('is_approved', '1');
+    return this.http.post(`${this.baseApiUrl}/approvePlantation`, formData);
+  }
+
+  rejectPlantation(id: any) {
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    formData.append('id', id);
+    formData.append('status', 'Rejected');
+    formData.append('is_approved', '2');
+    return this.http.post(`${this.baseApiUrl}/approvePlantation`, formData); // Using same endpoint if it's generic, or guessing /rejectPlantation
+  }
+
+  addPlantationObservation(payload: any) {
+    const formData = new FormData();
+    const token = localStorage.getItem('api_token') || '';
+    formData.append('api_token', token);
+    for (const key in payload) {
+      formData.append(key, payload[key]);
+    }
+    return this.http.post(`${this.baseApiUrl}/addPlantationObservation`, formData);
   }
 
   // --- 16. COMMUNICATION (CHAT/NOTIFY) ALIGNED WITH SIR'S API ---

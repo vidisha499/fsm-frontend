@@ -8,6 +8,42 @@ ion-header {
     border-bottom-left-radius: 40px;
     border-bottom-right-radius: 40px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+
+    .meta-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 25px;
+      padding: 0 10px;
+
+      .code-badge {
+        font-size: 14px;
+        font-weight: 800;
+        color: white;
+        letter-spacing: 0.5px;
+      }
+
+      .status-badge {
+        background: rgba(0, 0, 0, 0.3);
+        color: #f59e0b; // Amber for pending
+        padding: 5px 12px;
+        border-radius: 15px;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+
+        &.approved {
+          color: #10b981;
+          border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        &.rejected {
+          color: #ef4444;
+          border-color: rgba(239, 68, 68, 0.3);
+        }
+      }
+    }
   }
 
   .top-row {
@@ -184,6 +220,87 @@ ion-content {
         font-size: 16px;
       }
     }
+    .date-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      input[type="date"] {
+        flex: 1;
+        &::-webkit-calendar-picker-indicator {
+          opacity: 0;
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          left: 0;
+          top: 0;
+          cursor: pointer;
+        }
+      }
+
+      .input-icon {
+        color: #94a3b8;
+        font-size: 20px;
+      }
+    }
+  }
+
+  .checkbox-group {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 22px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .checkbox-text {
+        h3 {
+          margin: 0;
+          font-size: 15px;
+          font-weight: 700;
+          color: #1e293b;
+        }
+        p {
+          margin: 4px 0 0;
+          font-size: 12px;
+          color: #64748b;
+        }
+      }
+
+      ion-checkbox {
+        --size: 24px;
+        --checkbox-background-checked: #10b981;
+        --border-color-checked: #10b981;
+        --border-radius: 6px;
+      }
+    }
+  }
+
+  .step-placeholder-text {
+    padding: 40px 20px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 14px;
+    font-style: italic;
+  }
+
+  .animated {
+    animation-duration: 0.4s;
+    animation-fill-mode: both;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .fadeIn {
+    animation-name: fadeIn;
   }
 
   .map-preview-card {
@@ -299,13 +416,26 @@ ion-content {
       letter-spacing: 0.5px;
       margin-bottom: 15px;
       box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+      transition: all 0.2s ease;
 
       ion-icon {
         font-size: 20px;
       }
 
+      ion-spinner {
+        width: 20px;
+        height: 20px;
+        --color: #3b82f6;
+      }
+
       &:active {
         background: #eff6ff;
+      }
+
+      &.locating {
+        background: #eff6ff;
+        opacity: 0.8;
+        pointer-events: none;
       }
     }
 
@@ -324,49 +454,219 @@ ion-footer {
   background: transparent;
   padding: 20px 25px calc(env(safe-area-inset-bottom, 20px) + 10px);
 
-  .swipe-button-container {
-    .swipe-track {
-      height: 64px;
-      background: #0d9488;
-      border-radius: 32px;
-      position: relative;
+  .swipe-btn-wrapper {
+    padding: 0 0;
+  }
+
+  .swipe-btn-container {
+    position: relative;
+    height: 56px;
+    background: #0d9488;
+    border-radius: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+
+    .swipe-text {
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      pointer-events: none;
+      
+      ion-icon { font-size: 18px; }
+    }
+
+    .swipe-thumb {
+      position: absolute;
+      left: 4px;
+      top: 4px;
+      width: 48px;
+      height: 48px;
+      background: white;
+      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 10px 25px rgba(13, 148, 136, 0.3);
-      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      touch-action: none;
+      z-index: 2;
+      cursor: pointer;
 
-      .swipe-text {
-        color: white;
-        font-size: 17px;
-        font-weight: 800;
-        letter-spacing: 0.5px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        pointer-events: none;
-      }
-
-      .swipe-handle {
-        position: absolute;
-        left: 5px;
-        width: 54px;
-        height: 54px;
-        background: white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #0d9488;
+      ion-icon {
         font-size: 24px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        cursor: pointer;
-        transition: transform 0.2s ease;
-
-        &:active {
-          transform: scale(0.95);
-        }
       }
     }
+  }
+}
+
+/* --- CUSTOM SUCCESS MODAL --- */
+.custom-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+
+  .custom-modal-card {
+    background: white;
+    border-radius: 12px;
+    padding: 30px 20px;
+    text-align: center;
+    width: 100%;
+    max-width: 340px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+
+    .success-icon-wrap {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 4px solid #dcfce7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+
+      ion-icon {
+        font-size: 50px;
+        color: #22c55e;
+      }
+    }
+
+    h2 {
+      margin: 0 0 15px;
+      font-size: 20px;
+      color: #334155;
+      font-weight: 700;
+    }
+
+    p {
+      margin: 0 0 25px;
+      font-size: 15px;
+      color: #475569;
+      line-height: 1.5;
+    }
+
+    .modal-ok-btn {
+      --background: #6366f1;
+      --border-radius: 8px;
+      height: 44px;
+      width: 100px;
+      margin: 0 auto;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+  }
+}
+/* --- SUMMARY CARD (STAGE 4) --- */
+.summary-card {
+  background: #f8fafc;
+  border-radius: 20px;
+  padding: 20px;
+  margin-top: 25px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+
+  .summary-header {
+    display: block;
+    font-size: 11px;
+    font-weight: 800;
+    color: #64748b;
+    letter-spacing: 1.5px;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed #e2e8f0;
+  }
+
+  .summary-content {
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+
+      &:last-child { margin-bottom: 0; }
+
+      .label {
+        font-size: 14px;
+        font-weight: 700;
+        color: #475569;
+      }
+
+      .value {
+        font-size: 14px;
+        font-weight: 800;
+        color: #1e293b;
+      }
+    }
+  }
+}
+
+/* --- FOOTER ACTION BUTTONS (STAGE 4) --- */
+.action-buttons-row {
+  display: flex;
+  gap: 15px;
+  width: 100%;
+
+  .back-btn {
+    --background: #f1f5f9;
+    --color: #475569;
+    --border-radius: 16px;
+    --box-shadow: none;
+    flex: 1;
+    height: 56px;
+    font-weight: 700;
+    font-size: 15px;
+    margin: 0;
+  }
+
+  .submit-action-btn {
+    --background: #0d9488;
+    --color: white;
+    --border-radius: 16px;
+    flex: 2;
+    height: 56px;
+    font-weight: 800;
+    font-size: 16px;
+    margin: 0;
+    letter-spacing: 0.5px;
+
+    ion-icon {
+      font-size: 20px;
+      margin-left: 8px;
+    }
+  }
+}
+
+/* Animations */
+.fadeInUp {
+  animation: fadeInUp 0.5s ease backwards;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Dropdown Overflow Fix */
+.custom-input-box.select-box {
+  position: relative;
+  overflow: hidden;
+  
+  select {
+    width: 100%;
+    padding-right: 35px; // Space for arrow
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
   }
 }
