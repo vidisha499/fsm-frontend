@@ -1,0 +1,73 @@
+<ion-header class="ion-no-border">
+  <div class="custom-header-container">
+    <div class="nav-row">
+      <div class="circle-btn" (click)="goBack()">
+        <ion-icon name="close-outline"></ion-icon>
+      </div>
+      
+      <div class="header-title-wrap">
+        <h1 class="main-title">Record Observation</h1>
+        <span class="sub-record-text">PLANTATION SITE VISIT</span>
+      </div>
+    </div>
+  </div>
+</ion-header>
+
+<ion-content>
+  <div class="form-container">
+    
+    <!-- Visit Details Section -->
+    <div class="section-title">
+      <ion-icon name="clipboard-outline"></ion-icon>
+      <h2>Visit Details</h2>
+    </div>
+
+    <!-- Date Input -->
+    <div class="input-group">
+      <label>Visit Date</label>
+      <div class="input-box date-box">
+        <input type="date" [(ngModel)]="formData.visitDate" />
+      </div>
+    </div>
+
+    <!-- Remark Input -->
+    <div class="input-group">
+      <label>Field Remark</label>
+      <div class="input-box textarea-box">
+        <textarea 
+          placeholder="Describe the current state of plants, soil health, and fencing condition..." 
+          [(ngModel)]="formData.remark"
+          rows="5">
+        </textarea>
+      </div>
+    </div>
+
+    <!-- Photograph Section -->
+    <div class="section-title photo-title">
+      <ion-icon name="camera-outline"></ion-icon>
+      <h2>Site Photograph</h2>
+    </div>
+
+    <div class="photo-capture-box" (click)="capturePhoto()">
+      <ng-container *ngIf="!formData.photo">
+        <div class="icon-wrap">
+          <ion-icon name="camera"></ion-icon>
+        </div>
+        <p>Tap to capture site photo</p>
+      </ng-container>
+      
+      <!-- Show captured image -->
+      <img *ngIf="formData.photo" [src]="formData.photo" class="captured-image" />
+    </div>
+
+  </div>
+</ion-content>
+
+<ion-footer class="ion-no-border">
+  <div class="footer-wrap">
+    <ion-button expand="block" class="main-action-btn" (click)="submitObservation()">
+      <ion-icon name="checkmark-circle" slot="start"></ion-icon>
+      SUBMIT OBSERVATION
+    </ion-button>
+  </div>
+</ion-footer>

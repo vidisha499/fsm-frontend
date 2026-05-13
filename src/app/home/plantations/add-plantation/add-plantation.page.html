@@ -5,7 +5,7 @@
         <ion-icon name="arrow-back-outline"></ion-icon>
       </div>
       <div class="header-titles">
-        <h1>Add New Plantation</h1>
+        <h1>{{ isEditMode ? 'Update Plantation' : 'Add New Plantation' }}</h1>
         <span class="step-indicator">STEP {{ currentStep }} OF {{ totalSteps }}</span>
       </div>
     </div>
@@ -24,6 +24,16 @@
         </div>
       </div>
     </div>
+
+    <!-- Plantation Code & Status (Visible Step 2+) -->
+    <div class="meta-header-row" *ngIf="currentStep > 1 && plantationData">
+      <div class="code-badge">Code: {{ plantationData?.plantation_code || plantationData?.code || 'N/A' }}</div>
+      <div class="status-badge" 
+           [class.approved]="plantationData?.status === 'Approved' || plantationData?.status === 'APPROVED' || plantationData?.status === 1 || plantationData?.status === '1' || plantationData?.is_approved == 1 || plantationData?.is_approved == '1'"
+           [class.rejected]="plantationData?.status === 'Rejected' || plantationData?.status === 'REJECTED' || plantationData?.is_approved == 2 || plantationData?.is_approved == '2'">
+        {{ (plantationData?.status === 1 || plantationData?.status === '1' || plantationData?.status === 'Approved' || plantationData?.status === 'APPROVED' || plantationData?.is_approved == 1 || plantationData?.is_approved == '1') ? 'APPROVED' : (plantationData?.status === 'Rejected' || plantationData?.status === 'REJECTED' || plantationData?.is_approved == 2 || plantationData?.is_approved == '2' ? 'REJECTED' : 'PENDING') }}
+      </div>
+    </div>
   </div>
 </ion-header>
 
@@ -31,102 +41,246 @@
   <div class="form-container">
     
     <!-- Section 1: Site Identification -->
-    <div class="form-section-header">
-      <div class="icon-sq"><ion-icon name="location-outline"></ion-icon></div>
-      <h2>Site Identification</h2>
-    </div>
-
-    <div class="input-group">
-      <label>Site Name</label>
-      <div class="custom-input-box">
-        <input type="text" placeholder="Enter Site Name..." [(ngModel)]="formData.siteName">
+    <div *ngIf="currentStep === 1">
+      <div class="form-section-header">
+        <div class="icon-sq"><ion-icon name="location-outline"></ion-icon></div>
+        <h2>Site Identification</h2>
       </div>
-    </div>
 
-    <div class="input-group">
-      <label>Total Area (Hectares)</label>
-      <div class="custom-input-box">
-        <input type="number" [(ngModel)]="formData.totalArea">
-      </div>
-    </div>
-
-    <div class="input-group">
-      <label>Soil Type</label>
-      <div class="custom-input-box select-box">
-        <select [(ngModel)]="formData.soilType">
-          <option value="" disabled>Select Soil Type</option>
-          <option value="alluvial">Alluvial Soil</option>
-          <option value="black">Black Soil</option>
-          <option value="red">Red Soil</option>
-          <option value="laterite">Laterite Soil</option>
-          <option value="desert">Desert Soil</option>
-          <option value="mountain">Mountain Soil</option>
-        </select>
-        <ion-icon name="chevron-down-outline" class="select-arrow"></ion-icon>
-      </div>
-    </div>
-
-    <div class="input-group">
-      <label>Species</label>
-      <div class="custom-input-box">
-        <input type="text" placeholder="Enter Tree Species (e.g. Teak, Sal)..." [(ngModel)]="formData.species">
-      </div>
-    </div>
-
-    <div class="input-group">
-      <label>Plant Count</label>
-      <div class="custom-input-box">
-        <input type="number" placeholder="Enter number of plants..." [(ngModel)]="formData.plant_count">
-      </div>
-    </div>
-
-    <!-- Map Preview - Revamped -->
-    <div class="map-preview-card">
-      <div class="card-header">
-        <label>Site Location (Geomapping)</label>
-      </div>
-      <div class="map-placeholder">
-        <div id="plantation-map" class="leaflet-map-box"></div>
-        <div class="google-logo">
-          <img src="https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png" alt="Google">
-        </div>
-        <div class="map-marker-pin-overlay" (click)="useCurrentLocation()">
-          <ion-icon name="locate"></ion-icon>
+      <div class="input-group">
+        <label>Site Name</label>
+        <div class="custom-input-box">
+          <input type="text" placeholder="Enter Site Name..." [(ngModel)]="formData.siteName">
         </div>
       </div>
 
-      <!-- Lat/Lng Display -->
-      <div class="coordinates-row">
-        <div class="coord-box">
-          <span class="coord-label">LATITUDE</span>
-          <span class="coord-value">{{ formData.latitude.toFixed(6) }}</span>
-        </div>
-        <div class="coord-box">
-          <span class="coord-label">LONGITUDE</span>
-          <span class="coord-value">{{ formData.longitude.toFixed(6) }}</span>
+      <div class="input-group">
+        <label>Total Area (Hectares)</label>
+        <div class="custom-input-box">
+          <input type="number" [(ngModel)]="formData.totalArea">
         </div>
       </div>
 
-      <!-- Current Location Button -->
-      <button class="current-loc-btn" (click)="useCurrentLocation()">
-        <ion-icon name="locate-outline"></ion-icon>
-        USE CURRENT LOCATION
-      </button>
+      <div class="input-group">
+        <label>Soil Type</label>
+        <div class="custom-input-box select-box">
+          <select [(ngModel)]="formData.soilType">
+            <option value="" disabled>Select Soil Type</option>
+            <option value="alluvial">Alluvial Soil</option>
+            <option value="black">Black Soil</option>
+            <option value="red">Red Soil</option>
+            <option value="laterite">Laterite Soil</option>
+            <option value="desert">Desert Soil</option>
+            <option value="mountain">Mountain Soil</option>
+          </select>
+          <ion-icon name="chevron-down-outline" class="select-arrow"></ion-icon>
+        </div>
+      </div>
 
-      <p class="map-subtext">Drag marker or click map to set location</p>
+      <div class="input-group">
+        <label>Species</label>
+        <div class="custom-input-box">
+          <input type="text" placeholder="Enter Tree Species (e.g. Teak, Sal)..." [(ngModel)]="formData.species">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>Plant Count</label>
+        <div class="custom-input-box">
+          <input type="number" placeholder="Enter number of plants..." [(ngModel)]="formData.plant_count">
+        </div>
+      </div>
+
+      <!-- Map Preview -->
+      <div class="map-preview-card">
+        <div class="card-header">
+          <label>Site Location (Geomapping)</label>
+        </div>
+        <div class="map-placeholder">
+          <div id="plantation-map" class="leaflet-map-box"></div>
+          <div class="google-logo">
+            <img src="https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png" alt="Google">
+          </div>
+          <div class="map-marker-pin-overlay" (click)="useCurrentLocation()">
+            <ion-icon name="locate"></ion-icon>
+          </div>
+        </div>
+
+        <div class="coordinates-row">
+          <div class="coord-box">
+            <span class="coord-label">LATITUDE</span>
+            <span class="coord-value">{{ formData.latitude.toFixed(6) }}</span>
+          </div>
+          <div class="coord-box">
+            <span class="coord-label">LONGITUDE</span>
+            <span class="coord-value">{{ formData.longitude.toFixed(6) }}</span>
+          </div>
+        </div>
+
+        <button class="current-loc-btn" [class.locating]="isLocating" (click)="useCurrentLocation()">
+          <ion-spinner name="crescent" *ngIf="isLocating"></ion-spinner>
+          <ion-icon name="locate-outline" *ngIf="!isLocating"></ion-icon>
+          {{ isLocating ? 'LOCATING...' : 'USE CURRENT LOCATION' }}
+        </button>
+        <p class="map-subtext">Drag marker or click map to set location</p>
+      </div>
+    </div>
+
+    <!-- Section 2: Planning Phase -->
+    <div *ngIf="currentStep === 2">
+      <div class="form-section-header">
+        <div class="icon-sq"><ion-icon name="calendar-outline"></ion-icon></div>
+        <h2>Planning Phase</h2>
+      </div>
+
+      <div class="input-group">
+        <label>Plant Species</label>
+        <div class="custom-input-box select-box">
+          <select [(ngModel)]="formData.species">
+            <option value="" disabled>Select Species</option>
+            <option value="Sal">Sal</option>
+            <option value="Saja">Saja</option>
+            <option value="Sagaon">Sagaon</option>
+            <option value="Beeja">Beeja</option>
+            <option value="Haldu">Haldu</option>
+            <option value="Dhawda">Dhawda</option>
+            <option value="Safed Siris">Safed Siris</option>
+            <option value="Kala Siris">Kala Siris</option>
+            <option value="Jamun">Jamun</option>
+            <option value="Aam">Aam</option>
+            <option value="Semal">Semal</option>
+            <option value="Mahua">Mahua</option>
+            <option value="Tendu">Tendu</option>
+            <option value="Nilgiri">Nilgiri</option>
+            <option value="Others">Others</option>
+          </select>
+          <ion-icon name="chevron-down-outline" class="select-arrow"></ion-icon>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>Target Count</label>
+        <div class="custom-input-box">
+          <input type="number" placeholder="Enter target count..." [(ngModel)]="formData.plant_count">
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3: Planting Details -->
+    <div *ngIf="currentStep === 3">
+      <div class="form-section-header">
+        <div class="icon-sq"><ion-icon name="leaf-outline"></ion-icon></div>
+        <h2>Planting Details</h2>
+      </div>
+
+      <div class="input-group">
+        <label>Planting Start Date</label>
+        <div class="custom-input-box date-box">
+          <input type="date" [(ngModel)]="formData.startDate" [max]="today">
+          <ion-icon name="calendar-clear-outline" class="input-icon"></ion-icon>
+        </div>
+      </div>
+
+      <div class="checkbox-group">
+        <div class="checkbox-row">
+          <div class="checkbox-text">
+            <h3>Planting Finished?</h3>
+            <p>Check this if reforestation is completed.</p>
+          </div>
+          <ion-checkbox [(ngModel)]="formData.isFinished"></ion-checkbox>
+        </div>
+      </div>
+
+      <div class="input-group animated fadeIn" *ngIf="formData.isFinished">
+        <label>Planting End Date</label>
+        <div class="custom-input-box date-box">
+          <input type="date" [(ngModel)]="formData.endDate" [max]="today">
+          <ion-icon name="calendar-clear-outline" class="input-icon"></ion-icon>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 4: Fencing Status -->
+    <div *ngIf="currentStep === 4">
+      <div class="form-section-header">
+        <div class="icon-sq"><ion-icon name="shield-checkmark-outline"></ion-icon></div>
+        <h2>Fencing Status</h2>
+      </div>
+
+      <div class="checkbox-group">
+        <div class="checkbox-row">
+          <div class="checkbox-text">
+            <h3>Fencing Done?</h3>
+            <p>Is the site secured with fencing?</p>
+          </div>
+          <ion-checkbox [(ngModel)]="formData.isFencingDone"></ion-checkbox>
+        </div>
+      </div>
+
+      <!-- FINAL SUMMARY CARD -->
+      <div class="summary-card animated fadeInUp">
+        <div class="summary-header">
+          <span>FINAL SUMMARY</span>
+        </div>
+        <div class="summary-content">
+          <div class="summary-row">
+            <span class="label">Site:</span>
+            <span class="value">{{ formData.siteName || 'N/A' }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="label">Species:</span>
+            <span class="value">{{ formData.species || 'N/A' }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="label">Count:</span>
+            <span class="value">{{ formData.plant_count || 0 }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="label">Phase:</span>
+            <span class="value">{{ formData.isFencingDone ? 'Fencing Completed' : 'Fencing Pending' }}</span>
+          </div>
+        </div>
+      </div>
     </div>
 
   </div>
 </ion-content>
 
-<!-- Swipe Continue Button -->
 <ion-footer class="ion-no-border">
-  <div class="swipe-button-container">
-    <div class="swipe-track">
-      <div class="swipe-text">Continue <ion-icon name="chevron-forward-outline"></ion-icon></div>
-      <div class="swipe-handle" (click)="nextStep()">
-        <ion-icon name="chevron-forward"></ion-icon>
+  <div class="footer-wrap">
+    
+    <!-- Custom Swipe/Continue Button for Steps 1-3 -->
+    <div class="swipe-btn-wrapper" *ngIf="currentStep < 4">
+      <div class="swipe-btn-container" #swipeContainer>
+        <div class="swipe-text">Continue <ion-icon name="chevron-forward"></ion-icon></div>
+        <div class="swipe-thumb" #swipeThumb
+             (touchstart)="onSwipeStart($event)" 
+             (touchmove)="onSwipeMove($event)" 
+             (touchend)="onSwipeEnd($event)">
+          <ion-icon name="chevron-forward"></ion-icon>
+        </div>
       </div>
+    </div>
+
+    <!-- Final Submit Button - Step 4 -->
+    <div class="action-buttons-row" *ngIf="currentStep === 4">
+      <ion-button class="back-btn" (click)="goBack()">
+        <ion-icon name="chevron-back-outline"></ion-icon> Back
+      </ion-button>
+      <ion-button class="submit-action-btn" (click)="submitForm()">
+        Submit <ion-icon name="checkmark-circle-outline" slot="end"></ion-icon>
+      </ion-button>
     </div>
   </div>
 </ion-footer>
+
+<div class="custom-modal-overlay" *ngIf="showSuccessModal">
+  <div class="custom-modal-card">
+    <div class="success-icon-wrap">
+      <ion-icon name="checkmark-outline"></ion-icon>
+    </div>
+    <h2>In Review</h2>
+    <p>Your submission has been saved and is now pending approval from admin.</p>
+    <ion-button class="modal-ok-btn" (click)="closeSuccessModal()">OK</ion-button>
+  </div>
+</div>

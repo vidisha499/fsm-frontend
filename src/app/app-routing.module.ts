@@ -200,6 +200,10 @@ loadChildren:() => import('./home/reports/reports.module').then( m => m.ReportsP
   {
     path: 'plantation-detail/:id',
     loadChildren: () => import('./home/plantations/plantation-detail/plantation-detail.module').then(m => m.PlantationDetailPageModule)
+  },
+  {
+    path: 'add-observation/:id',
+    loadChildren: () => import('./home/plantations/add-observation/add-observation.module').then(m => m.AddObservationPageModule)
   }
 ];
 

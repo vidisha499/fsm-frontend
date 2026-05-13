@@ -44,19 +44,32 @@
   <!-- Plantation List -->
   <div class="plantation-list-container" *ngIf="filteredPlantations.length > 0">
     <div class="plantation-card" *ngFor="let p of filteredPlantations" (click)="viewPlantation(p.id)">
-      <div class="card-inner">
-        <div class="card-left">
-          <div class="site-icon">
-            <i class="fas fa-tree"></i>
+      <div class="card-content-row">
+        <!-- Icon Square -->
+        <div class="status-icon-box" [class.completed]="p.isFinished || p.status === 'Completed'">
+          <ion-icon name="leaf-outline"></ion-icon>
+        </div>
+
+        <!-- Meta Info -->
+        <div class="meta-info">
+          <div class="title-row">
+            <h4>{{ p.siteName || p.name || 'Unnamed Site' }}</h4>
+            <div class="code-badge" *ngIf="p.plantation_code || p.code">{{ p.plantation_code || p.code }}</div>
           </div>
-          <div class="site-meta">
-            <h4>{{ p.siteName || 'Unnamed Site' }}</h4>
-            <div class="soil-tag">{{ p.soilType || 'N/A' }}</div>
+          
+          <div class="stats-row">
+            <span class="area-text">{{ p.totalArea || p.area || 0 }} Hectares</span>
+            <div class="dot-separator"></div>
+            <span class="phase-text" [class.completed-text]="p.isFinished">{{ p.isFinished ? 'COMPLETED' : 'IDENTIFICATION' }}</span>
+            <div class="status-indicator-badge pending" *ngIf="p.status !== 'Approved' && p.status !== 'APPROVED' && p.status !== 'APPROVE' && p.status !== 1 && p.status !== '1' && p.status !== 'Rejected' && p.status !== 'REJECTED' && p.status !== 'REJECT' && !p.is_approved && p.is_approved !== 1 && p.is_approved !== '1'">Pending</div>
+            <div class="status-indicator-badge approved" *ngIf="p.status === 'Approved' || p.status === 'APPROVED' || p.status === 'APPROVE' || p.status === 1 || p.status === '1' || p.is_approved == 1 || p.is_approved == '1'">Approved</div>
+            <div class="status-indicator-badge rejected" *ngIf="p.status === 'Rejected' || p.status === 'REJECTED' || p.status === 'REJECT' || p.status === 2 || p.status === '2' || p.is_approved == 2 || p.is_approved == '2'">Rejected</div>
           </div>
         </div>
-        <div class="card-right">
-          <div class="area-val">{{ p.totalArea || 0 }}</div>
-          <div class="area-unit">HECTARES</div>
+
+        <!-- Chevron -->
+        <div class="chevron-box">
+          <ion-icon name="chevron-forward-outline"></ion-icon>
         </div>
       </div>
     </div>
