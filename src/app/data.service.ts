@@ -85,10 +85,14 @@ export class DataService {
   
   // NEW AUTH ENDPOINTS
   resetPasswordAuto(payload: any) { return this.http.post(`${this.baseApiUrl}/resetPassword`, payload); }
-  addRegistration(payload: any) { return this.http.post(`${this.baseApiUrl}/addRegistration`, payload); }
+  addRegistration(payload: any) { 
+    const headers = { 'Bypass-Token': 'true' };
+    return this.http.post(`${this.baseApiUrl}/addRegistration`, payload, { headers }); 
+  }
   addUser(payload: any) { 
     // Sending as JSON to match Sir's modern V2/Postman style
-    return this.http.post(`${this.baseApiUrl}/addUser`, payload); 
+    const headers = { 'Bypass-Token': 'true' };
+    return this.http.post(`${this.baseApiUrl}/addUser`, payload, { headers }); 
   }
   zilllogin(payload: any) { return this.http.post(`${this.baseApiUrl}/zilllogin`, payload); }
   addAdmin(payload: any) { return this.http.post(`${this.baseApiUrl}/addAdmin`, payload); }
@@ -1344,33 +1348,6 @@ export class DataService {
   }
 
   // --- 21. DYNAMIC ORG STRUCTURE ---
-  // --- 11. V2 DYNAMIC HIERARCHY & ROLES (NEW) ---
-  listV2Layers() {
-    const token = localStorage.getItem('api_token') || '';
-    return this.http.post(`${this.baseApiUrl}/v2/hierarchy-layers`, { api_token: token });
-  }
-
-  listV2Entities(layerId: any, parentId: any = null) {
-    const token = localStorage.getItem('api_token') || '';
-    return this.http.post(`${this.baseApiUrl}/v2/hierarchy-entities`, { 
-      api_token: token, 
-      layer_id: layerId, 
-      parent_id: parentId 
-    });
-  }
-
-  listV2Roles() {
-    const token = localStorage.getItem('api_token') || '';
-    return this.http.post(`${this.baseApiUrl}/v2/dynamic-roles`, { api_token: token });
-  }
-
-  saveV2Assignment(payload: any) {
-    const token = localStorage.getItem('api_token') || '';
-    return this.http.post(`${this.baseApiUrl}/v2/save-assignment`, { 
-      api_token: token, 
-      ...payload 
-    });
-  }
 
   listOrgLayers(companyId?: any, authToken?: string) {
     const token = authToken || localStorage.getItem('api_token') || '';
@@ -1470,6 +1447,204 @@ export class DataService {
     const token = localStorage.getItem('api_token') || '';
     return this.http.post(`${this.baseApiUrl}/assignments/unassign`, { api_token: token, ...payload });
   }
+
+  // --- SECTION 24: FSM V2 DYNAMIC HIERARCHY APIs (COMPLETE SUITE) ---
+
+  // 24.1 Hierarchy & Roles (V2)
+  listV2Roles(companyId?: any) {
+    const token = localStorage.getItem('api_token') || '';
+    const payload: any = { api_token: token };
+    if (companyId) payload.company_id = String(companyId);
+    return this.http.post(`${this.baseApiUrl}/v2/dynamic-roles`, payload);
+  }
+
+  storeV2Role(payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/role/store`, { api_token: token, ...payload });
+  }
+
+  updateV2Role(payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/role/update`, { api_token: token, ...payload });
+  }
+
+  deleteV2Role(roleId: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/role/delete`, { api_token: token, id: roleId });
+  }
+
+  listV2Layers() {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/hierarchy-layers`, { api_token: token });
+  }
+
+  storeV2Layer(payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/layer/store`, { api_token: token, ...payload });
+  }
+
+  updateV2Layer(payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/layer/update`, { api_token: token, ...payload });
+  }
+
+  deleteV2Layer(layerId: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/layer/delete`, { api_token: token, id: layerId });
+  }
+
+  listV2Entities(layerId: any, parentId: any = null, bypassToken: boolean = false, companyId?: any) {
+    const token = localStorage.getItem('api_token') || '';
+    const headers: any = {};
+    if (bypassToken) headers['Bypass-Token'] = 'true';
+    
+    const payload: any = { 
+      api_token: token, 
+      layer_id: layerId, 
+      parent_id: parentId 
+    };
+    if (companyId) payload.company_id = String(companyId);
+
+    return this.http.post(`${this.baseApiUrl}/v2/hierarchy-entities`, payload, { headers });
+  }
+
+  storeV2Entity(payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/entity/store`, { api_token: token, ...payload });
+  }
+
+  updateV2Entity(payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/entity/update`, { api_token: token, ...payload });
+  }
+
+  deleteV2Entity(entityId: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/entity/delete`, { api_token: token, id: entityId });
+  }
+
+  getV2Tree() {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/hierarchy-tree`, { api_token: token });
+  }
+
+  saveV2Assignment(payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/save-assignment`, { api_token: token, ...payload });
+  }
+
+  // 24.2 User Management (V2)
+  registerV2UserRequest(payload: any) {
+    const headers = { 'Bypass-Token': 'true' };
+    return this.http.post(`${this.baseApiUrl}/v2/user/register`, payload, { headers });
+  }
+
+  storeV2User(payload: any) {
+    const token = payload.api_token || localStorage.getItem('api_token') || '';
+    const headers = { 'Bypass-Token': 'true' };
+    return this.http.post(`${this.baseApiUrl}/v2/user/store`, { ...payload, api_token: token }, { headers });
+  }
+
+  addV2UserHybrid(payload: any) {
+    // Priority: 1. Token from payload (for signup), 2. Token from localStorage (for admin add user)
+    const token = payload.api_token || localStorage.getItem('api_token') || '';
+    const formData = new FormData();
+    
+    // Set api_token first
+    formData.append('api_token', token);
+    
+    for (const key in payload) {
+      if (key === 'api_token') continue; // Already added
+      const val = payload[key];
+      if (Array.isArray(val)) {
+        formData.append(key, JSON.stringify(val));
+      } else if (val !== null && val !== undefined) {
+        formData.append(key, val);
+      }
+    }
+    return this.http.post(`${this.baseApiUrl}/v2/user/addUser`, formData);
+  }
+
+  getV2UserDetails(userId: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/user/getUserDetails`, { api_token: token, user_id: userId });
+  }
+
+  getV2Profile() {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/user/profile`, { api_token: token });
+  }
+
+  listV2Subordinates() {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/user/subordinates`, { api_token: token });
+  }
+
+  // 24.3 Attendance (V2)
+  markV2Attendance(payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/attendance/mark`, { api_token: token, ...payload });
+  }
+
+  exitV2Attendance() {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/attendance/exit`, { api_token: token });
+  }
+
+  listV2AttendanceRecords(date: string) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/attendance/list`, { api_token: token, date });
+  }
+
+  // 24.4 Patrol (V2)
+  startV2Patrol(payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/patrol/start`, { api_token: token, ...payload });
+  }
+
+  endV2Patrol(sessionId: string, payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/patrol/end/${sessionId}`, { api_token: token, ...payload });
+  }
+
+  listV2PatrolSessions(dateFrom: string, dateTo: string) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/patrol/list`, { api_token: token, date_from: dateFrom, date_to: dateTo });
+  }
+
+  // 24.5 Modules (V2)
+  storeV2ForestReport(payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/forest-reports/store`, { api_token: token, ...payload });
+  }
+
+  listV2ForestReports() {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/forest-reports/list`, { api_token: token });
+  }
+
+  storeV2Plantation(payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/plantations/store`, { api_token: token, ...payload });
+  }
+
+  listV2Plantations() {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/plantations/list`, { api_token: token });
+  }
+
+  storeV2Asset(payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/assets/store`, { api_token: token, ...payload });
+  }
+
+  listV2Assets() {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/assets/list`, { api_token: token });
+  }
+
+  // Compatibility Helper (for older components)
+  listV2Attendance(date: string) { return this.listV2AttendanceRecords(date); }
 
   getNodeAssignments(entityId: any) {
     const token = localStorage.getItem('api_token') || '';

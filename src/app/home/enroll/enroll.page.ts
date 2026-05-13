@@ -97,6 +97,7 @@ export class EnrollPage implements OnInit {
     this.http.post(verifyUrl, payload).subscribe({
       next: async (res: any) => {
         await loader.dismiss();
+        console.log('📥 [VERIFY RESPONSE]:', res);
         
         // Sir's API always returns HTTP 200, so we MUST check the inner 'status' string
         if (res.status === 'SUCCESS' || res.status === 'success') {
@@ -107,17 +108,26 @@ export class EnrollPage implements OnInit {
           console.log('🔑 AVAILABLE KEYS:', Object.keys(u));
           
           this.verifiedData = {
+            ...u, // Capture EVERYTHING from Sir's new response
             name: u.firstName ? `${u.firstName} ${u.lastName || ''}`.trim() : (u.name || u.full_name || u.user_name || 'User'),
             mobile: u.contact || u.mobile || u.phone || u.phoneNo || this.ranger.phone,
-            gen_id: u.gen_id || u.genId || null, // Capture gen_id if it exists
+            gen_id: u.gen_id || u.genId || null,
             role_id: u.role_id || u.roleId || 4,
             company_id: u.company_id || u.companyId,
             site_id: u.site_id || u.entity_id || u.beat_id || null, 
             entity_id: u.entity_id || u.site_id || null,
-            client_id: u.client_id || u.range_id || u.division_id || null, // Capture Range ID!
+            client_id: u.client_id || u.range_id || u.division_id || null,
             range: u.range || u.division || u.address || u.department || u.client_name || u.block || null,
-            beat: u.site_name || u.beat || u.beat_name || u.designation || null
+            beat: u.site_name || u.beat || u.beat_name || u.designation || null,
+            // New V2 parameters from Sir
+            dynamic_entity: u.dynamic_entity || null,
+            dynamic_role: u.dynamic_role || null,
+            v2_layers: data.layers || res.layers || null // Checking if Sir sent layers too
           };
+          console.log("✅ [VERIFY] Captured V2 Data:", {
+            entity: this.verifiedData.dynamic_entity,
+            role: this.verifiedData.dynamic_role
+          });
           console.log("DEBUG: Final Extracted Data:", this.verifiedData);
 
           
@@ -157,12 +167,26 @@ export class EnrollPage implements OnInit {
       },
       error: async (err) => {
         await loader.dismiss();
-        console.error('Verification Error:', err);
+        console.error('❌ [BACKEND ERROR] Verification Failed:', err);
+        
+        // Detailed log for Sir
+        if (err.error && typeof err.error === 'object') {
+          console.log('--- SERVER ERROR DETAILS (FOR BACKEND TEAM) ---');
+          console.log('Message:', err.error.message);
+          console.log('Exception:', err.error.exception);
+          console.log('File:', err.error.file);
+          console.log('Line:', err.error.line);
+          console.log('-----------------------------------------------');
+        }
+
         // Fallback for real HTTP errors
         if (err.status === 404) {
           await this.showCustomAlert('Access Denied', 'Your number was not found in the approved list.');
         } else if (err.status === 409) {
           await this.showCustomAlert('Already Registered', 'This account already exists. Please login.');
+        } else if (err.status === 500) {
+          const backendMsg = err.error?.message || 'Internal Server Error';
+          await this.showCustomAlert('Backend Crash (500)', 'Sir, backend par error aa raha hai: ' + backendMsg);
         } else {
           this.presentToast('Server connection failed.', 'danger');
         }

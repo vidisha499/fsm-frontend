@@ -154,3 +154,87 @@
 
 .bottom-spacer { height: 40px; }
 
+
+// --- ROLE PERMISSIONS PREVIEW ---
+.perm-preview-section {
+  background: #f0fdf9;
+  border: 1.5px solid #99f6e4;
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.perm-preview-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  i { color: #0d9488; font-size: 13px; }
+  span { font-size: 11px; font-weight: 800; color: #0d9488; flex: 1; letter-spacing: 0.05em; }
+}
+
+.toggle-perms-btn {
+  background: #0d9488;
+  color: white;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.perm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.perm-chip {
+  background: #ccfbf1;
+  color: #0f766e;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid #99f6e4;
+}
+
+.perm-edit-grid {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.perm-edit-mod {
+  background: white;
+  border-radius: 10px;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.perm-mod-name {
+  font-size: 10px;
+  font-weight: 800;
+  color: #0d9488;
+  margin-bottom: 8px;
+}
+
+.perm-mod-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.perm-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  input[type="checkbox"] { accent-color: #0d9488; width: 14px; height: 14px; }
+}
+
+.perm-no-perms { font-size: 12px; color: #64748b; font-weight: 600; padding: 4px 0; i { margin-right: 6px; color: #0d9488; } }

@@ -34,6 +34,11 @@ export class OrgManagementPage implements OnInit {
   assignments: any[] = [];
   allAssignments: any[] = [];
 
+  // Add Role Modal State
+  isAddRoleModalOpen: boolean = false;
+  newRoleData: any = { name: '', rank: 1 };
+  newRolePerms: any = {}; // { module: { action: boolean } }
+
   constructor(
     private navCtrl: NavController,
     private dataService: DataService,
@@ -160,31 +165,35 @@ export class OrgManagementPage implements OnInit {
 
   // --- ORG STRUCTURE LOGIC ---
   async loadOrgLayers() {
-    this.dataService.listOrgLayers().subscribe({
+    this.dataService.listV2Layers().subscribe({
       next: (res: any) => {
         const layers = res?.data || res || [];
         this.orgLayers = layers.map((l: any) => {
-          if (String(l.id) === '9') return { ...l, name: 'Section' };
-          if (String(l.id) === '10') return { ...l, name: 'Beat' };
-          return l;
-        }).sort((a: any, b: any) => Number(a.id) - Number(b.id));
+          let lName = l.name;
+          if (String(l.id) === '9') lName = 'Section';
+          if (String(l.id) === '10') lName = 'Beat';
+          return { ...l, name: lName };
+        }).sort((a: any, b: any) => Number(a.rank || a.id) - Number(b.rank || b.id));
       },
-      error: (err) => console.error('Layers load failed', err)
+      error: (err) => console.error('V2 Layers load failed', err)
     });
   }
 
   async loadOrgEntities() {
+    if (!this.selectedLayer) return;
+    
     this.isLoadingEntities = true;
-    this.dataService.listOrgEntities('').subscribe({ 
+    const layerId = this.selectedLayer === 'all' ? null : this.selectedLayer;
+    
+    this.dataService.listV2Entities(layerId).subscribe({ 
       next: (res: any) => {
-        console.log('📥 [Org Entities] Raw Response:', res);
+        console.log(`📥 [Org V2 Entities] Layer ${layerId || 'All'} Response:`, res);
         this.orgEntities = res?.data || res || [];
-        console.log('✅ [Org Entities] Total Count:', this.orgEntities.length);
-        this.filterEntities(this.selectedLayer || 'all');
+        this.filterEntities(this.selectedLayer);
         this.isLoadingEntities = false;
       },
       error: (err) => {
-        console.error('Org entities load failed', err);
+        console.error('V2 Org entities load failed', err);
         this.isLoadingEntities = false;
       }
     });
@@ -211,10 +220,59 @@ export class OrgManagementPage implements OnInit {
     console.log("✅ Filtered Count:", this.filteredEntities.length);
   }
 
+  async editOrgLayer(layer: any) {
+    const alert = await this.alertCtrl.create({
+      mode: 'md',
+      header: 'Update V2 Layer',
+      inputs: [
+        { name: 'name', type: 'text', value: layer.name, placeholder: 'Layer Name' },
+        { name: 'rank', type: 'number', value: layer.rank, placeholder: 'Rank' }
+      ],
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Update',
+          handler: (data) => {
+            this.dataService.updateV2Layer({ id: layer.id, ...data }).subscribe({
+              next: () => {
+                this.showToast('V2 Layer updated', 'success');
+                this.loadOrgLayers();
+              }
+            });
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  async deleteOrgLayer(id: any) {
+    const confirm = await this.alertCtrl.create({
+      header: 'Delete Layer?',
+      message: 'This will remove this hierarchy level. Proceed?',
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Delete',
+          handler: () => {
+            this.dataService.deleteV2Layer(id).subscribe({
+              next: () => {
+                this.showToast('V2 Layer deleted', 'success');
+                this.loadOrgLayers();
+                this.selectedLayer = 'all';
+              }
+            });
+          }
+        }
+      ]
+    });
+    await confirm.present();
+  }
+
   async openAddOrgLayer() {
     const alert = await this.alertCtrl.create({
       mode: 'md',
-      header: 'New Org Layer',
+      header: 'New V2 Layer',
       inputs: [
         { name: 'name', type: 'text', placeholder: 'Layer Name' },
         { name: 'rank', type: 'number', placeholder: 'Rank' }
@@ -224,9 +282,9 @@ export class OrgManagementPage implements OnInit {
         {
           text: 'Create',
           handler: (data) => {
-            this.dataService.createOrgLayer(data).subscribe({
+            this.dataService.storeV2Layer({ ...data, is_active: 1 }).subscribe({
               next: () => {
-                this.showToast('Layer created', 'success');
+                this.showToast('V2 Layer created', 'success');
                 this.loadOrgLayers();
               }
             });
@@ -240,13 +298,12 @@ export class OrgManagementPage implements OnInit {
   async openAddOrgEntity() {
     const alert = await this.alertCtrl.create({
       mode: 'md',
-      header: 'New Org Entity',
-      message: 'Select a layer and enter entity details. Available Layers: ' + 
-               this.orgLayers.map(l => `${l.name} (ID: ${l.id})`).join(', '),
+      header: 'New V2 Entity',
+      message: 'Select a layer and enter entity details.',
       inputs: [
-        { name: 'name', type: 'text', placeholder: 'Entity Name (e.g. Nagpur Circle)' },
+        { name: 'name', type: 'text', placeholder: 'Entity Name' },
         { name: 'code', type: 'text', placeholder: 'Code (e.g. NAG-01)' },
-        { name: 'layer_id', type: 'number', placeholder: 'Layer ID (See above list)' },
+        { name: 'layer_id', type: 'number', placeholder: 'Layer ID' },
         { name: 'parent_id', type: 'number', placeholder: 'Parent Entity ID (Optional)' }
       ],
       buttons: [
@@ -258,9 +315,9 @@ export class OrgManagementPage implements OnInit {
               this.showToast('Name and Layer ID are required', 'warning');
               return;
             }
-            this.dataService.createOrgEntity(data).subscribe({
+            this.dataService.storeV2Entity(data).subscribe({
               next: () => {
-                this.showToast('Entity created', 'success');
+                this.showToast('V2 Entity created', 'success');
                 this.loadOrgEntities();
               }
             });
@@ -272,15 +329,14 @@ export class OrgManagementPage implements OnInit {
   }
 
   async deleteOrgEntity(id: any) {
-    this.dataService.deleteOrgEntity(id).subscribe({
+    this.dataService.deleteV2Entity(id).subscribe({
       next: () => {
-        this.showToast('Entity deleted', 'success');
+        this.showToast('V2 Entity deleted', 'success');
         this.loadOrgEntities();
       },
       error: (err) => {
-        console.error('Delete failed:', err);
-        const msg = err.error?.error || err.error?.message || 'Delete failed';
-        this.showToast('⚠️ ' + msg, 'danger');
+        console.error('V2 Delete failed:', err);
+        this.showToast('⚠️ Delete failed', 'danger');
       }
     });
   }
@@ -288,21 +344,19 @@ export class OrgManagementPage implements OnInit {
   async editOrgEntity(entity: any) {
      const alert = await this.alertCtrl.create({
       mode: 'md',
-      header: 'Update Entity',
+      header: 'Update V2 Entity',
        inputs: [
         { name: 'name', type: 'text', value: entity.name, placeholder: 'Entity Name' },
-        { name: 'code', type: 'text', value: entity.code, placeholder: 'Code (E001)' },
-        { name: 'layer_id', type: 'number', value: entity.layer_id, placeholder: 'Layer ID' },
-        { name: 'parent_id', type: 'number', value: entity.parent_id, placeholder: 'Parent ID' }
+        { name: 'code', type: 'text', value: entity.code, placeholder: 'Code' },
       ],
       buttons: [
         { text: 'Cancel', role: 'cancel' },
         {
           text: 'Update',
           handler: (data) => {
-            this.dataService.updateOrgEntity(entity.id, data).subscribe({
+            this.dataService.updateV2Entity({ id: entity.id, ...data }).subscribe({
               next: () => {
-                this.showToast('Entity updated', 'success');
+                this.showToast('V2 Entity updated', 'success');
                 this.loadOrgEntities();
               }
             });
@@ -316,45 +370,130 @@ export class OrgManagementPage implements OnInit {
   // --- ROLES LOGIC ---
   async loadCustomRoles() {
     this.dataService.getRoleIdList().subscribe({
-      next: (res: any) => {
-        this.customRoles = res?.data || res || [];
-        // Map role_name to name so UI can display it
-        this.customRoles.forEach((r: any) => {
-          if (r.role_name && !r.name) r.name = r.role_name;
+      next: (oldRes: any) => {
+        const oldRoles = oldRes?.data || oldRes || [];
+        
+        this.dataService.listV2Roles().subscribe({
+          next: (v2Res: any) => {
+            const v2Roles = v2Res?.data || v2Res || [];
+            
+            // Merge both lists, ensuring uniqueness by Name
+            const combined = [...oldRoles, ...v2Roles];
+            const uniqueMap = new Map();
+            
+            combined.forEach((r: any) => {
+              const rId = String(r.id || r.role_id || '');
+              const rName = r.name || r.role_name || r.title || `Role ${rId}`;
+              const rRank = r.rank || r.sequence || 0;
+              
+              if (!uniqueMap.has(rName)) {
+                uniqueMap.set(rName, { 
+                  ...r, 
+                  id: rId, 
+                  role_id: rId, // Normalize for UI consistency
+                  name: rName, 
+                  rank: rRank,
+                  sequence: rRank // Normalize for UI consistency
+                });
+              }
+            });
+
+            this.customRoles = Array.from(uniqueMap.values());
+            console.log("✅ [Roles Normalized & Merged]:", this.customRoles);
+          },
+          error: (err) => {
+            console.warn('V2 Roles load failed', err);
+            this.customRoles = oldRoles.map((r: any) => ({
+              ...r,
+              name: r.name || r.role_name || r.title || `Role ${r.id}`,
+              role_id: r.role_id || r.id,
+              sequence: r.sequence || r.rank
+            }));
+          }
         });
-        console.log("Fetched and Mapped Roles:", this.customRoles);
       },
-      error: (err) => {
-        console.error('Roles load failed', err);
-        this.showToast('Failed to load roles', 'danger');
-      }
+      error: (err) => console.error('Roles load failed', err)
     });
   }
 
 
 
-  async openAddRole() {
+  openAddRole() {
+    // Initialize permissions structure for the new role
+    this.newRolePerms = {};
+    this.allPermissions.forEach(mod => {
+      this.newRolePerms[mod.name] = {};
+      mod.actions.forEach((act: any) => {
+        this.newRolePerms[mod.name][act.action] = false;
+      });
+    });
+    
+    this.newRoleData = { id: null, name: '', rank: 3 };
+    this.isAddRoleModalOpen = true;
+  }
+
+  async saveNewRoleWithPerms() {
+    if (!this.newRoleData.name) {
+      this.showToast('Role name is required', 'warning');
+      return;
+    }
+
+    const loader = await this.loadingCtrl.create({ message: 'Creating Role...' });
+    await loader.present();
+
+    // Flatten permissions: { "patrol": { "view": true, "delete": false } } -> ["patrol.view"]
+    const flattenedPerms: string[] = [];
+    Object.keys(this.newRolePerms).forEach(modName => {
+      Object.keys(this.newRolePerms[modName]).forEach(actName => {
+        if (this.newRolePerms[modName][actName]) {
+          flattenedPerms.push(`${modName}.${actName}`);
+        }
+      });
+    });
+
+    const payload: any = {
+      name: this.newRoleData.name,
+      rank: this.newRoleData.rank,
+      is_active: 1,
+      permissions: flattenedPerms
+    };
+
+    // Include ID if manually provided
+    if (this.newRoleData.id) {
+      payload.id = this.newRoleData.id;
+    }
+
+    this.dataService.storeV2Role(payload).subscribe({
+      next: () => {
+        loader.dismiss();
+        this.showToast('V2 Role created with permissions!', 'success');
+        this.isAddRoleModalOpen = false;
+        this.loadCustomRoles();
+      },
+      error: (err) => {
+        loader.dismiss();
+        console.error('Role creation failed', err);
+        this.showToast('Failed to create role', 'danger');
+      }
+    });
+  }
+
+  async editRole(role: any) {
     const alert = await this.alertCtrl.create({
       mode: 'md',
-      header: 'Create Custom Role',
+      header: 'Update V2 Role',
       inputs: [
-        { name: 'id', type: 'number', placeholder: 'Role ID (e.g. 10)' },
-        { name: 'name', type: 'text', placeholder: 'Role Name (e.g. Officer)' },
-        { name: 'rank', type: 'number', placeholder: 'Rank' }
+        { name: 'name', type: 'text', value: role.name, placeholder: 'Role Name' },
+        { name: 'rank', type: 'number', value: role.rank, placeholder: 'Rank' }
       ],
       buttons: [
         { text: 'Cancel', role: 'cancel' },
         {
-          text: 'Create',
+          text: 'Update',
           handler: (data) => {
-            const payload = {
-              ...data,
-              is_active: true,
-              permissions: [] // Start with empty perms, assign in Perms tab
-            };
-            this.dataService.createCustomRole(payload).subscribe({
+            this.dataService.updateV2Role({ id: role.id, ...data }).subscribe({
               next: () => {
-                this.showToast('Role created', 'success');
+                this.showToast('V2 Role updated', 'success');
                 this.loadCustomRoles();
               }
             });
@@ -365,42 +504,10 @@ export class OrgManagementPage implements OnInit {
     await alert.present();
   }
 
-  async editRole(role: any) {
-    const alert = await this.alertCtrl.create({
-      mode: 'md',
-      header: 'Update Role',
-      inputs: [
-        { name: 'name', type: 'text', value: role.name, placeholder: 'Role Name' },
-        { name: 'rank', type: 'number', value: role.rank, placeholder: 'Rank' }
-      ],
-      buttons: [
-        { text: 'Cancel', role: 'cancel' },
-        {
-          text: 'Update',
-          handler: (data) => {
-            const payload = {
-              ...data,
-              is_active: role.is_active,
-              permissions: role.permissions || []
-            };
-            this.dataService.updateCustomRole(role.id, payload).subscribe({
-              next: () => {
-                this.showToast('Role updated', 'success');
-                this.loadCustomRoles();
-              },
-              error: (err) => this.showToast('Failed to update role', 'danger')
-            });
-          }
-        }
-      ]
-    });
-    await alert.present();
-  }
-
   async deleteRole(id: any) {
-    this.dataService.deleteCustomRole(id).subscribe({
+    this.dataService.deleteV2Role(id).subscribe({
       next: () => {
-        this.showToast('Role deleted', 'success');
+        this.showToast('V2 Role deleted', 'success');
         this.loadCustomRoles();
       }
     });
@@ -442,48 +549,64 @@ export class OrgManagementPage implements OnInit {
     this.isPermissionsLoading = true;
     this.userPermissions = {};
 
-    // Initialize all master perms to false for this role
+    // 1. Initialize all master perms to false
     this.allPermissions.forEach(mod => {
       this.userPermissions[mod.name] = {};
       if (mod.actions) {
         mod.actions.forEach((act: any) => {
-          // Now act is the object we mapped above: { action: 'view', original: 'view' }
-          const actionName = act.action;
-          if (actionName) this.userPermissions[mod.name][actionName] = false;
+          this.userPermissions[mod.name][act.action] = false;
         });
       }
     });
 
+    // 2. Pre-populate from role object if available (V2 style)
+    const existing = this.selectedRoleForPerms.permissions || [];
+    if (Array.isArray(existing) && existing.length > 0) {
+      console.log("📍 [PERMS] Using existing perms from role object:", existing);
+      existing.forEach((d: any) => {
+        let modName = d.module;
+        let actionName = d.action || d.name || d.label || d;
+
+        if (typeof d === 'string' && d.includes('.')) {
+          const parts = d.split('.');
+          modName = parts[0];
+          actionName = parts[1];
+        }
+
+        if (this.userPermissions[modName] && actionName) {
+          this.userPermissions[modName][actionName] = true;
+        }
+      });
+    }
+
+    // 3. Fallback to API for deep sync
     this.dataService.getRolePermissions(this.selectedRoleForPerms.id).subscribe({
       next: (res: any) => {
-        console.log(`🔑 [PERMS] Defaults for Role ${this.selectedRoleForPerms.id}:`, res);
+        console.log(`🔑 [PERMS] API Sync for Role ${this.selectedRoleForPerms.id}:`, res);
         this.isPermissionsLoading = false;
         const defaults = res?.data || res || [];
         
-        if (Array.isArray(defaults)) {
-          // Format 1: Array of action objects
+        if (Array.isArray(defaults) && defaults.length > 0) {
           defaults.forEach((d: any) => {
-            const actionName = d.action || d.name || d.label;
-            if (this.userPermissions[d.module] && actionName) {
-              this.userPermissions[d.module][actionName] = true;
+            let modName = d.module;
+            let actionName = d.action || d.name || d.label;
+
+            if (typeof d === 'string' && d.includes('.')) {
+              const parts = d.split('.');
+              modName = parts[0];
+              actionName = parts[1];
+            }
+
+            if (this.userPermissions[modName] && actionName) {
+              this.userPermissions[modName][actionName] = true;
             }
           });
-        } else if (typeof defaults === 'object') {
-          // Format 2: Object mapping { module: { action: true } }
-          // Just merge it into userPermissions
-          for (let mod in defaults) {
-            if (this.userPermissions[mod]) {
-              for (let act in defaults[mod]) {
-                this.userPermissions[mod][act] = !!defaults[mod][act];
-              }
-            }
-          }
         }
-        console.log("✅ [PERMS] Final User State Mapping:", this.userPermissions);
+        console.log("✅ [PERMS] Final Mapped State:", this.userPermissions);
       },
       error: (err) => {
         this.isPermissionsLoading = false;
-        console.error("❌ Role Permissions failed", err);
+        console.error("❌ Role Permissions API failed", err);
       }
     });
   }
@@ -491,21 +614,34 @@ export class OrgManagementPage implements OnInit {
   saveRolePermissions() {
     if (!this.selectedRoleForPerms) return;
     
-    // Send granular permissions as a mapping
+    // Flatten permissions: { "patrol": { "view": true } } -> ["patrol.view"]
+    const flattenedPerms: string[] = [];
+    Object.keys(this.userPermissions).forEach(modName => {
+      Object.keys(this.userPermissions[modName]).forEach(actName => {
+        if (this.userPermissions[modName][actName]) {
+          flattenedPerms.push(`${modName}.${actName}`);
+        }
+      });
+    });
+
     const payload = {
-      ...this.selectedRoleForPerms,
-      permissions: JSON.stringify(this.userPermissions)
+      id: this.selectedRoleForPerms.id,
+      name: this.selectedRoleForPerms.name,
+      rank: this.selectedRoleForPerms.rank,
+      permissions: flattenedPerms
     };
     
-    console.log("📤 [PERMS] SAVING PAYLOAD:", payload);
+    console.log("📤 [PERMS V2] SAVING PAYLOAD:", payload);
 
-    this.dataService.updateCustomRole(this.selectedRoleForPerms.id, payload).subscribe({
+    this.dataService.updateV2Role(payload).subscribe({
       next: () => {
-        this.showToast('Permissions updated successfully', 'success');
+        this.showToast('V2 Permissions updated successfully', 'success');
         this.loadCustomRoles(); 
-        this.cancelPermissions(); 
       },
-      error: (err) => this.showToast('Failed to update permissions', 'danger')
+      error: (err) => {
+        console.error("V2 Perm Update Failed", err);
+        this.showToast('Failed to update V2 permissions', 'danger');
+      }
     });
   }
 
@@ -550,36 +686,23 @@ export class OrgManagementPage implements OnInit {
   async openAssignUser() {
     const alert = await this.alertCtrl.create({
       mode: 'md',
-      header: 'Assign User to Node',
+      header: 'V2 User Assignment',
       inputs: [
-        { name: 'user_id', type: 'number', placeholder: 'User ID' },
+        { name: 'assigned_user_id', type: 'number', placeholder: 'User ID' },
         { name: 'entity_id', type: 'number', placeholder: 'Entity ID' },
-        { name: 'role_id', type: 'number', placeholder: 'Role ID' }
+        { name: 'custom_role_id', type: 'number', placeholder: 'Custom Role ID' }
       ],
       buttons: [
         { text: 'Cancel', role: 'cancel' },
         {
           text: 'Assign',
           handler: (data) => {
-            const currentUserId = localStorage.getItem('user_id') || localStorage.getItem('ranger_id') || '1';
-            const payload = {
-              ...data,
-              reporting_to: currentUserId
-            };
-            this.dataService.assignUserToNode(payload).subscribe({
+            this.dataService.saveV2Assignment(data).subscribe({
               next: () => {
-                this.showToast('User assigned successfully!', 'success');
+                this.showToast('User assigned via V2!', 'success');
                 this.loadAssignments();
               },
-              error: (err) => {
-                console.error('Assignment failed:', err);
-                const backendMsg = err.error?.message || '';
-                if (backendMsg.includes('custom_permissions') || backendMsg.includes('reporting_to') || backendMsg.includes('Column not found')) {
-                  this.showToast('⚠️ Backend DB columns missing! Sir ko SQL bhejiye.', 'danger');
-                } else {
-                  this.showToast('Assignment failed: ' + (backendMsg || 'Server error'), 'danger');
-                }
-              }
+              error: (err) => this.showToast('V2 Assignment failed', 'danger')
             });
           }
         }

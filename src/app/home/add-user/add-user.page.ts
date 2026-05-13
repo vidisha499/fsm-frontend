@@ -45,6 +45,12 @@ export class AddUserPage implements OnInit {
   showBeatSuggestions: boolean = false;
   stopHereFlags: boolean[] = []; // Per-layer "assign at this level" checkbox state
 
+  // Permissions State
+  rolePermissions: string[] = [];       // Flat list e.g. ["patrol.view", "report.create"]
+  allPermissions: any[] = [];           // Master list from API [{name, actions}]
+  userPermMap: any = {};                // { module: { action: boolean } }
+  showPermEdit: boolean = false;        // Toggle edit mode
+
   constructor(
     private navCtrl: NavController,
     private dataService: DataService,
@@ -59,84 +65,100 @@ export class AddUserPage implements OnInit {
   }
 
   async loadInitialData() {
-    const loader = await this.loadingCtrl.create({ message: 'Syncing Hierarchy...' });
+    const loader = await this.loadingCtrl.create({ message: 'Syncing V2 Hierarchy...' });
     await loader.present();
 
-    const companyId = localStorage.getItem('company_id');
-
     try {
-      // 1. Load Roles
+      // 0. Load Master Permissions for edit grid
+      this.dataService.listMasterPermissions().subscribe({
+        next: (res: any) => {
+          const raw = res?.data || res || [];
+          this.allPermissions = raw.map((item: any) => ({
+            name: item.module,
+            actions: (item.actions || []).map((act: any) => ({
+              action: typeof act === 'string' ? act : (act.action || act.name || 'Unknown')
+            }))
+          }));
+        }
+      });
+
+      // 1. Load Roles - merge old + V2
       this.dataService.getRoleIdList().subscribe({
         next: (res: any) => {
-          const allRoles = res?.data || [];
-          this.staticRoles = allRoles.filter((r: any) => [1, 2, 3, 4, 7].includes(Number(r.id)));
-          this.dynamicRoles = allRoles.filter((r: any) => ![1, 2, 3, 4, 7].includes(Number(r.id)));
-          this.staticRoles.forEach(r => r.name = r.role_name || r.name);
-          this.dynamicRoles.forEach(r => r.name = r.role_name || r.name);
+          console.log("🎭 [ADD-USER] Role List Response:", res);
+          const oldRoles = res?.data || res || [];
+          
+          const processedOld = oldRoles.map((r: any) => ({
+            ...r,
+            id: String(r.id || r.role_id),
+            displayName: r.name || r.role_name || r.title || `Role ${r.id}`
+          }));
+
+          this.staticRoles = processedOld.filter((r: any) => [1, 2, 3, 4, 7].includes(Number(r.id)));
+          this.dynamicRoles = processedOld.filter((r: any) => ![1, 2, 3, 4, 7].includes(Number(r.id)));
+
+          // Also load V2 custom roles and merge (passing companyId for filtering)
+          this.dataService.listV2Roles(this.userData.companyId).subscribe({
+            next: (v2Res: any) => {
+              const v2Roles = v2Res?.data || v2Res || [];
+              const processedV2 = v2Roles.map((r: any) => ({
+                ...r,
+                id: String(r.id),
+                displayName: r.name || `Role ${r.id}`
+              }));
+              // Merge avoiding duplicates by name
+              const existingNames = new Set(this.dynamicRoles.map((r: any) => r.displayName));
+              const newOnes = processedV2.filter((r: any) => !existingNames.has(r.displayName) && String(r.id) !== '10');
+              this.dynamicRoles = [...this.dynamicRoles, ...newOnes].filter(r => String(r.id) !== '10');
+              
+              // Only add a placeholder ID 10 if it doesn't exist to act as a trigger
+              if (!this.staticRoles.find(r => r.id === '10')) {
+                this.staticRoles.push({ id: '10', displayName: '-- Dynamic (Custom Role) --' });
+              }
+              
+              console.log("✅ [ADD-USER] Static Roles (with ID 10):", this.staticRoles);
+              this.cdr.detectChanges();
+            }
+          });
+
           this.cdr.detectChanges();
         }
       });
 
-      // 2. Load ACTUAL Layers from Org Management
-      this.dataService.listOrgLayers(companyId).subscribe({
+      // 2. Load V2 Hierarchy Layers
+      this.dataService.listV2Layers().subscribe({
         next: (layerRes: any) => {
-          const rawLayers = layerRes?.data || [];
-          console.log("📏 Actual Org Layers:", rawLayers);
+          const rawLayers = layerRes?.data || layerRes || [];
           
           if (rawLayers.length > 0) {
-            if (companyId === '64') {
-              // 🔥 SPECIAL FORCE: For Company 64, we know the hierarchy is 8 (Range) -> 9 (Section) -> 10 (Beat)
-              // We ignore their broken ranks (Beat has rank 1, which is wrong)
-              const forcedIds = [8, 9, 10];
-              this.layers = forcedIds.map(id => {
-                const l = rawLayers.find((rl: any) => Number(rl.id) === id);
-                let name = l?.name || l?.layer_name || (id === 9 ? 'Section' : id === 10 ? 'Beat' : 'Layer');
-                if (id === 9) name = 'Section';
-                if (id === 10) name = 'Beat';
-                return { id: id, name: name };
-              }).filter(l => !!l);
-            } else {
-              // Standard Logic for other companies
-              this.layers = rawLayers
-                .sort((a: any, b: any) => (Number(a.rank || 0)) - (Number(b.rank || 0)))
-                .filter((l: any) => Number(l.rank || 0) >= 3)
-                .map((l: any) => ({
-                  id: Number(l.id),
-                  name: l.name || l.layer_name
-                }));
+            this.layers = rawLayers
+              .sort((a: any, b: any) => (Number(a.rank || a.id)) - (Number(b.rank || b.id)))
+              .map((l: any) => ({
+                id: Number(l.id),
+                name: l.name || l.layer_name || l.label
+              }));
+
+            console.log("🎯 V2 Processed Layers:", this.layers);
+
+            // 3. Load Initial Entities for the first layer
+            if (this.layers.length > 0) {
+              const firstLayer = this.layers[0];
+              this.dataService.listV2Entities(firstLayer.id, null).subscribe({
+                next: (entRes: any) => {
+                  const nodes = entRes?.data || entRes || [];
+                  this.layerEntities[firstLayer.id] = Array.isArray(nodes) ? nodes : [];
+                  this.cdr.detectChanges();
+                }
+              });
             }
 
-            console.log("🎯 Processed & Sorted Layers:", this.layers);
-
-            // 3. Load ALL Entities for these layers
-            this.dataService.listOrgEntities('all', companyId).subscribe({
-              next: (entRes: any) => {
-                const nodes = entRes?.data || entRes || [];
-                console.log("📦 All Entities for Dropdowns:", nodes);
-
-                this.layers.forEach(layer => {
-                  this.layerEntities[layer.id] = nodes.filter((n: any) => Number(n.layer_id) === layer.id);
-                });
-
-                // Initialize flags
-                this.stopHereFlags = new Array(this.layers.length).fill(true);
-                this.cdr.detectChanges();
-                loader.dismiss();
-              },
-              error: () => {
-                this.loadOldHierarchy();
-                loader.dismiss();
-              }
-            });
+            this.stopHereFlags = new Array(this.layers.length).fill(true);
+            loader.dismiss();
           } else {
-            this.loadOldHierarchy();
             loader.dismiss();
           }
         },
-        error: () => {
-          this.loadOldHierarchy();
-          loader.dismiss();
-        }
+        error: () => loader.dismiss()
       });
     } catch (e) {
       loader.dismiss();
@@ -206,7 +228,6 @@ export class AddUserPage implements OnInit {
 
   onLayerChange(layerIndex: number) {
     const selectedEntityId = this.hierarchySelections[layerIndex];
-    console.log(`🔄 Selection change at Index ${layerIndex}. Selected ID: ${selectedEntityId}`);
     
     // 1. Clear all subsequent selections
     for (let i = layerIndex + 1; i < this.layers.length; i++) {
@@ -214,33 +235,146 @@ export class AddUserPage implements OnInit {
       this.layerEntities[this.layers[i].id] = [];
     }
 
-    // 2. Load next layer entities from LOCAL CACHE (Faster)
+    // 2. Load next layer entities from V2 API
     if (selectedEntityId && layerIndex + 1 < this.layers.length) {
       const nextLayer = this.layers[layerIndex + 1];
       
-      // Get all entities again from the master list (cached or re-fetched if needed)
-      this.dataService.listOrgEntities('all').subscribe((res: any) => {
-        const allNodes = res?.data || res || [];
-        this.layerEntities[nextLayer.id] = allNodes.filter((n: any) => 
-          Number(n.layer_id) === Number(nextLayer.id) && Number(n.parent_id) === Number(selectedEntityId)
-        );
-        console.log(`🎯 Populated ${this.layerEntities[nextLayer.id].length} entities for Level ${nextLayer.id}`);
-        this.cdr.detectChanges();
+      this.dataService.listV2Entities(nextLayer.id, selectedEntityId).subscribe({
+        next: (res: any) => {
+          const nodes = res?.data || res || [];
+          this.layerEntities[nextLayer.id] = Array.isArray(nodes) ? nodes : [];
+          console.log(`🎯 V2: Populated ${this.layerEntities[nextLayer.id].length} entities for Level ${nextLayer.id}`);
+          this.cdr.detectChanges();
+        },
+        error: (err) => console.error("❌ [V2] Failed to load entities:", err)
       });
     }
   }
 
   onRoleSelectChange(event: any) {
     const val = event.target.value;
-    if (val === 'dynamic_selection') {
+    this.showPermEdit = false;
+    this.rolePermissions = [];
+    this.userPermMap = {};
+
+    if (val === '10') {
       this.isDynamicSelected = true;
-      this.userData.roleId = null; // Wait for secondary selection
+      this.userData.roleId = '10'; // Explicitly keep 10
+      this.userData.dynamicRoleId = null; // Reset sub-role until selected
     } else {
       this.isDynamicSelected = false;
-      this.userData.dynamicRoleId = null;
       this.userData.roleId = val;
+      this.userData.dynamicRoleId = null;
+    }
+
+    // Load permissions for selected role
+    if (val && val !== '10') this.loadRolePermissions(val);
+    this.cdr.detectChanges();
+  }
+
+  onDynamicRoleChange(event: any) {
+    const val = event.target.value;
+    this.userData.dynamicRoleId = val;
+    // DO NOT overwrite userData.roleId, keep it as '10'
+    
+    this.showPermEdit = false;
+    this.rolePermissions = [];
+    this.userPermMap = {};
+
+    if (val && val !== 'null') {
+      // Find from dynamicRoles to get pre-stored permissions
+      const role = this.dynamicRoles.find((r: any) => String(r.id) === String(val));
+      if (role?.permissions?.length > 0) {
+        this.setPermissions(role.permissions);
+      } else {
+        this.loadRolePermissions(val);
+      }
     }
     this.cdr.detectChanges();
+  }
+
+  loadRolePermissions(roleId: any) {
+    // Always initialize empty map first so edit grid works
+    this.setPermissions([]);
+
+    // Check in-memory roles for existing permissions
+    const allRoles = [...this.staticRoles, ...this.dynamicRoles];
+    const role = allRoles.find(r => String(r.id) === String(roleId));
+    
+    if (role?.permissions?.length > 0) {
+      this.setPermissions(role.permissions);
+      return;
+    }
+
+    // Fallback to API
+    this.dataService.getRolePermissions(roleId).subscribe({
+      next: (res: any) => {
+        const perms = res?.data || res || [];
+        if (Array.isArray(perms) && perms.length > 0) {
+          this.setPermissions(perms);
+        }
+      },
+      error: () => console.warn('Could not load permissions for role', roleId)
+    });
+  }
+
+  setPermissions(perms: any[]) {
+    this.rolePermissions = [];
+    this.userPermMap = {};
+
+    // Initialize all to false
+    this.allPermissions.forEach(mod => {
+      this.userPermMap[mod.name] = {};
+      mod.actions.forEach((act: any) => {
+        this.userPermMap[mod.name][act.action] = false;
+      });
+    });
+
+    // Apply given permissions (case-insensitive)
+    perms.forEach((p: any) => {
+      let modName = (p.module || '').toLowerCase();
+      let actName = (p.action || p.name || p || '').toLowerCase();
+
+      if (typeof p === 'string' && p.includes('.')) {
+        const parts = p.split('.');
+        modName = parts[0].toLowerCase();
+        actName = parts[1].toLowerCase();
+      }
+
+      // Find matching key in userPermMap (case-insensitive)
+      const mapKey = Object.keys(this.userPermMap).find(k => k.toLowerCase() === modName);
+      if (mapKey) {
+        const actKey = Object.keys(this.userPermMap[mapKey]).find(k => k.toLowerCase() === actName);
+        if (actKey) this.userPermMap[mapKey][actKey] = true;
+      }
+    });
+
+    this.buildPermissionsArray();
+    this.cdr.detectChanges();
+  }
+
+  togglePerm(modName: string, actName: string, event: any) {
+    if (!this.userPermMap[modName]) {
+      this.userPermMap[modName] = {};
+    }
+    this.userPermMap[modName][actName] = event.target.checked;
+    this.buildPermissionsArray();
+    this.cdr.detectChanges();
+  }
+
+  onPermToggle() {
+    this.buildPermissionsArray();
+  }
+
+  buildPermissionsArray() {
+    this.rolePermissions = [];
+    Object.keys(this.userPermMap).forEach(mod => {
+      Object.keys(this.userPermMap[mod]).forEach(act => {
+        if (this.userPermMap[mod][act]) {
+          this.rolePermissions.push(`${mod}.${act}`);
+        }
+      });
+    });
   }
 
   shouldShowHierarchy(): boolean {
@@ -356,81 +490,90 @@ export class AddUserPage implements OnInit {
       }
     }
 
-    const isFallbackId = this.allOldBeats.some(b => String(b.id) === String(deepestEntityId));
+    const resolvedCustomRoleId = this.userData.dynamicRoleId || this.userData.roleId;
 
     const payload: any = {
-      api_token: token,
+      name: `${this.userData.firstName} ${this.userData.lastName}`.trim(),
       firstName: this.userData.firstName,
       lastName: this.userData.lastName,
-      name: `${this.userData.firstName} ${this.userData.lastName}`.trim(),
-      contact: this.userData.contact,
       mobile: this.userData.contact,
-      phoneNo: this.userData.contact,
       email: this.userData.email || (this.userData.contact + '@fsm.com'),
       password: '123456',
-      role_id: String(this.userData.roleId),
+      role_id: String(this.userData.roleId), // Will be '10' if dynamic is picked
       company_id: String(this.userData.companyId),
-      company_name: localStorage.getItem('company_name') || 'Forest Department',
-      status: '1',
-      
-      // Dynamic Hierarchy Mappings
+      company_name: localStorage.getItem('company_name') || '',
+      entity_id: deepestEntityId,
       site_id: deepestEntityId,
-      beat_id: deepestEntityId,
-      
-      // Legacy Fallbacks
-      department: parentEntityName,
-      range: parentEntityName,
-      division: parentEntityName,
-      designation: deepestEntityName,
-      beat: deepestEntityName,
-      site_name: deepestEntityName,
-      
-      registrationFlag: 0,
-      showUser: 1
+      site_name: deepestEntityName || 'Officer',
+      attendance_type: 'multiple',
+      custom_role_id: String(this.userData.dynamicRoleId || this.userData.roleId),
+      dynamic_role_id: String(this.userData.dynamicRoleId || this.userData.roleId), 
+      designation: deepestEntityName || 'Officer',
+      emp_id: `FSM-${Date.now().toString().slice(-6)}`,
+      permissions: JSON.stringify(this.rolePermissions) 
     };
 
-    if (isFallbackId) {
-      console.log("⚠️ Fallback Beat detected. Sending as site_id only.");
-    } else {
-      payload.entity_id = deepestEntityId;
-    }
+    console.log("🚀 V2 Registering User (Direct AddUser):", payload);
 
-    console.log("🚀 Pre-registering User:", payload);
-
-    this.dataService.addRegistration(payload).subscribe({
+    this.dataService.addUser(payload).subscribe({
       next: async (res: any) => {
         this.isSaving = false;
-        const newUserId = res?.data?.id || res?.user?.id || res?.id || null;
+        console.log("📥 [V2 ADD-USER RESPONSE]:", res);
+
+        const isSuccess = res?.status?.toLowerCase() === 'success' ||
+                          res?.message?.toLowerCase().includes('success') ||
+                          res?.status === 'SUCCESS' ||
+                          res?.code === 200;
+
+        if (!isSuccess) {
+          this.showToast('User creation failed: ' + (res?.message || 'Unknown error'), 'danger');
+          return;
+        }
+
+        // Extract new user ID
+        const newUserId = res?.data?.id || res?.user?.id || res?.id ||
+                          res?.add_employee_data?.id ||
+                          (res?.data && res?.data[0]?.id) || null;
+
         console.log("✅ User Registered. ID:", newUserId);
 
+        // Save assignment for hierarchy + role
         if (newUserId && deepestEntityId) {
-          console.log(`🔗 Attempting Assignment: User ${newUserId} -> Entity ${deepestEntityId}`);
-          
-          // 🚀 SYNC TO DYNAMIC HIERARCHY
-          this.dataService.assignUserToNode({
-            user_id: Number(newUserId),
-            entity_id: Number(deepestEntityId)
+          this.dataService.saveV2Assignment({
+            assigned_user_id: Number(newUserId),
+            entity_id: Number(deepestEntityId),
+            custom_role_id: Number(resolvedCustomRoleId)
           }).subscribe({
-            next: (r: any) => console.log(`✅ [SYNC] Assignment Successful:`, r),
-            error: (e: any) => console.warn(`⚠️ [SYNC] Assignment Failed:`, e)
+            next: (r: any) => console.log(`✅ [ASSIGN] Done:`, r),
+            error: (e: any) => console.warn(`⚠️ [ASSIGN] Failed:`, e)
           });
         }
 
         const toast = await this.toastCtrl.create({
-          message: 'User Registered & Assigned Successfully!',
-          duration: 2500,
-          color: 'success',
-          position: 'top'
+          message: '✅ User Registered & Assigned Successfully!',
+          duration: 2500, color: 'success', position: 'top'
         });
         toast.present();
         this.navCtrl.back();
       },
       error: (err) => {
         this.isSaving = false;
-        this.showToast('Error in Registration. Please try again.', 'danger');
+        console.error("❌ [BACKEND ERROR] Registration Failed:", err);
+        
+        // Detailed log for Sir
+        if (err.error && typeof err.error === 'object') {
+          console.log('--- SERVER ERROR DETAILS (FOR BACKEND TEAM) ---');
+          console.log('Message:', err.error.message);
+          console.log('Exception:', err.error.exception);
+          console.log('File:', err.error.file);
+          console.log('Line:', err.error.line);
+          console.log('-----------------------------------------------');
+        }
+
+        const msg = err.error?.message || 'Registration failed. Check fields.';
+        this.showToast('Server Error: ' + msg, 'danger');
       }
     });
-
   }
 
   async showToast(msg: string, color: string) {

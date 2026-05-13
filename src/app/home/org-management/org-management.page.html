@@ -76,10 +76,14 @@
 
       <div class="layer-filter">
         <div class="filter-pill" [class.active]="selectedLayer === 'all'" (click)="filterEntities('all')">All</div>
-        <div class="filter-pill" *ngFor="let layer of orgLayers" 
+        <div class="filter-pill layer-mgmt-pill" *ngFor="let layer of orgLayers" 
              [class.active]="selectedLayer === layer.id" 
              (click)="filterEntities(layer.id)">
-          {{ layer.name }}
+          <span>{{ layer.name }}</span>
+          <div class="pill-actions" *ngIf="selectedLayer === layer.id">
+            <i class="fas fa-pencil-alt" (click)="editOrgLayer(layer); $event.stopPropagation()"></i>
+            <i class="fas fa-times" (click)="deleteOrgLayer(layer.id); $event.stopPropagation()"></i>
+          </div>
         </div>
       </div>
 
@@ -120,7 +124,10 @@
           </div>
           <h3>{{ role.name }}</h3>
           <div class="perms-summary">
-            <span *ngFor="let p of role.permissions">{{ p.module_key }}</span>
+            <ng-container *ngIf="role.permissions && role.permissions.length > 0">
+              <span *ngFor="let p of role.permissions">{{ p.action || p.name || p }}</span>
+            </ng-container>
+            <span *ngIf="!role.permissions || role.permissions.length === 0" class="no-perms">No permissions assigned</span>
           </div>
           <div class="role-actions">
             <button (click)="editRole(role)">Update</button>
@@ -208,3 +215,50 @@
     </div>
   </div>
 </ion-content>
+
+<!-- ADD ROLE MODAL (Premium V2) -->
+<ion-modal [isOpen]="isAddRoleModalOpen" (didDismiss)="isAddRoleModalOpen = false" class="premium-modal">
+  <ng-template>
+    <div class="modal-header">
+      <h2>Create New Role</h2>
+      <button (click)="isAddRoleModalOpen = false" class="close-btn"><i class="fas fa-times"></i></button>
+    </div>
+    
+    <ion-content class="ion-padding modal-body">
+      <div class="form-section">
+        <label>ROLE DETAILS</label>
+        <div class="input-pill">
+          <i class="fas fa-fingerprint"></i>
+          <input [(ngModel)]="newRoleData.id" type="number" placeholder="Role ID (Optional - e.g. 15)">
+        </div>
+        <div class="input-pill">
+          <i class="fas fa-user-shield"></i>
+          <input [(ngModel)]="newRoleData.name" type="text" placeholder="Role Name (e.g. Forester)">
+        </div>
+        <div class="input-pill">
+          <i class="fas fa-sort-amount-up"></i>
+          <input [(ngModel)]="newRoleData.rank" type="number" placeholder="Rank (e.g. 3)">
+        </div>
+      </div>
+
+      <div class="form-section">
+        <label>ASSIGN PERMISSIONS</label>
+        <div class="perm-container">
+          <div class="perm-mod" *ngFor="let mod of allPermissions">
+            <div class="mod-title">{{ mod.name | uppercase }}</div>
+            <div class="mod-actions">
+              <div class="action-item" *ngFor="let act of mod.actions">
+                <ion-checkbox [(ngModel)]="newRolePerms[mod.name][act.action]"></ion-checkbox>
+                <ion-label>{{ act.action }}</ion-label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="save-btn" (click)="saveNewRoleWithPerms()">
+        <i class="fas fa-check-circle"></i> CREATE ROLE & SET PERMISSIONS
+      </button>
+    </ion-content>
+  </ng-template>
+</ion-modal>

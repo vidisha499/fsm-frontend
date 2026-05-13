@@ -2,28 +2,11 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { HttpClient } from '@angular/common/http';
-import { environment } from 'src/environments/environment';
-import { NavController, ToastController, LoadingController,  } from '@ionic/angular';
+import { NavController, ToastController, LoadingController } from '@ionic/angular';
 import { DataService } from 'src/app/data.service';
-import { HierarchyService } from 'src/app/services/hierarchy.service';
 import moment from 'moment';
-
-
-// Utility to convert Base64 to Blob for real file uploads
-function base64ToBlob(base64: string, contentType: string = 'image/jpeg') {
-  const byteCharacters = atob(base64.split(',')[1]);
-  const byteArrays = [];
-  for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-    const slice = byteCharacters.slice(offset, offset + 512);
-    const byteNumbers = new Array(slice.length);
-    for (let i = 0; i < slice.length; i++) {
-      byteNumbers[i] = slice.charCodeAt(i);
-    }
-    const byteArray = new Uint8Array(byteNumbers);
-    byteArrays.push(byteArray);
-  }
-  return new Blob(byteArrays, { type: contentType });
-}
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 @Component({
   selector: 'app-signup-details',
@@ -32,7 +15,6 @@ function base64ToBlob(base64: string, contentType: string = 'image/jpeg') {
   standalone: false
 })
 export class SignupDetailsPage implements OnInit {
-  // Data Properties
   verifiedData: any = {};
   profileImage: any = null;
   firstName: string = '';
@@ -43,26 +25,20 @@ export class SignupDetailsPage implements OnInit {
   address: string = ''; 
   password: string = '';
   confirmPassword: string = '';
- passwordType: string = 'password';
-passwordIcon: string = 'eye-off'; // Ionic default icon name
+  passwordType: string = 'password';
+  passwordIcon: string = 'eye-off';
+  confirmPasswordType: string = 'password';
+  confirmPasswordIcon: string = 'eye-off';
+  range: string = '';
+  beat: string = '';
+  gender: string = '';
+  shift: string = '';
+  weeklyOff: string = '';
 
-confirmPasswordType: string = 'password';
-confirmPasswordIcon: string = 'eye-off';
-
-range: string = '';
-beat: string = '';
-gender: string = '';
-shift: string = '';
-weeklyOff: string = '';
-ranges: any[] = [];
-allBeats: any[] = [];
-filteredBeats: any[] = [];
-assignedNodes: any[] = [];  
-
-// Dynamic Hierarchy properties (Same as Add User)
-layers: any[] = [];
-layerEntities: { [key: string]: any[] } = {};
-hierarchySelections: any[] = [];
+  layers: any[] = [];
+  layerEntities: { [key: string]: any[] } = {};
+  hierarchySelections: any[] = [];
+  assignedPath: any[] = [];
 
   constructor(
     private route: ActivatedRoute,
@@ -71,310 +47,163 @@ hierarchySelections: any[] = [];
     private toastCtrl: ToastController,
     private loadingCtrl: LoadingController,
     private dataService: DataService,
-    private hierarchyService: HierarchyService,
     private cdr: ChangeDetectorRef
   ) { }
 
-//   ngOnInit() {
-//   this.route.queryParams.subscribe(params => {
-//     // 1. Check karo agar 'special' parameter aaya hai (Naya Logic)
-//     if (params && params['special']) {
-//       const data = JSON.parse(params['special']);
-//       const fullName = data.name || '';
-//       this.mobile = data.mobile || '';
-//       this.verifiedData = data;
-
-//       if (fullName.trim()) {
-//         const nameParts = fullName.trim().split(/\s+/);
-//         if (nameParts.length > 1) {
-//           this.firstName = nameParts[0];
-//           this.lastName = nameParts.slice(1).join(' ');
-//         } else {
-//           this.firstName = nameParts[0];
-//           this.lastName = ''; 
-//         }
-//       }
-//     } 
-//     // 2. Backup: Agar purane tarike se data aaye (Optional)
-//     else if (params['name']) {
-//       const fullName = params['name'];
-//       this.mobile = params['mobile'] || '';
-//       const nameParts = fullName.trim().split(/\s+/);
-//       this.firstName = nameParts[0];
-//       this.lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
-//     }
-//   });
-// }
-
-
-ngOnInit() {
-  this.route.queryParams.subscribe(params => {
-    if (params && params['special']) {
-      const data = JSON.parse(params['special']);
-      
-      // Sabse zaruri: Pura data object save karo
-      this.verifiedData = data; 
-      
-      // Debugging ke liye console check karo (Browser mein F12 dabake dekhna)
-      console.log("Verified Data Received:", this.verifiedData);
-      console.log("Company ID detected:", data.company_id);
-
-      this.mobile = data.mobile || '';
-      const fullName = data.name || '';
-      this.range = data.range || '';
-      this.beat = data.beat || '';
-
-      if (fullName.trim()) {
-        const nameParts = fullName.trim().split(/\s+/);
-        this.firstName = nameParts[0];
-        this.lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
-      }
-
-      // Fetch assigned hierarchy nodes for this user (by user ID)
-      if (data.id) {
-        this.dataService.getUserAssignments(data.id).subscribe({
-          next: (res: any) => {
-            const raw = res?.data || res || [];
-            this.assignedNodes = Array.isArray(raw) ? raw : [raw];
-            console.log('📍 Assigned Nodes:', this.assignedNodes);
-          },
-          error: () => console.warn('⚠️ Could not fetch user assignments')
-        });
-      }
-
-      this.loadHierarchy(data.company_id || 1);
-    }
-  });
-}
-
-  loadHierarchy(companyId: any) {
-    console.log("📂 [SIGNUP] Loading Hierarchy for Company:", companyId);
-    const token = this.verifiedData.api_token || ''; // Get token from verification!
-    
-    this.dataService.listOrgLayers(companyId, token).subscribe({
-      next: (res: any) => {
-        console.log("📊 [SIGNUP] Layers Response:", res);
-        let rawLayers = res?.data || res || [];
-        if (!Array.isArray(rawLayers) && res?.data) rawLayers = res.data;
-        if (!Array.isArray(rawLayers)) rawLayers = [];
-
-        this.layers = rawLayers.map((l: any) => {
-          let lName = l.name;
-          if (String(l.id) === '9') lName = 'Section';
-          if (String(l.id) === '10') lName = 'Beat';
-          return { ...l, name: lName };
-        }).sort((a: any, b: any) => Number(a.id) - Number(b.id));
-
-        console.log("🛠️ [SIGNUP] Processed Layers:", this.layers);
-        this.hierarchySelections = new Array(this.layers.length).fill(null);
+  ngOnInit() {
+    this.route.queryParams.subscribe(params => {
+      if (params && params['special']) {
+        const data = JSON.parse(params['special']);
+        this.verifiedData = data; 
         
-        this.dataService.listOrgEntities('', companyId, token).subscribe({
-          next: (entRes: any) => {
-            console.log("📦 [SIGNUP] Entities Response:", entRes);
-            let allEntities = entRes?.data || entRes || [];
-            if (!Array.isArray(allEntities) && entRes?.data) allEntities = entRes.data;
-            if (!Array.isArray(allEntities)) allEntities = [];
+        console.log("%c📥 [SIGNUP] Starting Merged Hierarchy Sync (VerifyUser + Org API)", "color: #00ff00; font-weight: bold;");
 
-            if (this.layers.length > 0) {
-              const firstLayerId = this.layers[0].id;
-              this.layerEntities[firstLayerId] = allEntities.filter((n: any) => 
-                Number(n.layer_id) === Number(firstLayerId) && (!n.parent_id || n.parent_id == '0')
-              );
-            }
-
-            if (this.assignedNodes.length > 0 || this.verifiedData.beat || this.verifiedData.range) {
-              this.prefillHierarchy(allEntities);
-            }
-            this.cdr.detectChanges(); // Force UI update
-          },
-          error: (err) => console.error("❌ [SIGNUP] Entities load error:", err)
-        });
-      },
-      error: (err) => console.error("❌ [SIGNUP] Layers load error:", err)
-    });
-  }
-
-  prefillHierarchy(allEntities: any[]) {
-    // Priority 1: assignedNodes (from Admin assignment table)
-    // Priority 2: verifiedData.beat/range (from direct user table fallbacks)
-    let deepestId: any = null;
-
-    if (this.assignedNodes.length > 0) {
-      const deepestAssigned = this.assignedNodes[this.assignedNodes.length - 1];
-      deepestId = deepestAssigned?.entity_id || deepestAssigned?.id;
-    } else if (this.verifiedData.beat) {
-      // Find entity by name if ID is missing
-      const found = allEntities.find(e => e.name === this.verifiedData.beat);
-      deepestId = found?.id;
-    } else if (this.verifiedData.range) {
-      const found = allEntities.find(e => e.name === this.verifiedData.range);
-      deepestId = found?.id;
-    }
-
-    if (!deepestId) {
-      console.warn("🔍 Could not find deepestId for prefill");
-      return;
-    }
-
-    // Trace path from deepest to top
-    let currentId = deepestId;
-    const path: any[] = [];
-
-    while (currentId) {
-      const node = allEntities.find(n => String(n.id) === String(currentId));
-      if (node) {
-        path.unshift(node); // Add to beginning
-        currentId = node.parent_id && node.parent_id != '0' ? node.parent_id : null;
-      } else {
-        currentId = null;
-      }
-    }
-
-    // Now fill the selections and load entities for each level
-    path.forEach(node => {
-      const layerIndex = this.layers.findIndex(l => Number(l.id) === Number(node.layer_id));
-      if (layerIndex !== -1) {
-        this.hierarchySelections[layerIndex] = node.id;
+        this.mobile = data.mobile || '';
         
-        // Load children for the next layer
-        if (layerIndex + 1 < this.layers.length) {
-          const nextLayer = this.layers[layerIndex + 1];
-          this.layerEntities[nextLayer.id] = allEntities.filter(n => 
-            Number(n.layer_id) === Number(nextLayer.id) && Number(n.parent_id) === Number(node.id)
-          );
+        // Robust Name Extraction: Prioritize individual fields, fallback to splitting 'name'
+        const rawFirstName = data.firstName || '';
+        const rawLastName = data.lastName || '';
+        const fullName = data.name || '';
+
+        if (rawFirstName.trim() || rawLastName.trim()) {
+          this.firstName = rawFirstName;
+          this.lastName = rawLastName;
+        } else if (fullName.trim()) {
+          const nameParts = fullName.trim().split(/\s+/);
+          this.firstName = nameParts[0];
+          this.lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+        }
+
+        console.log(`👤 [NAME SYNC] Extracted -> First: "${this.firstName}", Last: "${this.lastName}"`);
+
+        const rawLayers = data.hierarchy_layers || [];
+        this.assignedPath = data.entity_path || [];
+
+        if (Array.isArray(rawLayers) && rawLayers.length > 0) {
+          this.layers = rawLayers.sort((a: any, b: any) => Number(a.rank) - Number(b.rank));
+          this.hierarchySelections = new Array(this.layers.length).fill(null);
+          
+          this.loadMergedHierarchy(0, null);
         }
       }
     });
   }
 
-  onLayerChange(layerIndex: number) {
-    const selectedEntityId = this.hierarchySelections[layerIndex];
-    
-    // Clear all subsequent selections
-    for (let i = layerIndex + 1; i < this.layers.length; i++) {
+  loadMergedHierarchy(index: number, parentId: any) {
+    if (index >= this.layers.length) return;
+    const layer = this.layers[index];
+    const companyId = this.verifiedData.company_id || 64;
+
+    console.log(`\n🔍 [SYNC] Level ${index+1}: ${layer.name} (ID: ${layer.id})`);
+
+    // Fetching from BOTH APIs
+    forkJoin({
+      legacy: this.dataService.listOrgEntities(layer.id, companyId).pipe(catchError(() => of([]))),
+      v2: this.dataService.listV2Entities(layer.id, parentId, true, companyId).pipe(catchError(() => of([])))
+    }).subscribe(({ legacy, v2 }: any) => {
+      const legacyData = legacy?.data || legacy || [];
+      const v2Data = v2?.data || v2 || [];
+
+      // Unified Map to match IDs
+      const mergedMap = new Map();
+      
+      // Step 1: Process Legacy Entities
+      legacyData.forEach((item: any) => {
+        if (item && item.id) mergedMap.set(String(item.id), { ...item, _source: 'Legacy' });
+      });
+
+      // Step 2: Process V2 and Match IDs
+      v2Data.forEach((item: any) => {
+        if (item && item.id) {
+          const idStr = String(item.id);
+          if (mergedMap.has(idStr)) {
+            mergedMap.set(idStr, { ...mergedMap.get(idStr), ...item, _source: 'Merged' });
+          } else {
+            mergedMap.set(idStr, { ...item, _source: 'V2' });
+          }
+        }
+      });
+
+      // Step 3: MASTER MERGE - Check against verifyUser assignedPath
+      const assignedNode = this.assignedPath.find(n => String(n.layer_id) === String(layer.id));
+      if (assignedNode) {
+        const idStr = String(assignedNode.id);
+        if (mergedMap.has(idStr)) {
+          console.log(`   ✅ ID MATCH FOUND (VerifyUser + APIs): ${idStr} (${assignedNode.name})`);
+          mergedMap.set(idStr, { ...mergedMap.get(idStr), ...assignedNode, _matched: true });
+        } else {
+          console.log(`   📍 Assigned ID ${idStr} (${assignedNode.name}) missing from APIs, forced entry.`);
+          mergedMap.set(idStr, { ...assignedNode, _source: 'VerifyUser', _forced: true });
+        }
+        
+        // AUTO-SELECT the matched/forced node
+        this.hierarchySelections[index] = assignedNode.id;
+        console.log(`   🎯 Selected: ${assignedNode.name} (ID: ${idStr})`);
+        
+        // Recursive load next level
+        this.loadMergedHierarchy(index + 1, assignedNode.id);
+      }
+
+      let finalOptions = Array.from(mergedMap.values());
+
+      // Filter by parent for hierarchy consistency
+      if (parentId) {
+        finalOptions = finalOptions.filter((e: any) => String(e.parent_id) === String(parentId));
+      }
+
+      this.layerEntities[layer.id] = finalOptions;
+      this.cdr.detectChanges();
+    });
+  }
+
+  onLayerChange(index: number) {
+    const selectedId = this.hierarchySelections[index];
+    for (let i = index + 1; i < this.layers.length; i++) {
       this.hierarchySelections[i] = null;
       this.layerEntities[this.layers[i].id] = [];
     }
-
-    // Load next level
-    if (selectedEntityId && layerIndex + 1 < this.layers.length) {
-      const nextLayer = this.layers[layerIndex + 1];
-      const companyId = this.verifiedData?.company_id || this.verifiedData?.companyId;
-      this.dataService.listOrgEntities('', companyId).subscribe({
-        next: (res: any) => {
-          const allNodes = res?.data || res || [];
-        this.layerEntities[nextLayer.id] = allNodes.filter((n: any) => 
-          Number(n.layer_id) === Number(nextLayer.id) && Number(n.parent_id) === Number(selectedEntityId)
-        );
-      }});
+    if (selectedId && index + 1 < this.layers.length) {
+      this.loadMergedHierarchy(index + 1, selectedId);
     }
   }
 
-
   togglePassword(field: string) {
-  if (field === 'pw') {
-    this.passwordType = this.passwordType === 'password' ? 'text' : 'password';
-    this.passwordIcon = this.passwordIcon === 'eye-off' ? 'eye' : 'eye-off';
-  } else {
-    this.confirmPasswordType = this.confirmPasswordType === 'password' ? 'text' : 'password';
-    this.confirmPasswordIcon = this.confirmPasswordIcon === 'eye-off' ? 'eye' : 'eye-off';
+    if (field === 'pw') {
+      this.passwordType = this.passwordType === 'password' ? 'text' : 'password';
+      this.passwordIcon = this.passwordIcon === 'eye-off' ? 'eye' : 'eye-off';
+    } else {
+      this.confirmPasswordType = this.confirmPasswordType === 'password' ? 'text' : 'password';
+      this.confirmPasswordIcon = this.confirmPasswordIcon === 'eye-off' ? 'eye' : 'eye-off';
+    }
   }
-}
 
-  /**
-   * Captures a profile photo using the device camera.
-   * Optimized quality for Vercel/Serverless payload limits.
-   */
   async captureImage() {
     try {
       const image = await Camera.getPhoto({
-        quality: 70, 
-        allowEditing: false,
-        resultType: CameraResultType.DataUrl,
-        source: CameraSource.Camera,
-        width: 800 
+        quality: 70, resultType: CameraResultType.DataUrl, source: CameraSource.Camera, width: 800 
       });
       this.profileImage = image.dataUrl;
     } catch (error) {
       console.error('Camera error:', error);
-      this.presentToast('Camera access was cancelled or failed.', 'warning');
     }
   }
 
-  /**
-   * Submits the registration form to the 'rangers' table.
-   */
   shouldShowHierarchy(): boolean {
-    const roleId = this.verifiedData?.role_id || this.verifiedData?.roleId;
-    if (!roleId) return true;
-    
-    // Admin roles (1, 2) don't need hierarchy
-    const adminRoles = ['1', '2', 1, 2];
-    return !adminRoles.includes(roleId);
+    return this.layers.length > 0;
   }
 
   async onSignup() {
-    // 1. Validation Logic
-    if (!this.profileImage) {
-      return this.presentToast('Profile photo is required for identification.', 'warning');
-    }
-    if (!this.firstName || !this.lastName) {
-      return this.presentToast('Please provide your full name.', 'warning');
-    }
-    if (!this.email || !this.email.includes('@')) {
-      return this.presentToast('Please enter a valid email address.', 'warning');
-    }
-    if (!this.dob) {
-      return this.presentToast('Please select your Date of Birth.', 'warning');
-    }
-    if (!this.password || this.password.length < 6) {
-      return this.presentToast('Password must be at least 6 characters long.', 'warning');
-    }
-    if (this.password !== this.confirmPassword) {
-      return this.presentToast('Passwords do not match. Please try again.', 'danger');
-    }
+    if (!this.profileImage) return this.presentToast('Photo is required.', 'warning');
+    if (!this.firstName || !this.lastName) return this.presentToast('Name is required.', 'warning');
 
-    const loader = await this.loadingCtrl.create({
-      message: 'Creating your Ranger profile...',
-      spinner: 'crescent'
-    });
+    const loader = await this.loadingCtrl.create({ message: 'Creating Profile...', spinner: 'crescent' });
     await loader.present();
-    console.log("Verified Data Check:", this.verifiedData);
 
-    // 2. Payload Construction (EXACT MATCH WITH SIR'S CODE)
-    const finalMobile = String(this.mobile || '').trim();
-    let roleId = this.verifiedData?.role_id || this.verifiedData?.roleId || 3;
-    if (Number(roleId) === 11) roleId = 3; 
-    const companyId = this.verifiedData?.company_id || this.verifiedData?.companyId || '';
-    
-    // --- SIR'S CUSTOM LOGIC ---
-    // 1. Generate emp_id (e.g. JD-123456)
-    const empId = this.firstName.slice(0, 1).toUpperCase()
-                  .concat(this.lastName.slice(0, 1).toUpperCase())
-                  .concat("-")
-                  .concat(Math.floor(100000 + Math.random() * 100000).toString());
-
-    // 2. Generate date_range (1 year validity)
-    const date_range = moment().format("YYYY-MM-DD") + " to " + moment().add(1, 'year').format("YYYY-MM-DD");
-
-    // --- INITIAL VALUE: Use original IDs if available ---
-    let deepestEntityId: any = this.verifiedData.site_id || this.verifiedData.entity_id || null;
-    let deepestClientId: any = this.verifiedData.client_id || null;
-    let deepestEntityName: string = '';
-    let rangeName: string = '';
-
+    let deepestEntityId: any = null;
+    let deepestEntityName = '';
     for (let i = this.hierarchySelections.length - 1; i >= 0; i--) {
       if (this.hierarchySelections[i]) {
         deepestEntityId = this.hierarchySelections[i];
-        
-        // Find top-level name for legacy range mapping
-        if (this.hierarchySelections[0]) {
-          deepestClientId = this.hierarchySelections[0];
-          const firstLayerId = this.layers[0].id;
-          const firstEnt = this.layerEntities[firstLayerId]?.find(e => String(e.id) === String(this.hierarchySelections[0]));
-          rangeName = firstEnt?.name || '';
-        }
-
         const layerId = this.layers[i].id;
         const ent = this.layerEntities[layerId]?.find(e => String(e.id) === String(deepestEntityId));
         deepestEntityName = ent?.name || '';
@@ -382,178 +211,50 @@ ngOnInit() {
       }
     }
 
-    // --- FALLBACK: If no dynamic selections, use the editable fields ---
-    if (!deepestEntityName) deepestEntityName = this.beat || this.verifiedData.beat || '';
-    if (!rangeName) rangeName = this.range || this.verifiedData.range || '';
-
-    if (!rangeName && !deepestEntityName) {
-      await loader.dismiss();
-      return this.presentToast('ERROR: Location assignment (Range or Beat) is required for Signup.', 'danger');
-    }
-
     const payload: any = {
       api_token: "Fj4HXJhcQZ99ssKkqypXGAEQEXxERYX7K7adeZ0JZkGgQmseUSOaGaGyasjh", 
-      emp_id: empId,
       name: `${this.firstName} ${this.lastName}`.trim(),
-      mobile: finalMobile,
-      phone: finalMobile,
+      mobile: String(this.mobile).trim(),
       email: this.email || '',
-      gender: this.gender || '',
-      address: this.address || '',
       password: this.password,
-      role_id: Number(roleId), // Send as Number
-      custom_role_id: Number(roleId), // Some APIs expect this
-      company_id: String(companyId),
-      company_name: localStorage.getItem('company_name') || this.verifiedData.company_name || 'Forest Department',
-      attendance_type: 'multiple',
-      status: '1',
+      gender: this.gender,
+      dob: this.dob,
+      address: this.address,
+      role_id: String(this.verifiedData.role_id || 3),
+      custom_role_id: String(this.verifiedData.role_id || 3), 
+      dynamic_role_id: String(this.verifiedData.role_id || 3),
+      permissions: "[]", 
+      company_id: String(this.verifiedData.company_id || '64'),
+      company_name: this.verifiedData.company_name || '', 
+      entity_id: deepestEntityId,
+      site_id: deepestEntityId, 
+      site_name: deepestEntityName,
+      designation: deepestEntityName || 'Officer', 
+      attendance_type: 'multiple', 
       shift_name: this.shift || 'General Shift',
       weekly_off: this.weeklyOff || 'Sunday',
-      date_range: date_range,
-      // client_id moved down to avoid duplication
-      site_id: deepestEntityId ? Number(deepestEntityId) : '',
-      entity_id: deepestEntityId ? Number(deepestEntityId) : '', 
-      beat_id: deepestEntityId ? Number(deepestEntityId) : '', // Added for extra safety
-      location_id: deepestEntityId ? Number(deepestEntityId) : '', // Added for extra safety
-      site_name: deepestEntityName || '',
-      beat: deepestEntityName || '', // Duplicate for safety
-      beat_name: deepestEntityName || '',
-      client_id: deepestClientId ? Number(deepestClientId) : '',
-      division_id: deepestClientId ? Number(deepestClientId) : '', // Added for extra safety
-      range: rangeName || '', // Duplicate for safety
-      range_name: rangeName || '',
-      shift_id: '1'
+      date_range: moment().format("YYYY-MM-DD") + " to " + moment().add(1, 'year').format("YYYY-MM-DD"),
+      emp_id: "FSM-" + Math.floor(100000+Math.random()*900000),
+      photo: this.profileImage
     };
 
-    console.log("🚀 [SIGNUP ATTEMPT] DATA BEING SENT:");
-    console.log(`📍 SITE_ID (Entity ID): ${payload.site_id}`);
-    console.log(`📍 SITE_NAME (Beat/Range): ${payload.site_name}`);
-    console.log(`📍 ROLE_ID: ${payload.role_id}`);
-    console.log("📦 FULL PAYLOAD:", payload);
-
-    // 🖼️ SIR'S TRIPLE-PHOTO LOGIC: Backend AI expects multiple angles
-    if (this.profileImage) {
-      const photoStr = this.profileImage.includes('base64,') ? this.profileImage : `data:image/jpg;base64,${this.profileImage}`;
-      payload['photo'] = photoStr;     // Main
-      payload['left_img'] = photoStr;  // Left (Simulated)
-      payload['right_img'] = photoStr; // Right (Simulated)
-    }
-
-    console.log("Final Registration Request to /addUser (JSON Style)");
-
-    // 3. API Call via DataService
     this.dataService.addUser(payload).subscribe({
-
       next: async (res: any) => {
-        // ✅ TOTAL SUCCESS: Backend says it's done!
-        if (res && res.status === 'SUCCESS') {
-          await loader.dismiss();
-          this.presentToast('Registration Successful! Please login now.', 'success');
-          this.navCtrl.navigateRoot('/login');
-          return;
-        }
-
-        // 🔥 FALLBACK SAFETY CHECK
-        if (!res || !res.data) {
-          await loader.dismiss();
-          console.error("❌ Registration Hitch:", res);
-          this.presentToast('Registration failed to return data. Please contact Sir.', 'warning');
-          return;
-        }
-
         await loader.dismiss();
-        
-        // 🔥 IMMEDIATE CACHE: Save the name locally so Dashboard shows it even if API fails
-        if (payload.site_name) {
-          localStorage.setItem('assigned_beat_name', payload.site_name);
-        }
-
-        // 🚀 SYNC TO DYNAMIC HIERARCHY (Vercel Backend)
-        const userId = res.data?.id || res.id;
-        if (payload.site_id && userId) {
-          const assignmentPayload = {
-            user_id: Number(userId), // Using user_id for Vercel
-            entity_id: Number(payload.site_id),
-            role_id: Number(payload.role_id),
-            company_id: Number(payload.company_id),
-            status: 'active'
-          };
-          this.hierarchyService.assignBeat(assignmentPayload).subscribe({
-            next: () => console.log("✅ [SYNC] Assignment saved to Vercel Database."),
-            error: (err: any) => console.warn("⚠️ [SYNC] Vercel sync failed.", err)
-          });
-        }
-        
-        // 🔥 AGGRESSIVE CACHING for new users
-        localStorage.setItem('user_data', JSON.stringify(res.data));
-        if (res.data.api_token) localStorage.setItem('api_token', res.data.api_token);
-        if (res.data.id) localStorage.setItem('ranger_id', res.data.id.toString());
-        localStorage.setItem('ranger_username', this.firstName + ' ' + this.lastName);
-        localStorage.setItem('ranger_phone', this.mobile);
-        
-        // 🔥 SIR'S STRICT PROTOCOL: Wait for photo sync before allowing success
-        if (this.profileImage) {
-          console.log("🔄 Step 2: Syncing photo to database (JSON + Full Prefix)...");
-          
-          const updatePayload = { 
-            user_id: res.data.id, 
-            id: res.data.id,
-            profile_pic: this.profileImage, // Full prefix for AI
-            photo: this.profileImage 
-          };
-
-          // 💡 SWITCHING TO SIR'S POSTMAN API: updateProfilePic
-          this.dataService.updateProfilePic(this.profileImage).subscribe({
-            next: async (syncRes: any) => {
-              console.log("✅ [DATABASE PHOTO SYNC SUCCESS]:", syncRes);
-              await loader.dismiss();
-              this.presentToast('Registration and Photo Sync Successful!', 'success');
-              this.navCtrl.navigateRoot('/login');
-            },
-            error: async (err) => {
-              console.error("❌ [DATABASE SYNC FAILED]:", err);
-              await loader.dismiss();
-              this.presentToast('CRITICAL ERROR: Photo could not be saved in database. Signup blocked.', 'danger');
-              // We do NOT navigate to login here to respect the user's requirement.
-            }
-          });
-        } else {
-          // No photo provided (should not happen due to validation)
-          await loader.dismiss();
-          this.navCtrl.navigateRoot('/login');
-        }
+        this.presentToast('Registration Successful!', 'success');
+        this.navCtrl.navigateRoot('/login');
       },
       error: async (err) => {
         await loader.dismiss();
-        console.error('Registration Error:', err);
-
-        let errorMsg = 'Registration failed. Please try again.';
-        if (err.status === 409) {
-          errorMsg = 'This mobile number or email is already registered.';
-        } else if (err.error?.message) {
-          errorMsg = err.error.message;
-        }
-
-        this.presentToast(errorMsg, 'danger');
+        this.presentToast(err.error?.message || 'Registration failed.', 'danger');
       }
     });
   }
 
-  /**
-   * Utility function to show feedback messages.
-   */
   async presentToast(msg: string, color: string) {
-    const t = await this.toastCtrl.create({ 
-      message: msg, 
-      color: color, 
-      duration: 3500,
-      position: 'bottom',
-      buttons: [{ text: 'OK', role: 'cancel' }]
-    });
+    const t = await this.toastCtrl.create({ message: msg, color: color, duration: 3000, position: 'bottom' });
     t.present();
   }
 
-  navToLogin() {
-    this.navCtrl.navigateBack('/login'); 
-  }
+  navToLogin() { this.navCtrl.navigateBack('/login'); }
 }

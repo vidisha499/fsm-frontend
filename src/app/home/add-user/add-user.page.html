@@ -61,26 +61,23 @@
             <select [(ngModel)]="userData.roleId" (change)="onRoleSelectChange($event)">
               <option [value]="null">Select Role</option>
               
-              <!-- Static Roles -->
+              <!-- Static Roles (Including ID 10) -->
               <option *ngFor="let role of staticRoles" [value]="role.id">
-                {{ role.name }} (ID: {{ role.id }})
+                {{ role.displayName }} (ID: {{ role.id }})
               </option>
-
-              <!-- Special Dynamic Option at the end -->
-              <option value="dynamic_selection">-- Dynamic (Custom Role) --</option>
             </select>
           </div>
         </div>
 
-        <!-- Secondary Dropdown for Dynamic Roles (Only shows if Dynamic is selected above) -->
+        <!-- Secondary Dropdown for Dynamic Roles (Only shows if ID 10 is selected above) -->
         <div class="input-pill animate__animated animate__fadeIn" *ngIf="isDynamicSelected">
           <label>CHOOSE DYNAMIC ROLE</label>
           <div class="pill-content">
             <i class="fas fa-id-badge"></i>
-            <select [(ngModel)]="userData.dynamicRoleId" (change)="userData.roleId = userData.dynamicRoleId">
+            <select [(ngModel)]="userData.dynamicRoleId" (change)="onDynamicRoleChange($event)">
               <option [value]="null">Select Custom Role</option>
               <option *ngFor="let role of dynamicRoles" [value]="role.id">
-                {{ role.name }} (ID: {{ role.id }})
+                {{ role.displayName }} (ID: {{ role.id }})
               </option>
             </select>
           </div>
@@ -117,6 +114,36 @@
           </ng-container>
         </ng-container>
         
+
+        <!-- ROLE PERMISSIONS PREVIEW -->
+        <div class="perm-preview-section" *ngIf="userData.roleId && userData.roleId !== 'null' && userData.roleId !== 'dynamic_selection'">
+          <div class="perm-preview-header">
+            <i class="fas fa-key"></i>
+            <span>ROLE PERMISSIONS</span>
+            <button class="toggle-perms-btn" (click)="showPermEdit = !showPermEdit">
+              {{ showPermEdit ? 'Hide' : 'Edit' }}
+            </button>
+          </div>
+          <div class="perm-chips" *ngIf="rolePermissions.length > 0">
+            <span class="perm-chip" *ngFor="let p of rolePermissions">{{ p }}</span>
+          </div>
+          <div class="perm-no-perms" *ngIf="rolePermissions.length === 0 && !showPermEdit">
+            <i class="fas fa-info-circle"></i> No permissions set. Click <b>Edit</b> to add.
+          </div>
+          <div class="perm-edit-grid" *ngIf="showPermEdit">
+            <div class="perm-edit-mod" *ngFor="let mod of allPermissions">
+              <div class="perm-mod-name">{{ mod.name | uppercase }}</div>
+              <div class="perm-mod-actions">
+                <label class="perm-check" *ngFor="let act of mod.actions">
+                  <input type="checkbox" 
+                         [checked]="userPermMap[mod.name] && userPermMap[mod.name][act.action]"
+                         (change)="togglePerm(mod.name, act.action, $event)">
+                  <span>{{ act.action }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <button class="mark-btn" (click)="saveUser()" [disabled]="isSaving">
           <span class="btn-text">{{ isSaving ? 'SAVING...' : 'REGISTER USER' }}</span>

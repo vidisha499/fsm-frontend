@@ -280,14 +280,18 @@ loadUserData() {
   }
 
   // 🔥 Map Role ID to human-readable Designation
-  if (rawRole == '1') {
-    this.userDesignation = 'SUPERADMIN';
-  } else if (rawRole == '2') {
-    this.userDesignation = 'ADMIN';
-  } else if (rawRole == '7') {
-    this.userDesignation = 'RANGE OFFICER';
+  // 🔥 Use the actual role name from user data if available
+  if (parsedUser && (parsedUser.role_name || parsedUser.designation)) {
+    this.userDesignation = (parsedUser.role_name || parsedUser.designation).toUpperCase();
   } else {
-    this.userDesignation = 'FOREST GUARD';
+    // Default fallbacks only if no name is found
+    if (rawRole == '1') {
+      this.userDesignation = 'SUPERADMIN';
+    } else if (rawRole == '2') {
+      this.userDesignation = 'ADMIN';
+    } else {
+      this.userDesignation = 'OFFICER';
+    }
   }
 
   console.log("Mapped Role for HTML:", this.userRole, "Designation:", this.userDesignation);
@@ -451,11 +455,12 @@ loadUserData() {
             }
 
             
-            // Only update role if we HAVEN'T fetched a dynamic role yet
+            // Sync Role/Designation with multiple fallback keys
             if (!(this as any).hasDynamicRole) {
-              parsedUser.role_name = data.role_name || data.designation || parsedUser.role_name;
-              if (parsedUser.role_name) {
-                this.userDesignation = parsedUser.role_name.toUpperCase();
+              const freshRole = data.role_name || data.role?.name || data.designation || parsedUser.role_name || '';
+              if (freshRole) {
+                this.userDesignation = freshRole.toUpperCase();
+                parsedUser.role_name = freshRole;
               }
             }
             
