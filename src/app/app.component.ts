@@ -199,24 +199,23 @@ export class AppComponent implements OnInit {
         );
       }
       
-      // 🔥 ALIAS MAPPING: Sidebar key → Backend permission keywords
+      // 🔥 ALIAS MAPPING: Frontend Key → Sir's Backend Module Names (STRICT)
       const aliasMap: any = {
-        'patrol_report': ['patrol_report', 'report', 'forest reports', 'patrolling'],
-        'attendance': ['attendance'],
-        'attendance_request': ['attendance'],
-        'asset_management': ['asset', 'assets'],
-        'forest_events': ['forest events', 'events', 'incidence'],
-        'know_your_area': ['know your area', 'geofence', 'area'],
-        'plantations': ['plantation', 'plantations'],
-        'chat': ['chat', 'communication'],
-        'daily_updates': ['daily_updates', 'daily updates'],
-        'client_visits': ['client_visits', 'field_visits', 'visits']
+        'patrol': ['Patrolling'],
+        'attendance': ['Attendance'],
+        'patrol_report': ['Forest Reports'],
+        'attendance_request': ['Attendance'],
+        'asset_management': ['Assets'],
+        'forest_events': ['Forest Events', 'Incidence'],
+        'know_your_area': ['Know Your Area'],
+        'plantations': ['Plantation'],
+        'chat': ['Chat'],
+        'daily_updates': ['Daily Updates'],
+        'client_visits': ['Visits']
       };
       
       const keyToCheck = feature.toLowerCase();
-      const aliases = aliasMap[keyToCheck] || [keyToCheck];
-
-      // console.log(`🔍 [FEATURE CHECK] Checking: ${feature} | Aliases:`, aliases);
+      const aliases = (aliasMap[keyToCheck] || [keyToCheck]).map((a: string) => a.toLowerCase());
       
       // Check if any permission string contains any of our aliases
       return perms.some((p: any) => {
@@ -230,18 +229,19 @@ export class AppComponent implements OnInit {
 
   showAllSidebarKeys() {
     const aliasMap: any = {
-      'asset_management': ['asset', 'assets'],
-      'forest_events': ['forest events', 'events', 'incidence'],
-      'know_your_area': ['know your area', 'geofence', 'area'],
-      'plantations': ['plantation', 'plantations'],
-      'attendance': ['attendance'],
-      'patrol_report': ['patrol_report', 'report', 'forest reports', 'patrolling'],
-      'attendance_request': ['attendance'],
-      'daily_updates': ['daily_updates', 'daily updates'],
-      'chat': ['chat', 'communication'],
-      'client_visits': ['client_visits', 'field_visits', 'visits']
+      'patrol': ['Patrolling'],
+      'attendance': ['Attendance'],
+      'patrol_report': ['Forest Reports'],
+      'attendance_request': ['Attendance'],
+      'asset_management': ['Assets'],
+      'forest_events': ['Forest Events', 'Incidence'],
+      'know_your_area': ['Know Your Area'],
+      'plantations': ['Plantation'],
+      'chat': ['Chat'],
+      'daily_updates': ['Daily Updates'],
+      'client_visits': ['Visits']
     };
-    console.log("%c🔑 [FRONTEND] ALL SIDEBAR KEYS & MAPPINGS:", "color: #0088ff; font-weight: bold; font-size: 14px;");
+    console.log("%c🔑 [SIR'S KEYS] STRICT SIDEBAR MAPPINGS:", "color: #0088ff; font-weight: bold; font-size: 14px;");
     console.table(aliasMap);
   }
 

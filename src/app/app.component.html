@@ -56,7 +56,7 @@
       </a>
 
       <!-- 2. Patrol/Beat Inspection -->
-      <a class="menu-item" (click)="goToPage('patrol-logs')" [class.active]="router.url.includes('patrol-logs')">
+      <a *ngIf="isFeatureEnabled('patrol')" class="menu-item" (click)="goToPage('patrol-logs')" [class.active]="router.url.includes('patrol-logs')">
         <div class="icon-box rose"><i class="fas fa-route"></i></div>
         <div class="item-text"><span>Patrol/Beat Inspection</span></div>
       </a>
