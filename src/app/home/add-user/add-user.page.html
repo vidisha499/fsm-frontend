@@ -124,12 +124,7 @@
               {{ showPermEdit ? 'Hide' : 'Edit' }}
             </button>
           </div>
-          <div class="perm-chips" *ngIf="rolePermissions.length > 0">
-            <span class="perm-chip" *ngFor="let p of rolePermissions">{{ p }}</span>
-          </div>
-          <div class="perm-no-perms" *ngIf="rolePermissions.length === 0 && !showPermEdit">
-            <i class="fas fa-info-circle"></i> No permissions set. Click <b>Edit</b> to add.
-          </div>
+
           <div class="perm-edit-grid" *ngIf="showPermEdit">
             <div class="perm-edit-mod" *ngFor="let mod of allPermissions">
               <div class="perm-mod-name">{{ mod.displayName | uppercase }}</div>
