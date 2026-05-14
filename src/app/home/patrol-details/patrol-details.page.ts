@@ -150,17 +150,22 @@ export class PatrolDetailsPage implements OnInit {
     this.patrol.start_time = this.patrol.start_time || this.patrol.start_lat_time || this.patrol.created_at || this.patrol.startTime;
     this.patrol.end_time = this.patrol.end_time || this.patrol.end_lat_time || this.patrol.ended_at || this.patrol.endTime;
 
-    // Calculate distance if missing or 0
-    const calcDist = this.calculateDistance(this.patrol.route);
-    let rawDist = (calcDist !== '0.00') ? calcDist : (this.patrol.distanceKm || this.patrol.distance || this.patrol.distance_km || this.patrol.total_distance || '0.00');
-    // Ensure formatting to 2 decimal places even for fallback values
+    // Prioritize the distance from the server (which was saved during the trip)
+    // Only calculate if server data is missing or 0
+    let serverDist = this.patrol.distanceKm || this.patrol.distance || this.patrol.distance_km || this.patrol.total_distance || '0.00';
+    let rawDist = (serverDist !== '0.00' && serverDist !== 0) ? serverDist : this.calculateDistance(this.patrol.route);
+    
+    // Ensure formatting to 2 decimal places
     this.patrol.distanceKm = !isNaN(Number(rawDist)) ? Number(rawDist).toFixed(2) : '0.00';
 
     // Calculate duration if missing
     this.patrol.duration = this.calculateDuration(this.patrol);
     
-    // Calculate Speed
-    this.patrol.avgSpeed = this.calculateSpeed(this.patrol.distanceKm, this.patrol.duration);
+    // Prioritize the speed from the server
+    let serverSpeed = this.patrol.avg_speed || this.patrol.avgSpeed || this.patrol.speed;
+    this.patrol.avgSpeed = (serverSpeed && serverSpeed !== '0.0' && serverSpeed !== 0) ? 
+                           Number(serverSpeed).toFixed(1) : 
+                           this.calculateSpeed(this.patrol.distanceKm, this.patrol.duration);
 
     // Ensure startTime is set for the Date field
     if (!this.patrol.startTime) {

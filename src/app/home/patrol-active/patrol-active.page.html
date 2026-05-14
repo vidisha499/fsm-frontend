@@ -54,7 +54,7 @@
         </div>
       </div>
 
-      <div class="form-grid">
+      <div class="form-grid three-cols">
         <div class="input-pill">
           <label>{{ 'PATROL.DURATION' | translate }}</label>
           <div class="pill-content"><i class="fas fa-clock"></i><span class="val">{{timerDisplay}}</span></div>
@@ -62,6 +62,10 @@
         <div class="input-pill">
           <label>{{ 'PATROL.DISTANCE' | translate }}</label>
           <div class="pill-content"><i class="fas fa-route"></i><span class="val">{{totalDistanceKm.toFixed(2)}} KM</span></div>
+        </div>
+        <div class="input-pill">
+          <label>{{ 'PATROL.SPEED' | translate }}</label>
+          <div class="pill-content"><i class="fas fa-gauge-high"></i><span class="val">{{avgSpeed}} KM/H</span></div>
         </div>
       </div>
 

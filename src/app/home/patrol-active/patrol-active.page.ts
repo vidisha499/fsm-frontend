@@ -63,6 +63,7 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
   startTime: string = new Date().toISOString();
 
   totalDistanceKm: number = 0;
+  avgSpeed: string = '0.0';
   lastLatLng: L.LatLng | null = null;
   routePoints: { lat: number; lng: number }[] = [];
   activeReportCategory: 'criminal' | 'events' = 'criminal';
@@ -416,7 +417,9 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     const payload = {
       end_lat: Number(this.lastLatLng?.lat || 0),
       end_lng: Number(this.lastLatLng?.lng || 0),
-      coords: this.routePoints.map(p => [Number(p.lng), Number(p.lat)])
+      coords: this.routePoints.map(p => [Number(p.lng), Number(p.lat)]),
+      distance_km: this.totalDistanceKm,
+      avg_speed: this.avgSpeed
     };
 
     if (!this.dataService.isOnline()) {
@@ -543,6 +546,14 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     }
     
     this.totalDistanceKm = Number((total / 1000).toFixed(2));
+    
+    // Update Avg Speed
+    if (this.seconds > 0) {
+      const hours = this.seconds / 3600;
+      const speed = this.totalDistanceKm / hours;
+      this.avgSpeed = speed > 40 ? '0.0' : speed.toFixed(1);
+    }
+
     this.cdr.detectChanges();
   }
 
