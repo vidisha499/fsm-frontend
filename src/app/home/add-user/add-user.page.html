@@ -132,7 +132,7 @@
           </div>
           <div class="perm-edit-grid" *ngIf="showPermEdit">
             <div class="perm-edit-mod" *ngFor="let mod of allPermissions">
-              <div class="perm-mod-name">{{ mod.name | uppercase }}</div>
+              <div class="perm-mod-name">{{ mod.displayName | uppercase }}</div>
               <div class="perm-mod-actions">
                 <label class="perm-check" *ngFor="let act of mod.actions">
                   <input type="checkbox" 

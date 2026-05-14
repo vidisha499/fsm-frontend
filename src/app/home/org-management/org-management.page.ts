@@ -424,7 +424,7 @@ export class OrgManagementPage implements OnInit {
     this.allPermissions.forEach(mod => {
       this.newRolePerms[mod.name] = {};
       mod.actions.forEach((act: any) => {
-        this.newRolePerms[mod.name][act.action] = false;
+        this.newRolePerms[mod.name][act.action] = true;
       });
     });
     
@@ -527,6 +527,7 @@ export class OrgManagementPage implements OnInit {
 
         this.allPermissions = raw.map((item: any) => ({
           name: item.module,
+          displayName: this.getModuleDisplayName(item.module),
           actions: (item.actions || []).map((act: any) => {
             // If it's a string, wrap it. If it's an object, keep it.
             const actionLabel = typeof act === 'string' ? act : (act.action || act.name || act.label || 'Unknown');
@@ -554,7 +555,7 @@ export class OrgManagementPage implements OnInit {
       this.userPermissions[mod.name] = {};
       if (mod.actions) {
         mod.actions.forEach((act: any) => {
-          this.userPermissions[mod.name][act.action] = false;
+          this.userPermissions[mod.name][act.action] = true; // Default to true
         });
       }
     });
@@ -563,6 +564,11 @@ export class OrgManagementPage implements OnInit {
     const existing = this.selectedRoleForPerms.permissions || [];
     if (Array.isArray(existing) && existing.length > 0) {
       console.log("📍 [PERMS] Using existing perms from role object:", existing);
+      
+      // If we have existing perms, we should probably start from false and only enable what's there
+      // Otherwise, the default 'true' from above will keep unassigned perms active.
+      this.resetPermissionsToFalse(this.userPermissions);
+
       existing.forEach((d: any) => {
         let modName = d.module;
         let actionName = d.action || d.name || d.label || d;
@@ -587,6 +593,9 @@ export class OrgManagementPage implements OnInit {
         const defaults = res?.data || res || [];
         
         if (Array.isArray(defaults) && defaults.length > 0) {
+          // Sync with API: Reset to false first to strictly follow the saved state
+          this.resetPermissionsToFalse(this.userPermissions);
+
           defaults.forEach((d: any) => {
             let modName = d.module;
             let actionName = d.action || d.name || d.label;
@@ -608,6 +617,14 @@ export class OrgManagementPage implements OnInit {
         this.isPermissionsLoading = false;
         console.error("❌ Role Permissions API failed", err);
       }
+    });
+  }
+
+  resetPermissionsToFalse(permMap: any) {
+    Object.keys(permMap).forEach(modName => {
+      Object.keys(permMap[modName]).forEach(actName => {
+        permMap[modName][actName] = false;
+      });
     });
   }
 
@@ -733,6 +750,24 @@ export class OrgManagementPage implements OnInit {
   }
 
   // --- HELPERS ---
+  getModuleDisplayName(mod: string): string {
+    const map: any = {
+      'patrol': 'Patrolling',
+      'attendance': 'Attendance',
+      'patrol_report': 'Forest Reports',
+      'attendance_request': 'Attendance',
+      'asset_management': 'Assets',
+      'forest_events': 'Forest Events',
+      'incidence': 'Forest Events',
+      'know_your_area': 'Know Your Area',
+      'plantations': 'Plantation',
+      'chat': 'Chat',
+      'daily_updates': 'Daily Updates',
+      'client_visits': 'Visits'
+    };
+    return map[mod.toLowerCase()] || mod.charAt(0).toUpperCase() + mod.slice(1).replace(/_/g, ' ');
+  }
+
   async showToast(msg: string, color: string = 'dark') {
     const t = await this.toast.create({
       message: msg,

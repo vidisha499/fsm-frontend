@@ -160,7 +160,7 @@
               <div class="mod-header">
                 <div class="mod-title">
                   <i class="fas fa-layer-group"></i>
-                  {{ mod.name }}
+                  {{ mod.displayName }}
                 </div>
               </div>
               <div class="mod-actions">
@@ -245,7 +245,7 @@
         <label>ASSIGN PERMISSIONS</label>
         <div class="perm-container">
           <div class="perm-mod" *ngFor="let mod of allPermissions">
-            <div class="mod-title">{{ mod.name | uppercase }}</div>
+            <div class="mod-title">{{ mod.displayName | uppercase }}</div>
             <div class="mod-actions">
               <div class="action-item" *ngFor="let act of mod.actions">
                 <ion-checkbox [(ngModel)]="newRolePerms[mod.name][act.action]"></ion-checkbox>

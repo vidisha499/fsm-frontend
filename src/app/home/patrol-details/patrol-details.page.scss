@@ -247,6 +247,29 @@
 
 .loading-wrap { text-align: center; padding: 50px; color: #94a3b8; }
 
+.no-location-box {
+  text-align: center;
+  padding: 40px 20px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 24px;
+  color: #64748b;
+  margin: 10px 0;
+
+  i {
+    font-size: 36px;
+    color: #94a3b8;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  p {
+    font-size: 13px;
+    font-weight: 500;
+    margin: 0;
+  }
+}
+
 // --- ZOOM MODAL STYLES ---
 .zoom-overlay {
   position: fixed; inset: 0; background: rgba(0, 0, 0, 0.9);

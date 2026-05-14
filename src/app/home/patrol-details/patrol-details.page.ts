@@ -167,6 +167,14 @@ export class PatrolDetailsPage implements OnInit {
         this.patrol.startTime = this.patrol.start_time || new Date().toISOString();
     }
 
+    // Flag to check if we have ANY spatial data to show
+    const hasRoute = this.patrol.route && this.patrol.route.length > 0;
+    const hasObs = this.patrol.observationData && this.patrol.observationData.length > 0;
+    const hasStart = (this.patrol.start_lat && this.patrol.start_lat !== 0) || 
+                     (this.patrol.start_lng && this.patrol.start_lng !== 0);
+
+    this.patrol.hasLocationData = hasRoute || hasObs || hasStart;
+
     // Parse existing observations if any
     if (this.patrol.observationData && this.patrol.observationData.length > 0) {
       this.patrol.observationData = this.patrol.observationData.map((obs: any) => this.processObservationPhoto(obs));
@@ -331,26 +339,28 @@ export class PatrolDetailsPage implements OnInit {
       
       let lat1, lng1, lat2, lng2;
       
-      // Handle [lng, lat] vs [lat, lng] vs {lat, lng}
-      if (Array.isArray(p1)) {
-        if (p1[0] > 100 || p1[0] < -100) { // Likely longitude
-          lng1 = Number(p1[0]); lat1 = Number(p1[1]);
+      // Handle different formats: [lng, lat] vs [lat, lng] vs {lat, lng}
+      const parsePt = (pt: any) => {
+        let lat, lng;
+        if (Array.isArray(pt)) {
+          // If the first coordinate is > 60, it's almost certainly Longitude (in India)
+          if (Math.abs(pt[0]) > 60) { 
+            lng = pt[0]; lat = pt[1];
+          } else {
+            lat = pt[0]; lng = pt[1];
+          }
         } else {
-          lat1 = Number(p1[0]); lng1 = Number(p1[1]);
+          lat = pt.latitude || pt.lat;
+          lng = pt.longitude || pt.lng;
         }
-      } else {
-        lat1 = Number(p1.latitude || p1.lat); lng1 = Number(p1.longitude || p1.lng);
-      }
+        return { lat: Number(lat), lng: Number(lng) };
+      };
+
+      const pt1 = parsePt(p1);
+      const pt2 = parsePt(p2);
       
-      if (Array.isArray(p2)) {
-        if (p2[0] > 100 || p2[0] < -100) {
-          lng2 = Number(p2[0]); lat2 = Number(p2[1]);
-        } else {
-          lat2 = Number(p2[0]); lng2 = Number(p2[1]);
-        }
-      } else {
-        lat2 = Number(p2.latitude || p2.lat); lng2 = Number(p2.longitude || p2.lng);
-      }
+      lat1 = pt1.lat; lng1 = pt1.lng;
+      lat2 = pt2.lat; lng2 = pt2.lng;
       
       if (isNaN(lat1) || isNaN(lng1) || isNaN(lat2) || isNaN(lng2)) continue;
       // Skip points at [0,0] which cause massive distance errors
@@ -365,11 +375,10 @@ export class PatrolDetailsPage implements OnInit {
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
       const segmentDist = R * c;
       
-      // Sanity Check: If a single segment is > 2km, it's almost certainly a GPS glitch
+      // Sanity Check: If a single segment is > 2km between points (usually collected every few seconds/meters),
+      // it's almost certainly a GPS glitch.
       if (segmentDist < 2) {
         totalDist += segmentDist;
-      } else {
-        console.warn("Skipping glitchy segment of", segmentDist, "km");
       }
     }
     return totalDist.toFixed(2);
@@ -460,17 +469,20 @@ initMap() {
     // 3. Handle Route Polyline
     // Map the route array to Leaflet LatLng tuples
     const routeCoords: L.LatLngTuple[] = (this.patrol.route || []).map((p: any) => {
-      let lat = p.latitude || p.lat;
-      let lng = p.longitude || p.lng;
-      if (lat === undefined && Array.isArray(p)) {
-         if (p[0] > p[1]) {
+      let lat, lng;
+      if (Array.isArray(p)) {
+         // Consistent coordinate detection: Longitude > 60 (India)
+         if (Math.abs(p[0]) > 60) {
            lng = p[0]; lat = p[1];
          } else {
            lat = p[0]; lng = p[1];
          }
+      } else {
+        lat = p.latitude || p.lat;
+        lng = p.longitude || p.lng;
       }
       return [Number(lat), Number(lng)] as L.LatLngTuple;
-    }).filter((c: any) => !isNaN(c[0]) && !isNaN(c[1]));
+    }).filter((c: any) => !isNaN(c[0]) && !isNaN(c[1]) && c[0] !== 0);
 
     if (routeCoords.length > 0) {
       const polyline = L.polyline(routeCoords, { 
@@ -530,8 +542,24 @@ initMap() {
       // fitBounds adjusts zoom and center so all polyline points and markers are visible
       this.map.fitBounds(bounds, { padding: [40, 40] });
     } else {
-      // Fallback view if no route or sightings exist (Center of project area)
-      this.map.setView([19.95, 79.12], 13);
+      // Fallback view: Use patrol start coordinates if available, otherwise hide/default
+      const startLat = Number(this.patrol.start_lat || this.patrol.startLat || 0);
+      const startLng = Number(this.patrol.start_lng || this.patrol.startLng || 0);
+
+      if (startLat !== 0 && startLng !== 0) {
+        this.map.setView([startLat, startLng], 15);
+        L.marker([startLat, startLng], {
+          icon: L.divIcon({
+            className: 'start-marker',
+            html: '<div style="background: #10b981; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.3);"></div>',
+            iconSize: [16, 16],
+            iconAnchor: [8, 8]
+          })
+        }).addTo(this.map).bindPopup('Patrol Start Point');
+      } else {
+        // Absolute fallback if literally nothing is known
+        this.map.setView([19.95, 79.12], 13);
+      }
     }
 
     this.mapLoading = false;

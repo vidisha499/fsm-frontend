@@ -55,9 +55,16 @@
       <hr class="card-divider">
 
       <h3 class="inner-section-title">{{ 'DETAILS.ROUTE_TITLE' | translate }}</h3>
-      <div class="embedded-map">
+      <div class="embedded-map" *ngIf="patrol.hasLocationData; else noLocationTemplate">
         <div id="detailsMap" style="height: 100%; width: 100%;"></div>
       </div>
+
+      <ng-template #noLocationTemplate>
+        <div class="no-location-box">
+          <i class="fas fa-map-marked-alt"></i>
+          <p>No route or location data recorded for this patrol.</p>
+        </div>
+      </ng-template>
 
       <hr class="card-divider">
 

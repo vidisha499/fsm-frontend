@@ -81,6 +81,7 @@ export class AddUserPage implements OnInit {
           
           this.allPermissions = raw.map((item: any) => ({
             name: item.module,
+            displayName: this.getModuleDisplayName(item.module),
             actions: (item.actions || []).map((act: any) => ({
               action: typeof act === 'string' ? act : (act.action || act.name || 'Unknown')
             }))
@@ -328,32 +329,41 @@ export class AddUserPage implements OnInit {
     this.rolePermissions = [];
     this.userPermMap = {};
 
-    // Initialize all to false
+    // Initialize all to true by default (as per user request)
     this.allPermissions.forEach(mod => {
       this.userPermMap[mod.name] = {};
       mod.actions.forEach((act: any) => {
-        this.userPermMap[mod.name][act.action] = false;
+        this.userPermMap[mod.name][act.action] = true;
       });
     });
 
-    // Apply given permissions (case-insensitive)
-    perms.forEach((p: any) => {
-      let modName = (p.module || '').toLowerCase();
-      let actName = (p.action || p.name || p || '').toLowerCase();
+    // If we have explicit perms, reset to false first so we only check what's granted
+    if (perms.length > 0) {
+      this.allPermissions.forEach(mod => {
+        mod.actions.forEach((act: any) => {
+          this.userPermMap[mod.name][act.action] = false;
+        });
+      });
 
-      if (typeof p === 'string' && p.includes('.')) {
-        const parts = p.split('.');
-        modName = parts[0].toLowerCase();
-        actName = parts[1].toLowerCase();
-      }
+      // Apply given permissions (case-insensitive)
+      perms.forEach((p: any) => {
+        let modName = (p.module || '').toLowerCase();
+        let actName = (p.action || p.name || p || '').toLowerCase();
 
-      // Find matching key in userPermMap (case-insensitive)
-      const mapKey = Object.keys(this.userPermMap).find(k => k.toLowerCase() === modName);
-      if (mapKey) {
-        const actKey = Object.keys(this.userPermMap[mapKey]).find(k => k.toLowerCase() === actName);
-        if (actKey) this.userPermMap[mapKey][actKey] = true;
-      }
-    });
+        if (typeof p === 'string' && p.includes('.')) {
+          const parts = p.split('.');
+          modName = parts[0].toLowerCase();
+          actName = parts[1].toLowerCase();
+        }
+
+        // Find matching key in userPermMap (case-insensitive)
+        const mapKey = Object.keys(this.userPermMap).find(k => k.toLowerCase() === modName);
+        if (mapKey) {
+          const actKey = Object.keys(this.userPermMap[mapKey]).find(k => k.toLowerCase() === actName);
+          if (actKey) this.userPermMap[mapKey][actKey] = true;
+        }
+      });
+    }
 
     this.buildPermissionsArray();
     this.cdr.detectChanges();
@@ -621,6 +631,24 @@ export class AddUserPage implements OnInit {
         this.showToast('Server Error: ' + msg, 'danger');
       }
     });
+  }
+
+  getModuleDisplayName(mod: string): string {
+    const map: any = {
+      'patrol': 'Patrolling',
+      'attendance': 'Attendance',
+      'patrol_report': 'Forest Reports',
+      'attendance_request': 'Attendance',
+      'asset_management': 'Assets',
+      'forest_events': 'Forest Events',
+      'incidence': 'Forest Events',
+      'know_your_area': 'Know Your Area',
+      'plantations': 'Plantation',
+      'chat': 'Chat',
+      'daily_updates': 'Daily Updates',
+      'client_visits': 'Visits'
+    };
+    return map[mod.toLowerCase()] || mod.charAt(0).toUpperCase() + mod.slice(1).replace(/_/g, ' ');
   }
 
   async showToast(msg: string, color: string) {

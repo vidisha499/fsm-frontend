@@ -348,29 +348,52 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
   }
 
   async startTracking() {
-    this.gpsWatchId = await Geolocation.watchPosition({ enableHighAccuracy: true, maximumAge: 3000 }, position => {
+    this.gpsWatchId = await Geolocation.watchPosition({ 
+      enableHighAccuracy: true, 
+      maximumAge: 3000,
+      timeout: 10000
+    }, position => {
       if (position && this.map) {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
+        const accuracy = position.coords.accuracy;
         
-        // Skip invalid/zero coordinates
+        // 1. Skip invalid/zero coordinates
         if (lat === 0 && lng === 0) return;
+
+        // 2. Filter by accuracy: Ignore points with low accuracy (> 60 meters)
+        // High accuracy is crucial to prevent "jitter" distance accumulation
+        if (accuracy > 60) {
+          console.warn(`🛰️ GPS Accuracy too low (${accuracy}m). Ignoring point.`);
+          return;
+        }
         
         const current = L.latLng(lat, lng);
         
-        // Sanity Check: If jump is more than 1km in a single update, it's likely a GPS glitch
-        if (this.lastLatLng && this.lastLatLng.distanceTo(current) > 1000) {
+        // 3. Sanity Check: If jump is more than 1.5km in a single update, it's likely a GPS glitch
+        if (this.lastLatLng && this.lastLatLng.distanceTo(current) > 1500) {
           console.warn("⚠️ Ignoring impossible GPS jump:", this.lastLatLng.distanceTo(current), "meters");
           return;
         }
 
+        // Update current marker position regardless of distance (visual feedback)
         if (this.marker) this.marker.setLatLng(current);
-        if (!this.lastLatLng || this.lastLatLng.distanceTo(current) > 10) {
+
+        // 4. Movement Threshold: Only add to route and calculate distance if moved > 25 meters
+        // This significantly reduces distance "inflation" caused by stationary jitter.
+        if (!this.lastLatLng || this.lastLatLng.distanceTo(current) > 25) {
           this.routePoints.push({ lat: current.lat, lng: current.lng });
           localStorage.setItem('active_patrol_route', JSON.stringify(this.routePoints));
-          if (this.routePolyline) this.routePolyline.addLatLng(current);
+          
+          if (this.routePolyline) {
+            this.routePolyline.addLatLng(current);
+          }
+          
           this.lastLatLng = current;
           this.calculateDistance();
+
+          // Auto-center map if user is moving significantly
+          // this.map.panTo(current); 
         }
         this.cdr.detectChanges();
       }
@@ -499,18 +522,28 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
   calculateDistance() {
     if (this.routePoints.length < 2) {
       this.totalDistanceKm = 0;
+      this.cdr.detectChanges();
       return;
     }
+
     let total = 0;
     for (let i = 0; i < this.routePoints.length - 1; i++) {
       const p1 = this.routePoints[i];
       const p2 = this.routePoints[i+1];
+      
       // Skip invalid points at [0,0]
       if ((p1.lat === 0 && p1.lng === 0) || (p2.lat === 0 && p2.lng === 0)) continue;
       
-      total += L.latLng(p1.lat, p1.lng).distanceTo(L.latLng(p2.lat, p2.lng));
+      const d = L.latLng(p1.lat, p1.lng).distanceTo(L.latLng(p2.lat, p2.lng));
+      
+      // Secondary Sanity Check: If segment is > 2km, ignore it (likely signal jump)
+      if (d < 2000) {
+        total += d;
+      }
     }
+    
     this.totalDistanceKm = Number((total / 1000).toFixed(2));
+    this.cdr.detectChanges();
   }
 
   ngOnDestroy() {
