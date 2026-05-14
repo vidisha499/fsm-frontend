@@ -116,7 +116,7 @@
         
 
         <!-- ROLE PERMISSIONS PREVIEW -->
-        <div class="perm-preview-section" *ngIf="userData.roleId && userData.roleId !== 'null' && userData.roleId !== 'dynamic_selection'">
+        <div class="perm-preview-section" *ngIf="shouldShowHierarchy() || (userData.roleId && userData.roleId !== 'null' && userData.roleId !== '10')">
           <div class="perm-preview-header">
             <i class="fas fa-key"></i>
             <span>ROLE PERMISSIONS</span>

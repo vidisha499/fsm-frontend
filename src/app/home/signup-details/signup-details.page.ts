@@ -192,6 +192,16 @@ export class SignupDetailsPage implements OnInit {
     return this.layers.length > 0;
   }
 
+  getRoleName(id: any): string {
+    const rId = Number(id);
+    if (rId === 1) return 'SUPER ADMIN';
+    if (rId === 2) return 'ADMIN';
+    if (rId === 3) return 'GUARD / RANGER';
+    if (rId === 4) return 'SUPERVISOR';
+    if (rId === 7) return 'ADMIN';
+    return '';
+  }
+
   async onSignup() {
     if (!this.profileImage) return this.presentToast('Photo is required.', 'warning');
     if (!this.firstName || !this.lastName) return this.presentToast('Name is required.', 'warning');
@@ -212,7 +222,7 @@ export class SignupDetailsPage implements OnInit {
     }
 
     const payload: any = {
-      api_token: "Fj4HXJhcQZ99ssKkqypXGAEQEXxERYX7K7adeZ0JZkGgQmseUSOaGaGyasjh", 
+      api_token: localStorage.getItem('api_token') || this.verifiedData?.api_token || '', 
       name: `${this.firstName} ${this.lastName}`.trim(),
       mobile: String(this.mobile).trim(),
       email: this.email || '',
@@ -229,7 +239,7 @@ export class SignupDetailsPage implements OnInit {
       entity_id: deepestEntityId,
       site_id: deepestEntityId, 
       site_name: deepestEntityName,
-      designation: this.verifiedData.designation || this.verifiedData.role_name || deepestEntityName || 'Officer', 
+      designation: this.getRoleName(this.verifiedData.role_id) || this.verifiedData.designation || this.verifiedData.role_name || deepestEntityName || 'Officer', 
       attendance_type: 'multiple', 
       shift_name: this.shift || 'General Shift',
       weekly_off: this.weeklyOff || 'Sunday',

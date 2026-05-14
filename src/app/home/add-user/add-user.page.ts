@@ -73,6 +73,12 @@ export class AddUserPage implements OnInit {
       this.dataService.listMasterPermissions().subscribe({
         next: (res: any) => {
           const raw = res?.data || res || [];
+          console.log("%c🔑 [DATABASE] MASTER PERMISSIONS:", "color: #ff00ff; font-weight: bold;");
+          console.table(raw.map((m: any) => ({
+            module: m.module || m.name,
+            actions: Array.isArray(m.actions) ? m.actions.join(', ') : m.actions
+          })));
+          
           this.allPermissions = raw.map((item: any) => ({
             name: item.module,
             actions: (item.actions || []).map((act: any) => ({
@@ -379,8 +385,13 @@ export class AddUserPage implements OnInit {
 
   shouldShowHierarchy(): boolean {
     if (!this.userData.roleId || this.userData.roleId === 'null') return false;
+    
+    // 🛡️ IF Dynamic Role (ID 10) is selected, WAIT until a specific sub-role is picked
+    if (this.userData.roleId === '10' && (!this.userData.dynamicRoleId || this.userData.dynamicRoleId === 'null')) {
+      return false;
+    }
+
     // Only Super Admin (1) and specialized global roles (7) are truly global.
-    // Admin/Supervisor (2) should be assignable to specific nodes.
     const globalRoles = [1, 7];
     return !globalRoles.includes(Number(this.userData.roleId));
   }

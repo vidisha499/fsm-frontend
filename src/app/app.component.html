@@ -98,19 +98,19 @@
       </a>
 
       <!-- 9. Organisation Management -->
-      <a *ngIf="userRole === 'admin'" class="menu-item" (click)="goToPage('org-management')" [class.active]="router.url.includes('org-management')">
+      <a *ngIf="userRole === 'admin' || userRole === '1'" class="menu-item" (click)="goToPage('org-management')" [class.active]="router.url.includes('org-management')">
         <div class="icon-box purple"><i class="fas fa-sitemap"></i></div>
         <div class="item-text"><span>Organization Management</span></div>
       </a>
 
       <!-- 10. Attendance Request -->
-      <a *ngIf="isFeatureEnabled('attendance_request') && userRole === 'admin'" class="menu-item" (click)="goToPage('attendance-requests')">
+      <a *ngIf="isFeatureEnabled('attendance_request') && (userRole === 'admin' || userRole === '1')" class="menu-item" (click)="goToPage('attendance-requests')">
         <div class="icon-box amber"><i class="fas fa-user-check"></i></div>
         <div class="item-text"><span>Attendance Requests</span></div>
       </a>
 
       <!-- 11. Add Approved User -->
-      <a *ngIf="userDesignation === 'SUPERADMIN'" class="menu-item" (click)="goToPage('add-user')" [class.active]="router.url.includes('add-user')">
+      <a *ngIf="userRole === '1' || userDesignation === 'SUPER ADMIN' || userDesignation === 'SUPERADMIN'" class="menu-item" (click)="goToPage('add-user')" [class.active]="router.url.includes('add-user')">
         <div class="icon-box azure"><i class="fas fa-user-plus"></i></div>
         <div class="item-text"><span>Add Approved User</span></div>
       </a>

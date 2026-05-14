@@ -173,9 +173,10 @@ export class AppComponent implements OnInit {
 
   isFeatureEnabled(feature: string): boolean {
     const roleId = localStorage.getItem('user_role');
+    const userRoleStr = (this.userRole || '').toLowerCase();
     
-    // Superadmin and Admin always bypass feature restrictions
-    if (roleId === '1' || roleId === '2') {
+    // 🔥 Superadmin and Admin always bypass feature restrictions
+    if (roleId === '1' || roleId === '2' || roleId === '7' || userRoleStr === 'superadmin' || userRoleStr === 'admin') {
       return true;
     }
 
@@ -329,23 +330,31 @@ loadUserData() {
   }
 
   // 🔥 Map Role ID to human-readable Designation
-  // 🔥 Use the actual role name from user data if available
-  if (parsedUser && (parsedUser.role_name || parsedUser.designation)) {
-    this.userDesignation = (parsedUser.role_name || parsedUser.designation).toUpperCase();
-  } else {
-    // Default fallbacks only if no name is found
-    if (rawRole == '1') {
-      this.userDesignation = 'SUPERADMIN';
-    } else if (rawRole == '2') {
-      this.userDesignation = 'ADMIN';
+  const roleMap: { [key: string]: string } = {
+    '1': 'SUPER ADMIN',
+    '2': 'ADMIN',
+    '3': 'FOREST GUARD',
+    '4': 'SUPERVISOR',
+    '7': 'ADMIN'
+  };
+
+  if (roleMap[rawRole]) {
+    this.userDesignation = roleMap[rawRole];
+  } else if (parsedUser && (parsedUser.role_name || parsedUser.designation)) {
+    const d = (parsedUser.role_name || parsedUser.designation).toLowerCase();
+    // 🛡️ Filter out entity names
+    if (d.includes('beat') || d.includes('node') || d.includes('unit')) {
+       this.userDesignation = roleMap[rawRole] || 'OFFICER';
     } else {
-      this.userDesignation = 'OFFICER';
+       this.userDesignation = d.toUpperCase();
     }
+  } else {
+    this.userDesignation = 'OFFICER';
   }
 
   // 🔥 INSTANT FALLBACK: Use saved role name from signup/add-user
   const savedRoleName = localStorage.getItem('user_role_name');
-  if (savedRoleName && savedRoleName !== 'null' && savedRoleName.trim() !== '') {
+  if (savedRoleName && savedRoleName !== 'null' && savedRoleName.trim() !== '' && !savedRoleName.toLowerCase().includes('beat')) {
     this.userDesignation = savedRoleName.toUpperCase();
   }
 
@@ -571,7 +580,20 @@ loadUserData() {
 
             // 🔥 PRIORITIZE ROLE NAME from Assignment or Role Object
             if (!(this as any).hasDynamicRole) {
-              const freshRole = data.role?.name || data.role_name || data.designation || parsedUser.role_name || '';
+              let freshRole = data.role?.name || data.role_name || data.designation || parsedUser.role_name || '';
+              const rId = Number(data.role_id || parsedUser.role_id);
+              
+              // 🛡️ ROLE PROTECTION: If designation is just a beat/node name, fallback to standard role name
+              if (rId === 3 && (!freshRole || freshRole.toLowerCase().includes('beat') || freshRole.toLowerCase().includes('unit'))) {
+                freshRole = 'FOREST GUARD';
+              } else if (rId === 4) {
+                freshRole = 'SUPERVISOR';
+              } else if (rId === 2 || rId === 7) {
+                freshRole = 'ADMIN';
+              } else if (rId === 1) {
+                freshRole = 'SUPER ADMIN';
+              }
+
               if (freshRole) {
                 this.userDesignation = freshRole.toUpperCase();
                 parsedUser.role_name = freshRole;

@@ -66,15 +66,18 @@ export class OfficersPage implements OnInit {
       requests: this.dataService.getAttendanceRequests(companyIdStr).pipe(catchError(() => of([]))),
       onsite: this.dataService.getGuardsOnSite(companyIdStr).pipe(catchError(() => of([]))),
       allUsersPHP: this.dataService.getAssignableUsers({ company_id: companyIdStr }).pipe(catchError(() => of([]))),
-      allUsersNode: this.hierarchyService.getRangers(this.myCompanyId).pipe(catchError(() => of([])))
+      allUsersNode: this.hierarchyService.getRangers(this.myCompanyId).pipe(catchError(() => of([]))),
+      allUsersProduction: this.dataService.getRangersByCompany(companyIdStr).pipe(catchError(() => of([]))),
+      allUsersGeneric: this.dataService.getUsersByCompany(companyIdStr).pipe(catchError(() => of([]))),
+      v2Subordinates: this.dataService.listV2Subordinates().pipe(catchError(() => of([]))),
+      v2Assignments: this.dataService.getMySubordinates().pipe(catchError(() => of([]))),
+      v2Node28: this.dataService.getNodeAssignments(28).pipe(catchError(() => of([])))
     }).subscribe({
       next: (res: any) => {
-        console.log('DEBUG [Officers]: API Response received');
-        
         const getArr = (obj: any) => {
           if (Array.isArray(obj)) return obj;
           if (!obj) return [];
-          const list = obj.data || obj.users || obj.attendance || obj.requests || obj.requests_list || obj.items || obj.logs || obj.result;
+          const list = obj.data || obj.users || obj.attendance || obj.requests || obj.requests_list || obj.items || obj.logs || obj.result || obj.rangers || obj.staff || obj.subordinates;
           if (Array.isArray(list)) return list;
           return [];
         };
@@ -82,10 +85,52 @@ export class OfficersPage implements OnInit {
         const logsArray = getArr(res.logs);
         const reqArray = getArr(res.requests);
         const onsiteArray = getArr(res.onsite);
+        
+        // 🧩 MERGE ALL SOURCES (Unified cross-sync)
         const phpUsers = getArr(res.allUsersPHP);
         const nodeUsers = getArr(res.allUsersNode);
+        const productionUsers = getArr(res.allUsersProduction);
+        const genericUsers = getArr(res.allUsersGeneric);
+        const v2Subordinates = getArr(res.v2Subordinates);
+        const v2Assignments = getArr(res.v2Assignments);
+        const v2Node28 = getArr(res.v2Node28);
+        
+        // Create a Unified List with De-duplication by ID
+        const unifiedMap = new Map();
+        
+        // Order of priority: Production > Node > Generic > PHP
+        const allSources = [
+          ...productionUsers,
+          ...nodeUsers,
+          ...genericUsers,
+          ...v2Subordinates,
+          ...v2Assignments,
+          ...v2Node28,
+          ...phpUsers
+        ];
 
-        console.log('DEBUG [Officers]: PHP Users:', phpUsers.length, 'Node Users:', nodeUsers.length);
+        allSources.forEach((u: any) => {
+          const id = String(u.id || u.user_id || u.staff_id || u.ranger_id || '');
+          if (id && !unifiedMap.has(id)) {
+            // 🏷️ EXTENSIVE NAME RESOLUTION
+            let resolvedName = u.name || u.user_name || u.full_name || u.fullName 
+              || u.username || u.user_name || u.firstName || u.first_name 
+              || (u.firstName && u.lastName ? `${u.firstName} ${u.lastName}` : '')
+              || (u.first_name && u.last_name ? `${u.first_name} ${u.last_name}` : '')
+              || u.contact || u.phone || u.mobile || 'Officer';
+
+            unifiedMap.set(id, { 
+              ...u, 
+              id: id,
+              name: resolvedName, 
+              role_id: u.role_id || u.role || u.user_role || (u.role ? u.role.id : ''),
+              source: u.source || 'combined' 
+            });
+          }
+        });
+
+        const finalMergedList = Array.from(unifiedMap.values());
+        console.log(`🧩 [OFFICERS] Ultimate Merge: Total Sources(${allSources.length}) -> Unique(${finalMergedList.length})`);
 
         const nowL = new Date();
         const todayYMD = `${nowL.getFullYear()}-${String(nowL.getMonth() + 1).padStart(2, '0')}-${String(nowL.getDate()).padStart(2, '0')}`;
@@ -127,9 +172,9 @@ export class OfficersPage implements OnInit {
         reqArray.forEach(processAttendance);
         onsiteArray.forEach(processAttendance);
 
-        // Map Node Users by ID for quick photo lookup
+        // Map Unified Users by ID for quick photo lookup
         const nodePhotoMap = new Map<string, string>();
-        nodeUsers.forEach((u: any) => {
+        finalMergedList.forEach((u: any) => {
           const uId = (u.id || u.user_id || u.staff_id || u.ranger_id || u.guard_id || '').toString();
           const photo = u.profile_pic || u.profile_Pic || u.image || u.photo || u.profile_image || u.avatar || u.user_photo || '';
           if (uId && photo) nodePhotoMap.set(uId, photo);
@@ -137,8 +182,8 @@ export class OfficersPage implements OnInit {
 
         const officersMap = new Map<string, any>();
 
-        // Step 1: Use PHP Users as the Master List (The full 15 people)
-        phpUsers.forEach((user: any) => {
+        // Step 1: Use Unified List as the Master List
+        finalMergedList.forEach((user: any) => {
           const uId = (user.id || user.user_id || user.staff_id || user.ranger_id || user.guard_id || '').toString();
           if (!uId) return;
 
