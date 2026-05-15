@@ -78,15 +78,20 @@
               <span class="type-text">{{ task.category || 'GENERAL' }}</span>
               <span class="log-date">{{ formatDate(task.created_at) }}</span>
             </div>
-            <h2 class="task-title">{{ task.title || task.task_name || 'New Task' }}</h2>
+            <h2 class="task-title">{{ task.subject || task.title || task.task_name || 'New Task' }}</h2>
             <div class="assigned-line">
               <ion-icon name="person-outline"></ion-icon>
-              <span>{{ task.assigned_to_name || 'Unassigned' }}</span>
+              <span>{{ task.assigned_to_name || task.assigned_user?.name || 'Unassigned' }}</span>
             </div>
           </div>
 
           <div class="row-actions">
-            <ion-icon name="chevron-forward" class="chevron"></ion-icon>
+            <button class="action-btn check" *ngIf="task.status !== 'completed'" (click)="updateTaskStatus(task, 'completed'); $event.stopPropagation()">
+              <ion-icon name="checkmark-done-outline"></ion-icon>
+            </button>
+            <button class="action-btn delete" (click)="deleteTask(task.id); $event.stopPropagation()">
+              <ion-icon name="trash-outline"></ion-icon>
+            </button>
           </div>
         </div>
 

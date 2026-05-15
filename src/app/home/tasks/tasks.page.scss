@@ -214,8 +214,37 @@
       }
 
       .row-actions {
-        display: flex; 
+        display: flex;
+        gap: 8px;
         align-items: center;
+
+        .action-btn {
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 18px;
+          border: none;
+          cursor: pointer;
+          transition: 0.3s;
+
+          &.check {
+            background: #f0fdf4;
+            color: #10b981;
+            &:active { background: #dcfce7; }
+          }
+
+          &.delete {
+            background: #fef2f2;
+            color: #ef4444;
+            &:active { background: #fee2e2; }
+          }
+
+          &:active { transform: scale(0.92); }
+        }
+
         .chevron { color: #cbd5e1; font-size: 18px; }
       }
     }

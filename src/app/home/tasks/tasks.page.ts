@@ -55,6 +55,7 @@ export class TasksPage implements OnInit {
     this.dataService.getForestTasks({ api_token: apiToken, company_id: companyId }).subscribe({
       next: (res: any) => {
         this.isLoading = false;
+        console.log('Tasks API Response:', res);
         if (res && res.data) {
           this.tasks = res.data;
         } else if (Array.isArray(res)) {
@@ -63,6 +64,7 @@ export class TasksPage implements OnInit {
       },
       error: async (err) => {
         this.isLoading = false;
+        console.error('Load Tasks Error:', err);
         const toast = await this.toastCtrl.create({
           message: 'Failed to load tasks',
           duration: 2500,
@@ -92,14 +94,25 @@ export class TasksPage implements OnInit {
 
     // 1. Status Filter
     if (this.statusFilter === 'pending') {
-      filtered = filtered.filter(t => t.status !== 'completed' && t.status !== 'resolved' && t.status !== 'Completed');
+      filtered = filtered.filter(t => {
+        const s = (t.status || '').toLowerCase();
+        return s !== 'completed' && s !== 'resolved' && s !== 'done';
+      });
     } else {
-      filtered = filtered.filter(t => t.status === 'completed' || t.status === 'resolved' || t.status === 'Completed');
+      filtered = filtered.filter(t => {
+        const s = (t.status || '').toLowerCase();
+        return s === 'completed' || s === 'resolved' || s === 'done';
+      });
     }
 
     // 2. Scope Filter (My Tasks vs Team Tasks)
     if (this.scopeFilter === 'my') {
-      filtered = filtered.filter(t => String(t.assigned_to) === String(this.currentUserId) || String(t.user_id) === String(this.currentUserId));
+      filtered = filtered.filter(t => 
+        String(t.assigned_to) === String(this.currentUserId) || 
+        String(t.user_id) === String(this.currentUserId) ||
+        String(t.assigned_user_id) === String(this.currentUserId) ||
+        String(t.created_by) === String(this.currentUserId)
+      );
     }
 
     // 3. Priority Filter
@@ -156,24 +169,28 @@ export class TasksPage implements OnInit {
   }
 
   async submitTask() {
-    // Logic to submit task via dataService
     const loading = await this.loadingCtrl.create({ message: 'Creating task...' });
     await loading.present();
 
     const apiToken = localStorage.getItem('api_token') || '';
     const companyId = localStorage.getItem('company_id') || '';
 
+    // Match backend expected field names: 'subject' and 'users'
     const payload = {
       api_token: apiToken,
       company_id: companyId,
-      ...this.newTask
+      subject: this.newTask.title,
+      description: this.newTask.description,
+      deadline: this.newTask.deadline,
+      priority: this.newTask.priority,
+      users: [this.newTask.assigned_to] // Sending as an array since the field name is 'users'
     };
 
     this.dataService.storeForestTask(payload).subscribe({
       next: async (res) => {
         await loading.dismiss();
         this.isModalOpen = false;
-        this.swipeWidth = 0; // Reset swipe
+        this.swipeWidth = 0;
         this.isSwiped = false;
         this.loadTasks();
         const toast = await this.toastCtrl.create({
@@ -187,13 +204,60 @@ export class TasksPage implements OnInit {
         await loading.dismiss();
         this.swipeWidth = 0;
         this.isSwiped = false;
+        console.error('Task store error:', err);
+        const errorMsg = err.error?.message || 'Error creating task';
         const toast = await this.toastCtrl.create({
-          message: 'Error creating task',
+          message: errorMsg,
           duration: 2000,
           color: 'danger'
         });
         toast.present();
       }
+    });
+  }
+
+  async deleteTask(id: any) {
+    const loading = await this.loadingCtrl.create({ message: 'Deleting task...' });
+    await loading.present();
+
+    const apiToken = localStorage.getItem('api_token') || '';
+    this.dataService.deleteForestTask(id, { api_token: apiToken }).subscribe({
+      next: async () => {
+        await loading.dismiss();
+        this.loadTasks();
+        const toast = await this.toastCtrl.create({ message: 'Task deleted', duration: 2000, color: 'success' });
+        toast.present();
+      },
+      error: async () => {
+        await loading.dismiss();
+        const toast = await this.toastCtrl.create({ message: 'Delete failed', duration: 2000, color: 'danger' });
+        toast.present();
+      }
+    });
+  }
+
+  async updateTaskStatus(task: any, status: string) {
+    const loading = await this.loadingCtrl.create({ message: 'Updating status...' });
+    await loading.present();
+
+    const apiToken = localStorage.getItem('api_token') || '';
+    const payload = { api_token: apiToken, status: status };
+
+    this.dataService.updateForestTaskStatus(task.id, payload).subscribe({
+      next: async () => {
+        await loading.dismiss();
+        this.loadTasks();
+      },
+      error: async () => {
+        await loading.dismiss();
+      }
+    });
+  }
+
+  async updateUserStatus(task: any, status: string) {
+    const apiToken = localStorage.getItem('api_token') || '';
+    this.dataService.updateTaskUserStatus(task.id, { api_token: apiToken, status: status }).subscribe({
+      next: () => this.loadTasks()
     });
   }
 
