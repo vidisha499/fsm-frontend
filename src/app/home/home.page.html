@@ -75,20 +75,6 @@
                         <i class="fas fa-paw watermark"></i>
                     </div>
 
-                    <!-- 5. Organization Management -->
-                    <div *ngIf="isFeatureEnabled('org_management')" class="module-card card-purple" (click)="goToPage('org-management')">
-                        <div class="icon-bg"><i class="fas fa-sitemap"></i></div>
-                        <p>Organization Management</p>
-                        <i class="fas fa-paw watermark"></i>
-                    </div>
-
-                    <!-- 6. Reports (Azure) - Always visible to match side menu -->
-                    <div class="module-card card-azure" (click)="goToPage('reports')">
-                        <div class="icon-bg"><i class="fas fa-file-contract"></i></div>
-                        <p>Forest Reports</p>
-                        <i class="fas fa-paw watermark"></i>
-                    </div>
-
                     <!-- 7. User Management (Super Admin ONLY - Role ID 1) -->
                     <div *ngIf="isFeatureEnabled('user_management') && (userRole === 'super-admin' || userRole === '1')" class="module-card card-blue" (click)="goToPage('add-user')">
                         <div class="icon-bg"><i class="fas fa-user-plus"></i></div>

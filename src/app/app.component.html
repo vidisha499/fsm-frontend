@@ -161,7 +161,7 @@
       </a>
 
       <!-- 14. Sign Out -->
-      <a class="menu-item logout-item" (click)="goToPage('login')">
+      <a class="menu-item logout-item" (click)="logout()">
         <div class="icon-box crimson"><i class="fas fa-power-off"></i></div>
         <div class="item-text"><span>{{ 'MENU.LOGOUT' | translate }}</span></div>
       </a>
@@ -194,3 +194,23 @@
       <button class="confirm-btn" (click)="confirmLanguage()">{{ 'COMMON.CONFIRM' | translate }}</button>
     </div>
   </div>
+  <!-- Logout Confirmation Modal (Premium) -->
+  <div class="modal-overlay logout-overlay fade-in" *ngIf="showLogoutConfirm">
+    <div class="modal-content logout-card animate-slide-up">
+      <div class="logout-icon-box">
+        <i class="fas fa-power-off"></i>
+      </div>
+      <h2>{{ 'LOGOUT.CONFIRM_TITLE' | translate }}</h2>
+      <p>{{ 'LOGOUT.CONFIRM_MESSAGE' | translate }}</p>
+      
+      <div class="logout-actions">
+        <button class="cancel-btn" (click)="toggleLogoutConfirm(false)">
+          {{ 'COMMON.CANCEL' | translate }}
+        </button>
+        <button class="confirm-logout-btn" (click)="performLogout()">
+          {{ 'MENU.LOGOUT' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+

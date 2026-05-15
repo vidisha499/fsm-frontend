@@ -114,5 +114,9 @@
     "SLIDE_TO_END": "Slide to End Patrol",
     "ENDED": "Patrol Ended",
     "CAMERA": "Camera"
+  },
+  "LOGOUT": {
+    "CONFIRM_TITLE": "Confirm Sign Out",
+    "CONFIRM_MESSAGE": "Are you sure you want to exit the application?"
   }
-}
+}

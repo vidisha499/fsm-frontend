@@ -22,13 +22,34 @@
             </button>
           </div>
         </div>
+
+        <!-- Scope Toggle (My Tasks vs Team Tasks) -->
+        <div class="scope-toggle-container">
+          <div class="scope-toggle">
+            <div class="toggle-option" [class.active]="scopeFilter === 'my'" (click)="setScope('my')">
+              <span>My Tasks</span>
+            </div>
+            <div class="toggle-option" [class.active]="scopeFilter === 'team'" (click)="setScope('team')">
+              <span>Team Tasks</span>
+            </div>
+            <div class="toggle-slider" [style.transform]="scopeFilter === 'team' ? 'translateX(100%)' : 'translateX(0)'"></div>
+          </div>
+        </div>
+
+        <!-- Priority Chips -->
+        <div class="priority-chips-container">
+          <div class="chip" [class.active]="priorityFilter === 'all'" (click)="setPriority('all')">All</div>
+          <div class="chip chip-urgent" [class.active]="priorityFilter === 'urgent'" (click)="setPriority('urgent')">Urgent</div>
+          <div class="chip chip-priority" [class.active]="priorityFilter === 'priority'" (click)="setPriority('priority')">Priority</div>
+          <div class="chip chip-normal" [class.active]="priorityFilter === 'normal'" (click)="setPriority('normal')">Normal</div>
+        </div>
       </div>
     </div>
 
     <!-- Main Container -->
     <div class="main-container">
       <!-- Status Tabs -->
-      <div class="status-tabs-wrapper">
+      <!-- <div class="status-tabs-wrapper">
         <div class="status-tabs">
           <div class="tab" [class.active]="statusFilter === 'pending'" (click)="statusFilter = 'pending'">
             PENDING
@@ -36,8 +57,8 @@
           <div class="tab" [class.active]="statusFilter === 'completed'" (click)="statusFilter = 'completed'">
             COMPLETED
           </div>
-        </div>
-      </div>
+        </div> 
+      </div>-->
 
       <!-- Task List -->
       <div class="task-list">
@@ -49,7 +70,7 @@
             <div class="icon-box">
               <i class="fas fa-clipboard-list"></i>
             </div>
-            <div class="priority-indicator" [attr.data-priority]="task.priority"></div>
+            <div class="priority-indicator" [attr.data-priority]="(task.priority || 'normal').toLowerCase()"></div>
           </div>
 
           <div class="row-content">
@@ -89,11 +110,104 @@
       </div>
     </div>
 
-    <!-- Floating Action Button for Adding New Task (Admin/Manager Only) -->
+    <!-- Floating Action Button -->
     <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-      <ion-fab-button class="premium-fab">
+      <ion-fab-button class="premium-fab" (click)="openAddTask()">
         <ion-icon name="add"></ion-icon>
       </ion-fab-button>
     </ion-fab>
+
+    <!-- Add Task Modal -->
+    <ion-modal [isOpen]="isModalOpen" (didDismiss)="closeModal()" class="premium-modal">
+      <ng-template>
+        <div class="modal-wrapper">
+          <div class="modal-header premium-header">
+            <button class="header-btn glass-effect" (click)="closeModal()">
+              <ion-icon name="close-outline"></ion-icon>
+            </button>
+            <h2>Create New Task</h2>
+            <button class="header-btn check-btn" (click)="submitTask()">
+              <ion-icon name="checkmark-outline"></ion-icon>
+            </button>
+          </div>
+
+          <div class="modal-body custom-form">
+            <!-- Subject Field -->
+            <div class="form-group">
+              <label>SUBJECT</label>
+              <div class="input-container">
+                <i class="far fa-comment-alt icon"></i>
+                <input type="text" [(ngModel)]="newTask.title" placeholder="Enter task subject">
+              </div>
+            </div>
+
+            <!-- Description Field -->
+            <div class="form-group">
+              <label>DESCRIPTION</label>
+              <div class="input-container align-top">
+                <i class="far fa-file-alt icon"></i>
+                <textarea rows="4" [(ngModel)]="newTask.description" placeholder="Add more details..."></textarea>
+              </div>
+            </div>
+
+            <!-- Deadline Field -->
+            <div class="form-group">
+              <label>DEADLINE</label>
+              <div class="input-container">
+                <i class="far fa-calendar-alt icon"></i>
+                <input type="date" [(ngModel)]="newTask.deadline" placeholder="Select date">
+              </div>
+            </div>
+
+            <!-- Priority Field -->
+            <div class="form-group">
+              <label>PRIORITY</label>
+              <div class="priority-selector-new">
+                <div class="p-opt" [class.active]="newTask.priority === 'normal'" (click)="newTask.priority = 'normal'">Normal</div>
+                <div class="p-opt" [class.active]="newTask.priority === 'priority'" (click)="newTask.priority = 'priority'">Priority</div>
+                <div class="p-opt" [class.active]="newTask.priority === 'urgent'" (click)="newTask.priority = 'urgent'">Urgent</div>
+              </div>
+            </div>
+
+            <!-- Assign Users Section -->
+            <div class="assign-users-section">
+              <div class="section-title">
+                <i class="fas fa-user-plus"></i>
+                <h3>Assign Users</h3>
+              </div>
+              <div class="search-container">
+                <div class="search-bar">
+                  <i class="fas fa-search"></i>
+                  <ion-select [(ngModel)]="newTask.assigned_to" placeholder="Select User" interface="action-sheet" class="user-ion-select">
+                    <ion-select-option *ngFor="let user of users" [value]="user.id || user.user_id">
+                      {{ user.name }} ({{ user.role_name }})
+                    </ion-select-option>
+                  </ion-select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <!-- REAL Swipe to Submit Button -->
+            <div class="swipe-to-submit-wrapper">
+              <div class="swipe-track">
+                <div class="swipe-bg" [style.width.px]="swipeWidth + 50"></div>
+                <div class="swipe-text" [style.opacity]="1 - (swipeWidth / 200)">Swipe to Create Task</div>
+                <div class="swipe-handle" 
+                     [style.transform]="'translateX(' + swipeWidth + 'px)'"
+                     (touchstart)="onTouchStart($event)"
+                     (touchmove)="onTouchMove($event)"
+                     (touchend)="onTouchEnd()"
+                     (mousedown)="onTouchStart($event)">
+                  <ion-icon name="chevron-forward-outline" *ngIf="!isSwiped"></ion-icon>
+                  <ion-spinner name="crescent" *ngIf="isSwiped" color="light"></ion-spinner>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-template>
+    </ion-modal>
   </div>
 </ion-content>
