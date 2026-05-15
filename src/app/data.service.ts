@@ -15,10 +15,110 @@ export class DataService {
   public loginSuccess$ = new Subject<void>();
   public syncCompleted$ = new Subject<void>();
   public userProfileUpdated$ = new Subject<any>(); // 🚀 NEW: Notify all dashboards when profile changes
+  public permissionsUpdated$ = new Subject<void>(); // 🚀 NEW: Notify when permissions are synced
 
   constructor(private http: HttpClient) {}
 
   getApiUrl() { return this.baseApiUrl; }
+
+  // --- PERMISSION UTILITIES ---
+  isFeatureEnabled(feature: string): boolean {
+    const roleId = localStorage.getItem('user_role');
+    const userDataStr = localStorage.getItem('user_data');
+    let userRoleStr = '';
+    if (userDataStr) {
+      try {
+        const parsed = JSON.parse(userDataStr);
+        userRoleStr = (parsed.role_name || '').toLowerCase();
+      } catch (e) {}
+    }
+
+    // Superadmin and Admin always bypass
+    if (roleId === '1' || roleId === '2' || roleId === '7' || userRoleStr === 'superadmin' || userRoleStr === 'admin') {
+      return true;
+    }
+
+    const permsStr = localStorage.getItem('user_permissions');
+    const featuresStr = localStorage.getItem('user_features');
+    
+    if (!permsStr && !featuresStr) {
+      return true; // Fallback
+    }
+
+    try {
+      let perms: any[] = [];
+      if (permsStr) perms = JSON.parse(permsStr);
+
+      if (perms.length === 0 && featuresStr) {
+        const features = JSON.parse(featuresStr);
+        return features.some((f: any) => 
+          (f.module_key === feature || f.name?.toLowerCase().includes(feature.toLowerCase()) || String(f).toLowerCase().includes(feature.toLowerCase()))
+        );
+      }
+      
+      const aliasMap: any = {
+        'patrol': ['Patrolling'],
+        'attendance': ['Attendance'],
+        'patrol_report': ['Forest Reports'],
+        'attendance_request': ['Attendance'],
+        'asset_management': ['Assets'],
+        'forest_events': ['Forest Events', 'Incidence'],
+        'know_your_area': ['Know Your Area'],
+        'plantations': ['Plantation'],
+        'chat': ['Chat'],
+        'daily_updates': ['Daily Updates'],
+        'client_visits': ['Visits'],
+        'user_management': ['User Management'],
+        'org_management': ['Organization', 'Role Management', 'Dynamic Hierarchy'],
+        'hierarchy': ['Dynamic Hierarchy'],
+        'roles': ['Role Management']
+      };
+
+      const keyToCheck = feature.toLowerCase();
+      const aliases = (aliasMap[keyToCheck] || [keyToCheck]).map((a: string) => a.toLowerCase());
+
+      return perms.some((p: any) => {
+        const pStr = String(p.module_key || p.name || p || '').toLowerCase();
+        return aliases.some((alias: string) => pStr.includes(alias) || alias.includes(pStr));
+      });
+    } catch (e) {
+      return false;
+    }
+  }
+
+  hasPermission(module: string, action: string): boolean {
+    const roleId = localStorage.getItem('user_role');
+    const userDataStr = localStorage.getItem('user_data');
+    let userRoleStr = '';
+    if (userDataStr) {
+      try {
+        const parsed = JSON.parse(userDataStr);
+        userRoleStr = (parsed.role_name || '').toLowerCase();
+      } catch (e) {}
+    }
+
+    // Superadmin and Admin always bypass
+    if (roleId === '1' || roleId === '2' || roleId === '7' || userRoleStr === 'superadmin' || userRoleStr === 'admin') {
+      return true;
+    }
+
+    const permsStr = localStorage.getItem('user_permissions');
+    if (!permsStr) return false;
+
+    try {
+      const perms = JSON.parse(permsStr);
+      const modLower = module.toLowerCase();
+      const actLower = action.toLowerCase();
+
+      return perms.some((p: any) => {
+        const pStr = String(p.module_key || p.name || p || '').toLowerCase();
+        // Strict match for "Module.Action" or "Module" and "Action" present in string
+        return pStr.includes(modLower) && pStr.includes(actLower);
+      });
+    } catch (e) {
+      return false;
+    }
+  }
 
   // --- 1. SELECTION HELPERS ---
   getSelectedAsset() { return this.selectedAsset; }

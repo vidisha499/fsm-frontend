@@ -98,7 +98,7 @@
       </a>
 
       <!-- 9. Organisation Management -->
-      <a *ngIf="userRole === 'admin' || userRole === '1'" class="menu-item" (click)="goToPage('org-management')" [class.active]="router.url.includes('org-management')">
+      <a *ngIf="isFeatureEnabled('org_management')" class="menu-item" (click)="goToPage('org-management')" [class.active]="router.url.includes('org-management')">
         <div class="icon-box purple"><i class="fas fa-sitemap"></i></div>
         <div class="item-text"><span>Organization Management</span></div>
       </a>
@@ -109,8 +109,8 @@
         <div class="item-text"><span>Attendance Requests</span></div>
       </a>
 
-      <!-- 11. Add Approved User -->
-      <a *ngIf="userRole === '1' || userDesignation === 'SUPER ADMIN' || userDesignation === 'SUPERADMIN'" class="menu-item" (click)="goToPage('add-user')" [class.active]="router.url.includes('add-user')">
+      <!-- 11. Add Approved User (Super Admin ONLY) -->
+      <a *ngIf="isFeatureEnabled('user_management') && (userRole === 'super-admin' || userRole === '1')" class="menu-item" (click)="goToPage('add-user')" [class.active]="router.url.includes('add-user')">
         <div class="icon-box azure"><i class="fas fa-user-plus"></i></div>
         <div class="item-text"><span>Add Approved User</span></div>
       </a>
@@ -148,251 +148,37 @@
         <div class="item-text"><span>{{ 'MENU.CHANGE_LANGUAGE' | translate }}</span></div>
       </a>
 
-      <!-- 14. Logout -->
-      <a class="menu-item logout-btn" (click)="logout()">
-        <div class="icon-box red"><i class="fas fa-power-off"></i></div>
+      <!-- 14. Sign Out -->
+      <a class="menu-item logout-item" (click)="goToPage('login')">
+        <div class="icon-box crimson"><i class="fas fa-power-off"></i></div>
         <div class="item-text"><span>{{ 'MENU.LOGOUT' | translate }}</span></div>
       </a>
     </nav>
-
-    <div class="menu-footer">
-      <span class="version-tag">Forest Management System v1.6.3</span>
-    </div>
   </div>
-</ion-menu>
-  
+  </ion-menu>
 
-  <ion-router-outlet id="main-content" [class.hidden]="currentPage === 'settings'"></ion-router-outlet>
-
-  <div *ngIf="currentPage === 'settings'" class="settings-view premium-wrapper">
-    <div class="ambient-glow glow-1"></div>
-    <div class="ambient-glow glow-2"></div>
-
-    <div class="hero-header">
-      <div class="header-overlay"></div>
-      <div class="header-content">
-        <div class="nav-bar">
-          <div class="left-section">
-            <div (click)="goToPage('home')" class="glass-btn">
-              <i class="fas fa-chevron-left"></i>
-            </div>
-            <h1>{{ 'SETTINGS.TITLE' | translate }}</h1>
-          </div>
-          <div (click)="toggleEdit()" class="glass-btn" [class.edit-active]="isEditMode">
-            <i class="fas" [class.fa-edit]="!isEditMode" [class.fa-check]="isEditMode"></i>
-          </div>
-        </div>
-        <div class="header-title-group">
-          <p>Operational Protocol & Personal Profile</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="card-container">
-      <div class="main-card animate-scale-up">
-        <div class="tab-switcher">
-          <button (click)="activeTab = 'info'" [class.active]="activeTab === 'info'">
-            {{ 'SETTINGS.TAB_ACCOUNT' | translate }}
-          </button>
-          <button (click)="activeTab = 'pass'" [class.active]="activeTab === 'pass'">
-            {{ 'SETTINGS.TAB_SECURITY' | translate }}
-          </button>
-        </div>
-
-        <div *ngIf="activeTab === 'info'" class="fade-in">
-          <div class="profile-upload">
-            <div class="avatar-ring">
-              <div class="static-avatar">
-                <img *ngIf="userPhoto" [src]="userPhoto" class="user-photo">
-                <i *ngIf="!userPhoto" class="fas fa-user-shield"></i>
-              </div>
-              <div class="cam-overlay" (click)="changeProfilePicture()">
-                <i class="fas fa-camera"></i>
-              </div>
-            </div>
-          </div>
-          <div class="input-pill">
-            <label>{{ 'SETTINGS.LABEL_NAME' | translate }}</label>
-            <div class="pill-content">
-              <i class="fas fa-id-badge"></i>
-              <input type="text" [(ngModel)]="rangerName" [readonly]="!isEditMode">
-            </div>
-          </div>
-          <div class="input-pill">
-            <label>{{ 'SETTINGS.LABEL_DIVISION' | translate }}</label>
-            <div class="pill-content">
-              <i class="fas fa-satellite"></i>
-              <input type="text" [(ngModel)]="rangerDivision" [readonly]="!isEditMode">
-            </div>
-          </div>
-
-             <div class="input-pill">
-                    <label>{{ 'SETTINGS.LABEL_COMM' | translate }}</label>
-                    <div class="pill-content">
-                        <i class="fas fa-phone-alt"></i>
-                        <input type="text" [(ngModel)]="rangerPhone" [readonly]="!isEditMode">
-                    </div>
-                </div>
-
-
-        </div>
-
-        <div *ngIf="activeTab === 'pass'" class="fade-in">
-          <div class="input-pill">
-            <label>{{ 'SETTINGS.LABEL_CURR_PASS' | translate }}</label>
-            <div class="pill-content">
-              <i class="fas fa-lock"></i>
-              <input [type]="showPassword ? 'text' : 'password'" [(ngModel)]="currentPassword" [readonly]="!isEditMode">
-              <i *ngIf="isEditMode" class="fas" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword" (click)="showPassword = !showPassword"></i>
-            </div>
-          </div>
-          <div class="input-pill">
-                    <label>{{ 'SETTINGS.LABEL_NEW_KEY' | translate }}</label>
-                    <div class="pill-content">
-                        <i class="fas fa-shield-alt"></i>
-                        <input [type]="showNewPassword ? 'text' : 'password'" [(ngModel)]="rangerPassword" [readonly]="!isEditMode" (click)="togglePasswordVisibility() "
-                               [placeholder]="'SETTINGS.PH_NEW_KEY' | translate">
-                        <i *ngIf="isEditMode" class="fas" [class.fa-eye]="!showNewPassword" [class.fa-eye-slash]="showNewPassword" 
-                           (click)="showNewPassword = !showNewPassword" style="cursor: pointer; opacity: 0.6;"></i>
-                    </div>
-                </div>
-        </div>
-
-
-        
-<div class="auto-slider-container" 
-     [class.active]="isSubmitting" 
-     [class.disabled]="!isEditMode"
-     (touchstart)="onDragStart($event)"
-     (touchmove)="onDragMove($event)"
-     (touchend)="onDragEnd()">
-     
-  <div class="slider-track">
-    <div class="slider-handle" 
-         [style.transform]="'translateX(' + currentTranslateX + 'px)'">
-      <i class="fas fa-save" *ngIf="!isSubmitting"></i>
-      <ion-spinner name="crescent" color="light" *ngIf="isSubmitting"></ion-spinner>
-    </div>
-
-    <span class="slider-text" [style.opacity]="textOpacity">
-      {{ isSubmitting ? 'UPDATING...' : 'UPDATE' }}
-    </span>
-
-    <div class="end-check">
-      <i class="fas fa-check"></i>
-    </div>
-  </div>
-</div>
-      </div>
-    </div>
-
-    
-  </div>
-
-  
-
-
-  <div *ngIf="showLanguageModal" class="language-modal-backdrop">
-    <div class="language-card">
-        
-        <div style="text-align: center; margin-bottom: 25px;">
-            <div style="width: 54px; height: 54px; background: #fffbeb; border-radius: 18px; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; border: 1px solid #fef3c7; box-shadow: 0 10px 20px rgba(251, 191, 36, 0.1);">
-                <i class="fas fa-globe-americas" style="color: #d97706; font-size: 24px;"></i>
-            </div>
-            <h3 style="margin: 0; font-size: 20px; font-weight: 900; color: #1e293b; letter-spacing: -0.5px;">
-                {{ 'LANGUAGE.CHOOSE_TITLE' | translate }}
-            </h3>
-            <p style="margin: 5px 0 0; font-size: 12px; color: #94a3b8; font-weight: 600;">Select your preferred language</p>
-        </div>
-
-        <div style="display: flex; flex-direction: column; gap: 12px;">
-            
-            <div (click)="selectedLanguage = 'English'"
-                [style.border-color]="selectedLanguage === 'English' ? '#fbbf24' : '#f1f5f9'"
-                [style.background]="selectedLanguage === 'English' ? '#fffbeb' : '#ffffff'"
-                style="display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-radius: 20px; cursor: pointer; border: 2px solid; transition: all 0.3s ease;">
-                <span [style.color]="selectedLanguage === 'English' ? '#92400e' : '#475569'"
-                    style="font-size: 16px; font-weight: 800;">English</span>
-                <div *ngIf="selectedLanguage === 'English'" style="color: #fbbf24;"><i class="fas fa-check-circle"></i></div>
-            </div>
-
-            <div (click)="selectedLanguage = 'Hindi'"
-                [style.border-color]="selectedLanguage === 'Hindi' ? '#fbbf24' : '#f1f5f9'"
-                [style.background]="selectedLanguage === 'Hindi' ? '#fffbeb' : '#ffffff'"
-                style="display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-radius: 20px; cursor: pointer; border: 2px solid; transition: all 0.3s ease;">
-                <span [style.color]="selectedLanguage === 'Hindi' ? '#92400e' : '#475569'"
-                    style="font-size: 16px; font-weight: 800;">हिन्दी (Hindi)</span>
-                <div *ngIf="selectedLanguage === 'Hindi'" style="color: #fbbf24;"><i class="fas fa-check-circle"></i></div>
-            </div>
-
-            <div (click)="selectedLanguage = 'Marathi'"
-                [style.border-color]="selectedLanguage === 'Marathi' ? '#fbbf24' : '#f1f5f9'"
-                [style.background]="selectedLanguage === 'Marathi' ? '#fffbeb' : '#ffffff'"
-                style="display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-radius: 20px; cursor: pointer; border: 2px solid; transition: all 0.3s ease;">
-                <span [style.color]="selectedLanguage === 'Marathi' ? '#92400e' : '#475569'"
-                    style="font-size: 16px; font-weight: 800;">मराठी (Marathi)</span>
-                <div *ngIf="selectedLanguage === 'Marathi'" style="color: #fbbf24;"><i class="fas fa-check-circle"></i></div>
-            </div>
-        </div>
-
-        <div style="display: flex; gap: 15px; margin-top: 30px;">
-            <button (click)="toggleLanguageModal(false)"
-                style="flex: 1; padding: 16px; border-radius: 18px; background: #f1f5f9; color: #64748b; font-weight: 800; border: none; font-size: 14px;">
-                {{ 'COMMON.CANCEL' | translate }}
-            </button>
-            <button (click)="confirmLanguage()"
-                style="flex: 1.5; padding: 16px; border-radius: 18px; background: linear-gradient(135deg, #0d9488 0%, #065f46 100%); color: white; font-weight: 800; border: none; font-size: 14px; box-shadow: 0 10px 20px rgba(13, 148, 136, 0.2);">
-                {{ 'COMMON.CONFIRM' | translate }}
-            </button>
-        </div>
-    </div>
-  </div>
-
-  <!-- Global Premium Photo Viewer Overlay -->
-  <div *ngIf="showViewer" class="global-photo-viewer" (click)="closeViewer()">
-    <div class="viewer-controls">
-      <button class="control-btn download" (click)="downloadViewerImage(); $event.stopPropagation()">
-        <ion-icon name="cloud-download-outline"></ion-icon>
-      </button>
-      <button class="control-btn close" (click)="closeViewer()">
-        <ion-icon name="close-outline"></ion-icon>
-      </button>
-    </div>
-    <div class="image-wrapper" (click)="$event.stopPropagation()">
-      <img [src]="viewerImageUrl" 
-           [style.transform]="'scale(' + viewerZoom + ')'" 
-           (click)="toggleViewerZoom($event)"
-           class="viewer-img">
-    </div>
-    <div class="viewer-hint">
-      <p>{{ viewerZoom > 1 ? 'Tap to Zoom Out / Reset' : 'Tap Image to Zoom In' }}</p>
-    </div>
-  </div>
-
-  <!-- Custom Stylish Logout Modal -->
-  <div class="custom-modal-backdrop" *ngIf="showLogoutConfirm" (click)="toggleLogoutConfirm(false)">
-    <div class="premium-logout-card" (click)="$event.stopPropagation()">
-      <div class="glow-effect"></div>
-      <div class="modal-content-wrap">
-        <div class="icon-header">
-          <div class="icon-ring">
-            <i class="fas fa-power-off"></i>
-          </div>
-        </div>
-        
-        <h2>Confirm Logout</h2>
-        <p>Are you sure you want to end your current session and sign out of the system?</p>
-
-        <div class="modal-actions-row">
-          <button class="confirm-logout-btn" (click)="performLogout()">
-            <i class="fas fa-sign-out-alt"></i>
-            <span>Sign Out</span>
-          </button>
-          <button class="cancel-btn" (click)="toggleLogoutConfirm(false)">
-            <span>Keep Logged In</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <ion-router-outlet id="main-content"></ion-router-outlet>
 </ion-app>
+
+<!-- Language Selection Modal (Premium) -->
+<div class="modal-overlay fade-in" *ngIf="showLanguageModal">
+    <div class="modal-content animate-slide-up">
+      <div class="modal-header">
+        <h3>{{ 'LANGUAGE.CHOOSE_TITLE' | translate }}</h3>
+        <button (click)="toggleLanguageModal(false)"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="lang-list">
+        <div class="lang-option" 
+             *ngFor="let lang of ['English', 'Hindi', 'Marathi']" 
+             [class.active]="selectedLanguage === lang"
+             (click)="setLanguage(lang)">
+          <div class="lang-info">
+            <span class="dot"></span>
+            <span class="name">{{ lang }}</span>
+          </div>
+          <i class="fas fa-check-circle" *ngIf="selectedLanguage === lang"></i>
+        </div>
+      </div>
+      <button class="confirm-btn" (click)="confirmLanguage()">{{ 'COMMON.CONFIRM' | translate }}</button>
+    </div>
+  </div>

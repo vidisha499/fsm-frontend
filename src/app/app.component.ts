@@ -133,7 +133,6 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.showAllSidebarKeys();
     this.loadUserData();
 
     // 🔥 SYNC FIX: Listen for label updates and force UI refresh
@@ -165,70 +164,6 @@ export class AppComponent implements OnInit {
       this.cdr.detectChanges();
     });
 
-    // 🚀 NEW: Check and Sync immediately on App Load if Online
-    if (this.dataService.isOnline()) {
-      this.dataService.syncAllDrafts();
-    }
-  }
-
-  isFeatureEnabled(feature: string): boolean {
-    const roleId = localStorage.getItem('user_role');
-    const userRoleStr = (this.userRole || '').toLowerCase();
-    
-    // 🔥 Superadmin and Admin always bypass feature restrictions
-    if (roleId === '1' || roleId === '2' || roleId === '7' || userRoleStr === 'superadmin' || userRoleStr === 'admin') {
-      return true;
-    }
-
-    const permsStr = localStorage.getItem('user_permissions');
-    const featuresStr = localStorage.getItem('user_features');
-    
-    if (!permsStr && !featuresStr) {
-      // Fallback: If no permissions or features data is found, show everything for safety
-      return true;
-    }
-
-    try {
-      let perms: any[] = [];
-      if (permsStr) perms = JSON.parse(permsStr);
-      
-      // If no perms found, try parsing the features array from login response
-      if (perms.length === 0 && featuresStr) {
-        const features = JSON.parse(featuresStr);
-        return features.some((f: any) => 
-          (f.module_key === feature || f.name?.toLowerCase().includes(feature.toLowerCase()) || String(f).toLowerCase().includes(feature.toLowerCase()))
-        );
-      }
-      
-      // 🔥 ALIAS MAPPING: Frontend Key → Sir's Backend Module Names (STRICT)
-      const aliasMap: any = {
-        'patrol': ['Patrolling'],
-        'attendance': ['Attendance'],
-        'patrol_report': ['Forest Reports'],
-        'attendance_request': ['Attendance'],
-        'asset_management': ['Assets'],
-        'forest_events': ['Forest Events', 'Incidence'],
-        'know_your_area': ['Know Your Area'],
-        'plantations': ['Plantation'],
-        'chat': ['Chat'],
-        'daily_updates': ['Daily Updates'],
-        'client_visits': ['Visits']
-      };
-      
-      const keyToCheck = feature.toLowerCase();
-      const aliases = (aliasMap[keyToCheck] || [keyToCheck]).map((a: string) => a.toLowerCase());
-      
-      // Check if any permission string contains any of our aliases
-      return perms.some((p: any) => {
-        const pStr = String(p.module_key || p.name || p).toLowerCase();
-        return aliases.some((alias: string) => pStr.includes(alias) || alias.includes(pStr));
-      });
-    } catch (e) {
-      return false;
-    }
-  }
-
-  showAllSidebarKeys() {
     const aliasMap: any = {
       'patrol': ['Patrolling'],
       'attendance': ['Attendance'],
@@ -244,6 +179,14 @@ export class AppComponent implements OnInit {
     };
     console.log("%c🔑 [SIR'S KEYS] STRICT SIDEBAR MAPPINGS:", "color: #0088ff; font-weight: bold; font-size: 14px;");
     console.table(aliasMap);
+  }
+
+  isFeatureEnabled(feature: string): boolean {
+    return this.dataService.isFeatureEnabled(feature);
+  }
+
+  setLanguage(lang: string) {
+    this.selectedLanguage = lang;
   }
 
   // 🔥 NEW: Automatic Sync when Network Restored
@@ -267,19 +210,6 @@ export class AppComponent implements OnInit {
   }
 
   // --- DATA LOADING LOGIC ---
-  // loadUserData() {
-  //   const name = localStorage.getItem('user_name');
-  //   this.rangerName = localStorage.getItem('ranger_username') || 'Ranger';
-  //   this.rangerPhone = localStorage.getItem('ranger_phone') || ''; 
-  //   this.rangerDivision = localStorage.getItem('ranger_division') || 'Washim Division 4.2';
-    
-  //   const storedImg = localStorage.getItem('ranger_photo');
-  //   if (storedImg) {
-  //     this.profileImage = storedImg;
-  //   }
-  //   this.cdr.detectChanges();
-  // }
-
 loadUserData() {
   console.log("🚀 APP START: Loading User Data Logic...");
   console.log("🟢 Step 1: Checking localStorage for existing token/session...");
@@ -308,8 +238,6 @@ loadUserData() {
   
   if (!userDataStr || userDataStr === 'undefined' || userDataStr === 'null') {
     console.warn("⚠️ No valid user_data found in localStorage. Proceeding as Guest.");
-    // We don't necessarily want to redirect to login here if it's the app boot, 
-    // but for this specific flow we need the role.
     if (!token) return; 
   } else {
     try {
@@ -320,7 +248,6 @@ loadUserData() {
     }
   }
 
-  // Final fallback to Ranger
   rawRole = rawRole || '4';
   
   if (rawRole == '1' || rawRole == '2') {
@@ -329,7 +256,6 @@ loadUserData() {
     this.userRole = 'ranger';
   }
 
-  // 🔥 Map Role ID to human-readable Designation
   const roleMap: { [key: string]: string } = {
     '1': 'SUPER ADMIN',
     '2': 'ADMIN',
@@ -342,7 +268,6 @@ loadUserData() {
     this.userDesignation = roleMap[rawRole];
   } else if (parsedUser && (parsedUser.role_name || parsedUser.designation)) {
     const d = (parsedUser.role_name || parsedUser.designation).toLowerCase();
-    // 🛡️ Filter out entity names
     if (d.includes('beat') || d.includes('node') || d.includes('unit')) {
        this.userDesignation = roleMap[rawRole] || 'OFFICER';
     } else {
@@ -352,50 +277,24 @@ loadUserData() {
     this.userDesignation = 'OFFICER';
   }
 
-  // 🔥 INSTANT FALLBACK: Use saved role name from signup/add-user
   const savedRoleName = localStorage.getItem('user_role_name');
   if (savedRoleName && savedRoleName !== 'null' && savedRoleName.trim() !== '' && !savedRoleName.toLowerCase().includes('beat')) {
     this.userDesignation = savedRoleName.toUpperCase();
   }
 
-  console.log("Mapped Role for HTML:", this.userRole, "Designation:", this.userDesignation);
-  
-  // 🔥 FULL LOCALSTORAGE DUMP — LOGIN KE BAAD
-  console.log("%c═══════════════════════════════════════════════", "color: #00ff00; font-weight: bold;");
-  console.log("%c💾 [LOGIN] ALL LOCALSTORAGE VALUES:", "color: #00ff00; font-weight: bold; font-size: 14px;");
-  console.log("   🔑 api_token:", localStorage.getItem('api_token')?.substring(0, 20) + '...');
-  console.log("   👤 user_role:", localStorage.getItem('user_role'));
-  console.log("   🏷️ user_role_name:", localStorage.getItem('user_role_name'));
-  console.log("   🎭 user_custom_role_id:", localStorage.getItem('user_custom_role_id'));
-  console.log("   🔒 user_permissions:", localStorage.getItem('user_permissions'));
-  console.log("   🌐 user_features:", localStorage.getItem('user_features')?.substring(0, 100) + '...');
-  console.log("   📍 user_entity_id:", localStorage.getItem('user_entity_id'));
-  console.log("   🏠 user_site_id:", localStorage.getItem('user_site_id'));
-  console.log("   📌 user_site_name:", localStorage.getItem('user_site_name'));
-  console.log("   🏢 company_name:", localStorage.getItem('company_name'));
-  console.log("%c═══════════════════════════════════════════════", "color: #00ff00; font-weight: bold;");
-  
-  // 🔥 FETCH DYNAMIC ROLE FROM ASSIGNMENTS API
   const rangerId = localStorage.getItem('ranger_id') || localStorage.getItem('user_id') || (parsedUser ? parsedUser.id : null);
-  console.log("🔍 [ASSIGNMENT] Checking rangerId:", rangerId);
   if (rangerId) {
-    console.log("📡 [ASSIGNMENT] Calling getUserAssignments for ID:", rangerId);
     this.dataService.getUserAssignments(rangerId).subscribe({
       next: (res: any) => {
-        console.log("📥 [ASSIGNMENT] Raw Response:", res);
         const assignments = res?.data || res || [];
         if (Array.isArray(assignments) && assignments.length > 0) {
           const activeAssign = assignments[0];
-          console.log("✅ [ASSIGNMENT] Active Assignment Found:", activeAssign);
-          
-          // 🔥 SYNC PERMISSIONS from Custom Array (V2) or Role Object
           const customPerms = activeAssign.permissions?.custom || activeAssign.role?.permissions;
           if (customPerms) {
             localStorage.setItem('user_permissions', JSON.stringify(customPerms));
-            console.log("🔒 [ASSIGNMENT] Permissions synced:", customPerms);
+            this.dataService.permissionsUpdated$.next();
           }
 
-          // 🔥 SAVE ENTITY/SITE from Assignment
           const entityId = activeAssign.entity_id || activeAssign.entity?.id;
           const entityName = activeAssign.entity_name || activeAssign.entity?.name;
           if (entityId) {
@@ -406,16 +305,13 @@ loadUserData() {
             localStorage.setItem('user_site_name', entityName);
           }
 
-          // 🔥 DATA EXTRACTION for Sidebar
           const dynamicRole = activeAssign.role?.name || activeAssign.role_name || parsedUser.role_name || parsedUser.designation || '';
           const dynamicRoleId = activeAssign.role_id || activeAssign.role?.id;
           const isLocationName = dynamicRole.toUpperCase().includes('BEAT') || dynamicRole.toUpperCase().includes('RANGE');
 
-          // Safeguard: Never overwrite Superadmin (1) or Admin (2) roles
           const baseRole = localStorage.getItem('user_role') || (parsedUser ? parsedUser.role_id : null);
           const isSuperAdminOrAdmin = baseRole == '1' || baseRole == '2';
 
-          // 🔥 MATCH ROLE BY PERMISSIONS (since assignment returns role:null)
           if ((!dynamicRole || isLocationName) && !isSuperAdminOrAdmin) {
             const userPerms = customPerms || [];
             this.dataService.getRoleIdList().subscribe((roles: any) => {
@@ -432,7 +328,6 @@ loadUserData() {
                   (this as any).hasDynamicRole = true;
                   localStorage.setItem('user_role_name', roleName);
                   localStorage.setItem('user_custom_role_id', String(matchedRole.id));
-                  console.log("🏷️ [MATCH] Role found by permissions:", roleName, "ID:", matchedRole.id);
                   this.cdr.detectChanges();
                 }
               }
@@ -453,231 +348,70 @@ loadUserData() {
                 }
               }
             }
-          } else if (activeAssign.entity_name || activeAssign.entity?.name) {
-            this.userDesignation = (activeAssign.entity_name || activeAssign.entity?.name).toUpperCase();
-          }
-          
-          // Store Node assignment names for UI display
-          if (activeAssign.entity_name) {
-            const layerId = String(activeAssign.entity?.layer_id || activeAssign.layer_id || '');
-            if (layerId === '1' || activeAssign.entity_name.toLowerCase().includes('range')) {
-              this.userRange = activeAssign.entity_name;
-            } else {
-              this.userBeat = activeAssign.entity_name;
-            }
           }
           this.cdr.detectChanges();
         }
-      },
-      error: (err) => {
-        if (err.status !== 0) console.warn("Failed to fetch dynamic role", err.status);
       }
     });
   }
 
-  // 🔥 NEW: Fallback to fetch base role permissions if they don't have an explicit node assignment
   const currentRoleId = localStorage.getItem('user_role') || (parsedUser ? parsedUser.role_id : null);
   if (currentRoleId && currentRoleId !== '1' && currentRoleId !== '2') {
     this.dataService.getRoleIdList().subscribe({
       next: (res: any) => {
         const roles = res?.data || res || [];
         const myRole = roles.find((r: any) => String(r.id) === String(currentRoleId));
-        
-        // If we found the role and they haven't gotten permissions from an assignment yet
         if (myRole && myRole.permissions) {
           const existingPerms = localStorage.getItem('user_permissions');
           if (!existingPerms || existingPerms === '[]') {
-            console.log(`🛡️ Falling back to base role permissions for Role ID: ${currentRoleId}`);
             localStorage.setItem('user_permissions', JSON.stringify(myRole.permissions));
-            this.cdr.detectChanges(); // Refresh sidebar immediately
+            this.cdr.detectChanges();
           }
         }
       }
     });
   }
   
-  // Try implicit keys first, then fallback to user_data object
   this.rangerName = localStorage.getItem('ranger_username') || '';
   this.rangerPhone = localStorage.getItem('ranger_phone') || '';
   
   if (parsedUser) {
-    // Load from localStorage cache immediately (instant display)
-    this.companyName = localStorage.getItem('company_name') 
-      || parsedUser.company_name 
-      || (parsedUser.company ? parsedUser.company.name : '') 
-      || parsedUser.client_name || '';
+    this.companyName = localStorage.getItem('company_name') || parsedUser.company_name || '';
+    this.userPhoto = localStorage.getItem('user_photo') || '';
     
-    // 🔥 FIX: Load photo immediately from cache with multiple fallbacks for new users
-    this.userPhoto = localStorage.getItem('user_photo') 
-      || localStorage.getItem(`cached_photo_id_${parsedUser.id}`)
-      || localStorage.getItem(`cached_photo_${this.rangerPhone}`)
-      || '';
-    
-    // 🔥 ALWAYS fetch latest DB data to sync with local storage (Phone/Password change sync)
     if (parsedUser.id && parsedUser.company_id) {
-      console.log("🟢 Step 3: Fetching latest profile data silently from backend (/getUserDetails)...");
       this.dataService.getUserDetails(parsedUser.id, parsedUser.company_id).subscribe({
         next: (res: any) => {
-          if (res.status === 'success' || res.status === 'SUCCESS' || res.data) {
-            const data = res.data || res;
-            console.log("DEBUG: Raw Profile Data from API:", data);
-            // Sync all vital details from DB to LocalStorage
-            parsedUser.name = data.name || parsedUser.name;
-            parsedUser.phone = data.contact || data.mobile || data.phone || parsedUser.phone;
-            
-            // Company name — try multiple keys from user details response
-            const freshCompany = data.company_name 
-              || (data.company ? data.company.name : '') 
-              || data.client_name 
-              || parsedUser.company_name 
-              || (parsedUser.company ? parsedUser.company.name : '') 
-              || parsedUser.client_name
-              || localStorage.getItem('company_name') || '';
-            parsedUser.company_name = freshCompany;
-            
-            if (freshCompany) {
-              this.companyName = freshCompany;
-              localStorage.setItem('company_name', freshCompany);
-            } else if (parsedUser.company_id) {
-              // Company name not found anywhere — fetch from separate API
-              this.dataService.getCompanyDetails(parsedUser.company_id).subscribe({
-                next: (cRes: any) => {
-                  // getChatUsers returns list of users — extract company name from first user
-                  const users = cRes?.data || cRes?.users || (Array.isArray(cRes) ? cRes : []);
-                  let cName = '';
-                  
-                  if (Array.isArray(users) && users.length > 0) {
-                    const firstUser = users[0];
-                    cName = firstUser.company_name 
-                      || (firstUser.company ? firstUser.company.name : '')
-                      || firstUser.client_name || '';
-                  }
-                  
-                  // Fallback to top-level fields if array extract failed
-                  if (!cName) {
-                    cName = cRes?.company_name || cRes?.name || '';
-                  }
+          const data = res.data || res;
+          this.companyName = data.company_name || this.companyName;
+          localStorage.setItem('company_name', this.companyName);
 
-                  if (cName) {
-                    this.companyName = cName;
-                    localStorage.setItem('company_name', cName);
-                    this.cdr.detectChanges();
-                  } else {
-                    this.companyName = localStorage.getItem('company_name') || `Company #${parsedUser.company_id}`;
-                  }
-                },
-                error: () => {
-                  this.companyName = localStorage.getItem('company_name') || `Company #${parsedUser.company_id}`;
-                }
-              });
-            }
-
-            // 🔥 SYNC SITE_ID if missing
-            if (!parsedUser.site_id && data.site_id) {
-              parsedUser.site_id = data.site_id;
-              localStorage.setItem('user_data', JSON.stringify(parsedUser));
-            }
-
-            // 🔥 PRIORITIZE ROLE NAME from Assignment or Role Object
-            if (!(this as any).hasDynamicRole) {
-              let freshRole = data.role?.name || data.role_name || data.designation || parsedUser.role_name || '';
-              const rId = Number(data.role_id || parsedUser.role_id);
-              
-              // 🛡️ ROLE PROTECTION: If designation is just a beat/node name, fallback to standard role name
-              if (rId === 3 && (!freshRole || freshRole.toLowerCase().includes('beat') || freshRole.toLowerCase().includes('unit'))) {
-                freshRole = 'FOREST GUARD';
-              } else if (rId === 4) {
-                freshRole = 'SUPERVISOR';
-              } else if (rId === 2 || rId === 7) {
-                freshRole = 'ADMIN';
-              } else if (rId === 1) {
-                freshRole = 'SUPER ADMIN';
-              }
-
-              if (freshRole) {
-                this.userDesignation = freshRole.toUpperCase();
-                parsedUser.role_name = freshRole;
-              }
-            }
-            
-            // 🖼️ SYNC PROFILE PHOTO — only overwrite if API returns a REAL photo
-            const rawPhoto = data.profile_pic || data.photo || data.image || data.profile_image || data.avatar || data.profilePic || data.user_photo;
-            const faceId = data.personIdFaceRecog || 'NOT GENERATED';
-
-            // 🔥 SYNC PERMISSIONS if backend returns them
-            if (data.permissions) {
-              const perms = Array.isArray(data.permissions) ? data.permissions : JSON.parse(data.permissions || '[]');
-              localStorage.setItem('user_permissions', JSON.stringify(perms));
-              console.log("🔒 [SYNC] Permissions updated from DB:", perms);
-            }
-
-            if (rawPhoto && rawPhoto !== 'null' && rawPhoto !== 'undefined' && String(rawPhoto).length > 5) {
-              console.log("✅ [DATABASE CHECK] Profile Pic exists in DB:", rawPhoto);
-              console.log("🆔 [DATABASE CHECK] Face ID Status:", faceId);
-              const resolvedUrl = this.getPhotoUrl(rawPhoto);
-              this.userPhoto = resolvedUrl;
-              localStorage.setItem('user_photo', resolvedUrl);
-            } else {
-              console.warn("❌ [DATABASE CHECK] Profile Pic is NULL in database!");
-              console.log("🆔 [DATABASE CHECK] Face ID Status:", faceId);
-            }
-            
-            this.cdr.detectChanges();
+          if (!(this as any).hasDynamicRole) {
+            const rId = Number(data.role_id || parsedUser.role_id);
+            let freshRole = data.role?.name || data.role_name || data.designation || '';
+            if (rId === 1) freshRole = 'SUPER ADMIN';
+            else if (rId === 2 || rId === 7) freshRole = 'ADMIN';
+            if (freshRole) this.userDesignation = freshRole.toUpperCase();
           }
-        },
-        error: (err) => {
-          // Silent failure for timeouts or network errors
-          if (err.status !== 0) console.error("Profile sync failed. Error Code:", err.status);
           
-          // On error, try to show company from stored data
-          if (!this.companyName && parsedUser) {
-            this.companyName = parsedUser.company_name 
-              || (parsedUser.company ? parsedUser.company.name : '') 
-              || parsedUser.client_name 
-              || `Company #${parsedUser.company_id}`;
-            this.cdr.detectChanges();
+          const rawPhoto = data.profile_pic || data.photo || data.image || data.profile_image || data.avatar || data.profilePic || data.user_photo;
+          if (rawPhoto && rawPhoto.length > 5) {
+            this.userPhoto = this.getPhotoUrl(rawPhoto);
+            localStorage.setItem('user_photo', this.userPhoto);
           }
+          this.cdr.detectChanges();
         }
       });
-    } else if (parsedUser.company_id) {
-      // No getUserDetails call possible, use what we have
-      this.companyName = parsedUser.company_name 
-        || (parsedUser.company ? parsedUser.company.name : '') 
-        || parsedUser.client_name 
-        || `Company #${parsedUser.company_id}`;
     }
   }
   
-  if (!this.rangerName || !this.rangerPhone) {
-    if (parsedUser) {
-      this.rangerName = this.rangerName || parsedUser.name || 'User';
-      this.rangerPhone = this.rangerPhone || parsedUser.phone || parsedUser.contact || '';
-    }
-  }
-
-  // Final fallback
-  this.rangerName = this.rangerName || 'User';
-
-  // Load photo from localStorage FIRST (stable source)
-  const storedPhoto = localStorage.getItem('user_photo') || '';
-  this.userPhoto = storedPhoto;
-
-  this.rangerDivision = localStorage.getItem('ranger_division') || 'Washim Division 4.2';
-
-  // Database se aane wala value 
-  const dbDivision = localStorage.getItem('ranger_division');
-  if (dbDivision && dbDivision !== 'undefined') {
-    this.rangerDivision = dbDivision;
-  } else {
-    this.rangerDivision = this.userRole === '2' ? 'COMPANY ADMIN' : 'RANGER UNIT';
-  }
-
+  this.rangerName = this.rangerName || parsedUser?.name || 'User';
+  this.rangerDivision = localStorage.getItem('ranger_division') || 'RANGER UNIT';
   this.cdr.detectChanges();
 }
+
   initializeApp() {
     document.body.classList.toggle('dark', false);
-
-    // 🚀 NEW: Persistent Auto-Login Check
     const token = localStorage.getItem('api_token');
     const role = localStorage.getItem('user_role');
     if (token) {
@@ -690,57 +424,23 @@ loadUserData() {
 
     this.platform.ready().then(() => {
       this.platform.backButton.subscribeWithPriority(9999, async () => {
-        if (await this.menu.isOpen()) {
-          await this.menu.close();
-          return;
-        }
-
-        const actionSheet = await this.actionSheetCtrl.getTop();
-        if (actionSheet) {
-          await actionSheet.dismiss();
-          return;
-        }
-
-        const modal = await this.modalCtrl.getTop();
-        if (modal) {
-          await modal.dismiss();
-          return;
-        }
-
-        if (this.currentPage === 'settings') {
-          this.currentPage = 'home';
-          this.cdr.detectChanges();
-          return;
-        }
-
+        if (await this.menu.isOpen()) { await this.menu.close(); return; }
+        if (this.currentPage === 'settings') { this.currentPage = 'home'; this.cdr.detectChanges(); return; }
         let canPop = false;
-        this.routerOutlets.forEach((outlet: IonRouterOutlet) => {
-          if (outlet && outlet.canGoBack()) {
-            outlet.pop();
-            canPop = true;
-          }
-        });
-
-        if (!canPop) {
-          (navigator as any)['app'].exitApp();
-        }
+        this.routerOutlets.forEach((outlet: IonRouterOutlet) => { if (outlet && outlet.canGoBack()) { outlet.pop(); canPop = true; } });
+        if (!canPop) { (navigator as any)['app'].exitApp(); }
       });
     });
   }
 
-  // 1. Pehle ye function add karein
 getFirstLetter(name: string): string {
   if (!name) return 'U';
   return name.trim().charAt(0).toUpperCase();
 }
 
-// 2. Ye function random/fixed color return karega
 getAvatarColor(name: string): string {
-  if (!name) return '#10b981'; // Default Green
-
+  if (!name) return '#10b981';
   const firstLetter = name.trim().charAt(0).toUpperCase();
-  
-  // Har letter ke liye ek premium color code
   const colors: { [key: string]: string } = {
     'A': '#f87171', 'B': '#fb923c', 'C': '#fbbf24', 'D': '#facc15',
     'E': '#6366f1', 'F': '#4ade80', 'G': '#34d399', 'H': '#2dd4bf',
@@ -750,125 +450,48 @@ getAvatarColor(name: string): string {
     'U': '#6366f1', 'V': '#8b5cf6', 'W': '#ec4899', 'X': '#f43f5e',
     'Y': '#14b8a6', 'Z': '#f59e0b'
   };
-
-  return colors[firstLetter] || '#10b981'; // Agar list mein na ho toh default Green
+  return colors[firstLetter] || '#10b981';
 }
-
-  // --- NAVIGATION METHODS ---
-  // async goToPage(path: string) {
-  //   await this.menu.close();
-    
-  //   if (path === 'settings') {
-  //     this.currentPage = 'settings'; 
-  //     this.loadUserData(); // Settings khulte hi data refresh
-  //   } else {
-  //     this.currentPage = 'home';
-  //     if (path === 'home') {
-  //       this.navCtrl.navigateRoot('/home');
-  //     } else {
-  //       this.navCtrl.navigateForward(`/${path}`).catch(err => {
-  //         console.log("Navigation error:", path);
-  //       });
-  //     }
-  //   }
-  //   this.cdr.detectChanges();
-  // }
-
-//   async goToPage(path: string) {
-//   await this.menu.close();
-
-  
-  
-//   if (path === 'settings') {
-//     this.currentPage = 'settings'; 
-//     this.loadUserData(); 
-//   } else {
-//     this.currentPage = 'home';
-//     if (path === 'home') {
-//       // Direct the user to the Super Admin route instead of generic home
-//       this.navCtrl.navigateRoot('/home/admin'); 
-//     } else {
-//       // For other pages like 'attendance', 'updates', etc.
-//       this.navCtrl.navigateForward(`/${path}`).catch(err => {
-//         console.log("Navigation error for path:", path);
-//       });
-//     }
-//   }
-//   this.cdr.detectChanges();
-// }
 
 async goToPage(path: string) {
   await this.menu.close();
-
-  // 1. Agar Settings hai toh sirf view toggle karo
   if (path === 'settings') {
     this.currentPage = 'settings'; 
     this.loadUserData(); 
-  } 
-  // 2. Agar Home hai toh Role check karke correct dashboard par bhejo
-  else if (path === 'home') {
+  } else if (path === 'home') {
     this.currentPage = 'home';
     const roleId = localStorage.getItem('user_role');
-    if (roleId === '1' || roleId === '2') {
-      this.navCtrl.navigateRoot('/admin');
-    } else {
-      this.navCtrl.navigateRoot('/home');
-    }
-  } 
-  // 3. Baaki saare pages (Attendance Requests, Updates, etc.) ke liye
-  else {
-    this.currentPage = 'home'; // Isse settings view band ho jayega aur router-outlet dikhega
-    
-    this.navCtrl.navigateForward(`/${path}`).catch(err => {
-      console.error("Navigation error for path:", path, err);
-      // Agar page nahi mil raha toh check karein routing module
-    });
+    if (roleId === '1' || roleId === '2') { this.navCtrl.navigateRoot('/admin'); } 
+    else { this.navCtrl.navigateRoot('/home'); }
+  } else {
+    this.currentPage = 'home';
+    this.navCtrl.navigateForward(`/${path}`).catch(err => console.error("Nav error:", path, err));
   }
-
   this.cdr.detectChanges();
 }
 
+  toggleEdit() { this.isEditMode = !this.isEditMode; this.cdr.detectChanges(); }
+  changeProfilePicture() { console.log("Opening camera..."); }
 
-  // --- SETTINGS METHODS ---
-  toggleEdit() {
-    this.isEditMode = !this.isEditMode;
-    this.cdr.detectChanges();
-  }
-
-  changeProfilePicture() {
-    console.log("Opening camera/gallery logic...");
-    // Add Capacitor Camera logic here
-  }
-
-  // --- SLIDER DRAG LOGIC ---
   onDragStart(event: any) {
     if (this.isSubmitting || !this.isEditMode) return;
-
     const container = document.querySelector('.slider-track');
-    if (container) {
-      this.maxSlide = container.clientWidth - 64; 
-    }
-    if (event.touches && event.touches.length > 0) {
-      this.startX = event.touches[0].clientX - this.currentTranslateX;
-    }
+    if (container) { this.maxSlide = container.clientWidth - 64; }
+    if (event.touches && event.touches.length > 0) { this.startX = event.touches[0].clientX - this.currentTranslateX; }
   }
 
   onDragMove(event: any) {
     if (this.isSubmitting || !this.isEditMode || !event.touches || event.touches.length === 0) return;
-
     let diff = event.touches[0].clientX - this.startX;
-
     if (diff < 0) diff = 0;
     if (diff > this.maxSlide) diff = this.maxSlide;
-
     this.currentTranslateX = diff;
     this.textOpacity = 1 - (diff / this.maxSlide);
-    this.cdr.detectChanges(); // Update slider handle position
+    this.cdr.detectChanges();
   }
 
   async onDragEnd() {
     if (this.isSubmitting || !this.isEditMode) return;
-
     if (this.currentTranslateX >= this.maxSlide * 0.8) {
       this.currentTranslateX = this.maxSlide;
       this.textOpacity = 0;
@@ -883,32 +506,19 @@ async goToPage(path: string) {
   async submitData() {
     this.isSubmitting = true;
     this.cdr.detectChanges();
-
-    // Simulate API Update
     setTimeout(async () => {
-      // Data local storage mein save karein
       localStorage.setItem('ranger_username', this.rangerName);
       localStorage.setItem('ranger_phone', this.rangerPhone);
-      
       this.isSubmitting = false;
       this.currentTranslateX = 0;
       this.textOpacity = 1;
       this.isEditMode = false;
-
-      const toast = await this.toastController.create({
-        message: 'Profile Protocol Updated!',
-        duration: 2000,
-        color: 'success',
-        mode: 'ios',
-        position: 'top'
-      });
+      const toast = await this.toastController.create({ message: 'Profile Protocol Updated!', duration: 2000, color: 'success', mode: 'ios', position: 'top' });
       await toast.present();
-
       this.cdr.detectChanges();
     }, 2000);
   }
 
-  // --- LANGUAGE & AUTH ---
   async toggleLanguageModal(show: boolean) {
     if (show) {
       await this.menu.close(); 
@@ -933,100 +543,52 @@ async goToPage(path: string) {
     this.selectedLanguage = savedLang === 'hi' ? 'Hindi' : (savedLang === 'mr' ? 'Marathi' : 'English');
   }
 
-  async logout() {
-    await this.menu.close(); // Pehle menu close karein taki background dikhe
-    this.toggleLogoutConfirm(true);
-  }
-
-  toggleLogoutConfirm(show: boolean) {
-    this.showLogoutConfirm = show;
-    this.cdr.detectChanges();
-  }
-
+  async logout() { await this.menu.close(); this.toggleLogoutConfirm(true); }
+  toggleLogoutConfirm(show: boolean) { this.showLogoutConfirm = show; this.cdr.detectChanges(); }
   async performLogout() {
-    console.log("🟠 User confirmed manual logout...");
     this.showLogoutConfirm = false;
     await this.menu.close();
     const lang = localStorage.getItem('app_language_code');
-    
-    console.log("🟠 Clearing all sensitive data from localStorage...");
     localStorage.clear();
-    
-    if (lang) {
-      console.log("🟠 Preserving user language preference:", lang);
-      localStorage.setItem('app_language_code', lang);
-    }
-    
-    console.log("🟠 Memory wiped successfully. Redirecting to /login...");
+    if (lang) { localStorage.setItem('app_language_code', lang); }
     this.navCtrl.navigateRoot('/login');
     this.cdr.detectChanges();
   }
 
   togglePasswordVisibility() {
-  this.passwordType = this.passwordType === 'password' ? 'text' : 'password';
-  this.passwordIcon = this.passwordIcon === 'eye-off' ? 'eye' : 'eye-off';
-  this.cdr.detectChanges();
-}
-
-  // --- GLOBAL VIEWER ACTIONS ---
-  closeViewer() {
-    this.photoViewer.close();
+    this.passwordType = this.passwordType === 'password' ? 'text' : 'password';
+    this.passwordIcon = this.passwordIcon === 'eye-off' ? 'eye' : 'eye-off';
+    this.cdr.detectChanges();
   }
 
-  downloadViewerImage() {
-    if (this.viewerImageUrl) {
-      this.photoViewer.download(this.viewerImageUrl);
-    }
-  }
-
+  closeViewer() { this.photoViewer.close(); }
+  downloadViewerImage() { if (this.viewerImageUrl) { this.photoViewer.download(this.viewerImageUrl); } }
   toggleViewerZoom(event: any) {
     event.stopPropagation();
-    if (this.viewerZoom >= 3) {
-      this.viewerZoom = 1;
-    } else {
-      this.viewerZoom += 0.5;
-    }
+    if (this.viewerZoom >= 3) { this.viewerZoom = 1; } else { this.viewerZoom += 0.5; }
     this.cdr.detectChanges();
   }
 
   getPhotoUrl(photoPath: any): string {
     if (!photoPath || photoPath === 'null' || photoPath === 'undefined') return '';
-    
     let url = '';
     if (typeof photoPath === 'string') {
       url = photoPath.trim();
       if (url.startsWith('[') || url.startsWith('"{')) {
         try {
           const parsed = JSON.parse(url.replace(/^"|"$/g, '').replace(/\\"/g, '"'));
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            url = parsed[0].photo || parsed[0].url || parsed[0].path || parsed[0] || '';
-          } else if (typeof parsed === 'object' && parsed !== null) {
-            url = parsed.photo || parsed.url || parsed.path || '';
-          }
-        } catch (e) {
-          console.warn('Failed to parse photo JSON:', url);
-        }
+          if (Array.isArray(parsed) && parsed.length > 0) { url = parsed[0].photo || parsed[0].url || parsed[0].path || parsed[0] || ''; } 
+          else if (typeof parsed === 'object' && parsed !== null) { url = parsed.photo || parsed.url || parsed.path || ''; }
+        } catch (e) { console.warn('Failed to parse photo JSON:', url); }
       }
-    } else if (typeof photoPath === 'object' && photoPath !== null) {
-      url = photoPath.photo || photoPath.url || photoPath.path || '';
-    }
-
+    } else if (typeof photoPath === 'object' && photoPath !== null) { url = photoPath.photo || photoPath.url || photoPath.path || ''; }
     if (!url || typeof url !== 'string' || url.length < 5) return '';
-
-    if (url.includes('fms.pugarch.in/profilepics/') && !url.includes('/public/')) {
-        url = url.replace('fms.pugarch.in/profilepics/', 'fms.pugarch.in/public/profilepics/');
-    }
-
+    if (url.includes('fms.pugarch.in/profilepics/') && !url.includes('/public/')) { url = url.replace('fms.pugarch.in/profilepics/', 'fms.pugarch.in/public/profilepics/'); }
     if (url.startsWith('http')) return url;
     if (url.startsWith('data:')) return url;
-    
     const cleaned = url.replace(/^\/+/, '');
-    if (cleaned.includes('fms.pugarch.in')) {
-      return `https://${cleaned.replace('https://', '').replace('http://', '')}`;
-    }
-    if (cleaned.includes('/')) {
-      return `https://fms.pugarch.in/public/${cleaned}`;
-    }
+    if (cleaned.includes('fms.pugarch.in')) { return `https://${cleaned.replace('https://', '').replace('http://', '')}`; }
+    if (cleaned.includes('/')) { return `https://fms.pugarch.in/public/${cleaned}`; }
     return `https://fms.pugarch.in/public/profilepics/${cleaned}`;
   }
 }

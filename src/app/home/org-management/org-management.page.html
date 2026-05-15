@@ -16,11 +16,11 @@
     <!-- Segment Switcher -->
     <div class="segment-container">
       <div class="custom-segment">
-        <button [class.active]="activeSegment === 'hierarchy'" (click)="activeSegment = 'hierarchy'">Hierarchy</button>
-        <button [class.active]="activeSegment === 'org'" (click)="activeSegment = 'org'">Org</button>
-        <button [class.active]="activeSegment === 'roles'" (click)="activeSegment = 'roles'">Roles</button>
-        <button [class.active]="activeSegment === 'permissions'" (click)="activeSegment = 'permissions'">Perms</button>
-        <button [class.active]="activeSegment === 'assignments'" (click)="activeSegment = 'assignments'">Assign</button>
+        <button *ngIf="dataService.isFeatureEnabled('hierarchy')" [class.active]="activeSegment === 'hierarchy'" (click)="activeSegment = 'hierarchy'">Hierarchy</button>
+        <button *ngIf="dataService.isFeatureEnabled('org_management')" [class.active]="activeSegment === 'org'" (click)="activeSegment = 'org'">Org</button>
+        <button *ngIf="dataService.isFeatureEnabled('roles')" [class.active]="activeSegment === 'roles'" (click)="activeSegment = 'roles'">Roles</button>
+        <button *ngIf="dataService.isFeatureEnabled('roles')" [class.active]="activeSegment === 'permissions'" (click)="activeSegment = 'permissions'">Perms</button>
+        <button *ngIf="dataService.hasPermission('Dynamic Hierarchy', 'assign')" [class.active]="activeSegment === 'assignments'" (click)="activeSegment = 'assignments'">Assign</button>
       </div>
     </div>
   </div>
@@ -30,7 +30,7 @@
     <div *ngIf="activeSegment === 'hierarchy'" class="section-fade-in">
       <div class="shdr">
         <div class="shdr-title">Hierarchy Layers</div>
-        <div class="shdr-link" (click)="openAddHierarchyNode()">
+        <div *ngIf="dataService.hasPermission('Dynamic Hierarchy', 'add')" class="shdr-link" (click)="openAddHierarchyNode()">
           <i class="fas fa-plus-circle"></i> ADD NODE
         </div>
       </div>
@@ -49,10 +49,10 @@
             <p>Layer ID: {{ node.layer_id }} • Parent ID: {{ node.parent_id || 'Root' }}</p>
           </div>
           <div class="card-actions">
-            <button class="action-btn edit" (click)="editHierarchyNode(node)">
+            <button *ngIf="dataService.hasPermission('Dynamic Hierarchy', 'update')" class="action-btn edit" (click)="editHierarchyNode(node)">
               <i class="far fa-edit"></i>
             </button>
-            <button class="action-btn delete" (click)="deleteHierarchyNode(node.id)">
+            <button *ngIf="dataService.hasPermission('Dynamic Hierarchy', 'delete')" class="action-btn delete" (click)="deleteHierarchyNode(node.id)">
               <i class="far fa-trash-alt"></i>
             </button>
           </div>
@@ -65,10 +65,10 @@
       <div class="shdr">
         <div class="shdr-title">Org Layers & Entities</div>
         <div class="shdr-actions" style="display: flex; gap: 10px;">
-          <div class="shdr-link" (click)="openAddOrgLayer()">
+          <div *ngIf="dataService.hasPermission('Dynamic Hierarchy', 'add')" class="shdr-link" (click)="openAddOrgLayer()">
             <i class="fas fa-layer-group"></i> ADD LAYER
           </div>
-          <div class="shdr-link" (click)="openAddOrgEntity()">
+          <div *ngIf="dataService.hasPermission('Dynamic Hierarchy', 'add')" class="shdr-link" (click)="openAddOrgEntity()">
             <i class="fas fa-plus-circle"></i> ADD ENTITY
           </div>
         </div>
@@ -81,8 +81,8 @@
              (click)="filterEntities(layer.id)">
           <span>{{ layer.name }}</span>
           <div class="pill-actions" *ngIf="selectedLayer === layer.id">
-            <i class="fas fa-pencil-alt" (click)="editOrgLayer(layer); $event.stopPropagation()"></i>
-            <i class="fas fa-times" (click)="deleteOrgLayer(layer.id); $event.stopPropagation()"></i>
+            <i *ngIf="dataService.hasPermission('Dynamic Hierarchy', 'update')" class="fas fa-pencil-alt" (click)="editOrgLayer(layer); $event.stopPropagation()"></i>
+            <i *ngIf="dataService.hasPermission('Dynamic Hierarchy', 'delete')" class="fas fa-times" (click)="deleteOrgLayer(layer.id); $event.stopPropagation()"></i>
           </div>
         </div>
       </div>
@@ -95,10 +95,10 @@
             <p>Code: {{ entity.code }} • Layer: {{ entity.layer_id }} • Parent: {{ entity.parent_id || 'None' }}</p>
           </div>
           <div class="card-actions">
-            <button class="action-btn edit" (click)="editOrgEntity(entity)">
+            <button *ngIf="dataService.hasPermission('Dynamic Hierarchy', 'update')" class="action-btn edit" (click)="editOrgEntity(entity)">
               <i class="far fa-edit"></i>
             </button>
-            <button class="action-btn delete" (click)="deleteOrgEntity(entity.id)">
+            <button *ngIf="dataService.hasPermission('Dynamic Hierarchy', 'delete')" class="action-btn delete" (click)="deleteOrgEntity(entity.id)">
               <i class="far fa-trash-alt"></i>
             </button>
           </div>
@@ -110,7 +110,7 @@
     <div *ngIf="activeSegment === 'roles'" class="section-fade-in">
       <div class="shdr">
         <div class="shdr-title">Custom Roles</div>
-        <div class="shdr-link" (click)="openAddRole()">
+        <div *ngIf="dataService.hasPermission('Role Management', 'add')" class="shdr-link" (click)="openAddRole()">
           <i class="fas fa-plus-circle"></i> CREATE ROLE
         </div>
       </div>
@@ -130,8 +130,8 @@
             <span *ngIf="!role.permissions || role.permissions.length === 0" class="no-perms">No permissions assigned</span>
           </div>
           <div class="role-actions">
-            <button (click)="editRole(role)">Update</button>
-            <button class="del" (click)="deleteRole(role.id)">Remove</button>
+            <button *ngIf="dataService.hasPermission('Role Management', 'update')" (click)="editRole(role)">Update</button>
+            <button *ngIf="dataService.hasPermission('Role Management', 'delete')" class="del" (click)="deleteRole(role.id)">Remove</button>
           </div>
         </div>
       </div>
@@ -179,7 +179,7 @@
 
           <div class="role-actions">
             <button style="background: var(--surf2); color: var(--tx2);" (click)="cancelPermissions()">Cancel</button>
-            <button style="background: var(--p); color: white;" (click)="saveRolePermissions()">Save Permissions</button>
+            <button *ngIf="dataService.hasPermission('Role Management', 'update')" style="background: var(--p); color: white;" (click)="saveRolePermissions()">Save Permissions</button>
           </div>
         </div>
       </div>
@@ -189,7 +189,7 @@
     <div *ngIf="activeSegment === 'assignments'" class="section-fade-in">
       <div class="shdr">
         <div class="shdr-title">User Assignments</div>
-        <div class="shdr-link" (click)="openAssignUser()">
+        <div *ngIf="dataService.hasPermission('Dynamic Hierarchy', 'assign')" class="shdr-link" (click)="openAssignUser()">
           <i class="fas fa-user-plus"></i> ASSIGN
         </div>
       </div>
@@ -207,7 +207,7 @@
             <h3>{{ assign.user_name }}</h3>
             <p>{{ assign.role_name }} (ID: {{ assign.role_id }}) @ {{ assign.entity_name }} (ID: {{ assign.entity_id }})</p>
           </div>
-          <button class="unassign-btn" (click)="unassignUser(assign)">
+          <button *ngIf="dataService.hasPermission('Dynamic Hierarchy', 'delete')" class="unassign-btn" (click)="unassignUser(assign)">
             <i class="fas fa-times"></i>
           </button>
         </div>

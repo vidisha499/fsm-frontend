@@ -655,6 +655,10 @@ toggleEdit() {
     await toast.present();
   }
 
+  isFeatureEnabled(feature: string): boolean {
+    return this.dataService.isFeatureEnabled(feature);
+  }
+
   goToPage(path: string, queryParams: any = {}) {
     this.toggleMenu(false);
 

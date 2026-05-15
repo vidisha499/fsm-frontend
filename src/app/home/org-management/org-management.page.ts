@@ -41,7 +41,7 @@ export class OrgManagementPage implements OnInit {
 
   constructor(
     private navCtrl: NavController,
-    private dataService: DataService,
+    public dataService: DataService,
     private toast: ToastController,
     private alertCtrl: AlertController,
     private loadingCtrl: LoadingController
@@ -49,6 +49,9 @@ export class OrgManagementPage implements OnInit {
 
   ngOnInit() {
     this.loadData();
+    this.dataService.permissionsUpdated$.subscribe(() => {
+      this.loadData();
+    });
   }
 
   loadData() {
@@ -397,7 +400,7 @@ export class OrgManagementPage implements OnInit {
                 });
               }
             });
-
+            
             this.customRoles = Array.from(uniqueMap.values());
             console.log("✅ [Roles Normalized & Merged]:", this.customRoles);
           },
