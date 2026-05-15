@@ -282,6 +282,58 @@ export class DataService {
     return this.http.post(`${this.baseApiUrl}/getUsers`, formData, { headers }); 
   }
 
+  // --- NEW: USER MANAGEMENT APIs FROM SIR'S JSON ---
+  getAdmin(companyId: any) {
+    const token = localStorage.getItem('api_token') || '';
+    const formData = new FormData();
+    formData.append('company_id', String(companyId));
+    formData.append('api_token', token);
+    return this.http.post(`${this.baseApiUrl}/getadmin`, formData);
+  }
+
+  getSupervisor(companyId: any) {
+    const token = localStorage.getItem('api_token') || '';
+    const formData = new FormData();
+    formData.append('company_id', String(companyId));
+    formData.append('api_token', token);
+    return this.http.post(`${this.baseApiUrl}/getsupervisor`, formData);
+  }
+
+  getGuardsWithAttendStatus(companyId: any) {
+    const token = localStorage.getItem('api_token') || '';
+    const formData = new FormData();
+    formData.append('company_id', String(companyId));
+    formData.append('api_token', token);
+    return this.http.post(`${this.baseApiUrl}/getGuardsWithAttendStatus`, formData);
+  }
+
+  getAllUnassignedGuards(companyId: any) {
+    const token = localStorage.getItem('api_token') || '';
+    const formData = new FormData();
+    formData.append('company_id', String(companyId));
+    formData.append('api_token', token);
+    return this.http.post(`${this.baseApiUrl}/getAllUnassignedGuards`, formData);
+  }
+
+  getAdminList(companyId: any, roleId: any = '1') {
+    const token = localStorage.getItem('api_token') || '';
+    const formData = new FormData();
+    formData.append('company_id', String(companyId));
+    formData.append('role_id', String(roleId));
+    formData.append('api_token', token);
+    return this.http.post(`${this.baseApiUrl}/getAdminList`, formData);
+  }
+
+  getSupervisorList(companyId: any, roleId: any = '3', siteId: any = '') {
+    const token = localStorage.getItem('api_token') || '';
+    const formData = new FormData();
+    formData.append('company_id', String(companyId));
+    formData.append('role_id', String(roleId));
+    if (siteId) formData.append('site_id', String(siteId));
+    formData.append('api_token', token);
+    return this.http.post(`${this.baseApiUrl}/getSupervisor`, formData);
+  }
+
   // --- 6. INCIDENTS (Aligned with Postman) ---
   getIncidentsByRanger() {
     const formData = new FormData();

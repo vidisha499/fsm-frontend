@@ -115,6 +115,18 @@
         <div class="item-text"><span>Add Approved User</span></div>
       </a>
 
+      <!-- 12. User -->
+      <a class="menu-item" (click)="goToPage('users')" [class.active]="router.url.includes('users')">
+        <div class="icon-box teal"><i class="fas fa-users"></i></div>
+        <div class="item-text"><span>User</span></div>
+      </a>
+
+      <!-- 13. Task Management -->
+      <a class="menu-item" (click)="goToPage('tasks')" [class.active]="router.url.includes('tasks')">
+        <div class="icon-box cyan"><i class="fas fa-tasks"></i></div>
+        <div class="item-text"><span>Task Management</span></div>
+      </a>
+
       <!-- Hidden/Commented items -->
       <!-- <a *ngIf="isFeatureEnabled('attendance')" class="menu-item" (click)="goToPage('onsite-attendance')">
         <div class="icon-box emerald"><i class="fas fa-map-marker-alt"></i></div>

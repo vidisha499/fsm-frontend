@@ -186,6 +186,14 @@ loadChildren:() => import('./admin/admin.module').then( m => m.AdminPageModule)
   {
     path: 'org-management',
     loadChildren: () => import('./org-management/org-management.module').then( m => m.OrgManagementPageModule)
+  },
+  {
+    path: 'users',
+    loadChildren: () => import('./users/users.module').then( m => m.UsersPageModule)
+  },
+  {
+    path: 'tasks',
+    loadChildren: () => import('./tasks/tasks.module').then( m => m.TasksPageModule)
   }
 
 ];

@@ -204,6 +204,10 @@ loadChildren:() => import('./home/reports/reports.module').then( m => m.ReportsP
   {
     path: 'add-observation/:id',
     loadChildren: () => import('./home/plantations/add-observation/add-observation.module').then(m => m.AddObservationPageModule)
+  },
+  {
+    path: 'users',
+    loadChildren: () => import('./home/users/users.module').then( m => m.UsersPageModule)
   }
 ];
 

@@ -1,0 +1,95 @@
+<ion-content [fullscreen]="true" class="users-content">
+  <div class="premium-wrapper">
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <div class="hero-header">
+      <div class="header-overlay"></div>
+      <div class="header-content">
+        <div class="nav-bar">
+          <div class="left-section">
+            <div (click)="goBack()" class="glass-btn">
+              <i class="fas fa-chevron-left"></i>
+            </div>
+            <h1>User Management</h1>
+          </div>
+        </div>
+        <div class="header-title-group">
+          <p>Personnel Directory & Hierarchy</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-container">
+      <div class="users-grid animate-scale-up">
+        <!-- ACF Card -->
+        <div class="user-category-card card-teal" (click)="openUserCategory('acf')">
+          <div class="card-inner">
+            <div class="icon-wrap">
+              <i class="fas fa-user-tie"></i>
+            </div>
+            <div class="text-wrap">
+              <h3>ACF</h3>
+              <p>Assistant Conservator of Forests</p>
+            </div>
+            <div class="arrow-indicator">
+              <i class="fas fa-chevron-right"></i>
+            </div>
+          </div>
+          <div class="card-glow"></div>
+        </div>
+
+        <!-- Ranger Card -->
+        <div class="user-category-card card-emerald" (click)="openUserCategory('ranger')">
+          <div class="card-inner">
+            <div class="icon-wrap">
+              <i class="fas fa-user-shield"></i>
+            </div>
+            <div class="text-wrap">
+              <h3>Ranger</h3>
+              <p>Range Forest Officers</p>
+            </div>
+            <div class="arrow-indicator">
+              <i class="fas fa-chevron-right"></i>
+            </div>
+          </div>
+          <div class="card-glow"></div>
+        </div>
+
+        <!-- Forest Guard Card -->
+        <div class="user-category-card card-blue" (click)="openUserCategory('forest_guard')">
+          <div class="card-inner">
+            <div class="icon-wrap">
+              <i class="fas fa-user-ninja"></i>
+            </div>
+            <div class="text-wrap">
+              <h3>Forest Guard</h3>
+              <p>Field Personnel & Watchers</p>
+            </div>
+            <div class="arrow-indicator">
+              <i class="fas fa-chevron-right"></i>
+            </div>
+          </div>
+          <div class="card-glow"></div>
+        </div>
+
+        <!-- Unassigned Users Card -->
+        <div class="user-category-card card-rose" (click)="openUserCategory('unassigned')">
+          <div class="card-inner">
+            <div class="icon-wrap">
+              <i class="fas fa-user-slash"></i>
+            </div>
+            <div class="text-wrap">
+              <h3>Unassigned Users</h3>
+              <p>New Registrations & Pending</p>
+            </div>
+            <div class="arrow-indicator">
+              <i class="fas fa-chevron-right"></i>
+            </div>
+          </div>
+          <div class="card-glow"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</ion-content>
