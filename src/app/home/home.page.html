@@ -47,44 +47,32 @@
             <div style="margin-top: 35px;">
                 <h3 class="section-title">{{ 'DASHBOARD.MISSION_MODULES' | translate }}</h3>
                 <div class="module-grid">
-                    <!-- 1. Beat Attendance -->
-                    <div *ngIf="isFeatureEnabled('attendance')" class="module-card card-green" (click)="goToPage('attendance-list', { mode: 'beat' })">
+                    <div class="module-card card-blue" *ngIf="dataService.isFeatureEnabled('attendance')" (click)="goToPage('attendance-list', { mode: 'beat' })">
                         <div class="icon-bg"><i class="fas fa-fingerprint"></i></div>
                         <p [innerHTML]="'DASHBOARD.BEAT_ATTENDANCE' | translate"></p>
                         <i class="fas fa-paw watermark"></i>
                     </div>
-                    
-                    <!-- 2. Know Your Area (Hidden if no perm) -->
-                    <div *ngIf="isFeatureEnabled('know_your_area')" class="module-card card-blue" (click)="goToPage('geofences')">
+                    <div class="module-card card-green" *ngIf="dataService.isFeatureEnabled('know_your_area')" (click)="goToPage('geofences')">
                         <div class="icon-bg"><i class="fas fa-map-marked-alt"></i></div>
                         <p [innerHTML]="'DASHBOARD.ONSITE_LOG' | translate"></p>
                         <i class="fas fa-paw watermark"></i>
                     </div>
-
-                    <!-- 3. Patrol Missions -->
-                    <div *ngIf="isFeatureEnabled('patrol')" class="module-card card-yellow" (click)="goToPage('patrol-logs')">
+                    <div class="module-card card-yellow" *ngIf="dataService.isFeatureEnabled('patrol')" (click)="goToPage('patrol-logs')">
                         <div class="icon-bg"><i class="fas fa-hiking"></i></div>
                         <p [innerHTML]="'DASHBOARD.PATROL_MISSIONS' | translate"></p>
                         <i class="fas fa-paw watermark"></i>
                     </div>
-
-                    <!-- 4. Forest Events (Hidden if no perm) -->
-                    <div *ngIf="isFeatureEnabled('forest_events')" class="module-card card-red" (click)="goToPage('forest-events')">
+                    <div class="module-card card-red" *ngIf="dataService.isFeatureEnabled('forest_events')" (click)="goToPage('forest-events')">
                         <div class="icon-bg"><i class="fas fa-calendar-alt"></i></div>
                         <p [innerHTML]="'DASHBOARD.ALERT_INCIDENT' | translate"></p>
                         <i class="fas fa-paw watermark"></i>
                     </div>
 
-                    <!-- 7. User Management (Super Admin ONLY - Role ID 1) -->
-                    <div *ngIf="isFeatureEnabled('user_management') && (userRole === 'super-admin' || userRole === '1')" class="module-card card-blue" (click)="goToPage('add-user')">
-                        <div class="icon-bg"><i class="fas fa-user-plus"></i></div>
-                        <p>Add Approved User</p>
-                        <i class="fas fa-paw watermark"></i>
-                    </div>
+
                 </div>
             </div>
         </div>
-    </div>
+        </div>
 </ion-content>
 
 
@@ -241,4 +229,3 @@
         <div class="nav-tab" (click)="goToPage('settings')"><i class="fas fa-user-shield"></i><span>{{ 'NAV.RANGER' | translate }}</span></div>
     </div>
 </div>
-</ng-container>

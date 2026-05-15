@@ -71,7 +71,8 @@ export class DataService {
         'user_management': ['User Management'],
         'org_management': ['Organization', 'Role Management', 'Dynamic Hierarchy'],
         'hierarchy': ['Dynamic Hierarchy'],
-        'roles': ['Role Management']
+        'roles': ['Role Management'],
+        'tasks': ['Tasks', 'Task Management']
       };
 
       const keyToCheck = feature.toLowerCase();

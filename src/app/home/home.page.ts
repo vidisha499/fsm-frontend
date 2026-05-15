@@ -81,7 +81,7 @@ passwordType: string = 'password';
     private menuCtrl: MenuController,
     private router: Router,
     private renderer: Renderer2,
-    private dataService: DataService,
+    public dataService: DataService,
     private toastController: ToastController,
     private loadingController: LoadingController,
     public translate: TranslateService,
@@ -89,8 +89,7 @@ passwordType: string = 'password';
     private platform: Platform,
     private actionSheetCtrl: ActionSheetController,
     private alertController: AlertController,
-    private hierarchyService: HierarchyService,
- 
+    private hierarchyService: HierarchyService
   ) {}
 
   ngOnInit() {
@@ -655,10 +654,6 @@ toggleEdit() {
     await toast.present();
   }
 
-  isFeatureEnabled(feature: string): boolean {
-    return this.dataService.isFeatureEnabled(feature);
-  }
-
   goToPage(path: string, queryParams: any = {}) {
     this.toggleMenu(false);
 
@@ -681,7 +676,7 @@ toggleEdit() {
 
   // Password toggle karne ka function
 
-openMenu() {
+ openMenu() {
     this.menuCtrl.open('start');
   }
 
@@ -805,69 +800,5 @@ private async sendSOS(message: string, lat: number, lon: number, address: string
     }
   });
 }
-
-
-// private async sendSOS(message: string) {
-//   const rId = this.dataService.getRangerId();
-//   const cId = localStorage.getItem('company_id');
-
-//   if (!rId) return;
-
-//   // Show a loading indicator while getting GPS
-//   const loader = await this.loadingController.create({
-//     message: 'Getting location...',
-//     spinner: 'crescent'
-//   });
-//   await loader.present();
-
-//   try {
-//     // 1. Get current GPS coordinates
-//     const coordinates = await Geolocation.getCurrentPosition({
-//       enableHighAccuracy: true,
-//       timeout: 10000
-//     });
-
-//     const payload = {
-//       ranger_id: +rId,
-//       company_id: cId ? +cId : 2,
-//       ranger_name: this.rangerName,
-//       message: message || 'No specific message provided',
-//       type: 'SOS_EMERGENCY',
-//       timestamp: new Date().toISOString(),
-//       // 2. Add Location Data here
-//       latitude: coordinates.coords.latitude,
-//       longitude: coordinates.coords.longitude,
-//       location_name: this.rangerDivision || 'Fetching address...'
-//     };
-
-//     console.log('SOS Payload with Location:', payload);
-//     console.log('Final Payload being sent to Backend:', payload);
-// // Make sure latitude and longitude are not 0 or undefined here.
-
-//     this.dataService.sendSOSAlert(payload).subscribe({
-//       next: async () => {
-//         await loader.dismiss();
-//         const toast = await this.toastController.create({
-//           message: '🚨 SOS SENT WITH LOCATION',
-//           duration: 3000,
-//           color: 'danger',
-//           position: 'top',
-//           mode: 'ios'
-//         });
-//         await toast.present();
-//       },
-//       error: async (err) => {
-//         await loader.dismiss();
-//         console.error("SOS Error:", err);
-//         this.showToast('Failed to send SOS. Check connection.');
-//       }
-//     });
-
-//   } catch (e) {
-//     await loader.dismiss();
-//     console.error('Error getting location', e);
-//     this.showToast('Could not get GPS location. Please enable GPS.');
-//   }
-// }
 
 }
