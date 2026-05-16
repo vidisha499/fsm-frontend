@@ -50,7 +50,7 @@
     <nav class="menu-nav">
       <!-- <div class="menu-section-label">{{ 'MENU.NAVIGATION' | translate }}</div> -->
       
-      <a *ngIf="isFeatureEnabled('dashboard')" class="menu-item" (click)="goToPage('home')" [class.active]="router.url.includes('home')">
+      <a class="menu-item" (click)="goToPage('home')" [class.active]="router.url.includes('home')">
         <div class="icon-box emerald"><i class="fas fa-th-large"></i></div>
         <div class="item-text"><span>Dashboard</span></div>
       </a>

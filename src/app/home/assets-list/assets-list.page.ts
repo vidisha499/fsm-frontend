@@ -74,10 +74,15 @@ openAssetDetails(asset: any) {
       const list = Array.isArray(data) ? data : (data.data || []);
       this.allAssets = list;
       this.assets = [...this.allAssets];
-      this.isLoading = false; // ✅ Hide loader
+      this.isLoading = false;
+      // 🔍 DEBUG: Pehla asset ka raw structure dekho
+      if (list.length > 0) {
+        console.log('%c🔍 [ASSET DEBUG] Raw First Asset Keys:', 'color: orange; font-weight: bold;', Object.keys(list[0]));
+        console.log('%c📦 [ASSET DEBUG] Raw First Asset Data:', 'color: orange; font-weight: bold;', list[0]);
+      }
     },
     error: (err) => {
-      this.isLoading = false; // ✅ Hide loader on error
+      this.isLoading = false;
       this.presentToast('Error loading your assets');
     }
   });
@@ -146,60 +151,158 @@ openAssetDetails(asset: any) {
   }
 
 
-  // --- 1. SERVER-SIDE REPORTING ---
+  // --- 1. CLIENT-SIDE REPORTING ---
   async exportReport(format: 'pdf' | 'excel') {
+    if (this.assets.length === 0) { this.presentToast('No data to export!'); return; }
+
     const loading = await this.loadingCtrl.create({ message: `Generating ${format.toUpperCase()}...` });
     await loading.present();
 
-    const payload = {
-      company_id: this.companyId,
-      format: format,
-      category: this.filters.category,
-      from: this.filters.fromDate.split('T')[0],
-      to: this.filters.toDate.split('T')[0]
-    };
+    try {
+      const companyName = localStorage.getItem('company_name') || 'Company';
+      const dateStr = new Date().toLocaleDateString('en-IN');
+      const fileName = `Asset_Report_${dateStr.replace(/\//g, '-')}`;
+      const catLabel  = this.filters.category === 'all' ? 'All' : this.filters.category;
+      const fromLabel = this.filters.fromDate ? new Date(this.filters.fromDate).toLocaleDateString('en-IN') : '—';
+      const toLabel   = this.filters.toDate   ? new Date(this.filters.toDate).toLocaleDateString('en-IN')   : '—';
+      const filterLine = `Category: ${catLabel} | Date Range: ${fromLabel} to ${toLabel}`;
 
-    this.dataService.downloadAssetReport(payload).subscribe({
-      next: (response: any) => {
-        const contentType = response.headers.get('content-type');
+      // Build rows — location is stored as JSON string {"lat": x, "lng": y}
+      const rows = this.assets.map((a: any) => {
+        let lat = a.latitude || a.lat;
+        let lng = a.longitude || a.lng;
 
-        // Check for JSON error (same as Reports page)
-        if (contentType && contentType.includes('application/json')) {
-          const reader = new FileReader();
-          reader.onload = () => {
-             try {
-                const resObj = JSON.parse(reader.result as string);
-                if (resObj.status === 'SUCCESS' && resObj.fileurl) {
-                  window.open(resObj.fileurl, '_blank');
-                } else {
-                  this.presentToast('Server Error: ' + (resObj.message || 'Error generating report'));
-                }
-             } catch (e) {
-                this.presentToast('Invalid server response');
-             }
-          };
-          reader.readAsText(response.body);
-          loading.dismiss();
-          return;
+        // Try parsing from location JSON string e.g. '{"lat": 21.14, "lng": 79.08}'
+        if ((!lat || !lng) && a.location) {
+          try {
+            const loc = typeof a.location === 'string' ? JSON.parse(a.location) : a.location;
+            lat = loc.lat || loc.latitude;
+            lng = loc.lng || loc.longitude;
+          } catch (e) { /* not parseable */ }
         }
 
-        // Handle direct blob
-        const blob = new Blob([response.body], { type: contentType });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Asset_Report_${Date.now()}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        loading.dismiss();
-      },
-      error: (err) => {
-        loading.dismiss();
-        this.presentToast('Error downloading report');
+        const mapUrl = (lat && lng)
+          ? `https://www.google.com/maps?q=${lat},${lng}`
+          : '';
+        const photoUrl = a.photo || a.image || a.photo_url || a.photo_path || '';
+
+        return {
+          name:        a.name || 'N/A',
+          category:    a.category || 'N/A',
+          condition:   a.condition || a.condition_status || 'N/A',
+          year:        a.year || 'N/A',
+          description: a.description || a.desc || '',
+          addedOn:     a.created_at ? new Date(a.created_at).toLocaleDateString('en-IN') : 'N/A',
+          mapUrl,
+          photoUrl
+        };
+      });
+
+      if (format === 'pdf') {
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+        // Title
+        doc.setFontSize(14); doc.setFont('helvetica', 'bold'); doc.setTextColor(30, 30, 30);
+        doc.text('Company Asset Report', 14, 14);
+
+        // Subtitle
+        doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 100, 100);
+        doc.text(filterLine, 14, 21);
+
+        // Divider
+        doc.setDrawColor(180, 180, 180); doc.line(14, 24, 283, 24);
+
+        // Table rows (text only — links added via didDrawCell)
+        const tableBody = rows.map(r => [
+          r.name, r.category, r.condition, r.year, r.description, r.addedOn,
+          r.mapUrl   ? 'Map'   : '',
+          r.photoUrl ? 'Photo' : ''
+        ]);
+
+        autoTable(doc, {
+          startY: 27,
+          head: [['Name', 'Category', 'Condition', 'Year', 'Description', 'Added On', 'Location', 'Photos']],
+          body: tableBody,
+          headStyles: {
+            fillColor: [240, 240, 240], textColor: [30, 30, 30],
+            fontStyle: 'bold', fontSize: 8, lineColor: [200, 200, 200], lineWidth: 0.2
+          },
+          bodyStyles: { fontSize: 7.5, textColor: [50, 50, 50], cellPadding: 2.5 },
+          alternateRowStyles: { fillColor: [252, 252, 252] },
+          styles: { overflow: 'linebreak', lineColor: [220, 220, 220], lineWidth: 0.1 },
+          columnStyles: {
+            0: { cellWidth: 35 }, 1: { cellWidth: 28 }, 2: { cellWidth: 26 },
+            3: { cellWidth: 14 }, 4: { cellWidth: 68 }, 5: { cellWidth: 22 },
+            6: { cellWidth: 18, textColor: [41, 128, 185] },
+            7: { cellWidth: 18, textColor: [41, 128, 185] }
+          },
+          // ✅ Draw clickable hyperlinks in Location & Photo columns
+          didDrawCell: (data: any) => {
+            const col = data.column.index;
+            const rowIdx = data.row.index;
+            if (data.section !== 'body') return;
+
+            const rowData = rows[rowIdx];
+            if (!rowData) return;
+
+            if (col === 6 && rowData.mapUrl) {
+              // Underline "Map"
+              const x = data.cell.x + 1;
+              const y = data.cell.y + data.cell.height - 2.5;
+              doc.setDrawColor(41, 128, 185);
+              doc.line(x, y, x + 8, y);
+              doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url: rowData.mapUrl });
+            }
+
+            if (col === 7 && rowData.photoUrl) {
+              // Underline "Photo"
+              const x = data.cell.x + 1;
+              const y = data.cell.y + data.cell.height - 2.5;
+              doc.setDrawColor(41, 128, 185);
+              doc.line(x, y, x + 11, y);
+              doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url: rowData.photoUrl });
+            }
+          },
+          didDrawPage: (data: any) => {
+            doc.setFontSize(7); doc.setTextColor(150, 150, 150);
+            doc.text(`Generated: ${dateStr} | ${companyName}`, 14, doc.internal.pageSize.getHeight() - 8);
+          }
+        });
+
+        doc.save(`${fileName}.pdf`);
+
+      } else {
+        // Excel — use HYPERLINK formula for Map & Photo columns
+        const wsData: any[][] = [
+          ['Company Asset Report'],
+          [filterLine],
+          [],
+          ['Name', 'Category', 'Condition', 'Year', 'Description', 'Added On', 'Location', 'Photos'],
+          ...rows.map(r => [
+            r.name, r.category, r.condition, r.year, r.description, r.addedOn,
+            r.mapUrl   ? { f: `HYPERLINK("${r.mapUrl}","Map")`   } : '',
+            r.photoUrl ? { f: `HYPERLINK("${r.photoUrl}","Photo")` } : ''
+          ])
+        ];
+
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        ws['!cols'] = [
+          { wch: 28 }, { wch: 22 }, { wch: 20 }, { wch: 8 },
+          { wch: 50 }, { wch: 16 }, { wch: 14 }, { wch: 14 }
+        ];
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Assets');
+        XLSX.writeFile(wb, `${fileName}.xlsx`);
       }
-    });
+
+      this.presentToast(`${format.toUpperCase()} downloaded!`);
+    } catch (e) {
+      console.error('Export error:', e);
+      this.presentToast('Failed to generate report. Try again.');
+    } finally {
+      loading.dismiss();
+    }
   }
 
   // --- 2. ASSET DELETION ---

@@ -198,6 +198,13 @@ export class AppComponent implements OnInit {
     this.companyName = localStorage.getItem('company_name') || parsedUser?.company_name || '';
     this.userPhoto = localStorage.getItem('user_photo') || '';
 
+    // 🔒 [LOG] Show current active permissions
+    const activePerms = localStorage.getItem('user_permissions');
+    try {
+      const parsedPerms = JSON.parse(activePerms || '[]');
+      console.log("%c🔐 [DEBUG] ACTIVE USER PERMISSIONS:", "color: #f59e0b; font-weight: bold; font-size: 12px;", parsedPerms);
+    } catch(e) { console.warn("⚠️ [DEBUG] Permissions corrupted in localStorage"); }
+
     const rangerId = localStorage.getItem('ranger_id') || localStorage.getItem('user_id') || parsedUser?.id;
     console.log("🔍 [DEBUG] Checking assignments for Ranger ID:", rangerId);
     if (rangerId) {

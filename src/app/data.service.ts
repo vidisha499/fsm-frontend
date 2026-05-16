@@ -70,7 +70,7 @@ export class DataService {
         'patrol_report': ['Forest Events', 'Forest Reports'],
         'reports': ['Forest Reports', 'Reports'],
         'attendance_request': ['Attendance'],
-        'asset_management': ['Assets'],
+        'asset_management': ['Asset', 'Asset Management', 'Assets'],
         'forest_events': ['Forest Events', 'Incidence', 'Forest Reports', 'Forest Report', 'forest_reports'],
         'know_your_area': ['Know Your Area'],
         'plantations': ['Plantation'],
@@ -1821,7 +1821,13 @@ export class DataService {
 
   listV2ForestReports() {
     const token = localStorage.getItem('api_token') || '';
-    return this.http.post(`${this.baseApiUrl}/v2/forest-reports/list`, { api_token: token });
+    const companyId = localStorage.getItem('company_id');
+    const userId = localStorage.getItem('user_id') || localStorage.getItem('ranger_id');
+    const payload: any = { api_token: token };
+    if (companyId) payload.company_id = companyId;
+    if (userId) payload.user_id = userId;
+
+    return this.http.post(`${this.baseApiUrl}/v2/forest-reports/list`, payload);
   }
 
   storeV2Plantation(payload: any) {
@@ -1831,7 +1837,13 @@ export class DataService {
 
   listV2Plantations() {
     const token = localStorage.getItem('api_token') || '';
-    return this.http.post(`${this.baseApiUrl}/v2/plantations/list`, { api_token: token });
+    const companyId = localStorage.getItem('company_id');
+    const userId = localStorage.getItem('user_id') || localStorage.getItem('ranger_id');
+    const payload: any = { api_token: token };
+    if (companyId) payload.company_id = companyId;
+    if (userId) payload.user_id = userId;
+
+    return this.http.post(`${this.baseApiUrl}/v2/plantations/list`, payload);
   }
 
   storeV2Asset(payload: any) {
@@ -1841,7 +1853,20 @@ export class DataService {
 
   listV2Assets() {
     const token = localStorage.getItem('api_token') || '';
-    return this.http.post(`${this.baseApiUrl}/v2/assets/list`, { api_token: token });
+    const companyId = localStorage.getItem('company_id');
+    const userId = localStorage.getItem('user_id') || localStorage.getItem('ranger_id');
+    
+    const payload: any = { 
+      api_token: token,
+      company_id: companyId,
+      cid: companyId, // Alias
+      user_id: userId,
+      guard_id: userId, // Alias
+      ranger_id: userId // Alias
+    };
+
+    console.log("📤 [DEBUG] Asset List Request Payload:", payload);
+    return this.http.post(`${this.baseApiUrl}/v2/assets/list`, payload);
   }
 
   // Compatibility Helper (for older components)
