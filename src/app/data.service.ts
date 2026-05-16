@@ -456,15 +456,18 @@ export class DataService {
     if (dateTo) formData.append('date_to', dateTo);
     return this.http.post(`${this.baseApiUrl}/patrol-list`, formData);
   }
-  getPatrolById(id: number | string) { 
+  getPatrolById(id: number | string) {
     const token = localStorage.getItem('api_token') || '';
-    const payload = {
-      api_token: token,
-      id: String(id),
-      patrol_id: String(id)
-    };
-    // Use patrol-list as it contains both ongoing and completed patrols in Sir's API
-    return this.http.post(`${this.baseApiUrl}/patrol-list`, payload); 
+    const companyId = localStorage.getItem('company_id') || '';
+    
+    const formData = new FormData();
+    formData.append('api_token', token);
+    formData.append('company_id', companyId);
+    formData.append('patrol_id', String(id));
+    formData.append('id', String(id));
+
+    console.log(`🔍 [DEBUG] getPatrolById (FormData):`, { id, companyId });
+    return this.http.post(`${this.baseApiUrl}/patrol-list`, formData);
   }
   saveSighting(payload: any) { 
     return this.http.post(`${this.baseApiUrl}/forest-reports`, payload); 
@@ -1636,6 +1639,19 @@ export class DataService {
   deleteCustomRole(roleId: any) {
     const token = localStorage.getItem('api_token') || '';
     return this.http.delete(`${this.baseApiUrl}/roles/${roleId}`, { params: { api_token: token } });
+  }
+
+  listV2Users() {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/user/list`, { api_token: token });
+  }
+
+  getLegacyUsers(companyId: any) {
+    const token = localStorage.getItem('api_token') || '';
+    const formData = new FormData();
+    formData.append('api_token', token);
+    formData.append('company_id', String(companyId));
+    return this.http.post(`${this.baseApiUrl}/getUsers`, formData);
   }
 
   // --- 23. USER ASSIGNMENTS ---

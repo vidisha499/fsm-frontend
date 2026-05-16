@@ -15,7 +15,7 @@ import { PatrolActivePage } from './patrol-active.page';
     FormsModule,
     IonicModule,
     PatrolActivePageRoutingModule,
-   TranslateModule
+   TranslateModule.forChild()
   ],
   declarations: [PatrolActivePage]
 })

@@ -10,10 +10,10 @@
           <button (click)="goBack()" class="glass-btn">
             <i class="fas fa-chevron-left"></i>
           </button>
-          <h1>Add <span>Approved User</span></h1>
+          <h1>{{ 'ADD_USER_PAGE.TITLE' | translate }} <span>{{ 'ADD_USER_PAGE.TITLE_SPAN' | translate }}</span></h1>
         </div>
       </div>
-      <div class="header-subtitle">Pre-register users for automatic verification</div>
+      <div class="header-subtitle">{{ 'ADD_USER_PAGE.SUBTITLE' | translate }}</div>
     </div>
   </div>
 
@@ -23,43 +23,43 @@
       <div class="form-grid">
         <div class="input-row">
           <div class="input-pill half">
-            <label>FIRST NAME</label>
+            <label>{{ 'ADD_USER_PAGE.LABEL_FNAME' | translate }}</label>
             <div class="pill-content">
               <i class="fas fa-user-edit"></i>
-              <input [(ngModel)]="userData.firstName" type="text" placeholder="First Name">
+              <input [(ngModel)]="userData.firstName" type="text" [placeholder]="'ADD_USER_PAGE.PH_FNAME' | translate">
             </div>
           </div>
           <div class="input-pill half">
-            <label>SURNAME</label>
+            <label>{{ 'ADD_USER_PAGE.LABEL_LNAME' | translate }}</label>
             <div class="pill-content">
               <i class="fas fa-id-card"></i>
-              <input [(ngModel)]="userData.lastName" type="text" placeholder="Surname">
+              <input [(ngModel)]="userData.lastName" type="text" [placeholder]="'ADD_USER_PAGE.PH_LNAME' | translate">
             </div>
           </div>
         </div>
 
         <div class="input-pill">
-          <label>MOBILE NUMBER (VERIFICATION KEY)</label>
+          <label>{{ 'ADD_USER_PAGE.LABEL_MOBILE' | translate }}</label>
           <div class="pill-content">
             <i class="fas fa-phone-alt"></i>
-            <input [(ngModel)]="userData.contact" type="tel" placeholder="Enter 10-digit number" maxlength="10">
+            <input [(ngModel)]="userData.contact" type="tel" [placeholder]="'ADD_USER_PAGE.PH_MOBILE' | translate" maxlength="10">
           </div>
         </div>
 
         <div class="input-pill">
-          <label>EMAIL ID</label>
+          <label>{{ 'ADD_USER_PAGE.LABEL_EMAIL' | translate }}</label>
           <div class="pill-content">
             <i class="fas fa-envelope"></i>
-            <input [(ngModel)]="userData.email" type="email" placeholder="Enter Email Address">
+            <input [(ngModel)]="userData.email" type="email" [placeholder]="'ADD_USER_PAGE.PH_EMAIL' | translate">
           </div>
         </div>
 
         <div class="input-pill">
-          <label>SELECT ROLE</label>
+          <label>{{ 'ADD_USER_PAGE.LABEL_ROLE' | translate }}</label>
           <div class="pill-content">
             <i class="fas fa-user-shield"></i>
             <select [(ngModel)]="userData.roleId" (change)="onRoleSelectChange($event)">
-              <option [value]="null">Select Role</option>
+              <option [value]="null">{{ 'ADD_USER_PAGE.PH_ROLE' | translate }}</option>
               
               <!-- Static Roles (Including ID 10) -->
               <option *ngFor="let role of staticRoles" [value]="role.id">
@@ -71,11 +71,11 @@
 
         <!-- Secondary Dropdown for Dynamic Roles (Only shows if ID 10 is selected above) -->
         <div class="input-pill animate__animated animate__fadeIn" *ngIf="isDynamicSelected">
-          <label>CHOOSE DYNAMIC ROLE</label>
+          <label>{{ 'ADD_USER_PAGE.LABEL_DYNAMIC_ROLE' | translate }}</label>
           <div class="pill-content">
             <i class="fas fa-id-badge"></i>
             <select [(ngModel)]="userData.dynamicRoleId" (change)="onDynamicRoleChange($event)">
-              <option [value]="null">Select Custom Role</option>
+              <option [value]="null">{{ 'ADD_USER_PAGE.PH_DYNAMIC_ROLE' | translate }}</option>
               <option *ngFor="let role of dynamicRoles" [value]="role.id">
                 {{ role.displayName }} (ID: {{ role.id }})
               </option>
@@ -92,7 +92,7 @@
               <div class="pill-content">
                 <i class="fas fa-sitemap"></i>
                 <select [(ngModel)]="hierarchySelections[i]" (change)="onLayerChange(i)">
-                  <option [value]="null">Select {{ layer.name }}</option>
+                  <option [value]="null">{{ 'ADD_USER_PAGE.PH_LAYER' | translate }} {{ layer.name }}</option>
                   <option *ngFor="let ent of layerEntities[layer.id]" [value]="ent.id">
                     {{ ent.name }}
                   </option>
@@ -107,7 +107,7 @@
                 <input type="checkbox"
                        [(ngModel)]="stopHereFlags[i]"
                        (change)="onStopHereChange(i)">
-                <span>Assign at <b>{{ layer.name }}</b> level only</span>
+                <span>{{ 'ADD_USER_PAGE.ASSIGN_LEVEL' | translate }} <b>{{ layer.name }}</b></span>
               </label>
             </div>
 
@@ -119,9 +119,9 @@
         <div class="perm-preview-section" *ngIf="shouldShowHierarchy() || (userData.roleId && userData.roleId !== 'null' && userData.roleId !== '10')">
           <div class="perm-preview-header">
             <i class="fas fa-key"></i>
-            <span>ROLE PERMISSIONS</span>
+            <span>{{ 'ADD_USER_PAGE.PERMISSIONS_TITLE' | translate }}</span>
             <button class="toggle-perms-btn" (click)="showPermEdit = !showPermEdit">
-              {{ showPermEdit ? 'Hide' : 'Edit' }}
+              {{ showPermEdit ? ('ADD_USER_PAGE.HIDE' | translate) : ('ADD_USER_PAGE.EDIT' | translate) }}
             </button>
           </div>
 
@@ -141,7 +141,7 @@
         </div>
 
         <button class="mark-btn" (click)="saveUser()" [disabled]="isSaving">
-          <span class="btn-text">{{ isSaving ? 'SAVING...' : 'REGISTER USER' }}</span>
+          <span class="btn-text">{{ isSaving ? ('ADD_USER_PAGE.SAVING' | translate) : ('ADD_USER_PAGE.REGISTER_BTN' | translate) }}</span>
           <div class="btn-check">
             <i class="fas" [class.fa-spinner]="isSaving" [class.fa-fa-spin]="isSaving" [class.fa-check]="!isSaving"></i>
           </div>

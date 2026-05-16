@@ -14,8 +14,8 @@
           </button>
           
           <div class="header-title-area">
-            <h1>Notifications</h1>
-            <span>SYSTEM ALERTS</span>
+            <h1>{{ 'NOTIFICATIONS.TITLE' | translate }}</h1>
+            <span>{{ 'NOTIFICATIONS.SUBTITLE' | translate }}</span>
           </div>
 
           <button (click)="loadNotifications()" class="glass-btn">
@@ -26,11 +26,11 @@
         <div class="stats-overview animate-fade-in" *ngIf="!isLoading">
           <div class="stat-item">
             <span class="val">{{ notifications.length }}</span>
-            <span class="lbl">TOTAL MESSAGES</span>
+            <span class="lbl">{{ 'NOTIFICATIONS.TOTAL_MESSAGES' | translate }}</span>
           </div>
           <div class="stat-item unread" *ngIf="getUnreadCount() > 0">
             <span class="val">{{ getUnreadCount() }}</span>
-            <span class="lbl">NEW ALERTS</span>
+            <span class="lbl">{{ 'NOTIFICATIONS.NEW_ALERTS' | translate }}</span>
           </div>
         </div>
       </div>
@@ -46,7 +46,7 @@
       <!-- Loading State -->
       <div class="loader-container" *ngIf="isLoading">
         <ion-spinner name="crescent"></ion-spinner>
-        <p>Syncing notifications...</p>
+        <p>{{ 'NOTIFICATIONS.SYNCING' | translate }}</p>
       </div>
 
       <!-- Empty State -->
@@ -54,8 +54,8 @@
         <div class="empty-icon-circle">
           <i class="fas fa-bell-slash"></i>
         </div>
-        <h3>No Notifications</h3>
-        <p>Your inbox is clear for now.</p>
+        <h3>{{ 'NOTIFICATIONS.EMPTY_TITLE' | translate }}</h3>
+        <p>{{ 'NOTIFICATIONS.EMPTY_DESC' | translate }}</p>
       </div>
 
       <!-- Notification List -->
@@ -78,7 +78,7 @@
             <p class="notif-msg">{{ item.message }}</p>
             <div class="card-meta">
               <span class="date">{{ item.created_at | date:'mediumDate' }}</span>
-              <span class="unread-badge" *ngIf="!item.is_read">NEW</span>
+              <span class="unread-badge" *ngIf="!item.is_read">{{ 'NOTIFICATIONS.NEW_TAG' | translate }}</span>
             </div>
           </div>
         </div>

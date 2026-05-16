@@ -7,8 +7,8 @@
     <div class="report-loader-overlay" *ngIf="isGenerating">
       <div class="loader-content">
         <ion-spinner name="crescent"></ion-spinner>
-        <p>Generating Premium Report...</p>
-        <span>Please wait while we sync with server</span>
+        <p>{{ 'REPORTS.GENERATING' | translate }}</p>
+        <span>{{ 'REPORTS.SYNC_WAIT' | translate }}</span>
       </div>
     </div>
 
@@ -21,11 +21,11 @@
             <button (click)="goBack()" class="glass-btn">
               <ion-icon name="arrow-back-outline" style="color: white;"></ion-icon>
             </button>
-            <h1>Forest Reports</h1>
+            <h1>{{ 'REPORTS.TITLE' | translate }}</h1>
           </div>
           <div class="right-section">
             <div class="auth-badge">
-              <i class="fas fa-file-export"></i> EXPORT READY
+              <i class="fas fa-file-export"></i> {{ 'REPORTS.EXPORT_READY' | translate }}
             </div>
           </div>
         </div>
@@ -41,8 +41,8 @@
           <i class="fas fa-fingerprint"></i>
         </div>
         <div class="card-info">
-          <h3>Attendance Report</h3>
-          <span>{{ isAttendanceOpen ? 'HIDE OPTIONS' : 'VIEW OPTIONS' }}</span>
+          <h3>{{ 'REPORTS.ATTENDANCE_TITLE' | translate }}</h3>
+          <span>{{ isAttendanceOpen ? ('REPORTS.HIDE_OPTIONS' | translate) : ('REPORTS.VIEW_OPTIONS' | translate) }}</span>
         </div>
         <ion-icon [name]="isAttendanceOpen && userRole === 'admin' ? 'chevron-down-outline' : 'chevron-forward-outline'" class="chevron"></ion-icon>
       </div>
@@ -61,8 +61,8 @@
           <i class="fas fa-walking"></i>
         </div>
         <div class="card-info">
-          <h3>Patrol/ Beat Inspection Report</h3>
-          <span>{{ isPatrolOpen ? 'HIDE OPTIONS' : 'VIEW OPTIONS' }}</span>
+          <h3>{{ 'REPORTS.PATROL_TITLE' | translate }}</h3>
+          <span>{{ isPatrolOpen ? ('REPORTS.HIDE_OPTIONS' | translate) : ('REPORTS.VIEW_OPTIONS' | translate) }}</span>
         </div>
         <ion-icon [name]="isPatrolOpen && userRole === 'admin' ? 'chevron-down-outline' : 'chevron-forward-outline'" class="chevron"></ion-icon>
       </div>
@@ -81,8 +81,8 @@
           <i class="fas fa-chart-bar"></i>
         </div>
         <div class="card-info">
-          <h3>Performance Report</h3>
-          <span>VIEW DETAILS</span>
+          <h3>{{ 'REPORTS.PERFORMANCE_TITLE' | translate }}</h3>
+          <span>{{ 'REPORTS.VIEW_DETAILS' | translate }}</span>
         </div>
         <ion-icon name="chevron-forward-outline" class="chevron"></ion-icon>
       </div>
@@ -95,10 +95,10 @@
       <div class="modal-card-content">
         <div class="modal-header">
           <div class="title-row">
-            <h3>Filter Report</h3>
+            <h3>{{ 'REPORTS.FILTER_TITLE' | translate }}</h3>
             <ion-icon name="options-outline"></ion-icon>
           </div>
-          <p class="subtitle">Set parameters for {{activeReport}}</p>
+          <p class="subtitle">{{ 'REPORTS.SET_PARAMS' | translate }} {{activeReport}}</p>
         </div>
 
         <div class="filter-body">
@@ -108,10 +108,10 @@
             <div class="data-row-premium">
               <div class="row-label-group">
                 <i class="fas fa-city" style="color: #0d9488; font-size: 14px;"></i>
-                <span class="label">RANGE</span>
+                <span class="label">{{ 'REPORTS.RANGE' | translate }}</span>
               </div>
-              <ion-select interface="popover" placeholder="Select Range" [(ngModel)]="selectedRange" (ionChange)="onRangeChange()" class="compact-select">
-                <ion-select-option value="all">All Ranges</ion-select-option>
+              <ion-select interface="popover" [placeholder]="'REPORTS.SELECT_RANGE' | translate" [(ngModel)]="selectedRange" (ionChange)="onRangeChange()" class="compact-select">
+                <ion-select-option value="all">{{ 'REPORTS.ALL_RANGES' | translate }}</ion-select-option>
                 <ion-select-option *ngFor="let r of allRanges" [value]="r">{{r}}</ion-select-option>
               </ion-select>
             </div>
@@ -119,10 +119,10 @@
             <div class="data-row-premium">
               <div class="row-label-group">
                 <i class="fas fa-map-marker-alt" style="color: #0d9488; font-size: 14px;"></i>
-                <span class="label">BEAT</span>
+                <span class="label">{{ 'REPORTS.BEAT' | translate }}</span>
               </div>
-              <ion-select interface="popover" placeholder="Select Beat" [(ngModel)]="selectedBeat" (ionChange)="onBeatChange()" class="compact-select">
-                <ion-select-option value="all">All Beats</ion-select-option>
+              <ion-select interface="popover" [placeholder]="'REPORTS.SELECT_BEAT' | translate" [(ngModel)]="selectedBeat" (ionChange)="onBeatChange()" class="compact-select">
+                <ion-select-option value="all">{{ 'REPORTS.ALL_BEATS' | translate }}</ion-select-option>
                 <ion-select-option *ngFor="let b of displayBeats" [value]="b.id">{{b.name}}</ion-select-option>
               </ion-select>
             </div>
@@ -130,10 +130,10 @@
             <div class="data-row-premium">
               <div class="row-label-group">
                 <i class="fas fa-user-tie" style="color: #0d9488; font-size: 14px;"></i>
-                <span class="label">EMPLOYEE</span>
+                <span class="label">{{ 'REPORTS.EMPLOYEE' | translate }}</span>
               </div>
-              <ion-select interface="popover" placeholder="Select Employee" [(ngModel)]="selectedEmployee" class="compact-select">
-                <ion-select-option value="all">All</ion-select-option>
+              <ion-select interface="popover" [placeholder]="'REPORTS.SELECT_EMPLOYEE' | translate" [(ngModel)]="selectedEmployee" class="compact-select">
+                <ion-select-option value="all">{{ 'REPORTS.ALL' | translate }}</ion-select-option>
                 <ion-select-option *ngFor="let e of displayEmployees" [value]="e.id">{{e.name}}</ion-select-option>
               </ion-select>
             </div>
@@ -144,10 +144,10 @@
             <div class="data-row-premium">
               <div class="row-label-group">
                 <i class="fas fa-user-shield" style="color: #0d9488; font-size: 14px;"></i>
-                <span class="label">SUPERVISOR</span>
+                <span class="label">{{ 'REPORTS.SUPERVISOR' | translate }}</span>
               </div>
-              <ion-select interface="popover" placeholder="Select Supervisor" [(ngModel)]="selectedSupervisor" class="compact-select">
-                <ion-select-option value="all">All</ion-select-option>
+              <ion-select interface="popover" [placeholder]="'REPORTS.SELECT_SUPERVISOR' | translate" [(ngModel)]="selectedSupervisor" class="compact-select">
+                <ion-select-option value="all">{{ 'REPORTS.ALL' | translate }}</ion-select-option>
                 <ion-select-option *ngFor="let s of allSupervisors" [value]="s.id">{{s.name}}</ion-select-option>
               </ion-select>
             </div>
@@ -158,10 +158,10 @@
             <div class="data-row-premium">
               <div class="row-label-group">
                 <i class="fas fa-user-cog" style="color: #0d9488; font-size: 14px;"></i>
-                <span class="label">RANGE OFFICER</span>
+                <span class="label">{{ 'REPORTS.RANGE_OFFICER' | translate }}</span>
               </div>
-              <ion-select interface="popover" placeholder="Select Range Officer" [(ngModel)]="selectedAdmin" class="compact-select">
-                <ion-select-option value="all">All Range Officers</ion-select-option>
+              <ion-select interface="popover" [placeholder]="'REPORTS.SELECT_RANGE_OFFICER' | translate" [(ngModel)]="selectedAdmin" class="compact-select">
+                <ion-select-option value="all">{{ 'REPORTS.ALL_OFFICERS' | translate }}</ion-select-option>
                 <ion-select-option *ngFor="let a of allAdmins" [value]="a.id">{{a.name}}</ion-select-option>
               </ion-select>
             </div>
@@ -170,43 +170,38 @@
           <!-- Patrol Specific Fields -->
           <ng-container *ngIf="activeReport === 'Patrol Report' || activeReport.includes('Self') || activeReport.includes('Supervisor') || activeReport.includes('Admin') || activeReport.includes('Patrol')">
             <div class="data-row-premium">
-              <span class="label">PATROL TYPE</span>
+              <span class="label">{{ 'REPORTS.PATROL_TYPE' | translate }}</span>
               <ion-select interface="popover" [(ngModel)]="patrolType" class="compact-select">
-                <ion-select-option value="all">All Types</ion-select-option>
+                <ion-select-option value="all">{{ 'REPORTS.ALL_TYPES' | translate }}</ion-select-option>
                 <ion-select-option *ngFor="let type of patrolTypes" [value]="type.name || type">{{ type.name || type }}</ion-select-option>
               </ion-select>
             </div>
 
             <div class="data-row-premium">
-              <span class="label">PATROL METHOD</span>
-              <ion-select interface="popover" placeholder="Select" [(ngModel)]="patrolMethod" class="compact-select">
-                <ion-select-option value="all">All Methods</ion-select-option>
+              <span class="label">{{ 'REPORTS.PATROL_METHOD' | translate }}</span>
+              <ion-select interface="popover" [placeholder]="'REPORTS.ALL' | translate" [(ngModel)]="patrolMethod" class="compact-select">
+                <ion-select-option value="all">{{ 'REPORTS.ALL_METHODS' | translate }}</ion-select-option>
                 <ion-select-option *ngFor="let m of patrolMethods" [value]="m.name || m">{{ m.name || m }}</ion-select-option>
               </ion-select>
             </div>
 
             <div class="data-row-premium">
-              <span class="label">LOG TYPE</span>
-              <ion-select interface="popover" placeholder="Select" [(ngModel)]="logType" class="compact-select">
-                <ion-select-option value="all">All Types</ion-select-option>
+              <span class="label">{{ 'REPORTS.LOG_TYPE' | translate }}</span>
+              <ion-select interface="popover" [placeholder]="'REPORTS.ALL' | translate" [(ngModel)]="logType" class="compact-select">
+                <ion-select-option value="all">{{ 'REPORTS.ALL_TYPES' | translate }}</ion-select-option>
                 <ion-select-option *ngFor="let cat of logCategories" [value]="cat.name || cat">{{ cat.name || cat }}</ion-select-option>
               </ion-select>
             </div>
           </ng-container>
 
-          <!-- Attendance Specific Fields -->
-          <ng-container *ngIf="activeReport === 'Employee Attendance'">
-            <!-- Attendance Specific Fields can be added here if needed -->
-          </ng-container>
-
           <!-- Shared Date Filters -->
           <div class="data-row-premium">
-            <span class="label">START DATE</span>
+            <span class="label">{{ 'REPORTS.START_DATE' | translate }}</span>
             <ion-datetime-button datetime="start"></ion-datetime-button>
           </div>
           
           <div class="data-row-premium">
-            <span class="label">END DATE</span>
+            <span class="label">{{ 'REPORTS.END_DATE' | translate }}</span>
             <ion-datetime-button datetime="end"></ion-datetime-button>
           </div>
 
@@ -226,15 +221,15 @@
         <div class="modal-footer-dual-row">
           <div class="button-grid">
             <button class="export-btn-mini pdf" (click)="generateReport('pdf')">
-              <i class="fas fa-file-pdf"></i> GET PDF
+              <i class="fas fa-file-pdf"></i> {{ 'REPORTS.GET_PDF' | translate }}
             </button>
             <button class="export-btn-mini excel" (click)="generateReport('excel')">
-              <i class="fas fa-file-excel"></i> GET EXCEL
+              <i class="fas fa-file-excel"></i> {{ 'REPORTS.GET_EXCEL' | translate }}
             </button>
           </div>
           
           <div class="footer-actions-text">
-            <button class="reset-btn-text" (click)="resetFilters()">Reset Filters</button>
+            <button class="reset-btn-text" (click)="resetFilters()">{{ 'REPORTS.RESET_FILTERS' | translate }}</button>
           </div>
         </div>
       </div>

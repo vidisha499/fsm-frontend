@@ -13,7 +13,7 @@
             <button (click)="goBack()" class="glass-btn">
               <ion-icon name="arrow-back-outline"></ion-icon>
             </button>
-            <h1>Task Management</h1>
+            <h1>{{ 'TASKS.TITLE' | translate }}</h1>
           </div>
           <div class="right-section">
             <button class="filter-toggle-btn" (click)="loadTasks()">
@@ -27,10 +27,10 @@
         <div class="scope-toggle-container">
           <div class="scope-toggle">
             <div class="toggle-option" [class.active]="scopeFilter === 'my'" (click)="setScope('my')">
-              <span>My Tasks</span>
+              <span>{{ 'TASKS.MY_TASKS' | translate }}</span>
             </div>
             <div class="toggle-option" [class.active]="scopeFilter === 'team'" (click)="setScope('team')">
-              <span>Team Tasks</span>
+              <span>{{ 'TASKS.TEAM_TASKS' | translate }}</span>
             </div>
             <div class="toggle-slider" [style.transform]="scopeFilter === 'team' ? 'translateX(100%)' : 'translateX(0)'"></div>
           </div>
@@ -38,10 +38,10 @@
 
         <!-- Priority Chips -->
         <div class="priority-chips-container">
-          <div class="chip" [class.active]="priorityFilter === 'all'" (click)="setPriority('all')">All</div>
-          <div class="chip chip-urgent" [class.active]="priorityFilter === 'urgent'" (click)="setPriority('urgent')">Urgent</div>
-          <div class="chip chip-priority" [class.active]="priorityFilter === 'priority'" (click)="setPriority('priority')">Priority</div>
-          <div class="chip chip-normal" [class.active]="priorityFilter === 'normal'" (click)="setPriority('normal')">Normal</div>
+          <div class="chip" [class.active]="priorityFilter === 'all'" (click)="setPriority('all')">{{ 'TASKS.ALL' | translate }}</div>
+          <div class="chip chip-urgent" [class.active]="priorityFilter === 'urgent'" (click)="setPriority('urgent')">{{ 'TASKS.URGENT' | translate }}</div>
+          <div class="chip chip-priority" [class.active]="priorityFilter === 'priority'" (click)="setPriority('priority')">{{ 'TASKS.PRIORITY' | translate }}</div>
+          <div class="chip chip-normal" [class.active]="priorityFilter === 'normal'" (click)="setPriority('normal')">{{ 'TASKS.NORMAL' | translate }}</div>
         </div>
       </div>
     </div>
@@ -75,13 +75,13 @@
 
           <div class="row-content">
             <div class="top-line">
-              <span class="type-text">{{ task.category || 'GENERAL' }}</span>
+              <span class="type-text">{{ task.category || ('TASKS.GENERAL' | translate) }}</span>
               <span class="log-date">{{ formatDate(task.created_at) }}</span>
             </div>
-            <h2 class="task-title">{{ task.subject || task.title || task.task_name || 'New Task' }}</h2>
+            <h2 class="task-title">{{ task.subject || task.title || task.task_name || ('TASKS.NEW_TASK_DEFAULT' | translate) }}</h2>
             <div class="assigned-line">
               <ion-icon name="person-outline"></ion-icon>
-              <span>{{ task.assigned_to_name || task.assigned_user?.name || 'Unassigned' }}</span>
+              <span>{{ task.assigned_to_name || task.assigned_user?.name || ('TASKS.UNASSIGNED' | translate) }}</span>
             </div>
           </div>
 
@@ -98,7 +98,7 @@
         <!-- Empty State -->
         <div class="empty-state" *ngIf="filteredTasks.length === 0 && !isLoading">
           <i class="fas fa-tasks"></i>
-          <p>No tasks found in this section</p>
+          <p>{{ 'TASKS.EMPTY_DESC' | translate }}</p>
         </div>
 
         <!-- Skeleton Loader -->
@@ -130,7 +130,7 @@
             <button class="header-btn glass-effect" (click)="closeModal()">
               <ion-icon name="close-outline"></ion-icon>
             </button>
-            <h2>Create New Task</h2>
+            <h2>{{ 'TASKS.CREATE_TITLE' | translate }}</h2>
             <button class="header-btn check-btn" (click)="submitTask()">
               <ion-icon name="checkmark-outline"></ion-icon>
             </button>
@@ -139,38 +139,38 @@
           <div class="modal-body custom-form">
             <!-- Subject Field -->
             <div class="form-group">
-              <label>SUBJECT</label>
+              <label>{{ 'TASKS.LABEL_SUBJECT' | translate }}</label>
               <div class="input-container">
                 <i class="far fa-comment-alt icon"></i>
-                <input type="text" [(ngModel)]="newTask.title" placeholder="Enter task subject">
+                <input type="text" [(ngModel)]="newTask.title" [placeholder]="'TASKS.PH_SUBJECT' | translate">
               </div>
             </div>
 
             <!-- Description Field -->
             <div class="form-group">
-              <label>DESCRIPTION</label>
+              <label>{{ 'TASKS.LABEL_DESC' | translate }}</label>
               <div class="input-container align-top">
                 <i class="far fa-file-alt icon"></i>
-                <textarea rows="4" [(ngModel)]="newTask.description" placeholder="Add more details..."></textarea>
+                <textarea rows="4" [(ngModel)]="newTask.description" [placeholder]="'TASKS.PH_DESC' | translate"></textarea>
               </div>
             </div>
 
             <!-- Deadline Field -->
             <div class="form-group">
-              <label>DEADLINE</label>
+              <label>{{ 'TASKS.LABEL_DEADLINE' | translate }}</label>
               <div class="input-container">
                 <i class="far fa-calendar-alt icon"></i>
-                <input type="date" [(ngModel)]="newTask.deadline" placeholder="Select date">
+                <input type="date" [(ngModel)]="newTask.deadline" [placeholder]="'TASKS.PH_DATE' | translate">
               </div>
             </div>
 
             <!-- Priority Field -->
             <div class="form-group">
-              <label>PRIORITY</label>
+              <label>{{ 'TASKS.LABEL_PRIORITY' | translate }}</label>
               <div class="priority-selector-new">
-                <div class="p-opt" [class.active]="newTask.priority === 'normal'" (click)="newTask.priority = 'normal'">Normal</div>
-                <div class="p-opt" [class.active]="newTask.priority === 'priority'" (click)="newTask.priority = 'priority'">Priority</div>
-                <div class="p-opt" [class.active]="newTask.priority === 'urgent'" (click)="newTask.priority = 'urgent'">Urgent</div>
+                <div class="p-opt" [class.active]="newTask.priority === 'normal'" (click)="newTask.priority = 'normal'">{{ 'TASKS.NORMAL' | translate }}</div>
+                <div class="p-opt" [class.active]="newTask.priority === 'priority'" (click)="newTask.priority = 'priority'">{{ 'TASKS.PRIORITY' | translate }}</div>
+                <div class="p-opt" [class.active]="newTask.priority === 'urgent'" (click)="newTask.priority = 'urgent'">{{ 'TASKS.URGENT' | translate }}</div>
               </div>
             </div>
 
@@ -178,12 +178,12 @@
             <div class="assign-users-section">
               <div class="section-title">
                 <i class="fas fa-user-plus"></i>
-                <h3>Assign Users</h3>
+                <h3>{{ 'TASKS.ASSIGN_USERS' | translate }}</h3>
               </div>
               <div class="search-container">
                 <div class="search-bar">
                   <i class="fas fa-search"></i>
-                  <ion-select [(ngModel)]="newTask.assigned_to" placeholder="Select User" interface="action-sheet" class="user-ion-select">
+                  <ion-select [(ngModel)]="newTask.assigned_to" [placeholder]="'TASKS.SELECT_USER' | translate" interface="action-sheet" class="user-ion-select">
                     <ion-select-option *ngFor="let user of users" [value]="user.id || user.user_id">
                       {{ user.name }} ({{ user.role_name }})
                     </ion-select-option>
@@ -198,7 +198,7 @@
             <div class="swipe-to-submit-wrapper">
               <div class="swipe-track">
                 <div class="swipe-bg" [style.width.px]="swipeWidth + 50"></div>
-                <div class="swipe-text" [style.opacity]="1 - (swipeWidth / 200)">Swipe to Create Task</div>
+                <div class="swipe-text" [style.opacity]="1 - (swipeWidth / 200)">{{ 'TASKS.SWIPE_TO_CREATE' | translate }}</div>
                 <div class="swipe-handle" 
                      [style.transform]="'translateX(' + swipeWidth + 'px)'"
                      (touchstart)="onTouchStart($event)"

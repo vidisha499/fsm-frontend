@@ -29,6 +29,61 @@
   </div>
 
   <div class="logs-container">
+    <!-- Advanced Admin Filters -->
+    <div class="admin-filter-bar">
+      <!-- Row 1: Search -->
+      <div class="search-box-row">
+        <ion-icon name="search-outline"></ion-icon>
+        <input type="text" [(ngModel)]="searchTerm" (input)="applyAdvancedFilters()" [placeholder]="'FILTERS.SEARCH_PLACEHOLDER' | translate">
+      </div>
+
+      <!-- Row 2: Horizontal Selectors -->
+      <div class="horizontal-filters">
+        <div class="filter-item">
+          <select [(ngModel)]="selectedSource" (change)="applyAdvancedFilters()">
+            <option value="all">{{ 'FILTERS.ALL_SOURCES' | translate }}</option>
+            <option value="direct">{{ 'FILTERS.DIRECT_APP' | translate }}</option>
+            <option value="patrol">{{ 'FILTERS.PATROL_ONLY' | translate }}</option>
+          </select>
+        </div>
+
+        <div class="filter-item">
+          <select [(ngModel)]="selectedPatrolType" (change)="applyAdvancedFilters()">
+            <option value="">{{ 'FILTERS.PATROL_TYPE' | translate }}</option>
+            <option *ngFor="let type of patrolTypes" [value]="type">{{ type }}</option>
+          </select>
+        </div>
+
+        <div class="filter-item">
+          <select [(ngModel)]="selectedReportType" (change)="applyAdvancedFilters()">
+            <option value="">{{ 'FILTERS.REPORT_TYPE' | translate }}</option>
+            <option *ngFor="let type of reportTypes" [value]="type">{{ type }}</option>
+          </select>
+        </div>
+
+        <div class="filter-item">
+          <select [(ngModel)]="selectedRange" (change)="onRangeChange()">
+            <option value="">{{ 'FILTERS.SELECT_RANGE' | translate }}</option>
+            <option *ngFor="let r of ranges" [value]="r.id">{{ r.entity_name }}</option>
+          </select>
+        </div>
+
+        <div class="filter-item">
+          <select [(ngModel)]="selectedBeat" (change)="applyAdvancedFilters()">
+            <option value="">{{ 'FILTERS.SELECT_BEAT' | translate }}</option>
+            <option *ngFor="let b of beats" [value]="b.id">{{ b.entity_name }}</option>
+          </select>
+        </div>
+
+        <div class="filter-item">
+          <select [(ngModel)]="selectedOfficer" (change)="applyAdvancedFilters()">
+            <option value="">{{ 'FILTERS.SELECT_OFFICER' | translate }}</option>
+            <option *ngFor="let o of officers" [value]="o.id">{{ o.username || o.first_name || 'Staff' }}</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
     <!-- Relocated Sync Button -->
     <div class="list-sync-header" *ngIf="hasOfflineLogs()">
       <button class="mini-sync-btn" (click)="syncAllOffline()">
@@ -36,8 +91,8 @@
         <span>Sync Pending Patrols</span>
       </button>
     </div>
-    <div *ngIf="patrolLogs && patrolLogs.length > 0; else noLogsTemplate" style="display: flex; flex-direction: column; gap: 12px;">
-      <div class="log-entry-card" *ngFor="let log of patrolLogs" (click)="viewDetails(log)">
+    <div *ngIf="filteredLogs && filteredLogs.length > 0; else noLogsTemplate" style="display: flex; flex-direction: column; gap: 12px;">
+      <div class="log-entry-card" *ngFor="let log of filteredLogs" (click)="viewDetails(log)">
         <div style="display: flex; align-items: center; gap: 15px;">
           <div class="icon-thumb">
             <i [class]="log.patrolName?.toLowerCase().includes('foot') ? 'fas fa-hiking' : 

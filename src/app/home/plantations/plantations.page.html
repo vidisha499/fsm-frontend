@@ -7,8 +7,8 @@
       </div>
       
       <div class="header-title-wrap">
-        <h1 class="main-title">Plantation Management</h1>
-        <span class="sub-record-text">{{ plantations.length }} RECORDS</span>
+        <h1 class="main-title">{{ 'PLANTATIONS.TITLE' | translate }}</h1>
+        <span class="sub-record-text">{{ plantations.length }} {{ 'PLANTATIONS.RECORDS' | translate }}</span>
       </div>
 
       <div class="circle-btn" (click)="refreshData()">
@@ -21,7 +21,7 @@
       <div class="search-inner-box">
         <ion-icon name="search-outline" class="s-icon"></ion-icon>
         <input type="text" 
-               placeholder="Search by Site Name or Soil Type..." 
+               [placeholder]="'PLANTATIONS.SEARCH_PLACEHOLDER' | translate" 
                [(ngModel)]="searchQuery"
                (input)="onSearch($event)">
       </div>
@@ -38,7 +38,7 @@
   <!-- Loading State -->
   <div class="loading-wrap" *ngIf="loading && plantations.length === 0">
     <ion-spinner name="crescent"></ion-spinner>
-    <p>Fetching plantations...</p>
+    <p>{{ 'PLANTATIONS.LOADING' | translate }}</p>
   </div>
 
   <!-- Plantation List -->
@@ -53,17 +53,17 @@
         <!-- Meta Info -->
         <div class="meta-info">
           <div class="title-row">
-            <h4>{{ p.siteName || p.name || 'Unnamed Site' }}</h4>
+            <h4>{{ p.siteName || p.name || ('PLANTATIONS.UNNAMED_SITE' | translate) }}</h4>
             <div class="code-badge" *ngIf="p.plantation_code || p.code">{{ p.plantation_code || p.code }}</div>
           </div>
           
           <div class="stats-row">
-            <span class="area-text">{{ p.totalArea || p.area || 0 }} Hectares</span>
+            <span class="area-text">{{ p.totalArea || p.area || 0 }} {{ 'PLANTATIONS.HECTARES' | translate }}</span>
             <div class="dot-separator"></div>
-            <span class="phase-text" [class.completed-text]="p.isFinished">{{ p.isFinished ? 'COMPLETED' : 'IDENTIFICATION' }}</span>
-            <div class="status-indicator-badge pending" *ngIf="p.status !== 'Approved' && p.status !== 'APPROVED' && p.status !== 'APPROVE' && p.status !== 1 && p.status !== '1' && p.status !== 'Rejected' && p.status !== 'REJECTED' && p.status !== 'REJECT' && !p.is_approved && p.is_approved !== 1 && p.is_approved !== '1'">Pending</div>
-            <div class="status-indicator-badge approved" *ngIf="p.status === 'Approved' || p.status === 'APPROVED' || p.status === 'APPROVE' || p.status === 1 || p.status === '1' || p.is_approved == 1 || p.is_approved == '1'">Approved</div>
-            <div class="status-indicator-badge rejected" *ngIf="p.status === 'Rejected' || p.status === 'REJECTED' || p.status === 'REJECT' || p.status === 2 || p.status === '2' || p.is_approved == 2 || p.is_approved == '2'">Rejected</div>
+            <span class="phase-text" [class.completed-text]="p.isFinished">{{ p.isFinished ? ('PLANTATIONS.COMPLETED' | translate) : ('PLANTATIONS.IDENTIFICATION' | translate) }}</span>
+            <div class="status-indicator-badge pending" *ngIf="p.status !== 'Approved' && p.status !== 'APPROVED' && p.status !== 'APPROVE' && p.status !== 1 && p.status !== '1' && p.status !== 'Rejected' && p.status !== 'REJECTED' && p.status !== 'REJECT' && !p.is_approved && p.is_approved !== 1 && p.is_approved !== '1'">{{ 'PLANTATIONS.STATUS_PENDING' | translate }}</div>
+            <div class="status-indicator-badge approved" *ngIf="p.status === 'Approved' || p.status === 'APPROVED' || p.status === 'APPROVE' || p.status === 1 || p.status === '1' || p.is_approved == 1 || p.is_approved == '1'">{{ 'PLANTATIONS.STATUS_APPROVED' | translate }}</div>
+            <div class="status-indicator-badge rejected" *ngIf="p.status === 'Rejected' || p.status === 'REJECTED' || p.status === 'REJECT' || p.status === 2 || p.status === '2' || p.is_approved == 2 || p.is_approved == '2'">{{ 'PLANTATIONS.STATUS_REJECTED' | translate }}</div>
           </div>
         </div>
 
@@ -80,8 +80,8 @@
     <div class="leaf-icon-bg">
       <ion-icon name="leaf-outline"></ion-icon>
     </div>
-    <h2 class="no-data-title">NO PLANTATIONS FOUND</h2>
-    <p class="no-data-desc">No active reforestation programs match your search.</p>
+    <h2 class="no-data-title">{{ 'PLANTATIONS.EMPTY_TITLE' | translate }}</h2>
+    <p class="no-data-desc">{{ 'PLANTATIONS.EMPTY_DESC' | translate }}</p>
   </div>
 
   <!-- FAB -->

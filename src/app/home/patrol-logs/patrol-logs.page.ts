@@ -49,21 +49,129 @@ export class PatrolLogsPage implements OnInit {
     private dataService: DataService
   ) {}
 
+  // --- Advanced Filters ---
+  public searchTerm: string = '';
+  public selectedSource: string = 'all';
+  public selectedPatrolType: string = '';
+  public selectedReportType: string = '';
+  public selectedRange: any = '';
+  public selectedBeat: any = '';
+  public selectedOfficer: any = '';
+
+  // Filter Data Lists
+  public ranges: any[] = [];
+  public beats: any[] = [];
+  public officers: any[] = [];
+  public patrolTypes: string[] = ['Foot Patrol', 'Vehicle Patrol', 'Night Patrol', 'Drone Survey'];
+  public reportTypes: string[] = ['Felling', 'Encroachment', 'Poaching', 'Fire', 'Animal Sighting', 'Mining'];
+
+  private companyId: any = 0;
+
   ngOnInit() { 
+    this.companyId = Number(localStorage.getItem('company_id') || '0');
+    this.loadFilterOptions();
     // Auto-refresh when sync completes
     this.syncSub = this.dataService.syncCompleted$.subscribe(() => {
       console.log("♻️ Sync detected, refreshing patrol list...");
       this.loadPatrolLogs();
     });
   }
+
+  async loadFilterOptions() {
+    if (!this.companyId) return;
+
+    // 1. Fetch ALL entities and filter for Range/Beat
+    this.dataService.listOrgEntities('all', this.companyId).subscribe((res: any) => {
+      const allEntities = Array.isArray(res) ? res : (res.data || []);
+      console.log('📦 [FILTER DEBUG] All Entities:', allEntities.length);
+      
+      this.ranges = allEntities.filter((e: any) => e.layer_id == 3 || e.entity_type?.toLowerCase().includes('range'));
+      this.allBeats = allEntities.filter((e: any) => e.layer_id == 4 || e.entity_type?.toLowerCase().includes('beat'));
+      
+      if (this.ranges.length === 0 && allEntities.length > 0) {
+        this.ranges = allEntities.filter((e: any) => e.layer_id <= 3);
+      }
+    });
+
+    // 2. Load Officers (Legacy Database - Admins & Supervisors)
+    this.dataService.getAdminList(this.companyId).subscribe((res: any) => {
+      console.log('👥 [FILTER DEBUG] Legacy Admins Response:', res);
+      // Legacy API usually returns an array directly or inside data
+      this.officers = Array.isArray(res) ? res : (res.data || []);
+    });
+  }
+
+  private allBeats: any[] = [];
+
+  onRangeChange() {
+    this.selectedBeat = '';
+    if (!this.selectedRange) {
+      this.beats = [];
+    } else {
+      this.beats = this.allBeats.filter((b: any) => String(b.parent_id) === String(this.selectedRange));
+      
+      if (this.beats.length === 0) {
+        // Fallback: try fetching as direct children
+        this.dataService.listOrgEntities(this.selectedRange, this.companyId).subscribe((res: any) => {
+          this.beats = Array.isArray(res) ? res : (res.data || []);
+        });
+      }
+    }
+    this.applyAdvancedFilters();
+  }
+
+  // --- Filtering Logic ---
+  public filteredLogs: any[] = [];
+
+  applyAdvancedFilters() {
+    let logs = [...this.patrolLogs];
+
+    // 1. Search Filter
+    if (this.searchTerm) {
+      const term = this.searchTerm.toLowerCase();
+      logs = logs.filter(l => 
+        (l.patrolName && l.patrolName.toLowerCase().includes(term)) ||
+        (l.notes && l.notes.toLowerCase().includes(term)) ||
+        (l.id && l.id.toString().includes(term))
+      );
+    }
+
+    // 2. Source Filter
+    if (this.selectedSource !== 'all') {
+      if (this.selectedSource === 'patrol') {
+        logs = logs.filter(l => !l.isDirectReport);
+      } else if (this.selectedSource === 'direct') {
+        logs = logs.filter(l => l.isDirectReport);
+      }
+    }
+
+    // 3. Patrol Type Filter
+    if (this.selectedPatrolType) {
+      logs = logs.filter(l => l.patrolType === this.selectedPatrolType.toUpperCase());
+    }
+
+    // 4. Officer Filter
+    if (this.selectedOfficer) {
+      logs = logs.filter(l => l.user_id == this.selectedOfficer || l.ranger_id == this.selectedOfficer);
+    }
+
+    // 5. Date Filter (Already handled by API load, but good to have client-side too if needed)
+
+    this.filteredLogs = logs;
+  }
   
   ngOnDestroy() {
     if (this.syncSub) this.syncSub.unsubscribe();
   }
   
-  ionViewWillEnter() { 
-    this.loadPatrolLogs(); 
-    this.isSubmitting = false; 
+  ionViewWillEnter() {
+    this.isSubmitting = false;
+    // ✅ Restore saved filters so back-navigation keeps the filter active
+    const savedFrom = localStorage.getItem('patrol_filter_from');
+    const savedTo   = localStorage.getItem('patrol_filter_to');
+    if (savedFrom) this.filterFrom = savedFrom;
+    if (savedTo)   this.filterTo   = savedTo;
+    this.loadPatrolLogs(this.filterFrom || undefined, this.filterTo || undefined);
   }
 
   // --- GESTURE LOGIC ---
@@ -185,6 +293,7 @@ export class PatrolLogsPage implements OnInit {
         const drafts = Array.from(uniqueDraftMap.values());
         
         this.patrolLogs = [...drafts, ...fetchedLogs];
+        this.applyAdvancedFilters(); // Initialize filtered list
 
         loader.dismiss();
         this.cdr.detectChanges();
@@ -450,12 +559,18 @@ export class PatrolLogsPage implements OnInit {
       this.presentToast("'From' date cannot be after 'To' date", 'warning');
       return;
     }
+    // ✅ Persist filters so they survive back-navigation
+    localStorage.setItem('patrol_filter_from', this.filterFrom || '');
+    localStorage.setItem('patrol_filter_to',   this.filterTo   || '');
     this.isFilterModalOpen = false;
     this.loadPatrolLogs(this.filterFrom, this.filterTo);
   }
 
   resetFilter() {
     this.filterFrom = ''; this.filterTo = '';
+    // ✅ Clear persisted filters
+    localStorage.removeItem('patrol_filter_from');
+    localStorage.removeItem('patrol_filter_to');
     this.isFilterModalOpen = false;
     this.loadPatrolLogs();
   }

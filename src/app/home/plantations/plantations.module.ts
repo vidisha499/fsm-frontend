@@ -12,7 +12,7 @@ import { TranslateModule } from '@ngx-translate/core';
     FormsModule,
     IonicModule,
     PlantationsPageRoutingModule,
-    TranslateModule
+    TranslateModule.forChild()
   ],
   declarations: [PlantationsPage],
   exports: [PlantationsPage]

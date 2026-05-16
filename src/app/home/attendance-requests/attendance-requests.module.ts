@@ -8,12 +8,15 @@ import { AttendanceRequestsPageRoutingModule } from './attendance-requests-routi
 
 import { AttendanceRequestsPage } from './attendance-requests.page';
 
+import { TranslateModule } from '@ngx-translate/core';
+
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
     IonicModule,
-    AttendanceRequestsPageRoutingModule
+    AttendanceRequestsPageRoutingModule,
+    TranslateModule.forChild()
   ],
   declarations: [AttendanceRequestsPage]
 })

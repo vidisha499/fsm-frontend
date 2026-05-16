@@ -62,7 +62,7 @@
       <ng-template #noLocationTemplate>
         <div class="no-location-box">
           <i class="fas fa-map-marked-alt"></i>
-          <p>No route or location data recorded for this patrol.</p>
+          <p>{{ 'DETAILS.NO_ROUTE' | translate }}</p>
         </div>
       </ng-template>
 
@@ -85,7 +85,7 @@
               <div class="obs-text-content">
                 <h4 *ngIf="obs.source === 'sighting'">{{ obs.species || ('DETAILS.UNSPECIFIED' | translate) }}</h4>
                 <p *ngIf="obs.source === 'sighting'">{{ obs.count }} {{ 'DETAILS.SPOTTED' | translate }} • {{ obs.sighting_type }}</p>
-                <p class="field-report-tag" *ngIf="obs.source === 'report'">Field Report</p>
+                <p class="field-report-tag" *ngIf="obs.source === 'report'">{{ 'DETAILS.FIELD_REPORT' | translate }}</p>
                 <p class="obs-notes" *ngIf="obs.notes">"{{ obs.notes }}"</p>
               </div>
             </div>

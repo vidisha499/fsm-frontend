@@ -8,11 +8,11 @@
           <button class="back-btn" (click)="goBack()">
             <ion-icon name="arrow-back-outline"></ion-icon>
           </button>
-          <h1>Attendance</h1>
+          <h1>{{ 'ATTENDANCE.TITLE' | translate }}</h1>
         </div>
         <div class="live-badge">
           <div class="pulse"></div>
-          <span>LIVE</span>
+          <span>{{ 'ATTENDANCE.LIVE' | translate }}</span>
         </div>
       </div>
       
@@ -20,7 +20,7 @@
       <div class="sync-banner" *ngIf="hasOffline()">
         <button (click)="syncNow()" class="sync-pill">
           <ion-icon name="sync-outline" class="spin-icon"></ion-icon>
-          <span>Offline Data Pending - Sync Now</span>
+          <span>{{ 'ATTENDANCE.OFFLINE_PENDING' | translate }}</span>
         </button>
       </div>
     </div>
@@ -42,16 +42,16 @@
               <div class="scan-line" *ngIf="capturedPhoto"></div>
               <div class="placeholder-content" *ngIf="!capturedPhoto">
                 <ion-icon name="camera-outline" class="cam-icon"></ion-icon>
-                <div class="cam-text">CAPTURE ID</div>
+                <div class="cam-text">{{ 'ATTENDANCE.CAPTURE_ID' | translate }}</div>
               </div>
             </div>
           </div>
-          <div class="scan-msg">Scan identity to proceed</div>
+          <div class="scan-msg">{{ 'ATTENDANCE.SCAN_INSTRUCTION' | translate }}</div>
         </div>
 
         <!-- Live Tracking Section from Image -->
         <div class="section-label">
-          <span>LIVE TRACKING</span>
+          <span>{{ 'ATTENDANCE.LIVE_TRACKING' | translate }}</span>
         </div>
         <div class="map-container">
           <div id="attendanceMap"></div>
@@ -65,7 +65,7 @@
           <div class="field-card">
             <div class="icon-box"><ion-icon name="person-circle-outline"></ion-icon></div>
             <div class="content-box">
-              <span class="label">RANGER NAME</span>
+              <span class="label">{{ 'ATTENDANCE.RANGER' | translate }}</span>
               <span class="value">{{ rangerName }}</span>
             </div>
           </div>
@@ -73,11 +73,11 @@
           <div class="field-card">
             <div class="icon-box"><ion-icon name="earth-outline"></ion-icon></div>
             <div class="content-box">
-              <span class="label">SELECT BEAT</span>
+              <span class="label">{{ 'ATTENDANCE.SELECT_BEAT' | translate }}</span>
               <ion-select class="beat-select" 
                           [value]="selectedBeat?.id" 
                           (ionChange)="onBeatChange($event)"
-                          placeholder="Choose Beat"
+                          [placeholder]="'ATTENDANCE.CHOOSE_BEAT' | translate"
                           interface="action-sheet">
                 <ion-select-option *ngFor="let beat of beats" [value]="beat.id">
                   {{ beat.name }}
@@ -89,7 +89,7 @@
           <div class="field-card">
             <div class="icon-box"><ion-icon name="calendar-outline"></ion-icon></div>
             <div class="content-box">
-              <span class="label">DATE & TIME</span>
+              <span class="label">{{ 'ATTENDANCE.TIME_LABEL' | translate }}</span>
               <span class="value">{{ currentTime | date:'dd MMM yyyy • hh:mm a' }}</span>
             </div>
           </div>
@@ -97,9 +97,9 @@
           <div class="field-card remark-card">
             <div class="icon-box"><ion-icon name="chatbubble-ellipses-outline"></ion-icon></div>
             <div class="content-box">
-              <span class="label">REMARK</span>
+              <span class="label">{{ 'ATTENDANCE.REMARK' | translate }}</span>
               <ion-textarea [(ngModel)]="remark" 
-                            placeholder="Enter any additional notes..." 
+                            [placeholder]="'ATTENDANCE.PH_REMARK' | translate" 
                             rows="2" 
                             class="remark-input">
               </ion-textarea>
@@ -110,9 +110,9 @@
         <!-- Already Marked Message -->
         <div class="already-marked-overlay" *ngIf="isAlreadyMarked">
           <ion-icon name="checkmark-done-circle-outline"></ion-icon>
-          <h3>Attendance Completed</h3>
-          <p>You have already marked your attendance for today.</p>
-          <button class="return-btn" (click)="goBack()">RETURN TO LOGS</button>
+          <h3>{{ 'ATTENDANCE.COMPLETED' | translate }}</h3>
+          <p>{{ 'ATTENDANCE.ALREADY_MARKED' | translate }}</p>
+          <button class="return-btn" (click)="goBack()">{{ 'ATTENDANCE.RETURN' | translate }}</button>
         </div>
 
         <!-- Slider from Image -->
@@ -125,13 +125,13 @@
             <ion-icon [name]="isSubmitting ? 'checkmark-outline' : 'chevron-forward-outline'"></ion-icon>
           </div>
           <div class="slider-text" [style.opacity]="textOpacity">
-            {{ isSubmitting ? 'Marking...' : (isEntry ? 'Mark Entry' : 'Mark Exit') }}
+            {{ isSubmitting ? ('ATTENDANCE.MARKING' | translate) : (isEntry ? ('ATTENDANCE.MARK_ENTRY' | translate) : ('ATTENDANCE.MARK_EXIT' | translate)) }}
           </div>
         </div>
 
         <div class="checking-status" *ngIf="!statusChecked">
           <ion-spinner name="crescent"></ion-spinner>
-          <span>Checking Status...</span>
+          <span>{{ 'ATTENDANCE.CHECKING_STATUS' | translate }}</span>
         </div>
 
       </div>

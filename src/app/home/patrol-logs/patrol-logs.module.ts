@@ -14,7 +14,7 @@ import { PatrolLogsPage } from './patrol-logs.page';
     FormsModule,
     IonicModule,
     PatrolLogsPageRoutingModule,
-    TranslateModule
+    TranslateModule.forChild()
   ],
   declarations: [PatrolLogsPage]
 })

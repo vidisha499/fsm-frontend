@@ -14,7 +14,7 @@ import { TranslateModule } from '@ngx-translate/core'
     FormsModule,
     IonicModule,
     PatrolDetailsPageRoutingModule,
-       TranslateModule
+       TranslateModule.forChild()
   ],
   declarations: [PatrolDetailsPage]
 })

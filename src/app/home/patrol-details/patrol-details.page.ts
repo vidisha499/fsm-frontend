@@ -54,49 +54,71 @@ export class PatrolDetailsPage implements OnInit {
   }
 
   loadPatrolDetails() {
-    // Reset current data to avoid stale UI
     this.patrol = { observationData: [] };
 
+    // Layer 1: Direct ID search
     this.dataService.getPatrolById(String(this.patrolId)).subscribe({
-      next: (res: any) => { 
-        console.log(`📍 Response for ID ${this.patrolId}:`, res);
-        
-        let data = null;
+      next: (res: any) => {
         const allLogs = Array.isArray(res) ? res : (res?.data || []);
-        
-        if (Array.isArray(allLogs)) {
-          // Strict search for the requested ID in the list
-          data = allLogs.find((p: any) => 
-            String(p.id) === String(this.patrolId) || 
-            String(p.patrol_id) === String(this.patrolId) ||
-            String(p.sessionId) === String(this.patrolId)
-          );
-          
-          // Fallback if not found in list but list has items
-          if (!data && allLogs.length > 0) {
-             console.warn("Exact ID match not found in list.");
-          }
-        } else {
-          data = res;
-        }
+        let data = allLogs.find((p: any) =>
+          String(p.id) === String(this.patrolId) ||
+          String(p.patrol_id) === String(this.patrolId) ||
+          String(p.sessionId) === String(this.patrolId)
+        );
 
         if (data) {
+          console.log("✅ Layer 1: Found by ID");
           this.processPatrolData(data);
         } else {
-          console.warn("Patrol not found by ID. Attempting fallback list search...");
-          this.dataService.getOngoingPatrols().subscribe({
+          // Layer 2: Company List fallback
+          console.warn("⚠️ Layer 1 failed. Trying Company List...");
+          const companyId = Number(localStorage.getItem('company_id') || '0');
+          this.dataService.getPatrolsByCompany(companyId).subscribe({
             next: (listRes: any) => {
-              const list = listRes.data || listRes || [];
-              const match = list.find((p: any) => 
-                String(p.id) === String(this.patrolId) || 
+              const list = Array.isArray(listRes) ? listRes : (listRes?.data || []);
+              const match = list.find((p: any) =>
+                String(p.id) === String(this.patrolId) ||
                 String(p.patrol_id) === String(this.patrolId) ||
                 String(p.sessionId) === String(this.patrolId)
               );
+
               if (match) {
-                console.log("📍 Found match in fallback list:", match);
+                console.log("✅ Layer 2: Found in Company List");
                 this.processPatrolData(match);
               } else {
-                console.error("No patrol found even in fallback list.");
+                // Layer 3: Ongoing patrols
+                console.warn("⚠️ Layer 2 failed. Trying Ongoing...");
+                this.dataService.getOngoingPatrols().subscribe({
+                  next: (onRes: any) => {
+                    const onList = Array.isArray(onRes) ? onRes : (onRes?.data || []);
+                    const onMatch = onList.find((p: any) =>
+                      String(p.id) === String(this.patrolId) ||
+                      String(p.patrol_id) === String(this.patrolId)
+                    );
+                    if (onMatch) {
+                      console.log("✅ Layer 3: Found in Ongoing");
+                      this.processPatrolData(onMatch);
+                    } else {
+                      // Layer 4: V2 Sessions
+                      console.warn("⚠️ Layer 3 failed. Trying V2...");
+                      this.dataService.listV2PatrolSessions('', '').subscribe({
+                        next: (v2Res: any) => {
+                          const v2List = Array.isArray(v2Res) ? v2Res : (v2Res?.data || []);
+                          const v2Match = v2List.find((p: any) =>
+                            String(p.id) === String(this.patrolId) ||
+                            String(p.sessionId) === String(this.patrolId)
+                          );
+                          if (v2Match) {
+                            console.log("✅ Layer 4: Found in V2");
+                            this.processPatrolData(v2Match);
+                          } else {
+                            console.error("❌ All layers failed. Patrol not found.");
+                          }
+                        }
+                      });
+                    }
+                  }
+                });
               }
             }
           });

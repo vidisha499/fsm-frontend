@@ -8,12 +8,15 @@ import { TasksPageRoutingModule } from './tasks-routing.module';
 
 import { TasksPage } from './tasks.page';
 
+import { TranslateModule } from '@ngx-translate/core';
+
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
     IonicModule,
-    TasksPageRoutingModule
+    TasksPageRoutingModule,
+    TranslateModule.forChild()
   ],
   declarations: [TasksPage]
 })

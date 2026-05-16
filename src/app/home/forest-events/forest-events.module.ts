@@ -8,12 +8,15 @@ import { ForestEventsPageRoutingModule } from './forest-events-routing.module';
 
 import { ForestEventsPage } from './forest-events.page';
 
+import { TranslateModule } from '@ngx-translate/core';
+
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
     IonicModule,
-    ForestEventsPageRoutingModule
+    ForestEventsPageRoutingModule,
+    TranslateModule.forChild()
   ],
   declarations: [ForestEventsPage]
 })

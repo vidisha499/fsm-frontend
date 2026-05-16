@@ -10,11 +10,11 @@
           <button class="glass-btn" (click)="goBack()">
             <ion-icon name="arrow-back-outline"></ion-icon>
           </button>
-          <h1>Attendance Requests</h1>
+          <h1>{{ 'REQUESTS.TITLE' | translate }}</h1>
         </div>
         <div class="auth-badge">
           <ion-icon name="shield-checkmark"></ion-icon>
-          ADMIN
+          {{ 'REQUESTS.ADMIN_TAG' | translate }}
         </div>
       </div>
     </div>
@@ -26,7 +26,7 @@
     <div *ngIf="pendingRequests.length === 0" class="main-card no-data-card">
       <div class="scanner-section">
         <ion-icon name="checkmark-done-circle" class="large-icon"></ion-icon>
-        <p class="instruction verified">All Requests Processed</p>
+        <p class="instruction verified">{{ 'REQUESTS.ALL_PROCESSED' | translate }}</p>
       </div>
     </div>
 
@@ -44,7 +44,7 @@
         </div>
         <div class="status-badge" [ngClass]="(req.status || 'pending').toLowerCase()">
           <ion-icon [name]="req.status === 'approved' ? 'checkmark-circle-outline' : 'alert-circle-outline'"></ion-icon>
-          {{ (req.status || 'Pending') | uppercase }}
+          {{ (req.status === 'approved' ? ('REQUESTS.STATUS_APPROVED' | translate) : (req.status === 'rejected' ? ('REQUESTS.STATUS_REJECTED' | translate) : ('REQUESTS.STATUS_PENDING' | translate))) | uppercase }}
         </div>
       </div>
 
@@ -55,7 +55,7 @@
 
       <div class="info-grid">
         <div class="info-item">
-          <label>Location</label>
+          <label>{{ 'REQUESTS.LOCATION_LABEL' | translate }}</label>
           <div class="val-box">
             <ion-icon name="location"></ion-icon>
             <span>{{ req.displayLocation }}</span>
@@ -65,10 +65,10 @@
 
       <div class="action-grid">
         <button *ngIf="(req.status || '').toLowerCase() !== 'approved'" class="btn-approve" (click)="approveRequest(req)">
-          <ion-icon name="checkmark-circle"></ion-icon> Approve
+          <ion-icon name="checkmark-circle"></ion-icon> {{ 'REQUESTS.APPROVE_BTN' | translate }}
         </button>
         <button class="btn-reject" (click)="rejectRequest(req)">
-          <ion-icon name="close-circle"></ion-icon> Reject
+          <ion-icon name="close-circle"></ion-icon> {{ 'REQUESTS.REJECT_BTN' | translate }}
         </button>
       </div>
     </div>

@@ -411,7 +411,10 @@ export class AppComponent implements OnInit {
   }
 
   confirmLanguage() {
-    const langCode = this.selectedLanguage === 'Hindi' ? 'hi' : 'en';
+    let langCode = 'en';
+    if (this.selectedLanguage === 'Hindi') langCode = 'hi';
+    else if (this.selectedLanguage === 'Marathi') langCode = 'mr';
+    
     this.translate.use(langCode);
     localStorage.setItem('app_language_code', langCode);
     this.toggleLanguageModal(false);

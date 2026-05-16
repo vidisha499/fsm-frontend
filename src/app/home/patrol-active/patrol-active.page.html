@@ -73,11 +73,11 @@
       <div class="category-tabs-glass">
         <div class="tab-btn" [class.active]="activeReportCategory === 'criminal'" (click)="setCategoryGroup('criminal')">
           <i class="fas fa-shield-alt"></i>
-          <span>Criminal</span>
+          <span>{{ 'PATROL.CRIMINAL_TAB' | translate }}</span>
         </div>
         <div class="tab-btn" [class.active]="activeReportCategory === 'events'" (click)="setCategoryGroup('events')">
           <i class="fas fa-eye"></i>
-          <span>Events</span>
+          <span>{{ 'PATROL.EVENTS_TAB' | translate }}</span>
         </div>
       </div>
 
@@ -108,7 +108,7 @@
 
       <div class="recent-logs-section" *ngIf="recentSightings.length > 0">
         <div class="section-header">
-          <h3>Patrol Observations</h3>
+          <h3>{{ 'PATROL.OBS_TITLE' | translate }}</h3>
           <span class="count-badge">{{recentSightings.length}}</span>
         </div>
         <div class="logs-list">
@@ -121,7 +121,7 @@
               <div class="log-main">
                 <span class="log-type">{{ log.displayTitle }}</span>
               </div>
-              <span class="log-meta">Recorded during current patrol</span>
+              <span class="log-meta">{{ 'PATROL.RECORDED_HINT' | translate }}</span>
             </div>
 
             <div class="log-right">

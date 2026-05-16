@@ -1,20 +1,11 @@
-<!-- <ion-app>
-  <ion-router-outlet></ion-router-outlet>
-</ion-app> -->
-
 <ion-app>
-<!-- <ion-menu contentId="main-content" side="start" type="overlay"> -->
-
-  <ion-menu menuId="main-menu" contentId="main-content" side="start" type="overlay">
-  <div class="side-menu-container">
-    
-    <div class="menu-header-premium">
-      <div class="header-content">
+  <ion-menu contentId="main-content" type="overlay" class="premium-sidebar">
+    <ion-content class="side-menu-container">
+      <div class="menu-header-premium">
         <div class="user-profile-section">
-          <!-- Sidebar Loader Overlay -->
           <div *ngIf="isLoadingSidebar" class="sidebar-loader-wrap">
             <ion-spinner name="crescent"></ion-spinner>
-            <span>Syncing Profile...</span>
+            <span>{{ 'MENU.SYNCING' | translate }}</span>
           </div>
 
           <ng-container *ngIf="!isLoadingSidebar">
@@ -33,120 +24,98 @@
                 </div>
                 <div class="user-info">
                   <h2>{{ rangerName }}</h2>
-                  <p class="user-role">{{ userDesignation || 'FOREST GUARD' }}</p>
+                  <p class="user-role">{{ userDesignation || ('MENU.DESIGNATION' | translate) }}</p>
                 </div>
               </div>
               
               <div *ngIf="companyName" style="margin-top: 15px; font-size: 13px; color: #ffffff; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; width: 100%;">
-                <i class="fas fa-building" style="margin-right: 5px;"></i>Company Name: {{ companyName }}
+                <i class="fas fa-building" style="margin-right: 5px;"></i>{{ 'MENU.COMPANY_NAME' | translate }}: {{ companyName }}
               </div>
             </div>
           </ng-container>
         </div>
 
       </div>
-    </div>
+
 
     <nav class="menu-nav">
-      <!-- <div class="menu-section-label">{{ 'MENU.NAVIGATION' | translate }}</div> -->
       
       <a class="menu-item" (click)="goToPage('home')" [class.active]="router.url.includes('home')">
         <div class="icon-box emerald"><i class="fas fa-th-large"></i></div>
-        <div class="item-text"><span>Dashboard</span></div>
+        <div class="item-text"><span>{{ 'MENU.DASHBOARD' | translate }}</span></div>
       </a>
 
       <!-- 2. Patrol/Beat Inspection -->
       <a *ngIf="isFeatureEnabled('patrol')" class="menu-item" (click)="goToPage('patrol-logs')" [class.active]="router.url.includes('patrol-logs')">
         <div class="icon-box rose"><i class="fas fa-route"></i></div>
-        <div class="item-text"><span>Patrol/Beat Inspection</span></div>
+        <div class="item-text"><span>{{ 'MENU.PATROL_INSPECTION' | translate }}</span></div>
       </a>
 
       <!-- 3. Asset Management -->
       <a *ngIf="isFeatureEnabled('asset_management')" class="menu-item" (click)="goToPage('assets-list')" [class.active]="router.url === '/home/assets-list'">
         <div class="icon-box indigo"><i class="fas fa-boxes"></i></div>
-        <div class="item-text"><span>Asset Management</span></div>
+        <div class="item-text"><span>{{ 'MENU.ASSET_MGMT' | translate }}</span></div>
       </a>
 
       <!-- 4. Forest Events Dashboard -->
       <a *ngIf="isFeatureEnabled('forest_events')" class="menu-item" (click)="goToPage('forest-events')" [class.active]="router.url.includes('forest-events')">
         <div class="icon-box orange"><i class="fas fa-shield-virus"></i></div>
-        <div class="item-text"><span>Forest Events Dashboard</span></div>
+        <div class="item-text"><span>{{ 'MENU.EVENTS_DASHBOARD' | translate }}</span></div>
       </a>
 
       <!-- 5. Know Your Area -->
       <a *ngIf="isFeatureEnabled('know_your_area')" class="menu-item" (click)="goToPage('geofences')" [class.active]="router.url.includes('geofences')">
         <div class="icon-box orange"><i class="fas fa-draw-polygon"></i></div>
-        <div class="item-text"><span>Know Your Area</span></div>
+        <div class="item-text"><span>{{ 'MENU.KNOW_YOUR_AREA' | translate }}</span></div>
       </a>
 
       <!-- 6. Plantations -->
       <a *ngIf="isFeatureEnabled('plantations')" class="menu-item" (click)="goToPage('plantations')" [class.active]="router.url.includes('plantations')">
         <div class="icon-box green"><i class="fas fa-leaf"></i></div>
-        <div class="item-text"><span>Plantations</span></div>
+        <div class="item-text"><span>{{ 'MENU.PLANTATIONS' | translate }}</span></div>
       </a>
 
       <!-- 7. Mark Attendance -->
       <a *ngIf="isFeatureEnabled('attendance')" class="menu-item" (click)="goToPage('attendance')">
         <div class="icon-box blue"><i class="fas fa-calendar-check"></i></div>
-        <div class="item-text"><span>Mark Attendance</span></div>
+        <div class="item-text"><span>{{ 'MENU.MARK_ATTENDANCE' | translate }}</span></div>
       </a>
 
       <!-- 8. Reports -->
       <a *ngIf="isFeatureEnabled('reports')" class="menu-item" (click)="goToPage('reports')" [class.active]="router.url.includes('reports')">
         <div class="icon-box rose"><i class="fas fa-file-contract"></i></div>
-        <div class="item-text"><span>Reports</span></div>
+        <div class="item-text"><span>{{ 'MENU.REPORTS' | translate }}</span></div>
       </a>
 
       <!-- 9. Organisation Management -->
       <a *ngIf="isFeatureEnabled('org_management')" class="menu-item" (click)="goToPage('org-management')" [class.active]="router.url.includes('org-management')">
         <div class="icon-box purple"><i class="fas fa-sitemap"></i></div>
-        <div class="item-text"><span>Organization Management</span></div>
+        <div class="item-text"><span>{{ 'MENU.ORG_MGMT' | translate }}</span></div>
       </a>
 
       <!-- 10. Attendance Request -->
       <a *ngIf="isFeatureEnabled('attendance_request') && (userRole === 'admin' || userRole === '1')" class="menu-item" (click)="goToPage('attendance-requests')">
         <div class="icon-box amber"><i class="fas fa-user-check"></i></div>
-        <div class="item-text"><span>Attendance Requests</span></div>
+        <div class="item-text"><span>{{ 'MENU.ATTENDANCE_REQ' | translate }}</span></div>
       </a>
 
       <!-- 11. Add Approved User -->
       <a *ngIf="isFeatureEnabled('user_management') && userRole === 'admin'" class="menu-item" (click)="goToPage('add-user')" [class.active]="router.url.includes('add-user')">
         <div class="icon-box azure"><i class="fas fa-user-plus"></i></div>
-        <div class="item-text"><span>Add Approved User</span></div>
+        <div class="item-text"><span>{{ 'MENU.ADD_USER' | translate }}</span></div>
       </a>
 
       <!-- 12. User -->
       <a *ngIf="isFeatureEnabled('user_management')" class="menu-item" (click)="goToPage('users')" [class.active]="router.url.includes('users')">
         <div class="icon-box teal"><i class="fas fa-users"></i></div>
-        <div class="item-text"><span>User</span></div>
+        <div class="item-text"><span>{{ 'MENU.USERS' | translate }}</span></div>
       </a>
 
       <!-- 13. Task Management -->
       <a *ngIf="isFeatureEnabled('tasks')" class="menu-item" (click)="goToPage('tasks')" [class.active]="router.url.includes('tasks')">
         <div class="icon-box cyan"><i class="fas fa-tasks"></i></div>
-        <div class="item-text"><span>Task Management</span></div>
+        <div class="item-text"><span>{{ 'MENU.TASK_MGMT' | translate }}</span></div>
       </a>
-
-      <!-- Hidden/Commented items -->
-      <!-- <a *ngIf="isFeatureEnabled('attendance')" class="menu-item" (click)="goToPage('onsite-attendance')">
-        <div class="icon-box emerald"><i class="fas fa-map-marker-alt"></i></div>
-        <div class="item-text"><span>On Site/Beat Attendance</span></div>
-      </a>
-
-      <a *ngIf="isFeatureEnabled('daily_updates')" class="menu-item" (click)="goToPage('daily-updates')" [class.active]="router.url.includes('daily-updates')">
-        <div class="icon-box pink"><i class="fas fa-newspaper"></i></div>
-        <div class="item-text"><span>{{ 'MENU.DAILY_UPDATES' | translate }}</span></div>
-      </a>
-
-      <a *ngIf="isFeatureEnabled('chat') || isFeatureEnabled('communication')" class="menu-item" (click)="goToPage('chat')" [class.active]="router.url.includes('chat')">
-        <div class="icon-box cyan"><i class="fas fa-comments"></i></div>
-        <div class="item-text"><span>Communication</span></div>
-      </a>
-
-      <a *ngIf="isFeatureEnabled('client_visits') || isFeatureEnabled('field_visits')" class="menu-item" (click)="goToPage('client-visits')" [class.active]="router.url.includes('client-visits')">
-        <div class="icon-box blue"><i class="fas fa-briefcase"></i></div>
-        <div class="item-text"><span>{{ 'label_client' | dynamicLabel }} Visits</span></div>
-      </a> -->
 
       <!-- 12. Account Settings -->
       <a class="menu-item" (click)="goToPage('settings')" [class.active]="router.url.includes('settings')">
@@ -170,8 +139,8 @@
     <div class="menu-footer">
       <span class="version-tag">Forest Management System v1.6.3</span>
     </div>
-  </div>
-</ion-menu>
+    </ion-content>
+  </ion-menu>
   
 
   <ion-router-outlet id="main-content" [class.hidden]="currentPage === 'settings'"></ion-router-outlet>
@@ -195,7 +164,7 @@
           </div>
         </div>
         <div class="header-title-group">
-          <p>Operational Protocol & Personal Profile</p>
+          <p>{{ 'DASHBOARD.PROTOCOL_PROFILE' | translate }}</p>
         </div>
       </div>
     </div>
@@ -252,10 +221,10 @@
 
         <div *ngIf="activeTab === 'pass'" class="fade-in">
           <div class="input-pill">
-            <label>{{ 'SETTINGS.LABEL_CURR_PASS' | translate }}</label>
+            <label>{{ 'SETTINGS.LABEL_CUR_PASS' | translate }}</label>
             <div class="pill-content">
               <i class="fas fa-lock"></i>
-              <input [type]="showPassword ? 'text' : 'password'" [(ngModel)]="currentPassword" [readonly]="!isEditMode">
+              <input [type]="showPassword ? 'text' : 'password'" [(ngModel)]="currentPassword" [readonly]="!isEditMode" [placeholder]="'SETTINGS.PH_CURR_PIN' | translate">
               <i *ngIf="isEditMode" class="fas" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword" (click)="showPassword = !showPassword"></i>
             </div>
           </div>
@@ -288,7 +257,7 @@
     </div>
 
     <span class="slider-text" [style.opacity]="textOpacity">
-      {{ isSubmitting ? 'UPDATING...' : 'UPDATE' }}
+      {{ isSubmitting ? ('SETTINGS.UPDATING' | translate) : ('SETTINGS.UPDATE' | translate) }}
     </span>
 
     <div class="end-check">
@@ -304,7 +273,6 @@
 
   
 
-
   <div *ngIf="showLanguageModal" class="language-modal-backdrop">
     <div class="language-card">
         
@@ -315,7 +283,7 @@
             <h3 style="margin: 0; font-size: 20px; font-weight: 900; color: #1e293b; letter-spacing: -0.5px;">
                 {{ 'LANGUAGE.CHOOSE_TITLE' | translate }}
             </h3>
-            <p style="margin: 5px 0 0; font-size: 12px; color: #94a3b8; font-weight: 600;">Select your preferred language</p>
+            <p style="margin: 5px 0 0; font-size: 12px; color: #94a3b8; font-weight: 600;">{{ 'COMMON.CHOOSE_LANG_SUB' | translate }}</p>
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 12px;">
@@ -393,16 +361,16 @@
           </div>
         </div>
         
-        <h2>Confirm Logout</h2>
-        <p>Are you sure you want to end your current session and sign out of the system?</p>
+        <h2>{{ 'LOGOUT.MODAL_TITLE' | translate }}</h2>
+        <p>{{ 'LOGOUT.MODAL_MESSAGE' | translate }}</p>
 
         <div class="modal-actions-row">
           <button class="confirm-logout-btn" (click)="performLogout()">
             <i class="fas fa-sign-out-alt"></i>
-            <span>Sign Out</span>
+            <span>{{ 'MENU.LOGOUT' | translate }}</span>
           </button>
           <button class="cancel-btn" (click)="toggleLogoutConfirm(false)">
-            <span>Keep Logged In</span>
+            <span>{{ 'COMMON.KEEP_LOGGED' | translate }}</span>
           </button>
         </div>
       </div>

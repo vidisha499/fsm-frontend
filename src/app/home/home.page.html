@@ -1,6 +1,6 @@
 <div *ngIf="!translate.currentLang" class="fixed inset-0 z-[10002] bg-white flex flex-col items-center justify-center">
     <ion-spinner name="crescent" color="success"></ion-spinner>
-    <p class="mt-4 text-slate-500 font-bold animate-pulse">Initializing System...</p>
+    <p class="mt-4 text-slate-500 font-bold animate-pulse">{{ 'DASHBOARD.INITIALIZING' | translate }}</p>
 </div>
 
 <ng-container *ngIf="translate.currentLang">
@@ -100,7 +100,7 @@
         </div>
         
         <div class="header-title-group">
-            <p>Operational Protocol & Personal Profile</p>
+            <p>{{ 'DASHBOARD.PROTOCOL_PROFILE' | translate }}</p>
         </div>
     </div>
 </div>
@@ -164,7 +164,7 @@
                     <label>{{ 'SETTINGS.LABEL_CURR_PASS' | translate }}</label>
                     <div class="pill-content">
                         <i class="fas fa-lock"></i>
-                        <input [type]="showPassword ? 'text' : 'password'" [(ngModel)]="currentPassword"  [readonly]="!isEditMode" placeholder="Enter Current Pin">
+                        <input [type]="showPassword ? 'text' : 'password'" [(ngModel)]="currentPassword"  [readonly]="!isEditMode" [placeholder]="'SETTINGS.PH_CURR_PIN' | translate">
                         <i *ngIf="isEditMode"  class="fas" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword" 
                            (click)="showPassword = !showPassword" style="cursor: pointer; opacity: 0.6;"></i>
                     </div>
@@ -198,7 +198,7 @@
     </div>
 
     <span class="slider-text" [style.opacity]="textOpacity">
-      {{ isSubmitting ? 'UPDATING...' : 'UPDATE' }}
+      {{ isSubmitting ? ('SETTINGS.UPDATING' | translate) : ('SETTINGS.UPDATE' | translate) }}
     </span>
 
     <div class="end-check">
@@ -216,9 +216,6 @@
     <div class="custom-nav-bar">
         <div class="nav-tab active"><i class="fas fa-home"></i><span>{{ 'NAV.HOME' | translate }}</span></div>
         <div class="nav-tab" (click)="goToPage('patrol-logs')"><i class="fas fa-shoe-prints"></i><span>{{ 'NAV.PATROL' | translate }}</span></div>
-        <!-- <div class="sos-anchor">
-            <div class="sos-circle"><i class="fas fa-exclamation-triangle"></i><span>{{ 'NAV.SOS' | translate }}</span></div>
-        </div> -->
         <div class="sos-anchor" (click)="triggerEmergency()">
     <div class="sos-circle">
         <i class="fas fa-exclamation-triangle"></i>
@@ -229,3 +226,4 @@
         <div class="nav-tab" (click)="goToPage('settings')"><i class="fas fa-user-shield"></i><span>{{ 'NAV.RANGER' | translate }}</span></div>
     </div>
 </div>
+</ng-container>
