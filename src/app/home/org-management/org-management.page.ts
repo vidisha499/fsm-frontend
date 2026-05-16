@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { NavController, ToastController, AlertController, LoadingController } from '@ionic/angular';
+import { Component, OnInit, ViewChild } from '@angular/core';
+import { NavController, ToastController, AlertController, LoadingController, IonContent } from '@ionic/angular';
 import { DataService } from 'src/app/data.service';
 
 @Component({
@@ -9,6 +9,8 @@ import { DataService } from 'src/app/data.service';
   standalone: false
 })
 export class OrgManagementPage implements OnInit {
+  @ViewChild(IonContent) content!: IonContent;
+  public showScrollTop = false;
   activeSegment: string = 'hierarchy';
   
   // Hierarchy Data
@@ -930,12 +932,14 @@ export class OrgManagementPage implements OnInit {
   }
 
   async showToast(msg: string, color: string = 'dark') {
-    const t = await this.toast.create({
-      message: msg,
-      duration: 2000,
-      color: color,
-      position: 'top'
-    });
-    await t.present();
+    this.toast.create({ message: msg, color, duration: 2000, position: 'bottom' }).then(t => t.present());
+  }
+
+  handleScroll(ev: any) {
+    this.showScrollTop = ev.detail.scrollTop > 500;
+  }
+
+  scrollToTop() {
+    this.content.scrollToTop(600);
   }
 }

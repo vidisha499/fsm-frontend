@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { NavController, LoadingController } from '@ionic/angular';
+import { Component, OnInit, ViewChild } from '@angular/core';
+import { NavController, LoadingController, IonContent } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import { AlertController } from '@ionic/angular';
@@ -11,6 +11,8 @@ import { AlertController } from '@ionic/angular';
   standalone: false
 })
 export class OnsiteAttendanceLogsPage implements OnInit {
+  @ViewChild(IonContent) content!: IonContent;
+  public showScrollTop = false;
   rangerId: number = Number(localStorage.getItem('ranger_id')) || 0; 
 allLogs: any[] = []; // Backup for filtering
   // attendanceLogs: any[] = [];
@@ -178,9 +180,17 @@ applyFilters() {
 }
 
 // 4. Reset logic
-resetFilters() {
-  this.filters = { location: '', fromDate: this.today, toDate: this.today };
-  this.showTodayOnly();
-  this.isModalOpen = false;
-}
+  resetFilters() {
+    this.filters = { location: '', fromDate: this.today, toDate: this.today };
+    this.showTodayOnly();
+    this.isModalOpen = false;
+  }
+
+  handleScroll(ev: any) {
+    this.showScrollTop = ev.detail.scrollTop > 500;
+  }
+
+  scrollToTop() {
+    this.content.scrollToTop(600);
+  }
 }

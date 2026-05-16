@@ -1,4 +1,4 @@
-<ion-content [fullscreen]="true" class="premium-wrapper">
+<ion-content [fullscreen]="true" class="premium-wrapper" [scrollEvents]="true" (ionScroll)="handleScroll($event)">
   <div class="ambient-glow glow-1"></div>
   <div class="ambient-glow glow-2"></div>
 
@@ -71,11 +71,14 @@
     </ng-template>
 
     <div class="fab-container">
-  <div class="fab-tooltip">start patrol</div>
-  <button class="fab-circle" (click)="setOpen(true)">
-    <ion-icon name="add-outline"></ion-icon>
-  </button>
-</div>
+      <button class="fab-circle scroll-top-btn" *ngIf="showScrollTop" (click)="scrollToTop()" style="margin-bottom: 10px;">
+        <ion-icon name="chevron-up-outline"></ion-icon>
+      </button>
+      <div class="fab-tooltip">start patrol</div>
+      <button class="fab-circle" (click)="setOpen(true)">
+        <ion-icon name="add-outline"></ion-icon>
+      </button>
+    </div>
   </div>
 
   <ion-modal [isOpen]="isModalOpen" (didDismiss)="setOpen(false)" [initialBreakpoint]="0.5" [breakpoints]="[0, 0.5, 0.8]">

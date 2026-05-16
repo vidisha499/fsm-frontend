@@ -1,6 +1,6 @@
 
 
-<ion-content [fullscreen]="true" class="premium-wrapper">
+<ion-content [fullscreen]="true" class="premium-wrapper" [scrollEvents]="true" (ionScroll)="handleScroll($event)">
   <div class="header-container">
     <div class="header-overlay"></div>
     <div class="nav-content">
@@ -111,4 +111,10 @@
     </ion-popover>
   </ng-template>
 </ion-modal>
-</ion-content> 
+
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="back-to-top-fab" [class.show]="showScrollTop">
+    <ion-fab-button (click)="scrollToTop()">
+      <ion-icon name="arrow-up-outline"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>

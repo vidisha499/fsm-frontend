@@ -1,4 +1,4 @@
-<ion-content [fullscreen]="true">
+<ion-content [fullscreen]="true" [scrollEvents]="true" (ionScroll)="handleScroll($event)">
   <div class="premium-wrapper">
     <div class="ambient-glow glow-1"></div>
     <div class="ambient-glow glow-2"></div>
@@ -158,7 +158,9 @@
   </div>
 
   <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="custom-fab">
-    
+    <ion-fab-button class="scroll-top-btn" *ngIf="showScrollTop" (click)="scrollToTop()" style="margin-bottom: 10px; --background: #1e293b; --color: white;">
+      <ion-icon name="chevron-up-outline"></ion-icon>
+    </ion-fab-button>
     <ion-fab-button (click)="goToAddAsset()" class="add-fab">
       <ion-icon name="add"></ion-icon>
     </ion-fab-button>

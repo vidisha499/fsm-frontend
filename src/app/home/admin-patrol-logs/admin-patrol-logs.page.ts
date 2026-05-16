@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { NavController, LoadingController } from '@ionic/angular';
+import { Component, OnInit, ViewChild } from '@angular/core';
+import { NavController, LoadingController, IonContent } from '@ionic/angular';
 import { DataService } from 'src/app/data.service';
 
 @Component({
@@ -9,6 +9,8 @@ import { DataService } from 'src/app/data.service';
   standalone: false
 })
 export class AdminPatrolLogsPage implements OnInit {
+  @ViewChild(IonContent) content!: IonContent;
+  public showScrollTop = false;
   patrolLogs: any[] = [];
   isLoading: boolean = false;
   isFilterModalOpen: boolean = false;
@@ -299,5 +301,13 @@ export class AdminPatrolLogsPage implements OnInit {
     if (!status || status.toLowerCase() === 'in progress' || status.toLowerCase() === 'active') return 'In Progress';
     if (status.toLowerCase() === 'completed' || status.toLowerCase() === 'ended' || status.toLowerCase() === 'finished') return 'Completed';
     return status.charAt(0).toUpperCase() + status.slice(1);
+  }
+
+  handleScroll(ev: any) {
+    this.showScrollTop = ev.detail.scrollTop > 500;
+  }
+
+  scrollToTop() {
+    this.content.scrollToTop(600);
   }
 }

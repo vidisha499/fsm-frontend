@@ -1,4 +1,4 @@
-<ion-content [fullscreen]="true" class="user-list-content">
+<ion-content [fullscreen]="true" class="user-list-content" [scrollEvents]="true" (ionScroll)="handleScroll($event)">
   <div class="premium-wrapper">
     <div class="ambient-glow glow-1"></div>
     <div class="ambient-glow glow-2"></div>
@@ -76,4 +76,10 @@
       </div>
     </div>
   </div>
+
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="back-to-top-fab" [class.show]="showScrollTop">
+    <ion-fab-button (click)="scrollToTop()">
+      <ion-icon name="arrow-up-outline"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
 </ion-content>

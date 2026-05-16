@@ -1,4 +1,4 @@
-<ion-content [fullscreen]="true" class="ion-no-padding">
+<ion-content [fullscreen]="true" class="ion-no-padding" [scrollEvents]="true" (ionScroll)="handleScroll($event)">
   <!-- Header Section -->
   <div class="header-section">
     <div class="toolbar">
@@ -214,6 +214,12 @@
       </div>
     </div>
   </div>
+
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="back-to-top-fab" [class.show]="showScrollTop">
+    <ion-fab-button (click)="scrollToTop()">
+      <ion-icon name="arrow-up-outline"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
 </ion-content>
 
 <!-- ROLE MANAGEMENT MODAL (Premium V2) -->

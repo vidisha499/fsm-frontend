@@ -1,4 +1,4 @@
-<ion-content [fullscreen]="true">
+<ion-content [fullscreen]="true" [scrollEvents]="true" (ionScroll)="handleScroll($event)">
   <div class="premium-wrapper">
     <div class="ambient-glow glow-1" style="background: #f97316;"></div>
     <div class="ambient-glow glow-2" style="background: #ea580c;"></div>
@@ -122,4 +122,10 @@
       </div>
     </ng-template>
   </ion-modal>
+
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="back-to-top-fab" [class.show]="showScrollTop">
+    <ion-fab-button (click)="scrollToTop()">
+      <ion-icon name="arrow-up-outline"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
 </ion-content>

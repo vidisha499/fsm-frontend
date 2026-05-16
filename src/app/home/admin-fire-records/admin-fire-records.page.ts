@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { NavController, LoadingController } from '@ionic/angular';
+import { Component, OnInit, ViewChild } from '@angular/core';
+import { NavController, LoadingController, IonContent } from '@ionic/angular';
 import { DataService } from 'src/app/data.service';
 import { forkJoin } from 'rxjs';
 
@@ -10,6 +10,8 @@ import { forkJoin } from 'rxjs';
   standalone: false
 })
 export class AdminFireRecordsPage implements OnInit {
+  @ViewChild(IonContent) content!: IonContent;
+  public showScrollTop = false;
   submittedReports: any[] = [];
   isLoading: boolean = false;
   isFilterModalOpen: boolean = false;
@@ -328,5 +330,13 @@ export class AdminFireRecordsPage implements OnInit {
   formatTitle(str: string) {
     if (!str) return '';
     return str.replace(/_/g, ' ').toUpperCase();
+  }
+
+  handleScroll(ev: any) {
+    this.showScrollTop = ev.detail.scrollTop > 500;
+  }
+
+  scrollToTop() {
+    this.content.scrollToTop(600);
   }
 }

@@ -6,10 +6,11 @@ import {
   HostListener,
   ElementRef,
   NgZone,
+  ViewChild,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { Router } from '@angular/router'; // 1. Added Router
-import { NavController, MenuController, LoadingController } from '@ionic/angular';
+import { NavController, MenuController, LoadingController, IonContent } from '@ionic/angular';
 import { Chart, registerables, ChartConfiguration } from 'chart.js';
 import { DataService } from 'src/app/data.service';
 import { AdminDataService } from 'src/app/services/admin-data';
@@ -41,6 +42,8 @@ interface ForestAlert {
   standalone: false,
 })
 export class AdminPage implements OnInit, AfterViewInit {
+  @ViewChild(IonContent) content!: IonContent;
+  public showScrollTop = false;
   public activePinsDisplay: any[] = [];
   // --- Constants ---
   readonly COLORS = {
@@ -186,7 +189,8 @@ export class AdminPage implements OnInit, AfterViewInit {
   // --- Map & Layer State ---
   public allIncidents: any[] = [];
   public map: L.Map | null | any = null;
-  private markerGroup = L.layerGroup(); // To manage dynamic markers
+  private markerGroup = L.featureGroup(); // To manage dynamic markers
+  private shouldFitMapOnce: boolean = false; // Flag for auto-zoom
   private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw';
   isCompsActive: boolean = false;
   isMapFullscreen: boolean = false;
@@ -804,7 +808,7 @@ export class AdminPage implements OnInit, AfterViewInit {
       }).addTo(this.map);
 
       // Create the group that will hold our incident markers
-      this.markerGroup = L.layerGroup().addTo(this.map);
+      this.markerGroup = L.featureGroup().addTo(this.map);
 
       // 5. Delay slightly to ensure DOM is ready, then draw
       setTimeout(() => {
@@ -986,6 +990,19 @@ private updateMapMarkers() {
           }
         });
     });
+
+    // 🔥 AUTO-ZOOM: Fit bounds to show markers (Highest concentration area)
+    if (this.shouldFitMapOnce && this.markerGroup && this.markerGroup.getLayers().length > 0) {
+        try {
+            const bounds = this.markerGroup.getBounds();
+            if (this.map) {
+                this.map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+                this.shouldFitMapOnce = false; // Zoom only once
+            }
+        } catch (e) {
+            console.error('Error auto-zooming map:', e);
+        }
+    }
 }
 
 viewDetailedReport(pin: any) {
@@ -1005,19 +1022,20 @@ viewDetailedReport(pin: any) {
 
 
 changeTimeframe(newTimeframe: string) {
-  this.selectedTimeframe = newTimeframe; // 🔥 Ye update hona zaroori hai
+  this.selectedTimeframe = newTimeframe; 
   this.activeDateFilter = newTimeframe;
   
-  // Chart destroy karo taaki "Canvas already in use" error na aaye
   if (this.trendChart) {
     this.trendChart.destroy();
   }
 
-  this.loadData();
+  this.loadData(true);
 }
 
   loadData(force: boolean = false) {
-    this.isStatsLoading = true;
+    if (force || !this.lastTrendState) {
+      this.isStatsLoading = true;
+    }
     console.log('DEBUG: DataService Object ->', this.dataService);
     if (this.isFetching) return;
 
@@ -2714,6 +2732,7 @@ handleApiResponse(res: any) {
         this.initHomeCharts();
       } else if (segment === 'map') {
         // CRITICAL FIX: You must initialize the map object before updating pins
+        this.shouldFitMapOnce = true;
         this.initLeafletMap();
         this.updateVisiblePins();
       } else if (segment === 'officers') {
@@ -2940,7 +2959,9 @@ handleApiResponse(res: any) {
 
     // 🔥 FIX: Prevent flickering if data hasn't changed
     const newDataStr = JSON.stringify({ labels, values });
-    if (this.lastTrendState === newDataStr) {
+    const existingChart = Chart.getChart('c-trend');
+    
+    if (this.lastTrendState === newDataStr && existingChart) {
       this.isStatsLoading = false;
       this.cdr.detectChanges();
       return; 
@@ -3069,5 +3090,18 @@ handleApiResponse(res: any) {
 
   goToOfficers() {
     this.router.navigate(['/home/officers']);
+  }
+
+  goToPlantations() {
+    this.router.navigate(['/plantations']);
+  }
+
+  handleScroll(ev: any) {
+    this.showScrollTop = ev.detail.scrollTop > 500;
+    this.cdr.detectChanges();
+  }
+
+  scrollToTop() {
+    this.content.scrollToTop(600);
   }
 }

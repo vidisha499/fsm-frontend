@@ -343,7 +343,7 @@ export class AppComponent implements OnInit {
   }
 
   async goToPage(path: string) {
-    await this.menu.close();
+    this.menu.close();
     if (path === 'settings') { this.currentPage = 'settings'; this.loadUserData(); }
     else if (path === 'home') {
       const roleId = localStorage.getItem('user_role');

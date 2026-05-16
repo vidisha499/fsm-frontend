@@ -98,6 +98,12 @@ body {
 
 ion-content {
   --background: #f1f5f9 !important;
+  scroll-behavior: smooth;
+}
+
+/* Page Transition Enhancements */
+ion-router-outlet {
+  --transition-duration: 0.4s;
 }
 
 /* 2. ✅ MAP ACTIVE MODE (CARD PROTECTOR LOGIC) */
@@ -378,5 +384,83 @@ ion-label {
   100% {
     transform: scale(0.95);
     box-shadow: 0 0 0 0 rgba(56, 128, 255, 0);
+  }
+}
+
+/* Premium Scroll to Top Button */
+.scroll-top-fab {
+  --background: rgba(13, 148, 136, 0.9) !important;
+  --background-activated: #0f766e !important;
+  --color: white !important;
+  --box-shadow: 0 8px 25px rgba(13, 148, 136, 0.4) !important;
+  --border-radius: 16px !important;
+  margin-bottom: 80px;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.scroll-top-fab.visible {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+  visibility: visible;
+}
+
+
+/* --- PREMIUM BACK TO TOP BUTTON --- */
+.back-to-top-fab {
+  --background: #1e293b;
+  --background-activated: #0f172a;
+  --color: white;
+  --box-shadow: 0 8px 25px rgba(30, 41, 59, 0.4);
+  opacity: 0;
+  transform: scale(0.5) translateY(20px);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+  
+  &.show {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    pointer-events: auto;
+  }
+
+  ion-fab-button {
+    --border-radius: 16px;
+    width: 50px;
+    height: 50px;
+    ion-icon { font-size: 24px; }
+  }
+}
+
+/* Global Return to Top FAB Styles */
+.back-to-top-fab {
+  margin-bottom: 20px;
+  margin-right: 10px;
+  opacity: 0;
+  transform: scale(0);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  pointer-events: none;
+  z-index: 1000;
+
+  &.show {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+  }
+
+  ion-fab-button {
+    --background: #1e293b;
+    --background-activated: #0f172a;
+    --color: white;
+    --box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    width: 48px;
+    height: 48px;
+
+    ion-icon {
+      font-size: 20px;
+    }
   }
 }

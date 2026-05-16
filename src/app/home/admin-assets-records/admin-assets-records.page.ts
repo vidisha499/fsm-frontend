@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { NavController, LoadingController } from '@ionic/angular';
+import { Component, OnInit, ViewChild } from '@angular/core';
+import { NavController, LoadingController, IonContent } from '@ionic/angular';
 import { DataService } from 'src/app/data.service';
 
 @Component({
@@ -9,6 +9,8 @@ import { DataService } from 'src/app/data.service';
   standalone: false
 })
 export class AdminAssetsRecordsPage implements OnInit {
+  @ViewChild(IonContent) content!: IonContent;
+  public showScrollTop = false;
   assetList: any[] = [];
   isLoading: boolean = false;
   isFilterModalOpen: boolean = false;
@@ -228,5 +230,13 @@ export class AdminAssetsRecordsPage implements OnInit {
     if (!dateStr) return '—';
     const date = new Date(dateStr);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  handleScroll(ev: any) {
+    this.showScrollTop = ev.detail.scrollTop > 500;
+  }
+
+  scrollToTop() {
+    this.content.scrollToTop(600);
   }
 }
