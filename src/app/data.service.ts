@@ -47,22 +47,31 @@ export class DataService {
 
     try {
       let perms: any[] = [];
-      if (permsStr) perms = JSON.parse(permsStr);
+      if (permsStr) {
+        perms = JSON.parse(permsStr);
+        // 🔥 SECONDARY PARSE: If it returned a string instead of array, parse again
+        if (typeof perms === 'string') {
+          try { perms = JSON.parse(perms); } catch (e) { perms = []; }
+        }
+      }
 
-      if (perms.length === 0 && featuresStr) {
+      if ((!Array.isArray(perms) || perms.length === 0) && featuresStr) {
         const features = JSON.parse(featuresStr);
         return features.some((f: any) => 
           (f.module_key === feature || f.name?.toLowerCase().includes(feature.toLowerCase()) || String(f).toLowerCase().includes(feature.toLowerCase()))
         );
       }
       
+      if (!Array.isArray(perms)) perms = [];
+      
       const aliasMap: any = {
         'patrol': ['Patrolling'],
         'attendance': ['Attendance'],
-        'patrol_report': ['Forest Reports'],
+        'patrol_report': ['Forest Events', 'Forest Reports'],
+        'reports': ['Forest Reports', 'Reports'],
         'attendance_request': ['Attendance'],
         'asset_management': ['Assets'],
-        'forest_events': ['Forest Events', 'Incidence'],
+        'forest_events': ['Forest Events', 'Incidence', 'Forest Reports', 'Forest Report', 'forest_reports'],
         'know_your_area': ['Know Your Area'],
         'plantations': ['Plantation'],
         'chat': ['Chat'],
@@ -75,13 +84,24 @@ export class DataService {
         'tasks': ['Tasks', 'Task Management']
       };
 
-      const keyToCheck = feature.toLowerCase();
-      const aliases = (aliasMap[keyToCheck] || [keyToCheck]).map((a: string) => a.toLowerCase());
+      const keyToCheck = feature.toLowerCase().replace(/_/g, '').replace(/\s/g, '');
+      const aliases = (aliasMap[feature.toLowerCase()] || [feature.toLowerCase()]).map((a: string) => 
+        a.toLowerCase().replace(/_/g, '').replace(/\s/g, '')
+      );
+
+      // Add 'patrol_report' as an alias for 'forest_events' internally for legacy support
+      if (keyToCheck === 'forestevents') {
+        aliases.push('patrolreport');
+      }
 
       return perms.some((p: any) => {
-        const pStr = String(p.module_key || p.name || p || '').toLowerCase();
-        return aliases.some((alias: string) => pStr.includes(alias) || alias.includes(pStr));
+        const rawP = String(p.module_key || p.name || p.module || p || '').toLowerCase();
+        const pStr = rawP.replace(/_/g, '').replace(/\s/g, '');
+        
+        return aliases.some((alias: string) => pStr.includes(alias) || alias.includes(normKey(pStr)));
       });
+
+      function normKey(s: string) { return s.split('.')[0] || s; }
     } catch (e) {
       return false;
     }
@@ -107,7 +127,14 @@ export class DataService {
     if (!permsStr) return false;
 
     try {
-      const perms = JSON.parse(permsStr);
+      let perms = JSON.parse(permsStr);
+      // 🔥 SECONDARY PARSE: If it returned a string instead of array, parse again
+      if (typeof perms === 'string') {
+        try { perms = JSON.parse(perms); } catch (e) { perms = []; }
+      }
+
+      if (!Array.isArray(perms)) return false;
+
       const modLower = module.toLowerCase();
       const actLower = action.toLowerCase();
 

@@ -337,6 +337,14 @@ toggleEdit() {
   ionViewWillEnter() {
     this.menuCtrl.enable(true, 'start');
     
+    // 🛡️ Redirect Admin/Superadmin to their console if they land here
+    const userRole = localStorage.getItem('user_role');
+    if (userRole === '1' || userRole === '2' || userRole === '7') {
+      console.log("🚀 Redirecting Admin user from Ranger Home to Admin Console...");
+      this.router.navigate(['/admin']);
+      return;
+    }
+    
     // Instead of getRangerProfile(id) which returns 404, use verifyUser()
     this.dataService.verifyUser().subscribe({
       next: (res: any) => {

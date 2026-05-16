@@ -23,6 +23,7 @@ export class OrgManagementPage implements OnInit {
   
   // Roles Data
   customRoles: any[] = [];
+  myCompanyId: any = null;
   
   // Permissions Data
   selectedRoleForPerms: any = null;
@@ -34,10 +35,11 @@ export class OrgManagementPage implements OnInit {
   assignments: any[] = [];
   allAssignments: any[] = [];
 
-  // Add Role Modal State
-  isAddRoleModalOpen: boolean = false;
-  newRoleData: any = { name: '', rank: 1 };
-  newRolePerms: any = {}; // { module: { action: boolean } }
+  // Role Modal State
+  isRoleModalOpen: boolean = false;
+  isUpdateMode: boolean = false;
+  roleModalData: any = { name: '', rank: 1 };
+  roleModalPerms: any = {}; // { module: { action: boolean } }
 
   constructor(
     private navCtrl: NavController,
@@ -48,6 +50,7 @@ export class OrgManagementPage implements OnInit {
   ) { }
 
   ngOnInit() {
+    this.myCompanyId = localStorage.getItem('company_id');
     this.loadData();
     this.dataService.permissionsUpdated$.subscribe(() => {
       this.loadData();
@@ -376,7 +379,7 @@ export class OrgManagementPage implements OnInit {
       next: (oldRes: any) => {
         const oldRoles = oldRes?.data || oldRes || [];
         
-        this.dataService.listV2Roles().subscribe({
+        this.dataService.listV2Roles(this.myCompanyId).subscribe({
           next: (v2Res: any) => {
             const v2Roles = v2Res?.data || v2Res || [];
             
@@ -390,13 +393,19 @@ export class OrgManagementPage implements OnInit {
               const rRank = r.rank || r.sequence || 0;
               
               if (!uniqueMap.has(rName)) {
+                let perms = r.permissions || [];
+                if (typeof perms === 'string' && perms.length > 0) {
+                  try { perms = JSON.parse(perms); } catch (e) { perms = []; }
+                }
+
                 uniqueMap.set(rName, { 
                   ...r, 
                   id: rId, 
                   role_id: rId, // Normalize for UI consistency
                   name: rName, 
                   rank: rRank,
-                  sequence: rRank // Normalize for UI consistency
+                  sequence: rRank, // Normalize for UI consistency
+                  permissions: perms
                 });
               }
             });
@@ -422,89 +431,198 @@ export class OrgManagementPage implements OnInit {
 
 
   openAddRole() {
+    this.isUpdateMode = false;
     // Initialize permissions structure for the new role
-    this.newRolePerms = {};
+    this.roleModalPerms = {};
     this.allPermissions.forEach(mod => {
-      this.newRolePerms[mod.name] = {};
+      this.roleModalPerms[mod.name] = {};
       mod.actions.forEach((act: any) => {
-        this.newRolePerms[mod.name][act.action] = true;
+        this.roleModalPerms[mod.name][act.action] = true;
       });
     });
     
-    this.newRoleData = { id: null, name: '', rank: 3 };
-    this.isAddRoleModalOpen = true;
+    this.roleModalData = { id: null, name: '', rank: 3 };
+    this.isRoleModalOpen = true;
   }
 
-  async saveNewRoleWithPerms() {
-    if (!this.newRoleData.name) {
+  async editRole(role: any) {
+    this.isUpdateMode = true;
+    this.roleModalData = { ...role };
+    this.roleModalPerms = {};
+
+    // Initialize all permissions to false
+    this.allPermissions.forEach(mod => {
+      this.roleModalPerms[mod.name] = {};
+      mod.actions.forEach((act: any) => {
+        this.roleModalPerms[mod.name][act.action] = false;
+      });
+    });
+
+    // 1. Pre-populate from the role object itself if available (V2 style)
+    console.log("📝 [EDIT ROLE] Initial Permissions:", role.permissions);
+    
+    let permsArray = role.permissions || [];
+    if (typeof permsArray === 'string' && permsArray.length > 0) {
+      try {
+        permsArray = JSON.parse(permsArray);
+      } catch (e) {
+        console.warn("⚠️ Failed to parse permissions string", e);
+        permsArray = [];
+      }
+    }
+
+    if (Array.isArray(permsArray)) {
+      console.log("📍 [PERMS] Pre-populating from role object:", permsArray);
+      this.mapPermissionsToModal(permsArray);
+    }
+
+    const loader = await this.loadingCtrl.create({
+      message: 'Loading Deep Permissions...',
+      mode: 'md'
+    });
+    await loader.present();
+
+    // 2. Fetch deep permissions from API for full sync
+    this.dataService.getRolePermissions(role.id).subscribe({
+      next: (res: any) => {
+        loader.dismiss();
+        let perms = res?.data || res || [];
+        if (typeof perms === 'string' && perms.length > 0) {
+          try { perms = JSON.parse(perms); } catch (e) { perms = []; }
+        }
+        console.log("🔑 [PERMS] API Sync for Role:", role.id, perms);
+        
+        // 🔥 ONLY OVERWRITE if API actually returned data, otherwise keep the pre-populated perms
+        if (Array.isArray(perms) && perms.length > 0) {
+          this.mapPermissionsToModal(perms);
+        } else {
+          console.log("🛡️ [SYNC] Keeping pre-populated permissions as API returned empty.");
+        }
+        
+        this.isRoleModalOpen = true;
+      },
+      error: (err) => {
+        loader.dismiss();
+        console.error("❌ Failed to load permissions", err);
+        this.isRoleModalOpen = true;
+      }
+    });
+  }
+
+  mapPermissionsToModal(perms: any[]) {
+    if (!Array.isArray(perms)) return;
+
+    perms.forEach((p: any) => {
+      let modName = p.module || '';
+      let actionName = p.action || p.name || p.label || '';
+
+      // Handle string format "Module.Action" (e.g., "Patrolling.View")
+      if (typeof p === 'string' && p.includes('.')) {
+        const parts = p.split('.');
+        modName = parts[0].trim();
+        actionName = parts[1].trim();
+      } else if (typeof p === 'string') {
+        actionName = p.trim();
+      }
+
+      if (!actionName) return;
+      
+      // Canonical mapping for search
+      const mLow = modName.toLowerCase();
+      if (mLow === 'patrol_report' || mLow === 'forest_reports' || 
+          mLow === 'forest_report' || mLow === 'forestreport' || mLow === 'forestreports') {
+        modName = 'forest_events';
+      }
+
+      // 1. Find the module key
+      let targetModKey = '';
+      
+      if (modName) {
+        // Try matching against normalized internal name OR normalized displayName
+        const mod = this.allPermissions.find(m => {
+          const normM = m.name.toLowerCase().replace(/_/g, '').replace(/\s/g, '');
+          const normD = m.displayName.toLowerCase().replace(/_/g, '').replace(/\s/g, '');
+          const normSearch = modName.toLowerCase().replace(/_/g, '').replace(/\s/g, '');
+          
+          return normM === normSearch || normD === normSearch;
+        });
+        if (mod) targetModKey = mod.name;
+      }
+
+      // If no module name was provided (e.g., just a string "view"), 
+      // we might not be able to map it unless we search all modules.
+      // But usually, we have a module name.
+
+      if (targetModKey && this.roleModalPerms[targetModKey]) {
+        // 2. Find the correct action key (case-insensitive)
+        const targetActKey = Object.keys(this.roleModalPerms[targetModKey]).find(
+          k => k.toLowerCase() === actionName.toLowerCase() ||
+               k.toLowerCase().replace(/_/g, ' ') === actionName.toLowerCase().replace(/_/g, ' ')
+        );
+
+        if (targetActKey) {
+          this.roleModalPerms[targetModKey][targetActKey] = true;
+        }
+      }
+    });
+  }
+
+  async saveRole() {
+    if (!this.roleModalData.name) {
       this.showToast('Role name is required', 'warning');
       return;
     }
 
-    const loader = await this.loadingCtrl.create({ message: 'Creating Role...' });
+    const loader = await this.loadingCtrl.create({ 
+      message: this.isUpdateMode ? 'Updating Role...' : 'Creating Role...',
+      mode: 'md'
+    });
     await loader.present();
 
     // Flatten permissions: { "patrol": { "view": true, "delete": false } } -> ["patrol.view"]
     const flattenedPerms: string[] = [];
-    Object.keys(this.newRolePerms).forEach(modName => {
-      Object.keys(this.newRolePerms[modName]).forEach(actName => {
-        if (this.newRolePerms[modName][actName]) {
+    Object.keys(this.roleModalPerms).forEach(modName => {
+      Object.keys(this.roleModalPerms[modName]).forEach(actName => {
+        if (this.roleModalPerms[modName][actName]) {
           flattenedPerms.push(`${modName}.${actName}`);
         }
       });
     });
 
     const payload: any = {
-      name: this.newRoleData.name,
-      rank: this.newRoleData.rank,
+      name: this.roleModalData.name,
+      rank: Number(this.roleModalData.rank),
       is_active: 1,
-      permissions: flattenedPerms
+      company_id: Number(this.myCompanyId),
+      permissions: JSON.stringify(flattenedPerms)
     };
 
-    // Include ID if manually provided
-    if (this.newRoleData.id) {
-      payload.id = this.newRoleData.id;
+    // Include ID if present (essential for update)
+    if (this.roleModalData.id) {
+      payload.id = Number(this.roleModalData.id);
     }
 
-    this.dataService.storeV2Role(payload).subscribe({
+    const obs = this.isUpdateMode 
+      ? this.dataService.updateV2Role(payload)
+      : this.dataService.storeV2Role(payload);
+
+    obs.subscribe({
       next: () => {
         loader.dismiss();
-        this.showToast('V2 Role created with permissions!', 'success');
-        this.isAddRoleModalOpen = false;
+        this.showToast(this.isUpdateMode ? 'Role updated successfully!' : 'Role created successfully!', 'success');
+        this.isRoleModalOpen = false;
+        
+        // 🔥 FORCE IMMEDIATE SYNC
+        this.dataService.permissionsUpdated$.next();
+        
         this.loadCustomRoles();
       },
       error: (err) => {
         loader.dismiss();
-        console.error('Role creation failed', err);
-        this.showToast('Failed to create role', 'danger');
+        console.error('Role save failed', err);
+        this.showToast('Failed to save role', 'danger');
       }
     });
-  }
-
-  async editRole(role: any) {
-    const alert = await this.alertCtrl.create({
-      mode: 'md',
-      header: 'Update V2 Role',
-      inputs: [
-        { name: 'name', type: 'text', value: role.name, placeholder: 'Role Name' },
-        { name: 'rank', type: 'number', value: role.rank, placeholder: 'Rank' }
-      ],
-      buttons: [
-        { text: 'Cancel', role: 'cancel' },
-        {
-          text: 'Update',
-          handler: (data) => {
-            this.dataService.updateV2Role({ id: role.id, ...data }).subscribe({
-              next: () => {
-                this.showToast('V2 Role updated', 'success');
-                this.loadCustomRoles();
-              }
-            });
-          }
-        }
-      ]
-    });
-    await alert.present();
   }
 
   async deleteRole(id: any) {
@@ -528,18 +646,44 @@ export class OrgManagementPage implements OnInit {
           console.log("🔍 [PERMS] FIRST ACTION DATA:", JSON.stringify(raw[0].actions[0]));
         }
 
-        this.allPermissions = raw.map((item: any) => ({
-          name: item.module,
-          displayName: this.getModuleDisplayName(item.module),
-          actions: (item.actions || []).map((act: any) => {
-            // If it's a string, wrap it. If it's an object, keep it.
-            const actionLabel = typeof act === 'string' ? act : (act.action || act.name || act.label || 'Unknown');
-            return {
-              action: actionLabel,
-              original: act // Keep original just in case
-            };
-          })
-        }));
+        this.allPermissions = raw.map((item: any) => {
+          // Canonical Mapping: 'patrol_report' and others should act as 'forest_events'
+          let internalName = item.module;
+          if (internalName === 'patrol_report' || internalName === 'forest_reports' || 
+              internalName === 'forest_report' || internalName === 'forestreport' || 
+              internalName === 'incidence') {
+            internalName = 'forest_events';
+          }
+
+          return {
+            name: internalName,
+            displayName: this.getModuleDisplayName(item.module),
+            actions: (item.actions || []).map((act: any) => {
+              const actionLabel = typeof act === 'string' ? act : (act.action || act.name || act.label || 'Unknown');
+              return {
+                action: actionLabel,
+                original: act
+              };
+            })
+          };
+        });
+
+        // Deduplicate: If multiple modules mapped to the same internal name, merge their actions
+        const uniquePerms: any[] = [];
+        this.allPermissions.forEach(p => {
+          const existing = uniquePerms.find(u => u.name === p.name);
+          if (existing) {
+            // Merge actions if they don't exist
+            p.actions.forEach((a: any) => {
+              if (!existing.actions.find((ea: any) => ea.action === a.action)) {
+                existing.actions.push(a);
+              }
+            });
+          } else {
+            uniquePerms.push(p);
+          }
+        });
+        this.allPermissions = uniquePerms;
 
         console.log("🛠️ [PERMS] Grouped for UI:", this.allPermissions);
       },
@@ -564,7 +708,13 @@ export class OrgManagementPage implements OnInit {
     });
 
     // 2. Pre-populate from role object if available (V2 style)
-    const existing = this.selectedRoleForPerms.permissions || [];
+    let existing = this.selectedRoleForPerms.permissions || [];
+    
+    // 🔥 NEW: Robust Parsing if it's a string
+    if (typeof existing === 'string' && existing.length > 0) {
+      try { existing = JSON.parse(existing); } catch (e) { existing = []; }
+    }
+
     if (Array.isArray(existing) && existing.length > 0) {
       console.log("📍 [PERMS] Using existing perms from role object:", existing);
       
@@ -757,16 +907,24 @@ export class OrgManagementPage implements OnInit {
     const map: any = {
       'patrol': 'Patrolling',
       'attendance': 'Attendance',
-      'patrol_report': 'Forest Reports',
+      'patrol_report': 'Forest Events',
       'attendance_request': 'Attendance',
       'asset_management': 'Assets',
       'forest_events': 'Forest Events',
+      'forest_reports': 'Forest Events',
+      'forest_report': 'Forest Events',
+      'forestreport': 'Forest Events',
+      'forestreports': 'Forest Events',
+      'forest reports': 'Forest Events',
+      'forest report': 'Forest Events',
       'incidence': 'Forest Events',
       'know_your_area': 'Know Your Area',
       'plantations': 'Plantation',
       'chat': 'Chat',
       'daily_updates': 'Daily Updates',
-      'client_visits': 'Visits'
+      'client_visits': 'Visits',
+      'sos': 'SOS',
+      'system': 'System'
     };
     return map[mod.toLowerCase()] || mod.charAt(0).toUpperCase() + mod.slice(1).replace(/_/g, ' ');
   }

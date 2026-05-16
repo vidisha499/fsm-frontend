@@ -747,9 +747,9 @@ export class AdminPage implements OnInit, AfterViewInit {
 
   ionViewWillEnter() {
     const userRole = localStorage.getItem('user_role');
-    // 🛡️ Strict Security: Redirect to Home if not Superadmin (Role 1)
-    if (userRole !== '1') {
-      console.warn("🚫 Access Denied: Admin Dashboard is restricted to Superadmin only.");
+    // 🛡️ Security: Redirect to Home if not Superadmin (1), Admin (2), or Admin (7)
+    if (userRole !== '1' && userRole !== '2' && userRole !== '7') {
+      console.warn("🚫 Access Denied: Admin Dashboard is restricted to Admin/Superadmin only.");
       this.navCtrl.navigateRoot('/home');
       return;
     }

@@ -216,28 +216,28 @@
   </div>
 </ion-content>
 
-<!-- ADD ROLE MODAL (Premium V2) -->
-<ion-modal [isOpen]="isAddRoleModalOpen" (didDismiss)="isAddRoleModalOpen = false" class="premium-modal">
+<!-- ROLE MANAGEMENT MODAL (Premium V2) -->
+<ion-modal [isOpen]="isRoleModalOpen" (didDismiss)="isRoleModalOpen = false" class="premium-modal">
   <ng-template>
     <div class="modal-header">
-      <h2>Create New Role</h2>
-      <button (click)="isAddRoleModalOpen = false" class="close-btn"><i class="fas fa-times"></i></button>
+      <h2>{{ isUpdateMode ? 'Update Role' : 'Create New Role' }}</h2>
+      <button (click)="isRoleModalOpen = false" class="close-btn"><i class="fas fa-times"></i></button>
     </div>
     
     <ion-content class="ion-padding modal-body">
       <div class="form-section">
         <label>ROLE DETAILS</label>
-        <div class="input-pill">
+        <div class="input-pill" *ngIf="!isUpdateMode">
           <i class="fas fa-fingerprint"></i>
-          <input [(ngModel)]="newRoleData.id" type="number" placeholder="Role ID (Optional - e.g. 15)">
+          <input [(ngModel)]="roleModalData.id" type="number" placeholder="Role ID (Optional - e.g. 15)">
         </div>
         <div class="input-pill">
           <i class="fas fa-user-shield"></i>
-          <input [(ngModel)]="newRoleData.name" type="text" placeholder="Role Name (e.g. Forester)">
+          <input [(ngModel)]="roleModalData.name" type="text" placeholder="Role Name (e.g. Forester)">
         </div>
         <div class="input-pill">
           <i class="fas fa-sort-amount-up"></i>
-          <input [(ngModel)]="newRoleData.rank" type="number" placeholder="Rank (e.g. 3)">
+          <input [(ngModel)]="roleModalData.rank" type="number" placeholder="Rank (e.g. 3)">
         </div>
       </div>
 
@@ -248,7 +248,7 @@
             <div class="mod-title">{{ mod.displayName | uppercase }}</div>
             <div class="mod-actions">
               <div class="action-item" *ngFor="let act of mod.actions">
-                <ion-checkbox [(ngModel)]="newRolePerms[mod.name][act.action]"></ion-checkbox>
+                <ion-checkbox [(ngModel)]="roleModalPerms[mod.name][act.action]"></ion-checkbox>
                 <ion-label>{{ act.action }}</ion-label>
               </div>
             </div>
@@ -256,8 +256,8 @@
         </div>
       </div>
 
-      <button class="save-btn" (click)="saveNewRoleWithPerms()">
-        <i class="fas fa-check-circle"></i> CREATE ROLE & SET PERMISSIONS
+      <button class="save-btn" (click)="saveRole()">
+        <i class="fas fa-check-circle"></i> {{ isUpdateMode ? 'UPDATE ROLE & PERMISSIONS' : 'CREATE ROLE & SET PERMISSIONS' }}
       </button>
     </ion-content>
   </ng-template>

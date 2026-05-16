@@ -70,7 +70,12 @@ export class AuthInterceptor implements HttpInterceptor {
                               error.url?.includes('beats') || 
                               error.url?.includes('getSites') ||
                               error.url?.includes('org/layers') ||
-                              error.url?.includes('org/entities');
+                              error.url?.includes('org/entities') ||
+                              error.url?.includes('assignable-users') ||
+                              error.url?.includes('hierarchy') ||
+                              error.url?.includes('roles') ||
+                              error.url?.includes('subordinates') ||
+                              error.url?.includes('profile');
 
           if (!isPublicUrl) {
             console.error("🔴 Step 5 (Auth Trap): 401 Unauthorized received! Token is expired or invalid.");
