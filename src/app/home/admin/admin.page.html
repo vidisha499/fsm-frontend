@@ -1,5 +1,5 @@
   <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <ion-content [fullscreen]="true">
+  <ion-content [fullscreen]="true" [scrollEvents]="true" (ionScroll)="handleScroll($event)">
     <div class="header-section">
       <div class="toolbar">
         <div class="tbar-left">
@@ -275,6 +275,16 @@
         <div class="kpi-val" id="kv-assets">{{ totalAssetsCount }}</div>
         <div class="kpi-lbl">Assets & Tools</div>
         <div class="kpi-trend up">▲  {{operationalRate}}</div>
+      </div>
+      <div class="kpi-card" data-c="emerald" (click)="goToPlantations()">
+        <div class="kpi-ico" style="background:#ecfdf5">
+          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#10b981" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <div class="kpi-val" id="kv-plants">Live</div>
+        <div class="kpi-lbl">Plantations</div>
+        <div class="kpi-trend up">▲ Tap to approve</div>
       </div>
     </div>
 
@@ -690,6 +700,11 @@
   </div> -->
 
     <div style="height: 100px; width: 100%"></div>
+    <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="back-to-top-fab" [class.show]="showScrollTop">
+      <ion-fab-button (click)="scrollToTop()">
+        <ion-icon name="arrow-up-outline"></ion-icon>
+      </ion-fab-button>
+    </ion-fab>
   </ion-content>
 
   <nav class="ion-tab-bar">

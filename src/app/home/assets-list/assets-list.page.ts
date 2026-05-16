@@ -1,5 +1,5 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
-import { NavController, MenuController, IonModal, LoadingController, ToastController, AlertController } from '@ionic/angular';
+import { NavController, MenuController, IonModal, LoadingController, ToastController, AlertController, IonContent } from '@ionic/angular';
 import { DataService } from 'src/app/data.service';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -12,7 +12,10 @@ import * as XLSX from 'xlsx';
   standalone: false
 })
 export class AssetsListPage implements OnInit {
+  @ViewChild(IonContent) content!: IonContent;
   @ViewChild(IonModal) modal!: IonModal;
+  
+  public showScrollTop = false;
 
   allAssets: any[] = []; // Database se aaya hua pura data
   assets: any[] = [];    // Filtered data jo screen par dikhega
@@ -150,6 +153,13 @@ openAssetDetails(asset: any) {
     });
   }
 
+  handleScroll(ev: any) {
+    this.showScrollTop = ev.detail.scrollTop > 500;
+  }
+
+  scrollToTop() {
+    this.content.scrollToTop(600);
+  }
 
   // --- 1. CLIENT-SIDE REPORTING ---
   async exportReport(format: 'pdf' | 'excel') {

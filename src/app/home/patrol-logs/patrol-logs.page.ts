@@ -2,7 +2,7 @@
 
 import { Component, OnInit, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { Router } from '@angular/router';
-import { NavController, ToastController, AlertController, LoadingController, GestureController, DomController } from '@ionic/angular';
+import { NavController, ToastController, AlertController, LoadingController, GestureController, DomController, IonContent } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
 import { TranslateService } from '@ngx-translate/core';
 import { firstValueFrom, Subscription } from 'rxjs';
@@ -19,6 +19,9 @@ import { environment } from 'src/environments/environment';
 export class PatrolLogsPage implements OnInit {
   @ViewChild('sliderKnob', { read: ElementRef }) sliderKnob!: ElementRef;
   @ViewChild('sliderTrack', { read: ElementRef }) sliderTrack!: ElementRef;
+  @ViewChild(IonContent) content!: IonContent;
+  
+  public showScrollTop = false;
   private syncSub!: Subscription;
 
   public patrolLogs: any[] = [];
@@ -582,5 +585,13 @@ export class PatrolLogsPage implements OnInit {
     } else {
       this.navCtrl.navigateRoot('/home');
     }
+  }
+
+  handleScroll(ev: any) {
+    this.showScrollTop = ev.detail.scrollTop > 500;
+  }
+
+  scrollToTop() {
+    this.content.scrollToTop(600);
   }
 }

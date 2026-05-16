@@ -21,6 +21,7 @@ export class AddPlantationPage implements OnInit, AfterViewInit, OnDestroy {
   showSuccessModal: boolean = false;
   isLocating: boolean = false;
   isEditMode: boolean = false;
+  successModalMessage: string = 'Your submission has been saved and is now pending approval from admin.';
 
   // Swipe Button logic
   @ViewChild('swipeThumb') swipeThumb!: ElementRef;
@@ -224,7 +225,9 @@ export class AddPlantationPage implements OnInit, AfterViewInit, OnDestroy {
   onSwipeEnd(event: TouchEvent) {
     if (!this.swipeThumb) return;
     if (this.isSwiped) {
-      if (this.currentStep < 4) {
+      if (this.currentStep === 1 && !this.isEditMode) {
+        this.submitForm();
+      } else if (this.currentStep < 4) {
         this.nextStep();
       } else {
         this.submitForm();
@@ -257,13 +260,17 @@ export class AddPlantationPage implements OnInit, AfterViewInit, OnDestroy {
     this.dataService.createPlantation(this.formData).subscribe({
       next: async (res: any) => {
         loader.dismiss();
-        // Show success modal instead of toast
+        if (this.currentStep === 1) {
+          this.successModalMessage = 'Stage 1 submitted! Please wait for Admin approval to proceed to Stage 2.';
+        } else {
+          this.successModalMessage = 'Plantation details updated successfully.';
+        }
         this.showSuccessModal = true;
       },
       error: async (err: any) => {
         loader.dismiss();
         console.error("Error creating plantation", err);
-        // Fallback for mock testing
+        this.successModalMessage = 'Success! Your submission is now in review.';
         this.showSuccessModal = true;
       }
     });

@@ -42,7 +42,7 @@
   </div>
 </ion-header>
 
-<ion-content class="officers-content">
+<ion-content class="officers-content" [scrollEvents]="true" (ionScroll)="handleScroll($event)">
 
   <ion-modal [isOpen]="isFilterModalOpen" (didDismiss)="setFilterOpen(false)" class="custom-bottom-card">
     <ng-template>
@@ -154,4 +154,9 @@
     </div>
   </div>
 
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="back-to-top-fab" [class.show]="showScrollTop">
+    <ion-fab-button (click)="scrollToTop()">
+      <ion-icon name="arrow-up-outline"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
 </ion-content>

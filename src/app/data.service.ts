@@ -67,11 +67,18 @@ export class DataService {
       const aliasMap: any = {
         'patrol': ['Patrolling'],
         'attendance': ['Attendance'],
+<<<<<<< Updated upstream
         'patrol_report': ['Forest Events', 'Forest Reports'],
         'reports': ['Forest Reports', 'Reports'],
         'attendance_request': ['Attendance'],
         'asset_management': ['Asset', 'Asset Management', 'Assets'],
         'forest_events': ['Forest Events', 'Incidence', 'Forest Reports', 'Forest Report', 'forest_reports'],
+=======
+        'patrol_report': ['Forest Events'],
+        'attendance_request': ['Attendance'],
+        'asset_management': ['Assets'],
+        'forest_events': ['Forest Events', 'Incidence', 'Forest Reports'],
+>>>>>>> Stashed changes
         'know_your_area': ['Know Your Area'],
         'plantations': ['Plantation'],
         'chat': ['Chat'],
@@ -105,6 +112,25 @@ export class DataService {
     } catch (e) {
       return false;
     }
+  }
+
+  refreshPermissions() {
+    console.log("🛡️ [DataService] Triggering Permission Refresh...");
+    const roleId = localStorage.getItem('user_role');
+    if (!roleId) return;
+
+    this.getRoleIdList().subscribe({
+      next: (roles: any) => {
+        const rList = Array.isArray(roles) ? roles : roles?.data || [];
+        const myRole = rList.find((r: any) => String(r.id) === String(roleId));
+        if (myRole && myRole.permissions) {
+          console.log("✅ [DataService] New permissions fetched:", myRole.permissions);
+          localStorage.setItem('user_permissions', JSON.stringify(myRole.permissions));
+          this.permissionsUpdated$.next(); // Notify templates
+        }
+      },
+      error: (err) => console.error("❌ [DataService] Permission refresh failed", err)
+    });
   }
 
   hasPermission(module: string, action: string): boolean {

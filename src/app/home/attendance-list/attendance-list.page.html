@@ -1,4 +1,5 @@
-<ion-content [fullscreen]="true">
+<!-- Attendance List -->
+<ion-content [fullscreen]="true" [scrollEvents]="true" (ionScroll)="handleScroll($event)">
   <div class="premium-wrapper">
     <div class="ambient-glow glow-1"></div>
     <div class="ambient-glow glow-2"></div>
@@ -8,43 +9,39 @@
       <div class="header-content">
         <div class="nav-bar">
           <div class="left-section">
-            <button (click)="goBack()" class="glass-btn">
+            <div (click)="goBack()" class="glass-btn">
               <ion-icon name="arrow-back-outline"></ion-icon>
-            </button>
+            </div>
             <h1>Attendance History</h1>
           </div>
-          <div class="right-section">
-            <button class="filter-toggle-btn" (click)="isModalOpen = true">
-              <i class="fas fa-sliders-h"></i>
-            </button>
-          </div>
-        </div>
-
-        <!-- Premium Toggle Switcher -->
-        <div class="toggle-container animate__animated animate__fadeIn">
-          <div class="glass-toggle">
-            <div class="toggle-track" [class.onsite-active]="selectedMode === 'onsite'">
-              <button (click)="setMode('beat')" [class.active]="selectedMode === 'beat'">Beat</button>
-              <button (click)="setMode('onsite')" [class.active]="selectedMode === 'onsite'">On Location</button>
-              <div class="active-indicator"></div>
+          <div class="righsection">
+            <div (click)="isModalOpen = true" class="filter-toggle-btn">
+              <ion-icon name="options-outline"></ion-icon>
             </div>
           </div>
         </div>
 
+        <div class="toggle-container">
+          <div class="glass-toggle">
+            <div class="toggle-track" [class.onsite-active]="selectedMode === 'onsite'">
+              <div class="active-indicator"></div>
+              <button [class.active]="selectedMode === 'beat'" (click)="setMode('beat')">BEAT</button>
+              <button [class.active]="selectedMode === 'onsite'" (click)="setMode('onsite')">ONSITE</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sync-container" *ngIf="hasOfflineLogs()">
+          <button class="sync-btn" (click)="syncOfflineDrafts()">
+            <ion-icon name="cloud-upload-outline"></ion-icon>
+            SYNC OFFLINE DATA
+          </button>
+        </div>
       </div>
     </div>
 
     <div class="main-container">
-      <!-- Relocated Sync Button -->
-      <div class="list-sync-header" *ngIf="hasOfflineLogs()">
-        <div class="sync-row">
-          <button class="mini-sync-btn" (click)="syncOfflineDrafts()">
-            <ion-icon name="sync-outline" class="spin-icon"></ion-icon>
-            <span>Sync Pending Data</span>
-          </button>
-        </div>
-      </div>
-
+      <!-- Filter Badge -->
       <div class="filter-active-chip" *ngIf="isFiltered">
         <ion-chip (click)="resetFilters()">
           <ion-label>Filtered Results</ion-label>
@@ -52,95 +49,116 @@
         </ion-chip>
       </div>
 
-      <div class="incident-list">
+      <!-- Syncing Indicator -->
+      <div class="list-sync-header" *ngIf="isLoading">
+        <div class="mini-sync-btn">
+          <ion-spinner name="crescent" class="spin-icon"></ion-spinner>
+          REFRESHING...
+        </div>
+      </div>
+
+      <!-- Attendance List -->
+      <div class="incident-list" *ngIf="!isLoading">
         <div class="incident-row-compact animate__animated animate__fadeInUp" 
              *ngFor="let log of attendanceLogs" 
              (click)="viewDetails(log)">
-
+          
           <div class="mini-thumb">
-            <img [src]="log.photo || 'assets/imgs/user-placeholder.png'">
-            <div class="priority-indicator" [attr.data-type]="log.type"></div>
+            <img *ngIf="log.photo" [src]="log.photo" (error)="log.photo = null" />
+            <div *ngIf="!log.photo" class="placeholder-icon" 
+                 style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #e2e8f0; color: #94a3b8;">
+              <ion-icon name="person-outline" style="font-size: 24px;"></ion-icon>
+            </div>
+            <div class="priority-indicator" [attr.data-type]="log.type === 'Exit' ? 'EXIT' : 'ENTRY'"></div>
           </div>
 
           <div class="row-content">
             <div class="top-line">
-              <span class="log-date">{{ (log.createdAt || log.created_at) | date:'hh:mm a' }}</span>
-              <span *ngIf="selectedMode === 'onsite' && !log.isOffline" 
-                    class="status-badge" 
-                    [class.status-approved]="log.status === 'approved'"
-                    [class.status-pending]="log.status === 'pending' || log.status === 'requested'"
-                    [class.status-rejected]="log.status === 'rejected'">
+              <span class="type-text" [attr.data-type]="log.type === 'Exit' ? 'EXIT' : 'ENTRY'">
+                {{ log.type || 'ENTRY' }}
+              </span>
+              <span class="status-badge" [class.status-approved]="log.status === 'approved'" [class.status-pending]="log.status === 'pending'">
                 {{ log.statusLabel || 'PENDING' }}
               </span>
-              <span *ngIf="log.isOffline" class="status-badge status-offline">
-                OFFLINE
-              </span>
             </div>
-            <h2 class="priority-title">{{ (log.createdAt || log.created_at) | date:'dd MMMM, yyyy' }}</h2>
+            
+            <div class="priority-title">{{ log.name || 'Officer' }}</div>
+
             <div class="reporter-line">
               <ion-icon name="location-outline"></ion-icon>
               <span class="location-name">{{ log.geofence || 'General Area' }}</span>
+              <span style="margin-left: auto;">{{ log.createdAt | date:'shortTime' }}</span>
             </div>
           </div>
 
           <div class="row-actions">
-            <ion-icon name="chevron-forward" class="chevron"></ion-icon>
+            <ion-icon name="chevron-forward-outline" class="chevron"></ion-icon>
           </div>
         </div>
 
+        <!-- Empty State -->
         <div class="empty-state" *ngIf="attendanceLogs.length === 0">
-          <ion-icon name="calendar-clear-outline"></ion-icon>
-          <p>No records found for this filter</p>
+          <ion-icon name="calendar-outline"></ion-icon>
+          <p>No records found for today.</p>
         </div>
       </div>
     </div>
-
-    <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-      <ion-fab-button class="premium-fab" (click)="goToMarkAttendance()">
-        <ion-icon name="add"></ion-icon>
-      </ion-fab-button>
-    </ion-fab>
   </div>
 
-<ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false" class="custom-bottom-card">
-  <ng-template>
-    <div class="modal-card-content">
-      <div class="modal-header">
-        <div class="title-row">
-          <ion-icon name="calendar-outline"></ion-icon>
-          <h3>Filter by Date</h3>
-        </div>
-        <p class="subtitle">Select date range and location to filter logs</p>
-      </div>
-
-      <div class="filter-body">
-        <div class="date-row">
-          <span class="label">FROM</span>
-          <ion-datetime-button datetime="fromDate"></ion-datetime-button>
+  <!-- Filter Modal -->
+  <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false" class="custom-bottom-card">
+    <ng-template>
+      <div class="modal-card-content">
+        <div class="modal-header">
+          <div class="title-row">
+            <ion-icon name="filter-outline"></ion-icon>
+            <h3>Filter Logs</h3>
+          </div>
+          <p class="subtitle">Select date range to filter results</p>
         </div>
 
-        <div class="date-row">
-          <span class="label">TO</span>
-          <ion-datetime-button datetime="toDate"></ion-datetime-button>
+        <div class="filter-body">
+          <div class="date-row">
+            <span class="label">FROM</span>
+            <ion-datetime-button datetime="fromDate"></ion-datetime-button>
+          </div>
+
+          <div class="date-row">
+            <span class="label">TO</span>
+            <ion-datetime-button datetime="toDate"></ion-datetime-button>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="apply-btn" (click)="applyFilters()">APPLY FILTER</button>
+          <button class="clear-btn" (click)="resetFilters()">Reset to Today</button>
         </div>
       </div>
 
-      <div class="modal-footer">
-        <button class="apply-btn" (click)="applyFilters()">Apply Filter</button>
-        <button class="clear-btn" (click)="resetFilters()">Reset All Filters</button>
-      </div>
-    </div>
+      <ion-popover [keepContentsMounted]="true">
+        <ng-template>
+          <ion-datetime id="fromDate" presentation="date" [(ngModel)]="filters.fromDate" [max]="today" [showDefaultButtons]="true"></ion-datetime>
+        </ng-template>
+      </ion-popover>
+      <ion-popover [keepContentsMounted]="true">
+        <ng-template>
+          <ion-datetime id="toDate" presentation="date" [(ngModel)]="filters.toDate" [max]="today" [showDefaultButtons]="true"></ion-datetime>
+        </ng-template>
+      </ion-popover>
+    </ng-template>
+  </ion-modal>
 
-    <ion-popover [keepContentsMounted]="true">
-      <ng-template>
-        <ion-datetime id="fromDate" presentation="date" [(ngModel)]="filters.fromDate" [max]="today" [showDefaultButtons]="true"></ion-datetime>
-      </ng-template>
-    </ion-popover>
-    <ion-popover [keepContentsMounted]="true">
-      <ng-template>
-        <ion-datetime id="toDate" presentation="date" [(ngModel)]="filters.toDate" [max]="today" [showDefaultButtons]="true"></ion-datetime>
-      </ng-template>
-    </ion-popover>
-  </ng-template>
-</ion-modal>
+  <!-- FABs -->
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed" style="margin-bottom: 20px;">
+    <!-- Back to Top (Shows above Add button when active) -->
+    <ion-fab-button *ngIf="showScrollTop" (click)="scrollToTop()" 
+                    style="--background: #1e293b; --color: white; margin-bottom: 15px; width: 44px; height: 44px;">
+      <ion-icon name="arrow-up-outline"></ion-icon>
+    </ion-fab-button>
+    
+    <!-- Add Button -->
+    <ion-fab-button (click)="goToMarkAttendance()" class="premium-fab" style="margin: 0;">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
 </ion-content>

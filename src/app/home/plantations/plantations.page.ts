@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { NavController, LoadingController } from '@ionic/angular';
+import { Component, OnInit, ViewChild } from '@angular/core';
+import { NavController, LoadingController, IonContent } from '@ionic/angular';
 import { DataService } from '../../data.service';
 
 @Component({
@@ -9,6 +9,8 @@ import { DataService } from '../../data.service';
   standalone: false
 })
 export class PlantationsPage implements OnInit {
+  @ViewChild(IonContent) content!: IonContent;
+  public showScrollTop = false;
   searchQuery: string = '';
   plantations: any[] = [];
   filteredPlantations: any[] = [];
@@ -77,5 +79,13 @@ export class PlantationsPage implements OnInit {
 
   viewPlantation(id: any) {
     this.navCtrl.navigateForward(`/plantation-detail/${id}`);
+  }
+
+  handleScroll(ev: any) {
+    this.showScrollTop = ev.detail.scrollTop > 500;
+  }
+
+  scrollToTop() {
+    this.content.scrollToTop(600);
   }
 }

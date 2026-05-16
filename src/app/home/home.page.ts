@@ -110,6 +110,13 @@ passwordType: string = 'password';
       }
       this.cdr.detectChanges();
     });
+
+    // 🚀 NEW: Listen for Permission Changes
+    this.dataService.permissionsUpdated$.subscribe(() => {
+      console.log("🔄 Dashboard Sync: Permissions Updated!");
+      this.loadRangerData(); // Re-load role strings if needed
+      this.cdr.detectChanges(); // Force re-render of *ngIf guards
+    });
   }
 
   loadRangerData() {

@@ -1,6 +1,6 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { NavController } from '@ionic/angular';
+import { NavController, IonContent } from '@ionic/angular';
 import { DataService } from 'src/app/data.service';
 import { forkJoin, of, Observable } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -13,6 +13,8 @@ import { HierarchyService } from 'src/app/services/hierarchy.service';
   standalone: false
 })
 export class UserListPage implements OnInit {
+  @ViewChild(IonContent) content!: IonContent;
+  public showScrollTop = false;
   category: string = '';
   categoryTitle: string = '';
   allUsers: any[] = [];
@@ -176,9 +178,16 @@ export class UserListPage implements OnInit {
   }
 
   getInitials(name: string): string {
-    if (!name) return '?';
-    const parts = name.trim().split(/\s+/);
-    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-    return parts[0][0].toUpperCase();
+    if (!name) return 'U';
+    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  }
+
+  handleScroll(ev: any) {
+    this.showScrollTop = ev.detail.scrollTop > 500;
+    this.cdr.detectChanges();
+  }
+
+  scrollToTop() {
+    this.content.scrollToTop(600);
   }
 }

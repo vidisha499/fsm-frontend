@@ -1,6 +1,6 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
-import { NavController } from '@ionic/angular';
+import { NavController, IonContent } from '@ionic/angular';
 import { DataService } from 'src/app/data.service';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -13,6 +13,8 @@ import { HierarchyService } from 'src/app/services/hierarchy.service';
   standalone: false
 })
 export class OfficersPage implements OnInit {
+  @ViewChild(IonContent) content!: IonContent;
+  public showScrollTop = false;
   allOfficers: any[] = [];
   filteredOfficers: any[] = [];
   isLoading: boolean = true;
@@ -413,5 +415,14 @@ export class OfficersPage implements OnInit {
       case 6: return 'Range Officer';
       default: return 'Staff';
     }
+  }
+
+  handleScroll(ev: any) {
+    this.showScrollTop = ev.detail.scrollTop > 500;
+    this.cdr.detectChanges();
+  }
+
+  scrollToTop() {
+    this.content.scrollToTop(600);
   }
 }

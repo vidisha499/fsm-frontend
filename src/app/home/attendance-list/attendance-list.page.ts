@@ -1,5 +1,5 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
-import { NavController, LoadingController , AlertController, IonModal} from '@ionic/angular';
+import { NavController, LoadingController , AlertController, IonModal, IonContent } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
 import { Router, ActivatedRoute } from '@angular/router';
 import { DataService } from '../../data.service'; 
@@ -14,11 +14,15 @@ import { environment } from 'src/environments/environment';
   standalone: false
 })
 export class AttendanceListPage implements OnInit {
+  @ViewChild(IonContent) content!: IonContent;
+  public showScrollTop = false;
   @ViewChild('filterModal') filterModal!: IonModal;
   // Variables section mein add karein
 allLogs: any[] = []; // Ye backup ke liye taaki original data safe rahe
 filterLocation: string = ''; // Location input ke liye
   attendanceLogs: any[] = [];
+  isLoading: boolean = false;
+  onDutyCount: number = 0;
   attendance: any;
   startDate: string | undefined;
   endDate: string | undefined;
@@ -176,6 +180,7 @@ applyFrontendLogic() {
 
 
 async loadAttendanceLogs() {
+  this.isLoading = true;
   const companyId = localStorage.getItem('company_id');
   if (!companyId) return;
 
@@ -346,6 +351,8 @@ private processLogsResponse(res: any, loader: any) {
     return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
   });
 
+  this.onDutyCount = this.allLogs.filter(l => l.status === 'approved').length;
+
   // Filter logic
   const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
   console.log('📅 Today string:', todayStr);
@@ -376,6 +383,7 @@ private processLogsResponse(res: any, loader: any) {
     }
   });
   
+  this.isLoading = false;
   loader.dismiss();
 }
 
@@ -384,6 +392,7 @@ private handleError(err: any, loader: any) {
   const drafts = this.dataService.getAttendanceDrafts(this.selectedMode);
   this.allLogs = drafts;
   this.attendanceLogs = drafts;
+  this.isLoading = false;
   loader.dismiss();
 }
 
@@ -428,12 +437,24 @@ private handleError(err: any, loader: any) {
       await toast.present();
     }
 
-setMode(mode: 'beat' | 'onsite') {
-  if (this.selectedMode === mode) return;
-  this.selectedMode = mode;
-  this.isFiltered = false;
-  this.loadAttendanceLogs();
-}
+  setMode(mode: 'beat' | 'onsite') {
+    if (this.selectedMode === mode) return;
+    this.selectedMode = mode;
+    this.isFiltered = false;
+    this.loadAttendanceLogs();
+  }
+
+  doRefresh() {
+    this.loadAttendanceLogs();
+  }
+
+  exportToPDF() {
+    console.log('Exporting to PDF...');
+  }
+
+  exportToExcel() {
+    console.log('Exporting to Excel...');
+  }
   // UPDATE: Event must be 'any' or 'Event' and come first as per HTML ($event, log.id)
   async confirmDelete(event: any, id: number) {
     if (event) event.stopPropagation(); 
@@ -577,11 +598,20 @@ resetFilters() {
 
 
 
-async goToMarkAttendance() {
+
+  async goToMarkAttendance() {
     if (this.selectedMode === 'beat') {
       this.navCtrl.navigateForward('/attendance'); 
     } else {
       this.navCtrl.navigateForward('/onsite-attendance');
     }
+  }
+
+  handleScroll(ev: any) {
+    this.showScrollTop = ev.detail.scrollTop > 500;
+  }
+
+  scrollToTop() {
+    this.content.scrollToTop(600);
   }
 }

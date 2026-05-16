@@ -127,7 +127,23 @@ export class AppComponent implements OnInit {
     this.dataService.loginSuccess$.subscribe(() => {
       this.isLoadingSidebar = true;
       this.loadUserData();
+<<<<<<< Updated upstream
       setTimeout(() => { this.isLoadingSidebar = false; this.cdr.detectChanges(); }, 1000);
+=======
+      
+      // Artificial delay (1s) to show the professional loader
+      setTimeout(() => {
+        this.isLoadingSidebar = false;
+        this.cdr.detectChanges();
+      }, 1500);
+    });
+
+    // 🚀 NEW: Listen for Permission Changes to update Sidebar menu items
+    this.dataService.permissionsUpdated$.subscribe(() => {
+      console.log("🔄 Sidebar Sync: Permissions Updated!");
+      this.loadUserData();
+      this.cdr.detectChanges();
+>>>>>>> Stashed changes
     });
     this.photoViewer.showViewer$.subscribe(show => { this.showViewer = show; this.viewerZoom = 1; this.cdr.detectChanges(); });
     this.photoViewer.currentImage$.subscribe(img => { this.viewerImageUrl = img; this.cdr.detectChanges(); });
@@ -136,6 +152,28 @@ export class AppComponent implements OnInit {
 
   isFeatureEnabled(feature: string): boolean { return this.dataService.isFeatureEnabled(feature); }
 
+<<<<<<< Updated upstream
+=======
+  showAllSidebarKeys() {
+    const aliasMap: any = {
+      'patrol': ['Patrolling'],
+      'attendance': ['Attendance'],
+      'patrol_report': ['Forest Events'],
+      'attendance_request': ['Attendance'],
+      'asset_management': ['Assets'],
+      'forest_events': ['Forest Events', 'Incidence'],
+      'know_your_area': ['Know Your Area'],
+      'plantations': ['Plantation'],
+      'chat': ['Chat'],
+      'daily_updates': ['Daily Updates'],
+      'client_visits': ['Visits']
+    };
+    console.log("%c🔑 [SIR'S KEYS] STRICT SIDEBAR MAPPINGS:", "color: #0088ff; font-weight: bold; font-size: 14px;");
+    console.table(aliasMap);
+  }
+
+  // 🔥 NEW: Automatic Sync when Network Restored
+>>>>>>> Stashed changes
   @HostListener('window:online')
   onOnline() {
     this.dataService.syncAllDrafts().then(async res => {
@@ -343,7 +381,7 @@ export class AppComponent implements OnInit {
   }
 
   async goToPage(path: string) {
-    await this.menu.close();
+    this.menu.close();
     if (path === 'settings') { this.currentPage = 'settings'; this.loadUserData(); }
     else if (path === 'home') {
       const roleId = localStorage.getItem('user_role');
