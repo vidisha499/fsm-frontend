@@ -877,17 +877,132 @@ private updateMapMarkers() {
             iconAnchor: [25, 25],
         });
 
-        L.marker([pin.lat, pin.lng], { icon: customIcon })
+        // --- Premium Popup Data ---
+        const reportId = pin.report_id || pin.id || 'N/A';
+        const formattedDate = new Date(pin.created_at || pin.date || Date.now()).toLocaleString('en-IN', {
+          day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
+        });
+        const coords = `${pin.lat.toFixed(4)}, ${pin.lng.toFixed(4)}`;
+        const locationName = pin.site_name || pin.beat_name || pin.location_name || pin.location || 'Forest Area';
+        const reporterName = pin.created_by_name || pin.reporter_name || 'System';
+        const subject = pin.subject || pin.title || pin.displayLabel || 'No subject provided';
+        
+        // Dynamic fields extraction (e.g., Mineral/Volume for Mining)
+        let dynamicHtml = '';
+        if (pin.layerId === 'illegal_mining') {
+          const mineral = pin.mineral || 'Murrum';
+          const vol = pin.volume || '8';
+          dynamicHtml = `
+            <div class="popup-divider"></div>
+            <div class="popup-fields-grid">
+              <div class="field-box">
+                <div class="f-lbl">MINERAL</div>
+                <div class="f-val">${mineral}</div>
+              </div>
+              <div class="field-box">
+                <div class="f-lbl">VOL (CUM)</div>
+                <div class="f-val">${vol}</div>
+              </div>
+            </div>
+          `;
+        } else if (pin.layerId === 'illegal_felling') {
+            const species = pin.species || 'Teak';
+            const count = pin.tree_count || '1';
+            dynamicHtml = `
+            <div class="popup-divider"></div>
+            <div class="popup-fields-grid">
+              <div class="field-box">
+                <div class="f-lbl">SPECIES</div>
+                <div class="f-val">${species}</div>
+              </div>
+              <div class="field-box">
+                <div class="f-lbl">COUNT</div>
+                <div class="f-val">${count}</div>
+              </div>
+            </div>
+          `;
+        }
+
+        const marker = L.marker([pin.lat, pin.lng], { icon: customIcon })
             .addTo(this.markerGroup)
             .bindPopup(`
-            <div style="font-family: 'Poppins', sans-serif; padding: 5px;">
-              <strong style="color: ${markerColor}">${labelText}</strong><br>
-              <p style="margin: 5px 0;">${pin.report_data?.Description || pin.description || 'No additional details'}</p>
-              <small style="color: #666;">${new Date(pin.created_at || pin.date || Date.now()).toLocaleString()}</small>
-            </div>
-          `);
+              <div class="popup-container">
+                <div class="popup-banner" style="background: ${markerColor}">
+                  <div class="pb-left">
+                    <span class="cat-ico">${markerEmoji}</span>
+                    <span class="cat-nm">${labelText}</span>
+                  </div>
+                  <div class="pb-right">#${reportId}</div>
+                </div>
+
+                <div class="popup-body">
+                  <div class="popup-meta-list">
+                    <div class="meta-row">
+                      <ion-icon name="calendar-outline"></ion-icon>
+                      <span>${formattedDate}</span>
+                    </div>
+                    <div class="meta-row highlight">
+                      <ion-icon name="location-outline"></ion-icon>
+                      <span>${locationName}</span>
+                    </div>
+                    <div class="meta-row">
+                       <ion-icon name="pin-outline"></ion-icon>
+                       <span style="color: #6366f1; font-weight: 800;">${coords}</span>
+                    </div>
+                    <div class="meta-row highlight">
+                      <ion-icon name="person-circle-outline"></ion-icon>
+                      <span>Reported by: ${reporterName}</span>
+                    </div>
+                  </div>
+
+                  ${dynamicHtml}
+
+                  <div class="popup-note">
+                    <span class="n-lbl">Subject:</span> ${subject}
+                  </div>
+
+                  <button class="popup-footer-btn" id="btn-detailed-${reportId}">
+                    <ion-icon name="document-text-outline"></ion-icon>
+                    View Detailed Report
+                  </button>
+                </div>
+              </div>
+            `, {
+              className: 'premium-popup',
+              maxWidth: 300,
+              minWidth: 280
+            });
+
+
+        // Add click listener to the popup button after it opens
+        marker.on('popupopen', () => {
+          const btn = document.getElementById(`btn-detailed-${reportId}`);
+          if (btn) {
+            btn.onclick = () => {
+              this.zone.run(() => {
+                this.viewDetailedReport(pin);
+              });
+            };
+          }
+        });
     });
 }
+
+viewDetailedReport(pin: any) {
+  console.log("Navigating to detailed report for:", pin);
+  // Determine target page based on layerId
+  let targetPage = '/home/admin-events-records';
+  if (pin.layerId === 'illegal_mining' || pin.layerId === 'illegal_felling' || pin.layerId === 'animal_poaching' || pin.layerId === 'timber_storage' || pin.layerId === 'encroachment') {
+    targetPage = '/home/admin-criminal-records';
+  } else if (pin.layerId === 'fire_alerts') {
+    targetPage = '/home/admin-fire-records';
+  }
+  
+  this.navCtrl.navigateForward(targetPage, {
+    state: { selectedReportId: pin.id || pin.report_id }
+  });
+}
+
 
 changeTimeframe(newTimeframe: string) {
   this.selectedTimeframe = newTimeframe; // 🔥 Ye update hona zaroori hai
