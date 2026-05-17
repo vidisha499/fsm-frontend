@@ -477,16 +477,6 @@ async submit() {
     this.photoViewer.close();
   }
   async downloadImage(imageUrl: string) {
-    const loader = await this.loadingCtrl.create({
-      message: 'Downloading...',
-      duration: 1000
-    });
-    await loader.present();
-    const link = document.createElement('a');
-    link.href = imageUrl;
-    link.download = `attendance_photo_${Date.now()}.jpg`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    await this.photoViewer.download(imageUrl);
   }
 }

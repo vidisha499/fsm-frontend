@@ -6,6 +6,7 @@ import { TranslateService } from '@ngx-translate/core';
 import * as L from 'leaflet';
 import { Geolocation } from '@capacitor/geolocation';
 import { DataService } from '../../data.service';
+import { PhotoViewerService } from '../../services/photo-viewer.service';
 
 @Component({
   selector: 'app-new-incident',
@@ -59,7 +60,8 @@ public incidentData = {
     private actionSheetCtrl: ActionSheetController,
     private cdr: ChangeDetectorRef,
     private translate: TranslateService,
-    private dataService: DataService
+    private dataService: DataService,
+    private photoViewer: PhotoViewerService
   ) { }
 
  ngOnInit() { 
@@ -284,18 +286,7 @@ const payload = {
   }
 
   async downloadImage(imageUrl: string) {
-    const loading = await this.loadingCtrl.create({
-      message: 'Downloading...',
-      duration: 1000
-    });
-    await loading.present();
-    
-    const link = document.createElement('a');
-    link.href = imageUrl;
-    link.download = `incident_photo_${Date.now()}.jpg`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    await this.photoViewer.download(imageUrl);
   }
 
   onDragStart(event: TouchEvent) {

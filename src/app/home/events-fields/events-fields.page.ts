@@ -512,22 +512,7 @@ async fetchLocation() {
   }
 
   async downloadImage(imageUrl: string) {
-    const loading = await this.loadingCtrl.create({
-      message: 'Preparing download...',
-      duration: 1000
-    });
-    await loading.present();
-    
-    try {
-      const link = document.createElement('a');
-      link.href = imageUrl;
-      link.download = `forest_photo_${Date.now()}.jpg`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (err) {
-      console.error('Download failed', err);
-    }
+    await this.photoViewer.download(imageUrl);
   }
 
   // Swipe Gesture logic
