@@ -88,7 +88,7 @@
       </a>
 
       <!-- 9. Organisation Management -->
-      <a *ngIf="isFeatureEnabled('org_management')" class="menu-item" (click)="goToPage('org-management')" [class.active]="router.url.includes('org-management')">
+      <a *ngIf="isFeatureEnabled('org_management') && (userRole === 'admin' || hasExplicitOrgPermission())" class="menu-item" (click)="goToPage('org-management')" [class.active]="router.url.includes('org-management')">
         <div class="icon-box purple"><i class="fas fa-sitemap"></i></div>
         <div class="item-text"><span>{{ 'MENU.ORG_MGMT' | translate }}</span></div>
       </a>
@@ -100,19 +100,19 @@
       </a>
 
       <!-- 11. Add Approved User -->
-      <a *ngIf="isFeatureEnabled('user_management') && userRole === 'admin'" class="menu-item" (click)="goToPage('add-user')" [class.active]="router.url.includes('add-user')">
+      <a *ngIf="isFeatureEnabled('user_management') && (userRole === 'admin' || hasExplicitUserPermission())" class="menu-item" (click)="goToPage('add-user')" [class.active]="router.url.includes('add-user')">
         <div class="icon-box azure"><i class="fas fa-user-plus"></i></div>
         <div class="item-text"><span>{{ 'MENU.ADD_USER' | translate }}</span></div>
       </a>
 
       <!-- 12. User -->
-      <a *ngIf="isFeatureEnabled('user_management')" class="menu-item" (click)="goToPage('users')" [class.active]="router.url.includes('users')">
+      <a *ngIf="isFeatureEnabled('user_management') && (userRole === 'admin' || hasExplicitUserPermission())" class="menu-item" (click)="goToPage('users')" [class.active]="router.url.includes('users')">
         <div class="icon-box teal"><i class="fas fa-users"></i></div>
         <div class="item-text"><span>{{ 'MENU.USERS' | translate }}</span></div>
       </a>
 
       <!-- 13. Task Management -->
-      <a *ngIf="isFeatureEnabled('tasks')" class="menu-item" (click)="goToPage('tasks')" [class.active]="router.url.includes('tasks')">
+      <a *ngIf="isFeatureEnabled('tasks') && (userRole === 'admin' || hasExplicitTaskPermission())" class="menu-item" (click)="goToPage('tasks')" [class.active]="router.url.includes('tasks')">
         <div class="icon-box cyan"><i class="fas fa-tasks"></i></div>
         <div class="item-text"><span>{{ 'MENU.TASK_MGMT' | translate }}</span></div>
       </a>

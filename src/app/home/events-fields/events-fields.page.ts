@@ -412,15 +412,7 @@ async fetchLocation() {
 
 
   async selectImageSource() {
-    const actionSheet = await this.actionSheetCtrl.create({
-      header: 'Select Image Source',
-      buttons: [
-        { text: 'Load from Gallery', icon: 'image', handler: () => this.takePhoto(CameraSource.Photos) },
-        { text: 'Use Camera', icon: 'camera', handler: () => this.takePhoto(CameraSource.Camera) },
-        { text: 'Cancel', role: 'cancel' }
-      ]
-    });
-    await actionSheet.present();
+    this.takePhoto(CameraSource.Camera);
   }
 
   async takePhoto(source: CameraSource) {

@@ -499,21 +499,7 @@ async submitAttendance() {
 }
 
   async presentImageSourceOptions() {
-    const header = await this.translate.get('ATTENDANCE.SELECT_SOURCE').toPromise();
-    const cam = await this.translate.get('ATTENDANCE.CAMERA').toPromise();
-    const gal = await this.translate.get('ATTENDANCE.GALLERY').toPromise();
-    const cancel = await this.translate.get('ATTENDANCE.CANCEL').toPromise();
-
-    const actionSheet = await this.actionSheetCtrl.create({
-      header: header,
-      mode: 'md',
-      buttons: [
-        { text: cam, icon: 'camera-outline', handler: () => this.captureImage(CameraSource.Camera) },
-        { text: gal, icon: 'image-outline', handler: () => this.captureImage(CameraSource.Photos) },
-        { text: cancel, role: 'cancel' }
-      ]
-    });
-    await actionSheet.present();
+    this.captureImage(CameraSource.Camera);
   }
 
   // Rest of slider logic stays same...

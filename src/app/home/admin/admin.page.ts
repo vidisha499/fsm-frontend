@@ -160,6 +160,7 @@ export class AdminPage implements OnInit, AfterViewInit {
   criminalActivityCount15: number = 0;
   sightingsCount15: number = 0;
   fireAlertsCount15: number = 0;
+  currentPeriodDates: string[] = [];
   currentTime: string = '';
   activeTab: string = 'home';
   public isChartLoading: boolean = false;
@@ -1138,7 +1139,52 @@ changeTimeframe(newTimeframe: string) {
             
             const list = this.allReportsCache || [];
             const assetList = this.allAssetsCache || [];
-            
+
+            // Calculate Period Dates dynamically based on date filter
+            let periodDates: string[] = [];
+            const now = new Date(nowL);
+            if (this.activeDateFilter === 'today') {
+               periodDates = [todayYMD];
+            } else if (this.activeDateFilter === 'week') {
+               periodDates = Array.from({length: 7}, (_, i) => {
+                  const d = new Date(now);
+                  d.setDate(now.getDate() - (6 - i));
+                  const m = String(d.getMonth() + 1).padStart(2, '0');
+                  const day = String(d.getDate()).padStart(2, '0');
+                  return `${d.getFullYear()}-${m}-${day}`;
+               });
+            } else if (this.activeDateFilter === 'month') {
+               periodDates = Array.from({length: 30}, (_, i) => {
+                  const d = new Date(now);
+                  d.setDate(now.getDate() - (29 - i));
+                  const m = String(d.getMonth() + 1).padStart(2, '0');
+                  const day = String(d.getDate()).padStart(2, '0');
+                  return `${d.getFullYear()}-${m}-${day}`;
+               });
+            } else if (this.activeDateFilter === 'custom' && dates.from && dates.to) {
+               const start = new Date(dates.from);
+               const end = new Date(dates.to);
+               const diffTime = Math.abs(end.getTime() - start.getTime());
+               const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+               const totalDays = Math.min(diffDays, 90);
+               periodDates = Array.from({length: totalDays}, (_, i) => {
+                  const d = new Date(start);
+                  d.setDate(start.getDate() + i);
+                  const m = String(d.getMonth() + 1).padStart(2, '0');
+                  const day = String(d.getDate()).padStart(2, '0');
+                  return `${d.getFullYear()}-${m}-${day}`;
+               });
+            } else {
+               periodDates = Array.from({length: 30}, (_, i) => {
+                  const d = new Date(now);
+                  d.setDate(now.getDate() - (29 - i));
+                  const m = String(d.getMonth() + 1).padStart(2, '0');
+                  const day = String(d.getDate()).padStart(2, '0');
+                  return `${d.getFullYear()}-${m}-${day}`;
+               });
+            }
+            this.currentPeriodDates = periodDates;
+
             // Helper for robust date parsing (Shared for Assets and Reports)
             const getTS = (d: any) => {
               if (!d) return 0;
@@ -1340,6 +1386,10 @@ changeTimeframe(newTimeframe: string) {
                       if (isFire) counts.fire++;
                       if (isCrim) counts.criminal++;
                       if (isEvent) counts.monitoring++;
+                      
+                      if (catKey && dateYMD) {
+                        // trendMap[catKey][dateYMD] = (trendMap[catKey][dateYMD] || 0) + 1;
+                      }
                    }
 
                    // Populate rangeMap for Coverage (Always Case-Insensitive)
@@ -1347,7 +1397,6 @@ changeTimeframe(newTimeframe: string) {
                    rangeMap[normalizedRange] = (rangeMap[normalizedRange] || 0) + 1;
                 });
 
-                // Update charts and counters
                 const last30 = Array.from({length: 30}, (_, i) => {
                    const d = new Date();
                    d.setDate(d.getDate() - (29 - i));
@@ -1359,11 +1408,10 @@ changeTimeframe(newTimeframe: string) {
                 this.eventsTrendData = getTrendArr('events');
                 this.fireTrendData = getTrendArr('fire');
 
-                // --- 📅 CALCULATE 15-DAY TOTALS FOR SNAPSHOT ---
-                // Slice the last 15 days from the 30-day trend arrays and sum them up
-                this.criminalActivityCount15 = this.criminalTrendData.slice(-15).reduce((a, b) => a + b, 0);
-                this.sightingsCount15 = this.eventsTrendData.slice(-15).reduce((a, b) => a + b, 0);
-                this.fireAlertsCount15 = this.fireTrendData.slice(-15).reduce((a, b) => a + b, 0);
+                // --- 📅 CALCULATE TOTALS FOR SNAPSHOT (Dynamic Filtered) ---
+                this.criminalActivityCount15 = counts.criminal;
+                this.sightingsCount15 = counts.monitoring;
+                this.fireAlertsCount15 = counts.fire;
 
                 // --- 🗺️ BEAT COVERAGE CALCULATION (Merged & Unique) ---
                 const totalReports = list.length || 1;
@@ -1646,6 +1694,52 @@ changeTimeframe(newTimeframe: string) {
                            this.onDutyCount = filteredCount;
                            this.allRangers = staffList.length || this.allRangers || 0;
                            this.inactiveCount = Math.max(0, this.allRangers - this.onDutyCount);
+
+                           const last30 = Array.from({length: 30}, (_, i) => {
+                             const d = new Date();
+                             d.setDate(d.getDate() - (29 - i));
+                             const m = String(d.getMonth() + 1).padStart(2, '0');
+                             const day = String(d.getDate()).padStart(2, '0');
+                             return `${d.getFullYear()}-${m}-${day}`;
+                           });
+
+                           const dutyTrendMap: { [date: string]: Set<string> } = {};
+                           last30.forEach((d: string) => dutyTrendMap[d] = new Set<string>());
+
+                           const processTrendRecord = (record: any) => {
+                             const rDate = (record.timestamp || record.entryDateTime || record.created_at || record.date || '').toString();
+                             if (!rDate) return;
+
+                             let dateYMD = '';
+                             if (rDate.includes('-')) {
+                               const parts = rDate.split('T')[0].split(' ')[0].split('-');
+                               if (parts.length === 3) {
+                                 dateYMD = parts[0].length === 4 ? `${parts[0]}-${parts[1]}-${parts[2]}` : `${parts[2]}-${parts[1]}-${parts[0]}`;
+                               }
+                             } else if (rDate.includes('/')) {
+                               const parts = rDate.split('T')[0].split(' ')[0].split('/');
+                               if (parts.length === 3) {
+                                 dateYMD = parts[2].length === 4 ? `${parts[2]}-${parts[1]}-${parts[0]}` : `${parts[0]}-${parts[1]}-${parts[2]}`;
+                               }
+                             }
+                             
+                             if (dateYMD && dutyTrendMap[dateYMD]) {
+                               const status = String(record.status || '').toLowerCase().trim();
+                               const isApproved = status === 'approved' || (status === '1' && !record.request_id);
+                               if (isApproved) {
+                                 const uId = record.guard_id || record.guardId || record.user_id || record.userId || record.staff_id || record.ranger_id || record.added_by || record.created_by;
+                                 if (uId) {
+                                   dutyTrendMap[dateYMD].add(uId.toString());
+                                 }
+                                }
+                             }
+                           };
+
+                           logsArray.forEach(processTrendRecord);
+                           reqArray.forEach(processTrendRecord);
+                           onsiteArray.forEach(processTrendRecord);
+
+                           this.onDutyTrendData = last30.map((d: string) => dutyTrendMap[d]?.size || 0);
 
                            if (staffList.length > 0) {
                               this.rangers = staffList.map((u: any) => {
@@ -2425,12 +2519,11 @@ handleApiResponse(res: any) {
     const getTrend = (val: number) => [0, 0, 0, 0, val || 0];
 
     const pairs: [string, number[], string, string?][] = [
-      // Mapping to YOUR specific variables - Slicing to last 15 days for Sparklines
-      ['mc-crim', (this.criminalTrendData?.length || 0) > 0 ? this.criminalTrendData!.slice(-15) : getTrend(this.criminalActivityCount15), this.COLORS.rose],
-      ['mc-events', (this.eventsTrendData?.length || 0) > 0 ? this.eventsTrendData!.slice(-15) : getTrend(this.sightingsCount15), this.COLORS.amber],
-      ['mc-fire', (this.fireTrendData?.length || 0) > 0 ? this.fireTrendData!.slice(-15) : getTrend(this.fireAlertsCount15), this.COLORS.orange, 'bar'],
-      ['mc-assets', (this.assetsTrendData?.length || 0) > 0 ? this.assetsTrendData!.slice(-15) : getTrend(this.totalAssetsCount), this.COLORS.p],
-      ['mc-duty', (this.onDutyTrendData?.length || 0) > 0 ? this.onDutyTrendData!.slice(-7) : getTrend(this.onDutyCount), this.COLORS.blue, 'bar'],
+      ['mc-crim', (this.criminalTrendData?.length || 0) > 0 ? this.criminalTrendData! : getTrend(this.criminalCount), this.COLORS.rose],
+      ['mc-events', (this.eventsTrendData?.length || 0) > 0 ? this.eventsTrendData! : getTrend(this.eventsCount), this.COLORS.amber],
+      ['mc-fire', (this.fireTrendData?.length || 0) > 0 ? this.fireTrendData! : getTrend(this.fireAlertsCount), this.COLORS.orange, 'bar'],
+      ['mc-assets', (this.assetsTrendData?.length || 0) > 0 ? this.assetsTrendData! : getTrend(this.totalAssetsCount), this.COLORS.p],
+      ['mc-duty', (this.onDutyTrendData?.length || 0) > 0 ? this.onDutyTrendData! : getTrend(this.onDutyCount), this.COLORS.blue, 'bar'],
     ];
 
     pairs.forEach(([id, data, color, type = 'line']) => {
@@ -2444,8 +2537,14 @@ handleApiResponse(res: any) {
       const oldMini = Chart.getChart(id);
       if (oldMini) oldMini.destroy();
 
+      // Dynamic Type Resolution: Gracefully handle single-day datasets by switching to single-bar representations
+      let finalType = type;
+      if (data.length === 1) {
+        finalType = 'bar';
+      }
+
       this.mkChart(id, {
-        type: type as any,
+        type: finalType as any,
         data: {
           labels: data.map((_, i) => i),
           datasets: [
@@ -2453,12 +2552,12 @@ handleApiResponse(res: any) {
               data,
               borderColor: color,
               backgroundColor:
-                type === 'bar' ? color + '99' : this.mkG(ctx, color, 45),
-              fill: type === 'line',
+                finalType === 'bar' ? color + '99' : this.mkG(ctx, color, 45),
+              fill: finalType === 'line',
               tension: 0.4,
               pointRadius: 0,
               borderWidth: 1.5,
-              borderRadius: type === 'bar' ? 3 : 0,
+              borderRadius: finalType === 'bar' ? 3 : 0,
             },
           ],
         },
@@ -3053,6 +3152,21 @@ handleApiResponse(res: any) {
         return 'Last 7 Days';
       case 'month':
         return 'Last 30 Days';
+      default:
+        return 'Selected Period';
+    }
+  }
+
+  get snapshotMetaLabel(): string {
+    switch (this.activeDateFilter) {
+      case 'today':
+        return 'Today';
+      case 'week':
+        return 'Last 7 Days';
+      case 'month':
+        return 'Last 30 Days';
+      case 'custom':
+        return 'Custom Range';
       default:
         return 'Selected Period';
     }

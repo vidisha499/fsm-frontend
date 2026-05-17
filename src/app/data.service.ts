@@ -67,18 +67,11 @@ export class DataService {
       const aliasMap: any = {
         'patrol': ['Patrolling'],
         'attendance': ['Attendance'],
-<<<<<<< Updated upstream
         'patrol_report': ['Forest Events', 'Forest Reports'],
         'reports': ['Forest Reports', 'Reports'],
         'attendance_request': ['Attendance'],
         'asset_management': ['Asset', 'Asset Management', 'Assets'],
         'forest_events': ['Forest Events', 'Incidence', 'Forest Reports', 'Forest Report', 'forest_reports'],
-=======
-        'patrol_report': ['Forest Events'],
-        'attendance_request': ['Attendance'],
-        'asset_management': ['Assets'],
-        'forest_events': ['Forest Events', 'Incidence', 'Forest Reports'],
->>>>>>> Stashed changes
         'know_your_area': ['Know Your Area'],
         'plantations': ['Plantation'],
         'chat': ['Chat'],

@@ -276,21 +276,7 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
 
   // --- Photo Handling ---
   async presentImageSourceOptions() {
-    const header = await firstValueFrom(this.translate.get('ATTENDANCE.SELECT_SOURCE'));
-    const camera = await firstValueFrom(this.translate.get('ATTENDANCE.CAMERA'));
-    const gallery = await firstValueFrom(this.translate.get('ATTENDANCE.GALLERY'));
-    const cancel = await firstValueFrom(this.translate.get('ATTENDANCE.CANCEL'));
-
-    const actionSheet = await this.actionSheetCtrl.create({
-      header: header,
-      mode: 'md',
-      buttons: [
-        { text: camera, icon: 'camera-outline', handler: () => this.captureImage(CameraSource.Camera) },
-        { text: gallery, icon: 'image-outline', handler: () => this.captureImage(CameraSource.Photos) },
-        { text: cancel, role: 'cancel' }
-      ]
-    });
-    await actionSheet.present();
+    this.captureImage(CameraSource.Camera);
   }
 async captureImage(source: CameraSource) {
   try {

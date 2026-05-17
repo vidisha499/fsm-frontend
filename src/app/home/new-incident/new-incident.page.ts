@@ -138,22 +138,7 @@ async updateAddress(lat: number, lng: number) {
       this.presentToast(msg, 'warning');
       return;
     }
-
-    const headerTxt = await this.translate.get('REPORT.ATTACH_HEADER').toPromise();
-    const camTxt = await this.translate.get('REPORT.TAKE_PICTURE').toPromise();
-    const galleryTxt = await this.translate.get('REPORT.FROM_PHOTOS').toPromise();
-    const cancelTxt = await this.translate.get('REPORT.CANCEL').toPromise();
-
-    const actionSheet = await this.actionSheetCtrl.create({
-      header: `${headerTxt} (${this.capturedPhotos.length}/5)`,
-      cssClass: 'premium-action-sheet',
-      buttons: [
-        { text: camTxt, icon: 'camera-outline', handler: () => this.captureImage(CameraSource.Camera) },
-        { text: galleryTxt, icon: 'image-outline', handler: () => this.captureImage(CameraSource.Photos) },
-        { text: cancelTxt, icon: 'close-outline', role: 'cancel' }
-      ]
-    });
-    await actionSheet.present();
+    this.captureImage(CameraSource.Camera);
   }
 
 

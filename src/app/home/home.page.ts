@@ -170,29 +170,8 @@ loadDashboardStats(companyId?: any) {
 
 
   async changeProfilePicture() {
-  const actionSheet = await this.actionSheetCtrl.create({
-    header: 'Change Profile Picture',
-    cssClass: 'premium-action-sheet',
-    buttons: [
-      { 
-        text: 'Take Picture', 
-        icon: 'camera-outline', 
-        handler: () => this.captureProfileImage(CameraSource.Camera) 
-      },
-      { 
-        text: 'From Photos', 
-        icon: 'image-outline', 
-        handler: () => this.captureProfileImage(CameraSource.Photos) 
-      },
-      { 
-        text: 'Cancel', 
-        icon: 'close-outline', 
-        role: 'cancel' 
-      }
-    ]
-  });
-  await actionSheet.present();
-}
+    this.captureProfileImage(CameraSource.Camera);
+  }
 
   loadRangerBeat() {
     const userData = JSON.parse(localStorage.getItem('user_data') || '{}');

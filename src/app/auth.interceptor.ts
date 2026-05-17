@@ -64,30 +64,83 @@ export class AuthInterceptor implements HttpInterceptor {
     return nextObs.pipe(
       catchError((error: HttpErrorResponse) => {
         if (error.status === 401) {
-          const isPublicUrl = error.url?.includes('verifyUser') || 
-                              error.url?.includes('addUser') || 
-                              error.url?.includes('ranges') || 
-                              error.url?.includes('beats') || 
-                              error.url?.includes('getSites') ||
-                              error.url?.includes('org/layers') ||
-                              error.url?.includes('org/entities') ||
-                              error.url?.includes('assignable-users') ||
-                              error.url?.includes('hierarchy') ||
-                              error.url?.includes('roles') ||
-                              error.url?.includes('subordinates') ||
-                              error.url?.includes('profile');
-
-          if (!isPublicUrl) {
-            console.error("🔴 Step 5 (Auth Trap): 401 Unauthorized received! Token is expired or invalid.");
-            console.error("🔴 Step 6 (Logout): Clearing localStorage and forcing redirect to /login...");
-            localStorage.clear();
+          if (this.isGenuineAuthError(error)) {
+            console.error("🔴 Step 5 (Auth Trap): Genuine 401 Unauthorized received! Token is expired or invalid.");
+            console.error("🔴 Step 6 (Logout): Clearing auth session and forcing redirect to /login...");
+            this.clearUserSession();
             this.router.navigate(['/login']);
           } else {
-            console.warn("🟡 401 received for public/signup URL. Ignoring logout trap.");
+            console.warn("🟡 401 received but identified as a business logic error or public URL. Ignoring logout trap.");
           }
         }
         return throwError(() => error);
       })
     );
+  }
+
+  private isGenuineAuthError(error: HttpErrorResponse): boolean {
+    const url = error.url || '';
+    
+    // 1. Skip if it is a public signup or entity loading URL
+    const isPublicUrl = url.includes('verifyUser') || 
+                        url.includes('addUser') || 
+                        url.includes('ranges') || 
+                        url.includes('beats') || 
+                        url.includes('getSites') ||
+                        url.includes('org/layers') ||
+                        url.includes('org/entities') ||
+                        url.includes('assignable-users') ||
+                        url.includes('hierarchy') ||
+                        url.includes('roles') ||
+                        url.includes('subordinates') ||
+                        url.includes('profile');
+    if (isPublicUrl) return false;
+
+    // 2. Skip if it's a patrol workflow API call (business logic returns 401 e.g. "Another patrol is in progress")
+    if (url.includes('patrol') || url.includes('patrols')) return false;
+
+    // 3. Extract and check error messages
+    const errMsg = (
+      error.error?.message || 
+      error.error?.error || 
+      error.message || 
+      ''
+    ).toLowerCase();
+
+    // 4. Skip if the message implies a business constraint, not auth expiration
+    if (errMsg.includes('patrol') || errMsg.includes('in progress') || errMsg.includes('already')) {
+      return false;
+    }
+
+    // 5. Must explicitly target token/session expiry or authentication failure
+    const isAuthRelated = 
+      errMsg.includes('unauthenticated') || 
+      errMsg.includes('unauthorized') || 
+      errMsg.includes('token') || 
+      errMsg.includes('session') || 
+      errMsg.includes('jwt') || 
+      errMsg.includes('expired') || 
+      errMsg.includes('signature');
+
+    return isAuthRelated;
+  }
+
+  private clearUserSession() {
+    console.warn("⚠️ Performing safe session clearance. Keeping offline drafts and user configurations.");
+    const sessionKeys = [
+      'api_token',
+      'user_data',
+      'user_role',
+      'company_id',
+      'ranger_id',
+      'ranger_username',
+      'ranger_phone',
+      'user_photo',
+      'active_patrol_id',
+      'active_patrol_session_id',
+      'temp_patrol_name',
+      'patrol_session_start_time'
+    ];
+    sessionKeys.forEach(k => localStorage.removeItem(k));
   }
 }

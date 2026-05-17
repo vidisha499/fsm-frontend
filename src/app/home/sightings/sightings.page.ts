@@ -169,7 +169,7 @@ async saveSighting() {
       const image = await Camera.getPhoto({
         quality: 50,
         resultType: CameraResultType.DataUrl,
-        source: CameraSource.Prompt,
+        source: CameraSource.Camera,
         saveToGallery: true
       });
       if (image.dataUrl) {

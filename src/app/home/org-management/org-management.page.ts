@@ -611,18 +611,13 @@ export class OrgManagementPage implements OnInit {
     obs.subscribe({
       next: () => {
         loader.dismiss();
-<<<<<<< Updated upstream
         this.showToast(this.isUpdateMode ? 'Role updated successfully!' : 'Role created successfully!', 'success');
         this.isRoleModalOpen = false;
         
         // 🔥 FORCE IMMEDIATE SYNC
         this.dataService.permissionsUpdated$.next();
-        
-=======
-        this.showToast('V2 Role created with permissions!', 'success');
         this.dataService.refreshPermissions();
-        this.isAddRoleModalOpen = false;
->>>>>>> Stashed changes
+        
         this.loadCustomRoles();
       },
       error: (err) => {

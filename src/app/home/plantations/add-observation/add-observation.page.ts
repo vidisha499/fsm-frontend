@@ -37,31 +37,7 @@ export class AddObservationPage implements OnInit {
   }
 
   async capturePhoto() {
-    const actionSheet = await this.actionSheetCtrl.create({
-      header: 'Select Image Source',
-      buttons: [
-        {
-          text: 'Take Photo',
-          icon: 'camera',
-          handler: () => {
-            this.getPicture(CameraSource.Camera);
-          }
-        },
-        {
-          text: 'Choose from Gallery',
-          icon: 'image',
-          handler: () => {
-            this.getPicture(CameraSource.Photos);
-          }
-        },
-        {
-          text: 'Cancel',
-          icon: 'close',
-          role: 'cancel'
-        }
-      ]
-    });
-    await actionSheet.present();
+    this.getPicture(CameraSource.Camera);
   }
 
   async getPicture(source: CameraSource) {

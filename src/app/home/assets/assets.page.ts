@@ -104,26 +104,7 @@ assetData = {
 
   // --- 3. CAMERA & GALLERY LOGIC ---
   async takePhoto() {
-    const actionSheet = await this.actionSheetCtrl.create({
-      header: 'Select Image Source',
-      buttons: [
-        {
-          text: 'Load from Gallery',
-          icon: 'images',
-          handler: () => { this.pickImage(CameraSource.Photos); }
-        },
-        {
-          text: 'Use Camera',
-          icon: 'camera',
-          handler: () => { this.pickImage(CameraSource.Camera); }
-        },
-        {
-          text: 'Cancel',
-          role: 'cancel'
-        }
-      ]
-    });
-    await actionSheet.present();
+    this.pickImage(CameraSource.Camera);
   }
 
   async pickImage(source: CameraSource) {

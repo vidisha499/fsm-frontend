@@ -120,30 +120,24 @@ export class AppComponent implements OnInit {
   ngOnInit() {
     this.loadUserData();
     this.labelService.labelUpdated$.subscribe(() => { this.cdr.detectChanges(); });
+    
+    // 🚀 Listen for Permission Changes to update Sidebar menu items
     this.dataService.permissionsUpdated$.subscribe(() => {
       if (this.isSyncingPermissions) return;
+      console.log("🔄 Sidebar Sync: Permissions Updated!");
       this.loadUserData();
+      this.cdr.detectChanges();
     });
+
     this.dataService.loginSuccess$.subscribe(() => {
       this.isLoadingSidebar = true;
       this.loadUserData();
-<<<<<<< Updated upstream
-      setTimeout(() => { this.isLoadingSidebar = false; this.cdr.detectChanges(); }, 1000);
-=======
       
-      // Artificial delay (1s) to show the professional loader
+      // Artificial delay (1.5s) to show the professional loader
       setTimeout(() => {
         this.isLoadingSidebar = false;
         this.cdr.detectChanges();
       }, 1500);
-    });
-
-    // 🚀 NEW: Listen for Permission Changes to update Sidebar menu items
-    this.dataService.permissionsUpdated$.subscribe(() => {
-      console.log("🔄 Sidebar Sync: Permissions Updated!");
-      this.loadUserData();
-      this.cdr.detectChanges();
->>>>>>> Stashed changes
     });
     this.photoViewer.showViewer$.subscribe(show => { this.showViewer = show; this.viewerZoom = 1; this.cdr.detectChanges(); });
     this.photoViewer.currentImage$.subscribe(img => { this.viewerImageUrl = img; this.cdr.detectChanges(); });
@@ -152,8 +146,60 @@ export class AppComponent implements OnInit {
 
   isFeatureEnabled(feature: string): boolean { return this.dataService.isFeatureEnabled(feature); }
 
-<<<<<<< Updated upstream
-=======
+  hasExplicitOrgPermission(): boolean {
+    const permsStr = localStorage.getItem('user_permissions');
+    if (!permsStr) return false;
+    try {
+      let perms = JSON.parse(permsStr);
+      if (typeof perms === 'string') {
+        try { perms = JSON.parse(perms); } catch (e) { perms = []; }
+      }
+      if (!Array.isArray(perms)) return false;
+      return perms.some((p: any) => {
+        const pStr = String(p.module_key || p.name || p.module || p || '').toLowerCase();
+        return pStr.includes('org') || pStr.includes('organization') || pStr.includes('role') || pStr.includes('hierarchy');
+      });
+    } catch (e) {
+      return false;
+    }
+  }
+
+  hasExplicitUserPermission(): boolean {
+    const permsStr = localStorage.getItem('user_permissions');
+    if (!permsStr) return false;
+    try {
+      let perms = JSON.parse(permsStr);
+      if (typeof perms === 'string') {
+        try { perms = JSON.parse(perms); } catch (e) { perms = []; }
+      }
+      if (!Array.isArray(perms)) return false;
+      return perms.some((p: any) => {
+        const pStr = String(p.module_key || p.name || p.module || p || '').toLowerCase();
+        return pStr.includes('user') || pStr.includes('member') || pStr.includes('staff');
+      });
+    } catch (e) {
+      return false;
+    }
+  }
+
+  hasExplicitTaskPermission(): boolean {
+    const permsStr = localStorage.getItem('user_permissions');
+    if (!permsStr) return false;
+    try {
+      let perms = JSON.parse(permsStr);
+      if (typeof perms === 'string') {
+        try { perms = JSON.parse(perms); } catch (e) { perms = []; }
+      }
+      if (!Array.isArray(perms)) return false;
+      return perms.some((p: any) => {
+        const pStr = String(p.module_key || p.name || p.module || p || '').toLowerCase();
+        return pStr.includes('task');
+      });
+    } catch (e) {
+      return false;
+    }
+  }
+
   showAllSidebarKeys() {
     const aliasMap: any = {
       'patrol': ['Patrolling'],
@@ -173,7 +219,6 @@ export class AppComponent implements OnInit {
   }
 
   // 🔥 NEW: Automatic Sync when Network Restored
->>>>>>> Stashed changes
   @HostListener('window:online')
   onOnline() {
     this.dataService.syncAllDrafts().then(async res => {
@@ -397,7 +442,7 @@ export class AppComponent implements OnInit {
   toggleEdit() { this.isEditMode = !this.isEditMode; this.cdr.detectChanges(); }
 
   changeProfilePicture() {
-    console.log("Opening camera/gallery logic...");
+    console.log("Opening camera logic...");
     // Future: Add Capacitor Camera logic here
   }
 

@@ -326,38 +326,38 @@
   <div class="mini-scroll">
     <div class="mini-card" data-cat="criminal" (click)="goAnalytics('criminal')">
       <div class="mini-lbl">🌲 Criminal Activity</div>
-      <div class="mini-val" style="color:var(--rose)" id="ms-crim">{{criminalActivityCount15}}</div>
+      <div class="mini-val" style="color:var(--rose)" id="ms-crim">{{criminalCount}}</div>
       <div class="mini-ch"><canvas id="mc-crim"></canvas></div>
-      <div class="mini-meta">Y: Cases · X: Last 15 Days</div>
+      <div class="mini-meta">Y: Cases · {{ snapshotMetaLabel }}</div>
     </div>
 
     <div class="mini-card" data-cat="events" (click)="goAnalytics('events')">
       <div class="mini-lbl">🐾 Events & Monitor.</div>
-      <div class="mini-val" style="color:var(--amber)" id="ms-events">{{ sightingsCount15 }}</div>
+      <div class="mini-val" style="color:var(--amber)" id="ms-events">{{ eventsCount }}</div>
       <div class="mini-ch"><canvas id="mc-events"></canvas></div>
-      <div class="mini-meta">Y: Events · X: Last 15 Days</div>
+      <div class="mini-meta">Y: Events · {{ snapshotMetaLabel }}</div>
     </div>
     
 
     <div class="mini-card" data-cat="fire" (click)="goAnalytics('fire')">
       <div class="mini-lbl">🔥 Fire Incidents</div>
-      <div class="mini-val" style="color:var(--orange)" id="ms-fire">{{fireAlertsCount15}}</div>
+      <div class="mini-val" style="color:var(--orange)" id="ms-fire">{{fireAlertsCount}}</div>
       <div class="mini-ch"><canvas id="mc-fire"></canvas></div>
-      <div class="mini-meta">Y: Alerts · X: Last 15 Days</div>
+      <div class="mini-meta">Y: Alerts · {{ snapshotMetaLabel }}</div>
     </div>
 
     <div class="mini-card" data-cat="assets">
       <div class="mini-lbl">🛡️ Assets & Tools</div>
       <div class="mini-val" style="color:var(--p)" id="ms-assets">{{ totalAssetsCount || 0 }}</div>
       <div class="mini-ch"><canvas id="mc-assets"></canvas></div>
-      <div class="mini-meta">Y: Count - X: Last 15 Days</div>
+      <div class="mini-meta">Y: Count · {{ snapshotMetaLabel }}</div>
     </div>
 
     <div class="mini-card" data-cat="duty">
       <div class="mini-lbl">👮 Officers On Duty</div>
       <div class="mini-val" style="color:var(--blue)" id="ms-duty">{{ onDutyCount }}</div>
       <div class="mini-ch"><canvas id="mc-duty"></canvas></div>
-      <div class="mini-meta">Y: Count - X: 7 days</div>
+      <div class="mini-meta">Y: Count · {{ snapshotMetaLabel }}</div>
     </div>
   </div>
   
