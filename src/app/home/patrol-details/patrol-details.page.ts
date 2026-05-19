@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, NgZone } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { NavController } from '@ionic/angular';
@@ -28,7 +28,8 @@ export class PatrolDetailsPage implements OnInit {
     private cdr: ChangeDetectorRef,
     private translate: TranslateService, // Added
     private dataService: DataService,
-    private photoViewer: PhotoViewerService
+    private photoViewer: PhotoViewerService,
+    private zone: NgZone
   ) {}
 
   ngOnInit() {
@@ -275,11 +276,38 @@ export class PatrolDetailsPage implements OnInit {
 
           return rTime >= startTime && rTime <= (endTime + 1000); // 1s grace period
         });
+
+        // 4. Load Offline Event Drafts for this patrol session
+        const offlineDrafts = this.dataService.getForestEventDrafts().filter((d: any) => {
+          const dPatrolId = d.patrol_id ? String(d.patrol_id) : null;
+          
+          // A. Direct ID match
+          if (dPatrolId && sessionIds.includes(dPatrolId)) return true;
+
+          // B. Robust Time-Range and User Match Fallback (Perfect for offline string IDs vs synced numeric IDs)
+          const dUserId = Number(d.user_id || d.ranger_id || localStorage.getItem('ranger_id') || 0);
+          const pUserId = Number(this.patrol.user_id || this.patrol.ranger_id || 0);
+          if (dUserId && pUserId && dUserId !== pUserId) return false;
+
+          const dTime = new Date(d.createdAt || d.timestamp || d.date_time).getTime();
+          if (isNaN(dTime) || isNaN(startTime)) return false;
+
+          const patrolEnd = endTime ? endTime : Date.now();
+          // Allow 5 minutes (300,000ms) buffer after patrol ends in case of delayed offline submissions
+          return dTime >= (startTime - 60000) && dTime <= (patrolEnd + 300000);
+        }).map((d: any) => {
+          return {
+            ...d,
+            isOfflineDraft: true,
+            created_at: d.createdAt || new Date().toISOString()
+          };
+        });
         
-        console.log(`✅ Found ${patrolObs.length} matching observations.`);
+        const combinedObs = [...patrolObs, ...offlineDrafts];
+        console.log(`✅ Combined Observations (Online: ${patrolObs.length}, Offline: ${offlineDrafts.length}):`, combinedObs.length);
         
-        if (patrolObs.length > 0) {
-          this.patrol.observationData = patrolObs.map((obs: any) => this.processObservationPhoto(obs));
+        if (combinedObs.length > 0) {
+          this.patrol.observationData = combinedObs.map((obs: any) => this.processObservationPhoto(obs));
           this.initMap(); 
         } else {
           this.patrol.observationData = [];
@@ -551,14 +579,25 @@ initMap() {
           iconAnchor: [13, 13]
         });
         
-        L.marker(sightingCoord, { icon })
+        const marker = L.marker(sightingCoord, { icon })
           .addTo(this.map)
-          .bindPopup(`
-            <div style="font-family: sans-serif; padding: 5px;">
-              <b style="text-transform: capitalize; color: #111827;">${this.formatTitle(obs.report_type || obs.category)}</b><br>
-              <span style="color: #6b7280; font-size: 11px;">${obs.source === 'report' ? 'Field Report' : (obs.species || 'Sighting')}</span>
-            </div>
-          `);
+          .bindPopup(this.getMarkerPopupHtml(obs), {
+            className: 'premium-popup',
+            maxWidth: 300,
+            minWidth: 280
+          });
+        
+        marker.on('popupopen', () => {
+          const reportId = obs.id || 'Draft';
+          const btn = document.getElementById(`btn-popup-det-${reportId}`);
+          if (btn) {
+            btn.onclick = () => {
+              this.zone.run(() => {
+                this.viewSightingDetails(obs);
+              });
+            };
+          }
+        });
         
         bounds.extend(sightingCoord);
       }
@@ -653,6 +692,104 @@ getCategoryColor(category: string): string {
 
   closeZoom() {
     this.photoViewer.close();
+  }
+
+  getMarkerPopupHtml(obs: any): string {
+    const title = this.formatTitle(obs.report_type || obs.category);
+    const iconInfo = this.getIconAndColor(obs.report_type || obs.category);
+    const dateStr = obs.created_at || obs.timestamp || obs.date_time || new Date().toISOString();
+    const formattedDate = new Date(dateStr).toLocaleString();
+    const lat = Number(obs.latitude || obs.lat || 0).toFixed(5);
+    const lng = Number(obs.longitude || obs.lng || 0).toFixed(5);
+    const coords = `${lat}, ${lng}`;
+    
+    // Parse dynamic fields/report_data if present
+    let reportData: any = {};
+    if (obs.report_data) {
+      try {
+        reportData = typeof obs.report_data === 'string' ? JSON.parse(obs.report_data) : obs.report_data;
+      } catch (e) {
+        console.warn("Error parsing report_data", e);
+      }
+    }
+    
+    // Build dynamic fields list (e.g. species, quantity, count)
+    let dynamicHtml = '';
+    const fieldsToShow: { label: string, value: any }[] = [];
+    
+    // Check various common keys
+    const checkKeys = ['species', 'tree_count', 'volume', 'produce_name', 'qty_cmt', 'cause_death', 'encroachment_type', 'area_hectare', 'mineral_type', 'fire_cause', 'severity'];
+    checkKeys.forEach(k => {
+      const val = reportData[k] || obs[k];
+      if (val !== undefined && val !== null && val !== '') {
+        const cleanLabel = k.replace(/_/g, ' ').toUpperCase();
+        fieldsToShow.push({ label: cleanLabel, value: val });
+      }
+    });
+
+    if (fieldsToShow.length > 0) {
+      dynamicHtml += `<div class="popup-divider"></div><div class="popup-fields-grid">`;
+      fieldsToShow.slice(0, 4).forEach(f => {
+        dynamicHtml += `
+          <div class="field-box">
+            <div class="f-lbl">${f.label}</div>
+            <div class="f-val">${f.value}</div>
+          </div>
+        `;
+      });
+      dynamicHtml += `</div>`;
+    }
+
+    // Check for photos
+    let photoHtml = '';
+    const photos = obs.photos || [];
+    if (photos.length > 0) {
+      photoHtml += `
+        <div class="popup-divider"></div>
+        <div class="popup-photo-grid">
+      `;
+      photos.slice(0, 3).forEach((p: string) => {
+        photoHtml += `<img src="${p}" class="popup-photo-img" />`;
+      });
+      photoHtml += `</div>`;
+    }
+
+    // Build overall banner color/emoji based on category
+    const markerColor = iconInfo.color;
+    const reportId = obs.id || 'Draft';
+    
+    return `
+      <div class="popup-container">
+        <div class="popup-banner" style="background: ${markerColor}; color: white;">
+          <div class="pb-left">
+            <span class="cat-ico"><i class="fas ${iconInfo.icon}"></i></span>
+            <span class="cat-nm">${title}</span>
+          </div>
+          <div class="pb-right">${obs.isOfflineDraft ? 'OFFLINE' : `#${reportId}`}</div>
+        </div>
+
+        <div class="popup-body">
+          <div class="popup-meta-list">
+            <div class="meta-row">
+              <ion-icon name="calendar-outline"></ion-icon>
+              <span>${formattedDate}</span>
+            </div>
+            <div class="meta-row">
+               <ion-icon name="pin-outline"></ion-icon>
+               <span style="color: #6366f1; font-weight: 800;">${coords}</span>
+            </div>
+          </div>
+
+          ${dynamicHtml}
+          ${photoHtml}
+
+          <button class="popup-footer-btn" id="btn-popup-det-${reportId}">
+            <ion-icon name="document-text-outline"></ion-icon>
+            View Details
+          </button>
+        </div>
+      </div>
+    `;
   }
 
 viewSightingDetails(obs: any) {

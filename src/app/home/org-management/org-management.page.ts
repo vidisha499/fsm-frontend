@@ -503,7 +503,7 @@ export class OrgManagementPage implements OnInit {
         
         this.isRoleModalOpen = true;
       },
-      error: (err) => {
+      error: (err: any) => {
         loader.dismiss();
         console.error("❌ Failed to load permissions", err);
         this.isRoleModalOpen = true;
@@ -769,7 +769,7 @@ export class OrgManagementPage implements OnInit {
         }
         console.log("✅ [PERMS] Final Mapped State:", this.userPermissions);
       },
-      error: (err) => {
+      error: (err: any) => {
         this.isPermissionsLoading = false;
         console.error("❌ Role Permissions API failed", err);
       }

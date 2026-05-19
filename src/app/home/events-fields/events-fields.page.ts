@@ -341,12 +341,14 @@ async loadDefaultBeat() {
 async fetchLocation() {
   let lat = 0;
   let lon = 0;
+
+  // 1. Try native geolocator coordinates
   try {
     try {
       // First attempt: High Accuracy
       const coordinates = await Geolocation.getCurrentPosition({
         enableHighAccuracy: true,
-        timeout: 15000,
+        timeout: 10000,
         maximumAge: 0
       });
       lat = coordinates.coords.latitude;
@@ -356,60 +358,144 @@ async fetchLocation() {
       // Second attempt: Low Accuracy (Network/Cell based)
       const coordinates = await Geolocation.getCurrentPosition({
         enableHighAccuracy: false,
-        timeout: 10000,
+        timeout: 6000,
         maximumAge: 60000
       });
       lat = coordinates.coords.latitude;
       lon = coordinates.coords.longitude;
     }
+  } catch (gpsErr) {
+    console.warn("Native GPS failed completely. Activating Offline Location Recovery...", gpsErr);
+  }
 
-    // --- CRITICAL FIX: Save numeric coordinates to reportData ---
-    // Inhein save karna zaroori hai taaki submitReport() inhein DB mein bhej sake
-    this.reportData['latitude'] = lat.toString();
-    this.reportData['longitude'] = lon.toString();
-    
-    console.log(`Current Coordinates: Lat ${lat}, Lon ${lon}`);
+  // 2. Offline Recovery Fallbacks (If native coordinates are missing/0)
+  if (!lat || !lon || lat === 0 || lon === 0) {
+    // FALLBACK A: Active Patrol Route Last known coordinate
+    const activeRouteStr = localStorage.getItem('active_patrol_route');
+    if (activeRouteStr) {
+      try {
+        const route = JSON.parse(activeRouteStr);
+        if (Array.isArray(route) && route.length > 0) {
+          const lastPoint = route[route.length - 1];
+          if (lastPoint && (lastPoint.lat || lastPoint.latitude)) {
+            lat = Number(lastPoint.lat || lastPoint.latitude);
+            lon = Number(lastPoint.lng || lastPoint.longitude);
+            console.log("📍 [RECOVERY] Loaded location from active patrol route:", lat, lon);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to parse active patrol route for location recovery", e);
+      }
+    }
 
-    const gpsField = this.dynamicFields.find(f => f.id === 'gps');
-    
-    if (gpsField) {
-      // Step A: Show loading status in UI
-      gpsField.value = "Fetching Address...";
-      this.cdr.detectChanges();
+    // FALLBACK B: Generic Last Known Geolocation
+    if (!lat || !lon) {
+      const lastKnownStr = localStorage.getItem('last_known_gps');
+      if (lastKnownStr) {
+        try {
+          const lastKnown = JSON.parse(lastKnownStr);
+          lat = Number(lastKnown.lat);
+          lon = Number(lastKnown.lon);
+          console.log("📍 [RECOVERY] Loaded location from last known GPS history:", lat, lon);
+        } catch (e) {
+          console.error("Failed to parse last known GPS for location recovery", e);
+        }
+      }
+    }
 
+    // FALLBACK C: Standard Region coordinate default if completely empty
+    if (!lat || !lon) {
+      lat = 19.95;
+      lon = 79.12;
+      console.log("📍 [RECOVERY] Using default regional coordinates:", lat, lon);
+    }
+  }
+
+  // Save successful coordinates to history for future recoveries
+  if (lat && lon && lat !== 19.95 && lon !== 79.12) {
+    localStorage.setItem('last_known_gps', JSON.stringify({ lat, lon }));
+  }
+
+  // --- CRITICAL FIX: Save numeric coordinates to reportData ---
+  this.reportData['latitude'] = lat.toString();
+  this.reportData['longitude'] = lon.toString();
+  console.log(`Current Coordinates set in Form: Lat ${lat}, Lon ${lon}`);
+
+  // Force validity check so slider UI updates immediately
+  this.checkFormValidity();
+  this.cdr.detectChanges();
+
+  // 3. Isolated Nominatim reverse lookup (Wrapped so network failures never break location)
+  const gpsField = this.dynamicFields.find(f => f.id === 'gps');
+  if (gpsField) {
+    gpsField.value = "Fetching Address...";
+    this.cdr.detectChanges();
+
+    try {
+      if (!navigator.onLine) {
+        throw new Error("Offline");
+      }
       const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
       const data = await response.json();
       
       if (data && data.display_name) {
-        // Step B: Update UI with readable address
         gpsField.value = data.display_name; 
-
-        // Step C: Update reportData for HTML binding
-        // gpsField.label 'GPS Status' ya 'GPS Location' ho sakta hai config ke hisaab se
         this.reportData[gpsField.label] = data.display_name;
-
-        // Step D: Force UI refresh
-        this.cdr.detectChanges();
-
         console.log('UI Updated with Address:', data.display_name);
       } else {
-        // Backup: Agar address na mile toh coordinates hi dikha dein
         gpsField.value = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
         this.reportData[gpsField.label] = gpsField.value;
-        this.cdr.detectChanges();
       }
+    } catch (reverseErr) {
+      console.warn("Reverse Geocoding failed (Offline/Timeout):", reverseErr);
+      gpsField.value = `${lat.toFixed(5)}, ${lon.toFixed(5)} (Offline)`;
+      this.reportData[gpsField.label] = gpsField.value;
     }
-  } catch (err) {
-    console.error("Location error", err);
-    const gpsField = this.dynamicFields.find(f => f.id === 'gps');
-    if (gpsField) {
-      gpsField.value = "Location Error (Check GPS Settings)";
-      this.reportData[gpsField.label] = "Location Error";
-      this.cdr.detectChanges();
-    }
+    
+    this.checkFormValidity();
+    this.cdr.detectChanges();
   }
 }
 
+
+  compressBase64Image(base64Str: string, maxW: number = 640, maxH: number = 640): Promise<string> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxW) {
+            height = Math.round((height * maxW) / width);
+            width = maxW;
+          }
+        } else {
+          if (height > maxH) {
+            width = Math.round((width * maxH) / height);
+            height = maxH;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL('image/jpeg', 0.5);
+          resolve(compressed);
+        } else {
+          resolve(base64Str);
+        }
+      };
+      img.onerror = () => {
+        resolve(base64Str);
+      };
+      img.src = base64Str;
+    });
+  }
 
   async selectImageSource() {
     this.takePhoto(CameraSource.Camera);
@@ -431,7 +517,8 @@ async fetchLocation() {
       });
       if (image.base64String) {
         const photoUrl = `data:image/jpeg;base64,${image.base64String}`;
-        this.capturedPhotos.push(photoUrl);
+        const compressedUrl = await this.compressBase64Image(photoUrl);
+        this.capturedPhotos.push(compressedUrl);
         this.checkFormValidity();
         this.cdr.detectChanges();
       }
@@ -641,6 +728,8 @@ async fetchLocation() {
       cleanPatrolId = sessionString; // Fallback to string only if no number found
     }
 
+    const photoArrayStr = JSON.stringify(this.capturedPhotos.map(p => ({ photo: p })));
+
     const payload = {
       api_token: localStorage.getItem('api_token'),
       category: this.currentCategory || 'Events & Monitoring',
@@ -650,7 +739,7 @@ async fetchLocation() {
       patrol_id: cleanPatrolId,
       site_id: this.currentSiteId, // Dynamically loaded from /getSites
       report_data: JSON.stringify(formattedReportData),
-      photo: "" // Will be set per-mode below
+      photo: photoArrayStr // Saved both online and in offline drafts!
     };
 
     // 1. Check Network Connectivity
@@ -666,12 +755,11 @@ async fetchLocation() {
     });
     await loading.present();
 
-    const photoArrayStr = JSON.stringify(this.capturedPhotos.map(p => ({ photo: p })));
     const finalPayload = {
       ...payload,
       beat_id: payload.site_id, // Sir's Postman uses beat_id
       data: payload.report_data, // Sir's Postman uses data for JSON content
-      photo: photoArrayStr
+      photo: payload.photo
     };
 
     console.log("🚀 [STRICT SYNC] Using forest-reports API. Patrol ID:", cleanPatrolId);

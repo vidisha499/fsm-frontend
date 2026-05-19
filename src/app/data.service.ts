@@ -1358,14 +1358,37 @@ export class DataService {
 
     try {
       localStorage.setItem('forest_event_drafts', JSON.stringify(drafts));
-    } catch (e) {
-      if (e instanceof DOMException && (e.code === 22 || e.code === 1014 || e.name === 'QuotaExceededError')) {
-        console.warn('LocalStorage quota exceeded. Removing oldest drafts...');
-        // Remove oldest 3 drafts to make space
-        drafts = drafts.slice(-5); // Keep only the latest 5 drafts
-        localStorage.setItem('forest_event_drafts', JSON.stringify(drafts));
-      } else {
-        throw e;
+      console.log(`✅ Success: Saved draft locally. Total drafts: ${drafts.length}`);
+    } catch (err: any) {
+      console.warn('⚠️ LocalStorage quota exceeded or error occurred. Running recovery cleanup...', err);
+      
+      // Dynamic Recovery Loop: Keep removing oldest drafts until it fits
+      let saved = false;
+      while (drafts.length > 1) {
+        const removed = drafts.shift(); // Remove oldest draft
+        console.warn(`🗑️ Discarding oldest draft [${removed?.draftId}] to reclaim space.`);
+        try {
+          localStorage.setItem('forest_event_drafts', JSON.stringify(drafts));
+          console.log(`✅ Success: Reclaimed space by keeping only latest ${drafts.length} drafts.`);
+          saved = true;
+          break;
+        } catch (retryErr) {
+          // Keep looping to discard more
+        }
+      }
+
+      // If even a single draft fails because it has extremely heavy photos
+      if (!saved && drafts.length === 1) {
+        console.warn("⚠️ Single draft with photo is too heavy! Saving draft but removing massive base64 photo to avoid crash.");
+        try {
+          const singleDraft = drafts[0];
+          singleDraft.photo = null; // Clear heavy photo
+          singleDraft.photos = [];
+          localStorage.setItem('forest_event_drafts', JSON.stringify(drafts));
+          console.log("✅ Success: Saved draft metadata successfully after discarding photos.");
+        } catch (e3) {
+          console.error("❌ Completely unable to save even minimal metadata to localStorage.", e3);
+        }
       }
     }
   }
@@ -1925,6 +1948,7 @@ export class DataService {
   private isSyncing = false;
 
   // --- GLOBAL SYNC ENGINE ---
+  // --- GLOBAL SYNC ENGINE ---
   async syncAllDrafts(): Promise<{ success: boolean; count: number; message?: string }> {
     if (!this.isOnline()) return { success: false, count: 0, message: 'Still Offline' };
     if (this.isSyncing) {
@@ -1937,76 +1961,14 @@ export class DataService {
     let syncCount = 0;
     
     try {
-      // 1. Sync Forest Events
-      const eventDrafts = this.getForestEventDrafts();
-      for (const draft of eventDrafts) {
-        try {
-          await this.submitForestEvent(draft).toPromise();
-          this.deleteForestEventDraft(draft.draftId);
-          syncCount++;
-        } catch (e) { console.error("Sync Event Error", e); }
-      }
-
-      // 2. Sync Attendance (Beat)
-      const beatDrafts = this.getAttendanceDrafts('beat');
-      for (const draft of beatDrafts) {
-        try {
-          // Unify type check: Use 'isEntry' or 'mode_type'
-          const isExit = draft.mode_type === 'exit' || draft.isEntry === false;
-          
-          if (isExit) {
-            await this.markAttendanceExit(draft).toPromise();
-          } else {
-            await this.markAttendance(draft).toPromise();
-          }
-          this.deleteAttendanceDraft(draft.draftId, 'beat');
-          syncCount++;
-        } catch (e) { console.error("Sync Beat Error", e); }
-      }
-
-      // 3. Sync Attendance (Onsite)
-      const onsiteDrafts = this.getAttendanceDrafts('onsite');
-      for (const draft of onsiteDrafts) {
-        try {
-          // Onsite sync MUST use FormData to match the online flow and appear in "Attendance Requests"
-          const formData = new FormData();
-          const token = localStorage.getItem('api_token') || draft.api_token || '';
-          
-          // Map draft fields back to FormData keys expected by requestEntryAttendance
-          formData.append('api_token', token);
-          formData.append('attendance_type', draft.attendance_type || 'ONSITE');
-          formData.append('applicant_id', draft.applicant_id || localStorage.getItem('ranger_id') || '');
-          formData.append('company_id', draft.company_id || localStorage.getItem('company_id') || '');
-          formData.append('geo_id', draft.geo_id || '99999');
-          formData.append('type', draft.type || 'location');
-          formData.append('remark', draft.remark || 'Synced Offline Onsite Attendance');
-          formData.append('status', 'Pending');
-          formData.append('photo', draft.photo || '');
-          formData.append('date', draft.date || draft.createdAt?.split('T')[0] || new Date().toISOString().split('T')[0]);
-          
-          // Location handling (backend expects JSON string or lat,lng pair)
-          if (typeof draft.location === 'object') {
-            formData.append('location', JSON.stringify(draft.location));
-          } else {
-            // If it's a string from currentAddress, wrap it in the expected object
-            formData.append('location', JSON.stringify({ 
-              lat: draft.lat || 0, 
-              lng: draft.lng || 0, 
-              name: draft.location || 'On Location' 
-            }));
-          }
-
-          // Use the EXACT same method as online onsite attendance
-          await this.requestEntryAttendance(formData, { 'Bypass-Token': 'true' }).toPromise();
-          
-          this.deleteAttendanceDraft(draft.draftId, 'onsite');
-          syncCount++;
-        } catch (e) { console.error("Sync Onsite Error", e); }
-      }
-
-      // 4. Sync Patrols
+      // 1. Sync Patrols FIRST (to resolve any local session IDs to server database numeric IDs)
       const patrolDrafts = this.getPatrolDrafts();
       const syncedPatrolIdsMap: {[key: string]: string} = {};
+
+      // Load existing mappings from localStorage
+      const existingMapStr = localStorage.getItem('synced_patrol_ids') || '{}';
+      let persistedMap: any = {};
+      try { persistedMap = JSON.parse(existingMapStr); } catch (e) {}
 
       for (const draft of patrolDrafts) {
         try {
@@ -2015,9 +1977,10 @@ export class DataService {
             const newId = res?.data?.id || res?.id;
             if (newId && draft.sessionId) {
               syncedPatrolIdsMap[draft.sessionId] = newId.toString();
+              persistedMap[draft.sessionId] = newId.toString();
             }
           } else {
-            const pId = draft.patrol_id || (draft.sessionId ? syncedPatrolIdsMap[draft.sessionId] : null);
+            const pId = draft.patrol_id || (draft.sessionId ? (syncedPatrolIdsMap[draft.sessionId] || persistedMap[draft.sessionId]) : null);
             if (pId && pId !== 'undefined') {
               await this.updatePatrolStats(pId, draft).toPromise();
             } else {
@@ -2036,6 +1999,7 @@ export class DataService {
                 const pId = list[0].id || list[0].sessionId;
                 if (pId && draft.sessionId) {
                   syncedPatrolIdsMap[draft.sessionId] = pId.toString();
+                  persistedMap[draft.sessionId] = pId.toString();
                   this.deletePatrolDraft(draft.draftId);
                   syncCount++;
                   continue;
@@ -2045,6 +2009,95 @@ export class DataService {
           }
           console.error("Sync Patrol Error", e); 
         }
+      }
+
+      // Persist the updated map to localStorage for future lookups
+      localStorage.setItem('synced_patrol_ids', JSON.stringify(persistedMap));
+
+      // 2. Sync Forest Events SECOND (so they can reference the correct, freshly-synced numeric patrol IDs)
+      const eventDrafts = this.getForestEventDrafts();
+      for (const draft of eventDrafts) {
+        try {
+          let resolvedPatrolId: any = draft.patrol_id;
+          
+          // Resolve string UID to numeric DB ID if needed
+          if (draft.patrol_id && String(draft.patrol_id).startsWith('PATROL_')) {
+            const mappedId = persistedMap[draft.patrol_id] || syncedPatrolIdsMap[draft.patrol_id];
+            if (mappedId) {
+              resolvedPatrolId = Number(mappedId);
+            } else {
+              // Fallback to 0 if not mapped yet to avoid 422 validation failure
+              resolvedPatrolId = 0;
+            }
+          }
+
+          const cleanDraft = {
+            ...draft,
+            patrol_id: resolvedPatrolId,
+            beat_id: draft.site_id || 0
+          };
+
+          const finalPayload = {
+            ...cleanDraft,
+            beat_id: cleanDraft.site_id,
+            data: cleanDraft.report_data,
+            photo: cleanDraft.photo
+          };
+
+          await this.submitForestEvent(finalPayload).toPromise();
+          this.deleteForestEventDraft(draft.draftId);
+          syncCount++;
+        } catch (e) { console.error("Sync Event Error", e); }
+      }
+
+      // 3. Sync Attendance (Beat) THIRD
+      const beatDrafts = this.getAttendanceDrafts('beat');
+      for (const draft of beatDrafts) {
+        try {
+          const isExit = draft.mode_type === 'exit' || draft.isEntry === false;
+          if (isExit) {
+            await this.markAttendanceExit(draft).toPromise();
+          } else {
+            await this.markAttendance(draft).toPromise();
+          }
+          this.deleteAttendanceDraft(draft.draftId, 'beat');
+          syncCount++;
+        } catch (e) { console.error("Sync Beat Error", e); }
+      }
+
+      // 4. Sync Attendance (Onsite) FOURTH
+      const onsiteDrafts = this.getAttendanceDrafts('onsite');
+      for (const draft of onsiteDrafts) {
+        try {
+          const formData = new FormData();
+          const token = localStorage.getItem('api_token') || draft.api_token || '';
+          
+          formData.append('api_token', token);
+          formData.append('attendance_type', draft.attendance_type || 'ONSITE');
+          formData.append('applicant_id', draft.applicant_id || localStorage.getItem('ranger_id') || '');
+          formData.append('company_id', draft.company_id || localStorage.getItem('company_id') || '');
+          formData.append('geo_id', draft.geo_id || '99999');
+          formData.append('type', draft.type || 'location');
+          formData.append('remark', draft.remark || 'Synced Offline Onsite Attendance');
+          formData.append('status', 'Pending');
+          formData.append('photo', draft.photo || '');
+          formData.append('date', draft.date || draft.createdAt?.split('T')[0] || new Date().toISOString().split('T')[0]);
+          
+          if (typeof draft.location === 'object') {
+            formData.append('location', JSON.stringify(draft.location));
+          } else {
+            formData.append('location', JSON.stringify({ 
+              lat: draft.lat || 0, 
+              lng: draft.lng || 0, 
+              name: draft.location || 'On Location' 
+            }));
+          }
+
+          await this.requestEntryAttendance(formData, { 'Bypass-Token': 'true' }).toPromise();
+          
+          this.deleteAttendanceDraft(draft.draftId, 'onsite');
+          syncCount++;
+        } catch (e) { console.error("Sync Onsite Error", e); }
       }
 
       if (syncCount > 0) {
@@ -2088,5 +2141,42 @@ export class DataService {
       api_token: token, 
       role_id: Number(roleId) 
     }, { headers, params: { skip_url_token: 'true' } });
+  }
+
+  // ---------------- Offline Draft Helpers ----------------
+  /** Save a patrol draft (including photos, observations) locally */
+  saveOfflinePatrolDraft(draft: any): void {
+    const drafts = this.getAllOfflinePatrolDrafts();
+    drafts.push(draft);
+    localStorage.setItem('patrol_drafts_v2', JSON.stringify(drafts));
+  }
+
+  /** Retrieve all stored patrol drafts */
+  getAllOfflinePatrolDrafts(): any[] {
+    const raw = localStorage.getItem('patrol_drafts_v2');
+    try { return raw ? JSON.parse(raw) : []; }
+    catch { return []; }
+  }
+
+  /** Get drafts that belong to a particular patrol/session id */
+  getOfflinePatrolDraftsByPatrolId(patrolId: string): any[] {
+    return this.getAllOfflinePatrolDrafts().filter(d => d.patrolId === patrolId || d.sessionId === patrolId);
+  }
+
+  /** Delete a specific draft by its internal id */
+  deleteOfflinePatrolDraft(draftId: string): void {
+    const remaining = this.getAllOfflinePatrolDrafts().filter(d => d.draftId !== draftId);
+    localStorage.setItem('patrol_drafts_v2', JSON.stringify(remaining));
+  }
+
+  /** Return offline observations (photos etc.) for a given patrol id */
+  fetchOfflineObservations(patrolId: string): any[] {
+    const obsList: any[] = [];
+    this.getOfflinePatrolDraftsByPatrolId(patrolId).forEach(d => {
+      if (Array.isArray(d.observationData)) {
+        obsList.push(...d.observationData);
+      }
+    });
+    return obsList;
   }
 }
