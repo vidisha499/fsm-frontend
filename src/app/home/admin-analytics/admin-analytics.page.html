@@ -7,8 +7,8 @@
           <ion-icon name="analytics-outline"></ion-icon>
         </div>
         <div class="loader-text">
-          <h2>Analyzing Data</h2>
-          <p>Syncing deep forest insights...</p>
+          <h2>{{ 'ANALYTICS.ANALYZING' | translate }}</h2>
+          <p>{{ 'ANALYTICS.SYNCING' | translate }}</p>
         </div>
         <div class="loading-bar">
           <div class="bar-fill"></div>
@@ -23,8 +23,8 @@
         <div class="tbar-left">
           <ion-back-button defaultHref="/admin" text="" icon="chevron-back" class="tbar-btn"></ion-back-button>
           <div>
-            <div class="tbar-title">Analytics</div>
-            <div class="tbar-sub">Deep Insights · Admin</div>
+            <div class="tbar-title">{{ 'ANALYTICS.TITLE' | translate }}</div>
+            <div class="tbar-sub">{{ 'ANALYTICS.SUBTITLE' | translate }}</div>
           </div>
         </div>
         <div class="tbar-right">
@@ -41,19 +41,19 @@
       <div class="filter-bar" [class.collapsed]="isFilterCollapsed">
    
 <select class="fselect" [(ngModel)]="selectedRange" (change)="onFilterChange()">
-  <option value="all">All Ranges</option>
+  <option value="all">{{ 'ANALYTICS.ALL_RANGES' | translate }}</option>
   <option *ngFor="let r of ranges" [value]="r">{{r}}</option>
 </select>
 
 <select class="fselect" [(ngModel)]="selectedBeat" (change)="onFilterChange()">
-  <option value="all">All Beats</option>
+  <option value="all">{{ 'ANALYTICS.ALL_BEATS' | translate }}</option>
   <option *ngFor="let b of beats" [value]="b">{{b}}</option>
 </select>
         <div class="date-chips">
-          <div class="dchip" [class.active]="activeDateFilter==='today'" (click)="activeDateFilter='today'; onFilterChange()">Today</div>
-          <div class="dchip" [class.active]="activeDateFilter==='week'" (click)="activeDateFilter='week'; onFilterChange()">Week</div>
-          <div class="dchip" [class.active]="activeDateFilter==='month'" (click)="activeDateFilter='month'; onFilterChange()">Month</div>
-          <button class="ana-reset-btn" (click)="resetAnalyticsFilters()">Reset</button>
+          <div class="dchip" [class.active]="activeDateFilter==='today'" (click)="activeDateFilter='today'; onFilterChange()">{{ 'ANALYTICS.TODAY' | translate }}</div>
+          <div class="dchip" [class.active]="activeDateFilter==='week'" (click)="activeDateFilter='week'; onFilterChange()">{{ 'ANALYTICS.WEEK' | translate }}</div>
+          <div class="dchip" [class.active]="activeDateFilter==='month'" (click)="activeDateFilter='month'; onFilterChange()">{{ 'ANALYTICS.MONTH' | translate }}</div>
+          <button class="ana-reset-btn" (click)="resetAnalyticsFilters()">{{ 'ANALYTICS.RESET' | translate }}</button>
         </div>
       </div>
 
@@ -94,8 +94,8 @@
         <div id="ana-charts-area">
   <div class="card" *ngIf="displayProgList.length">
     <div class="card-hdr">
-      <div class="card-title">Sub-Category Overview</div>
-      <div class="card-pill">{{ currentCatSubsCount }} categories</div>
+      <div class="card-title">{{ 'ANALYTICS.SUB_CATEGORY_OVERVIEW' | translate }}</div>
+      <div class="card-pill">{{ currentCatSubsCount }} {{ 'ANALYTICS.CATEGORIES' | translate }}</div>
     </div>
     <div class="card-body">
       <div class="prog-list">

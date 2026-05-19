@@ -429,6 +429,7 @@ export class AppComponent implements OnInit {
     this.menu.close();
     if (path === 'settings') { this.currentPage = 'settings'; this.loadUserData(); }
     else if (path === 'home') {
+      this.currentPage = 'home';
       const roleId = localStorage.getItem('user_role');
       if (roleId === '1' || roleId === '2' || roleId === '7') this.navCtrl.navigateRoot('/admin');
       else this.navCtrl.navigateRoot('/home');
@@ -436,6 +437,11 @@ export class AppComponent implements OnInit {
       this.currentPage = 'home';
       this.navCtrl.navigateForward(`/${path}`).catch(err => console.error(err));
     }
+    this.cdr.detectChanges();
+  }
+
+  closeSettings() {
+    this.currentPage = 'home';
     this.cdr.detectChanges();
   }
 

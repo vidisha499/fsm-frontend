@@ -512,7 +512,11 @@ async fetchLocation() {
   }
 
   async downloadImage(imageUrl: string) {
+<<<<<<< Updated upstream
     await this.photoViewer.download(imageUrl);
+=======
+    this.photoViewer.download(imageUrl);
+>>>>>>> Stashed changes
   }
 
   // Swipe Gesture logic

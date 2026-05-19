@@ -5,8 +5,8 @@
     <span class="back-icon">❮</span>
   </div>
         <div>
-          <div class="tbar-title">Settings</div>
-          <div class="tbar-sub">Admin Panel</div>
+          <div class="tbar-title">{{ 'ADMIN_SETTINGS.TITLE' | translate }}</div>
+          <div class="tbar-sub">{{ 'ADMIN_SETTINGS.SUBTITLE' | translate }}</div>
         </div>
       </div>
     </div>
@@ -17,12 +17,12 @@
 
     <div class="pinfo">
       <div class="pname">{{ adminUser.name }}</div>
-      <div class="prole">{{ adminUser.role }} • {{ adminUser.ranges }}</div>
+      <div class="prole">{{ adminUser.role }} • {{ adminUser.ranges === 'All Ranges' ? ('ADMIN_SETTINGS.ALL_RANGES' | translate) : adminUser.ranges }}</div>
     </div>
   </div>
 
       <div class="sett-sec">
-        <div class="sett-gt">Notifications</div>
+        <div class="sett-gt">{{ 'ADMIN_SETTINGS.NOTIFICATIONS' | translate }}</div>
         <div class="sett-card">
           <div *ngFor="let item of notifications" class="sett-item">
             <div class="sett-ico" [style.background]="item.bg">{{item.icon}}</div>
@@ -38,13 +38,13 @@
           </div>
         </div>
 
-        <div class="sett-gt">Data & Access</div>
+        <div class="sett-gt">{{ 'ADMIN_SETTINGS.DATA_ACCESS' | translate }}</div>
         <div class="sett-card">
           <div class="sett-item" >
             <div class="sett-ico" style="background:#f5f3ff">📥</div>
             <div class="sett-txt">
-              <div class="sett-lbl" (click)="goToReports()">Export Reports</div>
-              <div class="sett-desc">PDF / Excel download</div>
+              <div class="sett-lbl" (click)="goToReports()">{{ 'ADMIN_SETTINGS.EXPORT_REPORTS' | translate }}</div>
+              <div class="sett-desc">{{ 'ADMIN_SETTINGS.EXPORT_REPORTS_DESC' | translate }}</div>
             </div>
             <div class="chevron">›</div>
           </div>
@@ -52,8 +52,8 @@
           <div class="sett-item" (click)="changeSync()">
             <div class="sett-ico" style="background:#f0fdfa">🔄</div>
             <div class="sett-txt">
-              <div class="sett-lbl">Sync Interval</div>
-              <div class="sett-desc">Every {{ syncInterval }} minutes</div>
+              <div class="sett-lbl">{{ 'ADMIN_SETTINGS.SYNC_INTERVAL' | translate }}</div>
+              <div class="sett-desc">{{ 'ADMIN_SETTINGS.SYNC_DESC_1' | translate }} {{ syncInterval }} {{ 'ADMIN_SETTINGS.SYNC_DESC_2' | translate }}</div>
             </div>
             <div class="chevron">›</div>
           </div>
@@ -61,8 +61,8 @@
             <div class="sett-item" (click)="manageUsers()">
             <div class="sett-ico" style="background:#f5f3ff">👥</div>
             <div class="sett-txt">
-              <div class="sett-lbl">Manage users</div>
-              <div class="sett-desc">roles,permissions,beats</div>
+              <div class="sett-lbl">{{ 'ADMIN_SETTINGS.MANAGE_USERS' | translate }}</div>
+              <div class="sett-desc">{{ 'ADMIN_SETTINGS.MANAGE_USERS_DESC' | translate }}</div>
             </div>
             <div class="chevron">›</div>
           </div> 
@@ -70,20 +70,20 @@
           <div class="sett-item" style="border-color:rgba(239,68,68,.15)" (click)="logout()">
             <div class="sett-ico" style="background:#fff1f2">🚪</div>
             <div class="sett-txt">
-              <div class="sett-lbl" style="color:#ef4444">Sign Out</div>
-              <div class="sett-desc">Admin · All Ranges</div>
+              <div class="sett-lbl" style="color:#ef4444">{{ 'ADMIN_SETTINGS.SIGN_OUT' | translate }}</div>
+              <div class="sett-desc">{{ 'ADMIN_SETTINGS.SIGN_OUT_DESC' | translate }}</div>
             </div>
             <div class="chevron" style="color:#ef4444">›</div>
           </div>
         </div>
 
-        <div class="sett-gt">App</div>
+        <div class="sett-gt">{{ 'ADMIN_SETTINGS.APP' | translate }}</div>
         <div class="sett-card">
           <div class="sett-item no-click">
             <div class="sett-ico" style="background:#eff6ff">ℹ️</div>
             <div class="sett-txt">
-              <div class="sett-lbl">App Version</div>
-              <div class="sett-desc">ForestFix Admin v2.4.1 · Ionic/Angular</div>
+              <div class="sett-lbl">{{ 'ADMIN_SETTINGS.APP_VERSION' | translate }}</div>
+              <div class="sett-desc">{{ 'ADMIN_SETTINGS.APP_VERSION_DESC' | translate }}</div>
             </div>
           </div>
         </div>

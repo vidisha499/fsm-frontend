@@ -13,7 +13,7 @@
             </button>
           <div>
             <div class="tbar-title">ForestFix</div>
-            <div class="tbar-sub">Admin Console</div>
+            <div class="tbar-sub">{{ 'ADMIN.ADMIN_CONSOLE' | translate }}</div>
           </div>
         </div>
 
@@ -83,12 +83,12 @@
           [(ngModel)]="selectedRange"
           (change)="onRangeFilterChange()"
         >
-          <option value="all">All Ranges</option>
+          <option value="all">{{ 'ADMIN.ALL_RANGES' | translate }}</option>
           <option *ngFor="let range of allRanges" [value]="range">{{ range }}</option>
         </select>
 
         <select class="fselect" [(ngModel)]="selectedBeat" (change)="doRefresh(false)">
-          <option value="all">All Beats</option>
+          <option value="all">{{ 'ADMIN.ALL_BEATS' | translate }}</option>
           <option *ngFor="let beat of displayBeats" [value]="beat">{{ beat }}</option>
         </select>
 
@@ -105,7 +105,7 @@
         </button>
 
         <button class="dash-reset-btn" (click)="resetAllFilters()">
-          Reset
+          {{ 'ADMIN.RESET' | translate }}
         </button>
       </div>
 
@@ -115,28 +115,28 @@
           [class.active]="activeDateFilter === 'today'"
           (click)="setDateFilter('today')"
         >
-          Today
+          {{ 'ADMIN.TODAY' | translate }}
         </div>
         <div
           class="dchip"
           [class.active]="activeDateFilter === 'week'"
           (click)="setDateFilter('week')"
         >
-          Week
+          {{ 'ADMIN.WEEK' | translate }}
         </div>
         <div
           class="dchip"
           [class.active]="activeDateFilter === 'month'"
           (click)="setDateFilter('month')"
         >
-          Month
+          {{ 'ADMIN.MONTH' | translate }}
         </div>
         <div
           class="dchip"
           [class.active]="activeDateFilter === 'custom'"
           (click)="setDateFilter('custom')"
         >
-          Custom
+          {{ 'ADMIN.CUSTOM' | translate }}
         </div>
       </div>
 
@@ -144,14 +144,14 @@
         <div class="date-input-box">
           <div class="dib-hdr">
             <ion-icon name="calendar-outline"></ion-icon>
-            <label>FROM</label>
+            <label>{{ 'ADMIN.FROM' | translate }}</label>
           </div>
           <input type="date" [(ngModel)]="dateFrom" [max]="todayDate" (change)="doRefresh(false)" />
         </div>
         <div class="date-input-box">
           <div class="dib-hdr">
             <ion-icon name="calendar-outline"></ion-icon>
-            <label>TO</label>
+            <label>{{ 'ADMIN.TO' | translate }}</label>
           </div>
           <input type="date" [(ngModel)]="dateTo" [max]="todayDate" (change)="doRefresh(false)" />
         </div>
@@ -164,21 +164,21 @@
         [class.active]="activeSegment === 'overview'"
         (click)="setSegment('overview')"
       >
-        Overview
+        {{ 'ADMIN.OVERVIEW' | translate }}
       </button>
       <button
         class="seg-btn"
         [class.active]="activeSegment === 'map'"
         (click)="setSegment('map')"
       >
-        Map View
+        {{ 'ADMIN.MAP_VIEW' | translate }}
       </button>
       <button
         class="seg-btn"
         [class.active]="activeSegment === 'alerts'"
         (click)="setSegment('alerts')"
       >
-        Alerts
+        {{ 'ADMIN.ALERTS' | translate }}
       </button>
       <!-- <button
         class="seg-btn"
@@ -201,8 +201,8 @@
     </div>
 
     <div class="shdr">
-      <div class="shdr-title">Key Indicators</div>
-      <div class="shdr-link" (click)="gotoAnalytics()">Analytics →</div>
+      <div class="shdr-title">{{ 'ADMIN.KEY_INDICATORS' | translate }}</div>
+      <div class="shdr-link" (click)="gotoAnalytics()">{{ 'ADMIN.ANALYTICS' | translate }}</div>
     </div>
 
     <div class="kpi-scroll">
@@ -213,8 +213,8 @@
           </svg>
         </div>
         <div class="kpi-val" id="kv-duty">{{ onDutyCount }}</div>
-        <div class="kpi-lbl">On Duty Officers</div>
-        <div class="kpi-trend up">▲ {{ attendancePercent }}% Attendance</div>
+        <div class="kpi-lbl">{{ 'ADMIN.ON_DUTY_OFFICERS' | translate }}</div>
+        <div class="kpi-trend up">▲ {{ attendancePercent }}% {{ 'ADMIN.ATTENDANCE_LABEL' | translate }}</div>
       </div>
 
        <div class="kpi-card" data-c="teal" (click)="goToPatrolLogs()">
@@ -224,8 +224,8 @@
           </svg>
         </div>
         <div class="kpi-val" id="kv-patrol">{{ patrolCount }}</div>
-        <div class="kpi-lbl">Patrol logs</div>
-        <div class="kpi-trend up" >▲ Tap to analyse</div>
+        <div class="kpi-lbl">{{ 'ADMIN.PATROL_LOGS' | translate }}</div>
+        <div class="kpi-trend up" >▲ {{ 'ADMIN.TAP_ANALYSE' | translate }}</div>
       </div> 
 
       <div class="kpi-card" data-c="rose" (click)="goToCriminalRecords()">
@@ -235,8 +235,8 @@
           </svg>
         </div>
         <div class="kpi-val" id="kv-crim">{{ criminalCount }}</div>
-        <div class="kpi-lbl">Criminal Activity</div>
-        <div class="kpi-trend dn" (click)="goAnalytics('criminal'); $event.stopPropagation()">▼ Tap to analyse</div>
+        <div class="kpi-lbl">{{ 'ADMIN.CRIMINAL_ACTIVITY' | translate }}</div>
+        <div class="kpi-trend dn" (click)="goAnalytics('criminal'); $event.stopPropagation()">▼ {{ 'ADMIN.TAP_ANALYSE' | translate }}</div>
 
       </div>
 
@@ -248,8 +248,8 @@
           </svg>
         </div>
         <div class="kpi-val">{{ eventsCount }}</div>
-        <div class="kpi-lbl">Events & Monitoring</div>
-        <div class="kpi-trend up" (click)="goAnalytics('events'); $event.stopPropagation()">▲ Tap to analyse</div>
+        <div class="kpi-lbl">{{ 'ADMIN.EVENTS_MONITORING' | translate }}</div>
+        <div class="kpi-trend up" (click)="goAnalytics('events'); $event.stopPropagation()">▲ {{ 'ADMIN.TAP_ANALYSE' | translate }}</div>
 
       </div>
     
@@ -261,8 +261,8 @@
           </svg>
         </div>
         <div class="kpi-val" id="kv-fire">{{ fireAlertsCount }}</div>
-        <div class="kpi-lbl">Fire Alerts</div>
-        <div class="kpi-trend dn" (click)="goAnalytics('fire'); $event.stopPropagation()">▼ Tap to analyse</div>
+        <div class="kpi-lbl">{{ 'ADMIN.FIRE_ALERTS' | translate }}</div>
+        <div class="kpi-trend dn" (click)="goAnalytics('fire'); $event.stopPropagation()">▼ {{ 'ADMIN.TAP_ANALYSE' | translate }}</div>
 
       </div>
 
@@ -273,7 +273,7 @@
           </svg>
         </div>
         <div class="kpi-val" id="kv-assets">{{ totalAssetsCount }}</div>
-        <div class="kpi-lbl">Assets & Tools</div>
+        <div class="kpi-lbl">{{ 'ADMIN.ASSETS_TOOLS' | translate }}</div>
         <div class="kpi-trend up">▲  {{operationalRate}}</div>
       </div>
       <div class="kpi-card" data-c="emerald" (click)="goToPlantations()">
@@ -283,8 +283,8 @@
           </svg>
         </div>
         <div class="kpi-val" id="kv-plants">Live</div>
-        <div class="kpi-lbl">Plantations</div>
-        <div class="kpi-trend up">▲ Tap to approve</div>
+        <div class="kpi-lbl">{{ 'ADMIN.PLANTATIONS' | translate }}</div>
+        <div class="kpi-trend up">▲ {{ 'ADMIN.TAP_APPROVE' | translate }}</div>
       </div>
     </div>
 
@@ -295,8 +295,8 @@
   <div class="card">
     <div class="card-hdr">
       <div>
-        <div class="card-title">Incident Trend</div>
-        <div class="card-sub">All categories · Selected period</div>
+        <div class="card-title">{{ 'ADMIN.INCIDENT_TREND' | translate }}</div>
+        <div class="card-sub">{{ 'ADMIN.ALL_CATEGORIES' | translate }}</div>
       </div>
       <div class="card-pill" id="trend-pill">{{ momStatus }}</div>
     </div>
@@ -308,56 +308,56 @@
         <canvas id="c-trend"></canvas>
       </div>
       <div class="chart-axis-labels">
-        <span class="chart-axis-label">← Earlier</span>
-        <span class="chart-axis-label">Days →</span>
+        <span class="chart-axis-label">{{ 'ADMIN.EARLIER' | translate }}</span>
+        <span class="chart-axis-label">{{ 'ADMIN.DAYS' | translate }}</span>
       </div>
       <div style="display:flex;justify-content:center;margin-top:4px;">
-        <span style="font-size:8px;color:var(--tx3);font-weight:600;">Y-AXIS: No. of Incidents</span>
+        <span style="font-size:8px;color:var(--tx3);font-weight:600;">{{ 'ADMIN.Y_INCIDENTS' | translate }}</span>
       </div>
     </div>
   </div>
   
 
   <div class="shdr" style="padding-bottom:6px">
-    <div class="shdr-title">Category Snapshot</div>
-    <div class="shdr-link" style="font-size:9px;color:var(--tx3)">scroll →</div>
+    <div class="shdr-title">{{ 'ADMIN.CATEGORY_SNAPSHOT' | translate }}</div>
+    <div class="shdr-link" style="font-size:9px;color:var(--tx3)">{{ 'ADMIN.SCROLL' | translate }}</div>
   </div>
   
   <div class="mini-scroll">
     <div class="mini-card" data-cat="criminal" (click)="goAnalytics('criminal')">
-      <div class="mini-lbl">🌲 Criminal Activity</div>
+      <div class="mini-lbl">{{ 'ADMIN.CRIMINAL_LABEL' | translate }}</div>
       <div class="mini-val" style="color:var(--rose)" id="ms-crim">{{criminalCount}}</div>
       <div class="mini-ch"><canvas id="mc-crim"></canvas></div>
-      <div class="mini-meta">Y: Cases · {{ snapshotMetaLabel }}</div>
+      <div class="mini-meta">{{ 'ADMIN.Y_CASES' | translate }} · {{ snapshotMetaLabel }}</div>
     </div>
 
     <div class="mini-card" data-cat="events" (click)="goAnalytics('events')">
-      <div class="mini-lbl">🐾 Events & Monitor.</div>
+      <div class="mini-lbl">{{ 'ADMIN.EVENTS_LABEL' | translate }}</div>
       <div class="mini-val" style="color:var(--amber)" id="ms-events">{{ eventsCount }}</div>
       <div class="mini-ch"><canvas id="mc-events"></canvas></div>
-      <div class="mini-meta">Y: Events · {{ snapshotMetaLabel }}</div>
+      <div class="mini-meta">{{ 'ADMIN.Y_EVENTS' | translate }} · {{ snapshotMetaLabel }}</div>
     </div>
     
 
     <div class="mini-card" data-cat="fire" (click)="goAnalytics('fire')">
-      <div class="mini-lbl">🔥 Fire Incidents</div>
+      <div class="mini-lbl">{{ 'ADMIN.FIRE_LABEL' | translate }}</div>
       <div class="mini-val" style="color:var(--orange)" id="ms-fire">{{fireAlertsCount}}</div>
       <div class="mini-ch"><canvas id="mc-fire"></canvas></div>
-      <div class="mini-meta">Y: Alerts · {{ snapshotMetaLabel }}</div>
+      <div class="mini-meta">{{ 'ADMIN.Y_ALERTS' | translate }} · {{ snapshotMetaLabel }}</div>
     </div>
 
     <div class="mini-card" data-cat="assets">
-      <div class="mini-lbl">🛡️ Assets & Tools</div>
+      <div class="mini-lbl">{{ 'ADMIN.ASSETS_LABEL' | translate }}</div>
       <div class="mini-val" style="color:var(--p)" id="ms-assets">{{ totalAssetsCount || 0 }}</div>
       <div class="mini-ch"><canvas id="mc-assets"></canvas></div>
-      <div class="mini-meta">Y: Count · {{ snapshotMetaLabel }}</div>
+      <div class="mini-meta">{{ 'ADMIN.Y_COUNT' | translate }} · {{ snapshotMetaLabel }}</div>
     </div>
 
     <div class="mini-card" data-cat="duty">
-      <div class="mini-lbl">👮 Officers On Duty</div>
+      <div class="mini-lbl">{{ 'ADMIN.DUTY_LABEL' | translate }}</div>
       <div class="mini-val" style="color:var(--blue)" id="ms-duty">{{ onDutyCount }}</div>
       <div class="mini-ch"><canvas id="mc-duty"></canvas></div>
-      <div class="mini-meta">Y: Count · {{ snapshotMetaLabel }}</div>
+      <div class="mini-meta">{{ 'ADMIN.Y_COUNT' | translate }} · {{ snapshotMetaLabel }}</div>
     </div>
   </div>
   
@@ -365,7 +365,7 @@
 
     <div class="card">
       <div class="card-hdr">
-        <div class="card-title">Beat Coverage by Range</div>
+        <div class="card-title">{{ 'ADMIN.BEAT_COVERAGE' | translate }}</div>
       </div>
       <div class="card-body">
         <div class="prog-list">
@@ -453,7 +453,7 @@
       <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
       <rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
     </svg>
-    Compartments
+    {{ 'ADMIN.COMPARTMENTS' | translate }}
   </button>
 
           <button
@@ -476,7 +476,7 @@
                 <path d="m2 12 10 6.5 10-6.5" />
               </svg>
             </div>
-            <span>Layers</span>
+            <span>{{ 'ADMIN.LAYERS' | translate }}</span>
             <!-- <div class="lbtn-badge">{{ activeLayerCount }}</div> -->
           </button>
 
@@ -485,8 +485,8 @@
   
   <div class="lp-hdr">
     <div>
-      <div class="lp-title">Map Layers</div>
-      <div class="lp-sub">Toggle what's shown on the map</div>
+      <div class="lp-title">{{ 'ADMIN.MAP_LAYERS' | translate }}</div>
+      <div class="lp-sub">{{ 'ADMIN.TOGGLE_MAP' | translate }}</div>
     </div>
     <button
   class="layers-btn"
@@ -499,8 +499,8 @@
   </div>
   
   <div class="lp-qrow">
-    <div class="qchip" [class.on]="allLayersOn" (click)="layerAllOn()">All On</div>
-    <div class="qchip" (click)="layerAllOff()">All Off</div>
+    <div class="qchip" [class.on]="allLayersOn" (click)="layerAllOn()">{{ 'ADMIN.ALL_ON' | translate }}</div>
+    <div class="qchip" (click)="layerAllOff()">{{ 'ADMIN.ALL_OFF' | translate }}</div>
   </div>
 
   <div class="lp-body custom-scroll">
@@ -513,7 +513,7 @@
         </div>
         <div class="lp-item-info">
           <div class="lp-item-lbl">{{ layer.label }}</div>
-          <div class="lp-item-cnt">Active Data Layer</div>
+          <div class="lp-item-cnt">{{ 'ADMIN.ACTIVE_DATA_LAYER' | translate }}</div>
         </div>
         <div class="ltog" [class.on]="layerStates[layer.id]"></div>
       </div>
@@ -530,7 +530,7 @@
           </div>
 
   <div *ngIf="dynamicFootStats.length === 0" style="width: 100%; text-align: center; font-size: 10px; color: var(--tx3);">
-    No active layers selected
+    {{ 'ADMIN.NO_ACTIVE_LAYERS' | translate }}
   </div>
 </div>
       </div> 
@@ -538,9 +538,9 @@
 
       <div class="legend-section">
         <div class="legend-header">
-          <span class="legend-title">Active Layers Legend</span>
+          <span class="legend-title">{{ 'ADMIN.ACTIVE_LAYERS_LEGEND' | translate }}</span>
           <button class="refresh-link" (click)="updateVisiblePins()">
-            Refresh
+            {{ 'ADMIN.REFRESH' | translate }}
           </button>
         </div>
         <div class="legend-grid">
@@ -550,7 +550,7 @@
             <span class="legend-label">{{ item.label }}</span>
           </div>
           <div class="legend-empty" *ngIf="activeLegendItems.length === 0">
-            No active layers selected
+            {{ 'ADMIN.NO_ACTIVE_LAYERS' | translate }}
           </div>
         </div>
       </div>
@@ -604,7 +604,7 @@
 
 
         <div *ngIf="filteredAlerts.length === 0" style="padding: 40px; text-align: center; color: var(--tx3); font-size: 11px;">
-          No alerts found for this category.
+          {{ 'ADMIN.NO_ALERTS_FOUND' | translate }}
         </div>
       </div>
     </div>
@@ -725,7 +725,7 @@
         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
         <polyline points="9 22 9 12 15 12 15 22" />
       </svg>
-      <span class="tab-lbl">Home</span>
+      <span class="tab-lbl">{{ 'ADMIN.TAB_HOME' | translate }}</span>
     </button>
 
     <button
@@ -746,7 +746,7 @@
         <line x1="12" y1="20" x2="12" y2="4" />
         <line x1="6" y1="20" x2="6" y2="14" />
       </svg>
-      <span class="tab-lbl">Analytics</span>
+      <span class="tab-lbl">{{ 'ADMIN.TAB_ANALYTICS' | translate }}</span>
     </button>
 
     <button
@@ -768,6 +768,6 @@
           d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
         />
       </svg>
-      <span class="tab-lbl">Settings</span>
+      <span class="tab-lbl">{{ 'ADMIN.TAB_SETTINGS' | translate }}</span>
     </button>
   </nav>

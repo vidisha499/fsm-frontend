@@ -4,6 +4,7 @@ import { DataService } from 'src/app/data.service';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-admin-settings',
@@ -27,6 +28,11 @@ export class AdminSettingsPage implements OnInit {
   ngOnInit() {
     this.loadUserData();
     
+    // Subscribe to language changes to update TS labels dynamically
+    this.translate.onLangChange.subscribe(() => {
+      this.initTranslations();
+    });
+    
     // Load notification prefs
     const savedPrefs = localStorage.getItem('admin_notification_settings');
     if (savedPrefs) {
@@ -38,6 +44,8 @@ export class AdminSettingsPage implements OnInit {
     if (savedSync) {
       this.syncInterval = parseInt(savedSync);
     }
+    
+    this.initTranslations();
   }
   
 
@@ -84,8 +92,23 @@ export class AdminSettingsPage implements OnInit {
     private navCtrl: NavController, 
     private toast: ToastController,
     private alertCtrl: AlertController,
-    private dataService: DataService
+    private dataService: DataService,
+    private translate: TranslateService
   ) {}
+
+  initTranslations() {
+    this.notifications[0].label = this.translate.instant('ADMIN_SETTINGS.NOTIF_FIRE_ALERTS');
+    this.notifications[0].desc = this.translate.instant('ADMIN_SETTINGS.NOTIF_FIRE_ALERTS_DESC');
+    
+    this.notifications[1].label = this.translate.instant('ADMIN_SETTINGS.NOTIF_CRIMINAL_ACTIVITY');
+    this.notifications[1].desc = this.translate.instant('ADMIN_SETTINGS.NOTIF_CRIMINAL_ACTIVITY_DESC');
+    
+    this.notifications[2].label = this.translate.instant('ADMIN_SETTINGS.NOTIF_ILLEGAL_FELLING');
+    this.notifications[2].desc = this.translate.instant('ADMIN_SETTINGS.NOTIF_ILLEGAL_FELLING_DESC');
+    
+    this.notifications[3].label = this.translate.instant('ADMIN_SETTINGS.NOTIF_ANIMAL_POACHING');
+    this.notifications[3].desc = this.translate.instant('ADMIN_SETTINGS.NOTIF_ANIMAL_POACHING_DESC');
+  }
 
 
 

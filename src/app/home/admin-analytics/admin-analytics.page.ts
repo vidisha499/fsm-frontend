@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { DataService } from 'src/app/data.service';
 import { ActivatedRoute } from '@angular/router';
 import { HierarchyService } from 'src/app/services/hierarchy.service';
+import { TranslateService } from '@ngx-translate/core';
 
 
 Chart.register(...registerables);
@@ -496,7 +497,8 @@ events: {
     private http: HttpClient,
     private dataService: DataService,
     private hierarchyService: HierarchyService,
-    private route: ActivatedRoute,) { }
+    private route: ActivatedRoute,
+    private translate: TranslateService) { }
 
   ngOnInit() { 
     const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
@@ -521,6 +523,15 @@ events: {
 
     console.log(`📅 Analytics: Global Filter Restored → ${this.activeDateFilter} | Range: ${this.selectedRange} | Beat: ${this.selectedBeat}`);
     
+    // Apply translations to dynamic labels initially
+    this.initTranslations();
+
+    // Subscribe to language changes to update TS labels dynamically
+    this.translate.onLangChange.subscribe(() => {
+      this.initTranslations();
+      this.cdr.detectChanges();
+    });
+
     // Unified Data Load
     this.loadHierarchyData();
     this.updateUIData();
@@ -538,6 +549,88 @@ events: {
           this.setAnaCat('criminal');
         }
     });
+  }
+
+  initTranslations() {
+    // Translate catList tab labels
+    this.catList = [
+      { id: 'criminal', label: this.translate.instant('ANALYTICS.CAT_CRIMINAL') },
+      { id: 'events', label: this.translate.instant('ANALYTICS.CAT_EVENTS') },
+      { id: 'fire', label: this.translate.instant('ANALYTICS.CAT_FIRE') },
+      { id: 'assets', label: this.translate.instant('ANALYTICS.CAT_ASSETS') }
+    ];
+
+    // Translate ANA_CONFIG labels
+    this.ANA_CONFIG.criminal.label = this.translate.instant('ANALYTICS.CRIMINAL_ACTIVITY');
+    const crimSubs = this.ANA_CONFIG.criminal.subs;
+    if (crimSubs[0]) crimSubs[0].label = this.translate.instant('ANALYTICS.ILLEGAL_FELLING');
+    if (crimSubs[1]) crimSubs[1].label = this.translate.instant('ANALYTICS.TIMBER_TRANSPORT');
+    if (crimSubs[2]) crimSubs[2].label = this.translate.instant('ANALYTICS.TIMBER_STORAGE');
+    if (crimSubs[3]) crimSubs[3].label = this.translate.instant('ANALYTICS.WILD_ANIMAL_POACHING');
+    if (crimSubs[4]) crimSubs[4].label = this.translate.instant('ANALYTICS.ENCROACHMENT');
+    if (crimSubs[5]) crimSubs[5].label = this.translate.instant('ANALYTICS.ILLEGAL_MINING');
+
+    // Translate criminal chart titles
+    if (crimSubs[0]?.charts[0]) crimSubs[0].charts[0].title = this.translate.instant('ANALYTICS.VOLUME_BY_SPECIES');
+    if (crimSubs[0]?.charts[1]) crimSubs[0].charts[1].title = this.translate.instant('ANALYTICS.RANGE_WISE_FELLING');
+    if (crimSubs[1]?.charts[0]) crimSubs[1].charts[0].title = this.translate.instant('ANALYTICS.TRANSPORT_TREND');
+    if (crimSubs[1]?.charts[0]) crimSubs[1].charts[0].sub = this.translate.instant('ANALYTICS.TRANSPORT_TREND_SUB');
+    if (crimSubs[1]?.charts[1]) crimSubs[1].charts[1].title = this.translate.instant('ANALYTICS.RANGE_WISE_TRANSPORT');
+    if (crimSubs[2]?.charts[0]) crimSubs[2].charts[0].title = this.translate.instant('ANALYTICS.STORAGE_BY_SPECIES');
+    if (crimSubs[2]?.charts[0]) crimSubs[2].charts[0].sub = this.translate.instant('ANALYTICS.STORAGE_BY_SPECIES_SUB');
+    if (crimSubs[2]?.charts[1]) crimSubs[2].charts[1].title = this.translate.instant('ANALYTICS.STORAGE_PROPORTION');
+    if (crimSubs[2]?.charts[1]) crimSubs[2].charts[1].sub = this.translate.instant('ANALYTICS.STORAGE_PROPORTION_SUB');
+    if (crimSubs[3]?.charts[0]) crimSubs[3].charts[0].title = this.translate.instant('ANALYTICS.SPECIES_WITH_GENDER');
+    if (crimSubs[3]?.charts[1]) crimSubs[3].charts[1].title = this.translate.instant('ANALYTICS.RANGE_WISE_POACHING');
+    if (crimSubs[4]?.charts[0]) crimSubs[4].charts[0].title = this.translate.instant('ANALYTICS.ENCROACHMENT_TREND');
+    if (crimSubs[4]?.charts[1]) crimSubs[4].charts[1].title = this.translate.instant('ANALYTICS.TYPE_DISTRIBUTION');
+    if (crimSubs[4]?.charts[1]) crimSubs[4].charts[1].sub = this.translate.instant('ANALYTICS.TYPE_DISTRIBUTION_SUB');
+    if (crimSubs[5]?.charts[0]) crimSubs[5].charts[0].title = this.translate.instant('ANALYTICS.RANGE_WISE_MINING');
+
+    // Events
+    this.ANA_CONFIG.events.label = this.translate.instant('ANALYTICS.EVENTS_MONITORING');
+    const evSubs = this.ANA_CONFIG.events.subs;
+    if (evSubs[0]) evSubs[0].label = this.translate.instant('ANALYTICS.JFMC');
+    if (evSubs[1]) evSubs[1].label = this.translate.instant('ANALYTICS.WILD_ANIMAL_SIGHTING');
+    if (evSubs[2]) evSubs[2].label = this.translate.instant('ANALYTICS.WATER_SOURCE');
+    if (evSubs[3]) evSubs[3].label = this.translate.instant('ANALYTICS.WILDLIFE_COMPENSATION');
+    if (evSubs[0]?.charts[0]) evSubs[0].charts[0].title = this.translate.instant('ANALYTICS.JFMC_TREND');
+    if (evSubs[0]?.charts[1]) evSubs[0].charts[1].title = this.translate.instant('ANALYTICS.RANGE_WISE_JFMC');
+    if (evSubs[1]?.charts[0]) evSubs[1].charts[0].title = this.translate.instant('ANALYTICS.SIGHTINGS_BY_SPECIES');
+    if (evSubs[1]?.charts[0]) evSubs[1].charts[0].sub = this.translate.instant('ANALYTICS.SIGHTINGS_BY_SPECIES_SUB');
+    if (evSubs[1]?.charts[1]) evSubs[1].charts[1].title = this.translate.instant('ANALYTICS.SIGHTING_TREND');
+    if (evSubs[1]?.charts[1]) evSubs[1].charts[1].sub = this.translate.instant('ANALYTICS.SIGHTING_TREND_SUB');
+    if (evSubs[2]?.charts[0]) evSubs[2].charts[0].title = this.translate.instant('ANALYTICS.WATER_SOURCE_TREND');
+    if (evSubs[2]?.charts[1]) evSubs[2].charts[1].title = this.translate.instant('ANALYTICS.WATER_SOURCES');
+    if (evSubs[3]?.charts[0]) evSubs[3].charts[0].title = this.translate.instant('ANALYTICS.RANGE_WISE_COMPENSATION');
+
+    // Fire
+    this.ANA_CONFIG.fire.label = this.translate.instant('ANALYTICS.FIRE_INCIDENTS');
+    const fireSubs = this.ANA_CONFIG.fire.subs;
+    if (fireSubs[0]) fireSubs[0].label = this.translate.instant('ANALYTICS.FIRE_ALERTS');
+    if (fireSubs[0]?.charts[0]) fireSubs[0].charts[0].title = this.translate.instant('ANALYTICS.FIRE_CAUSE_DIST');
+    if (fireSubs[0]?.charts[0]) fireSubs[0].charts[0].sub = this.translate.instant('ANALYTICS.FIRE_CAUSE_DIST_SUB');
+    if (fireSubs[0]?.charts[1]) fireSubs[0].charts[1].title = this.translate.instant('ANALYTICS.FIRE_TREND');
+    if (fireSubs[0]?.charts[1]) fireSubs[0].charts[1].sub = this.translate.instant('ANALYTICS.FIRE_TREND_SUB');
+
+    // Assets
+    this.ANA_CONFIG.assets.label = this.translate.instant('ANALYTICS.FOREST_ASSETS');
+
+    // Assets dynamic subs re-translation (if loaded)
+    if (this.ANA_CONFIG.assets.subs && this.ANA_CONFIG.assets.subs.length > 0) {
+      this.ANA_CONFIG.assets.subs.forEach((sub: any) => {
+        const originalName = sub.originalName || sub.label;
+        const key = 'ANALYTICS.' + originalName.toUpperCase().replace(/\s/g, '_');
+        const translatedName = this.translate.instant(key);
+        const finalLabel = translatedName === key ? originalName : translatedName;
+        const statusText = this.translate.instant('ANALYTICS.STATUS');
+        
+        sub.label = finalLabel;
+        if (sub.charts && sub.charts[0]) {
+          sub.charts[0].title = finalLabel + " " + (statusText === 'ANALYTICS.STATUS' ? 'Status' : statusText);
+        }
+      });
+    }
   }
 
   ngOnDestroy() { 
@@ -628,27 +721,35 @@ setAnaCat(id: string) {
   // --- YE SECTION ADD KARO (Surgical Strike) ---
   if (id === 'assets') {
     const companyId = localStorage.getItem('company_id') || 1;
-    // Database se categories fetch karo (Resorts/Safari ke liye)
     this.dataService.getCategories(companyId).subscribe((res: any) => {
       // Robust extraction of categories array
       const catList = Array.isArray(res) ? res : (res?.data || res?.categories || []);
       
-      this.ANA_CONFIG.assets.subs = catList.map((cat: any, idx: number) => ({
-        id: cat.name ? cat.name.toLowerCase().replace(/\s/g, '_') : 'cat_' + idx,
-        label: cat.name || 'Unknown',
-        emoji: "🛡️", 
-        icon: cat.icon_name || 'shield-checkmark-outline',
-        color: PALETTE[idx % PALETTE.length] || COLORS.p, // Assign color from palette
-        val: 0,
-        charts: [{ 
-          id: "ch-" + (cat.id || idx), 
-          title: (cat.name || 'Asset') + " Status", 
-          render: (chartId: string, ch: any) => {
-            const current = this.displayProgList.find(s => s.label === cat.name);
-            return this.renderGenericChart(chartId, cat.name, current?.val || 0, ch);
-          }
-        }]
-      }));
+      this.ANA_CONFIG.assets.subs = catList.map((cat: any, idx: number) => {
+        const originalName = cat.name || 'Unknown';
+        const key = 'ANALYTICS.' + originalName.toUpperCase().replace(/\s/g, '_');
+        const translatedName = this.translate.instant(key);
+        const finalLabel = translatedName === key ? originalName : translatedName;
+        const statusText = this.translate.instant('ANALYTICS.STATUS');
+
+        return {
+          id: cat.name ? cat.name.toLowerCase().replace(/\s/g, '_') : 'cat_' + idx,
+          originalName: originalName, // Store for re-translation
+          label: finalLabel,
+          emoji: "🛡️", 
+          icon: cat.icon_name || 'shield-checkmark-outline',
+          color: PALETTE[idx % PALETTE.length] || COLORS.p, // Assign color from palette
+          val: 0,
+          charts: [{ 
+            id: "ch-" + (cat.id || idx), 
+            title: finalLabel + " " + (statusText === 'ANALYTICS.STATUS' ? 'Status' : statusText), 
+            render: (chartId: string, ch: any) => {
+              const current = this.displayProgList.find(s => s.originalName === originalName || s.label === cat.name);
+              return this.renderGenericChart(chartId, finalLabel, current?.val || 0, ch);
+            }
+          }]
+        };
+      });
       this.activeSubId = this.ANA_CONFIG.assets.subs[0]?.id;
       this.fetchRealAssetData(); // Force immediate count sync for top cards
       this.updateUIData(); // Sync other dashboard counts

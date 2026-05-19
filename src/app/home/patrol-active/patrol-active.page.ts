@@ -516,7 +516,11 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
   closeZoom() { this.photoViewer.close(); }
 
   async downloadImage(imageUrl: string) {
+<<<<<<< Updated upstream
     await this.photoViewer.download(imageUrl);
+=======
+    this.photoViewer.download(imageUrl);
+>>>>>>> Stashed changes
   }
 
   calculateDistance() {

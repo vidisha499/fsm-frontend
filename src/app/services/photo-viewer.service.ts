@@ -33,6 +33,7 @@ export class PhotoViewerService {
   async download(imageUrl: string) {
     if (!imageUrl) return;
     
+<<<<<<< Updated upstream
     try {
       if (Capacitor.isNativePlatform()) {
         const loading = await this.loadingCtrl.create({
@@ -109,6 +110,45 @@ export class PhotoViewerService {
     } catch (error) {
       console.error('Download process failed', error);
       this.presentToast('An error occurred during download', 'danger');
+=======
+    const loading = await this.loadingCtrl.create({
+      message: 'Downloading...',
+      mode: 'ios'
+    });
+    await loading.present();
+    
+    try {
+      // Fetch the image as a Blob to bypass CORS download restrictions
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      const extension = imageUrl.split('.').pop()?.split('?')[0] || 'jpg';
+      link.download = `fms_photo_${Date.now()}.${extension}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up resources
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 200);
+      loading.dismiss();
+    } catch (e) {
+      console.error('Download via blob failed, trying direct link fallback', e);
+      try {
+        const link = document.createElement('a');
+        link.href = imageUrl;
+        link.target = '_blank';
+        link.download = `fms_photo_${Date.now()}.jpg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (err) {
+        console.error('Fallback download failed', err);
+      }
+      loading.dismiss();
+>>>>>>> Stashed changes
     }
   }
 
