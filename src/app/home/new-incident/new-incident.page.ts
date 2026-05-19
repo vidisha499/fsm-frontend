@@ -286,48 +286,7 @@ const payload = {
   }
 
   async downloadImage(imageUrl: string) {
-<<<<<<< Updated upstream
     await this.photoViewer.download(imageUrl);
-=======
-    if (!imageUrl) return;
-    
-    const loading = await this.loadingCtrl.create({
-      message: 'Downloading...',
-      mode: 'ios'
-    });
-    await loading.present();
-    
-    try {
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      
-      const link = document.createElement('a');
-      link.href = objectUrl;
-      const extension = imageUrl.split('.').pop()?.split('?')[0] || 'jpg';
-      link.download = `incident_photo_${Date.now()}.${extension}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 200);
-      loading.dismiss();
-    } catch (e) {
-      console.error('Download via blob failed, trying direct link fallback', e);
-      try {
-        const link = document.createElement('a');
-        link.href = imageUrl;
-        link.target = '_blank';
-        link.download = `incident_photo_${Date.now()}.jpg`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } catch (err) {
-        console.error('Fallback download failed', err);
-      }
-      loading.dismiss();
-    }
->>>>>>> Stashed changes
   }
 
   onDragStart(event: TouchEvent) {

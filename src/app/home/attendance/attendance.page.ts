@@ -582,9 +582,6 @@ async submitAttendance() {
     this.currentZoom = 1;
   }
   async downloadImage(imageUrl: string) {
-<<<<<<< Updated upstream
-    await this.photoViewer.download(imageUrl);
-=======
     if (!imageUrl) return;
     
     const loader = await this.loadingCtrl.create({
@@ -623,6 +620,5 @@ async submitAttendance() {
       }
       loader.dismiss();
     }
->>>>>>> Stashed changes
   }
 }
