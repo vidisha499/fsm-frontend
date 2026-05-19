@@ -3,24 +3,29 @@
     <div class="ambient-glow glow-1"></div>
     <div class="ambient-glow glow-2"></div>
 
-    <div class="header-section">
-      <div class="nav-bar">
-        <div (click)="goBack()" class="glass-btn">
-          <i class="fas fa-chevron-left"></i>
+    <div class="hero-header">
+      <div class="header-overlay"></div>
+      <div class="header-content">
+        <div class="nav-bar">
+          <div class="left-section">
+            <button (click)="goBack()" class="glass-btn">
+              <ion-icon name="arrow-back-outline"></ion-icon>
+            </button>
+            <div class="title-area">
+              <h1>{{ categoryTitle }}</h1>
+              <p>{{ filteredUsers.length }} Personnel Found</p>
+            </div>
+          </div>
         </div>
-        <div class="title-area">
-          <h1>{{ categoryTitle }}</h1>
-          <p>{{ filteredUsers.length }} Personnel Found</p>
-        </div>
-      </div>
 
-      <div class="search-container animate__animated animate__fadeInDown">
-        <div class="search-box">
-          <i class="fas fa-search"></i>
-          <input type="text" 
-                 placeholder="Search by name or phone..." 
-                 [(ngModel)]="searchText"
-                 (input)="onSearch()">
+        <div class="search-container animate__animated animate__fadeInDown">
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" 
+                   placeholder="Search by name or phone..." 
+                   [(ngModel)]="searchText"
+                   (input)="onSearch()">
+          </div>
         </div>
       </div>
     </div>
@@ -31,48 +36,56 @@
       <p>Synchronizing personnel records...</p>
     </div>
 
-    <!-- User List -->
-    <div class="list-container animate-fade-in" *ngIf="!isLoading">
-      <div class="user-card" *ngFor="let user of filteredUsers" (click)="openUserDetail(user)">
-        <div class="card-glow"></div>
-        <div class="user-avatar-section">
-          <div class="avatar-ring">
-            <img *ngIf="user.photo" [src]="user.photo" (error)="user.photo = null">
-            <div *ngIf="!user.photo" class="avatar-fallback">
-              {{ getInitials(user.name) }}
+    <!-- Main Container -->
+    <div class="main-container animate-fade-in" *ngIf="!isLoading">
+      
+      <!-- User List -->
+      <div class="list-container" *ngIf="filteredUsers.length > 0">
+        <div class="user-card animate__animated animate__fadeInUp" 
+             *ngFor="let user of filteredUsers; let i = index"
+             [style.animation-delay]="i * 0.08 + 's'"
+             (click)="openUserDetail(user)">
+          <div class="card-glow"></div>
+          
+          <div class="user-avatar-section">
+            <div class="avatar-ring">
+              <img *ngIf="user.photo" [src]="user.photo" (error)="user.photo = null">
+              <div *ngIf="!user.photo" class="avatar-fallback">
+                {{ getInitials(user.name) }}
+              </div>
+            </div>
+            <div class="status-indicator" [class.online]="user.hasAttended"></div>
+          </div>
+
+          <div class="user-info-section">
+            <h3 class="user-name">{{ user.name }}</h3>
+            <div class="user-meta">
+              <span class="role-tag">{{ user.role_name }}</span>
+              <span class="meta-divider">·</span>
+              <span class="site-info">{{ user.site_name || 'General Range' }}</span>
+            </div>
+            <div class="user-contact" *ngIf="user.phone">
+              <i class="fas fa-phone-alt"></i>
+              <span>{{ user.phone }}</span>
             </div>
           </div>
-          <div class="status-indicator" [class.online]="user.hasAttended"></div>
-        </div>
 
-        <div class="user-info-section">
-          <h3 class="user-name">{{ user.name }}</h3>
-          <div class="user-meta">
-            <span class="role-tag">{{ user.role_name }}</span>
-            <span class="meta-divider">·</span>
-            <span class="site-info">{{ user.site_name || 'General Range' }}</span>
-          </div>
-          <div class="user-contact" *ngIf="user.phone">
-            <i class="fas fa-phone-alt"></i>
-            <span>{{ user.phone }}</span>
-          </div>
-        </div>
-
-        <div class="action-section">
-          <div class="glass-btn small">
-            <i class="fas fa-chevron-right"></i>
+          <div class="action-section">
+            <div class="glass-btn small">
+              <i class="fas fa-chevron-right"></i>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Empty State -->
-      <div class="empty-state" *ngIf="filteredUsers.length === 0">
-        <div class="empty-icon">
+      <div class="empty-state-card animate__animated animate__fadeInUp" *ngIf="filteredUsers.length === 0">
+        <div class="empty-icon-circle">
           <i class="fas fa-users-slash"></i>
         </div>
         <h3>No Personnel Found</h3>
         <p>We couldn't find any users in this category.</p>
-        <button class="glass-btn" (click)="goBack()">Go Back</button>
+        <button class="action-btn" (click)="goBack()">Go Back</button>
       </div>
     </div>
   </div>
