@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { LoadingController, ToastController } from '@ionic/angular';
+import { AlertController, LoadingController, ToastController } from '@ionic/angular';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 @Injectable({
@@ -14,9 +14,20 @@ export class PhotoViewerService {
   currentImage$ = this.currentImageSubject.asObservable();
 
   constructor(
+    private alertCtrl: AlertController,
     private loadingCtrl: LoadingController,
     private toastCtrl: ToastController
   ) {}
+
+  async presentSuccessPopup() {
+    const alert = await this.alertCtrl.create({
+      header: 'Success',
+      message: 'Image is downloaded',
+      buttons: ['OK'],
+      mode: 'ios'
+    });
+    await alert.present();
+  }
 
   open(imageUrl: string) {
     if (!imageUrl) return;
@@ -58,7 +69,7 @@ export class PhotoViewerService {
             });
           }
           await loading.dismiss();
-          this.presentToast('Image saved to Gallery / Documents', 'success');
+          await this.presentSuccessPopup();
         } catch (e) {
           await loading.dismiss();
           throw e;
@@ -77,33 +88,45 @@ export class PhotoViewerService {
           const blob = await response.blob();
           this.triggerBrowserDownload(blob, imageUrl);
           await loading.dismiss();
-          this.presentToast('Image downloaded successfully', 'success');
+          await this.presentSuccessPopup();
         } catch (e) {
-          console.warn('Direct fetch failed, trying proxy...', e);
+          console.warn('Direct fetch failed, trying Weserv Image CDN Proxy...', e);
           try {
-            // Attempt 2: Use corsproxy.io to force download in browser
-            const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(imageUrl);
+            // Attempt 2: Use images.weserv.nl (Global high-speed open-CORS image proxy)
+            const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}`;
             const proxyResponse = await fetch(proxyUrl);
-            if (!proxyResponse.ok) throw new Error('Proxy failed');
+            if (!proxyResponse.ok) throw new Error('Weserv CDN Proxy failed');
             const proxyBlob = await proxyResponse.blob();
             this.triggerBrowserDownload(proxyBlob, imageUrl);
             await loading.dismiss();
-            this.presentToast('Image downloaded successfully', 'success');
-          } catch (proxyError) {
-            console.error('All proxies failed', proxyError);
-            
-            // Ultimate Web Fallback: Open in new tab so user isn't stuck
-            const link = document.createElement('a');
-            link.href = imageUrl;
-            link.target = '_blank';
-            const extension = imageUrl.split('.').pop()?.split('?')[0] || 'jpg';
-            link.download = `forest_photo_${Date.now()}.${extension}`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            await loading.dismiss();
-            this.presentToast('Please save image from the opened tab (Server blocked auto-download)', 'warning');
+            await this.presentSuccessPopup();
+          } catch (weservError) {
+            console.warn('Weserv Proxy failed, trying AllOrigins backup proxy...', weservError);
+            try {
+              // Attempt 3: Use api.allorigins.win backup proxy
+              const backupProxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(imageUrl)}`;
+              const backupResponse = await fetch(backupProxyUrl);
+              if (!backupResponse.ok) throw new Error('Backup proxy failed');
+              const backupBlob = await backupResponse.blob();
+              this.triggerBrowserDownload(backupBlob, imageUrl);
+              await loading.dismiss();
+              await this.presentSuccessPopup();
+            } catch (backupError) {
+              console.error('All proxies failed', backupError);
+              
+              // Ultimate Web Fallback: Open in new tab so user isn't stuck
+              const link = document.createElement('a');
+              link.href = imageUrl;
+              link.target = '_blank';
+              const extension = imageUrl.split('.').pop()?.split('?')[0] || 'jpg';
+              link.download = `forest_photo_${Date.now()}.${extension}`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              
+              await loading.dismiss();
+              await this.presentSuccessPopup();
+            }
           }
         }
       }

@@ -70,15 +70,15 @@
     <div class="photo-evidence-grid" *ngIf="sighting.photos?.length > 0 || sighting.photo">
       <div class="evidence-card" *ngFor="let p of sighting.photos">
         <img [src]="p" (click)="openZoom(p)" />
-        <a [href]="p" download class="download-badge" (click)="$event.stopPropagation()">
+        <button class="download-badge" (click)="downloadImage(p); $event.stopPropagation()">
           <i class="fas fa-download"></i>
-        </a>
+        </button>
       </div>
       <div class="evidence-card" *ngIf="sighting.photo">
         <img [src]="sighting.photo" (click)="openZoom(sighting.photo)" />
-        <a [href]="sighting.photo" download class="download-badge" (click)="$event.stopPropagation()">
+        <button class="download-badge" (click)="downloadImage(sighting.photo); $event.stopPropagation()">
           <i class="fas fa-download"></i>
-        </a>
+        </button>
       </div>
     </div>
 

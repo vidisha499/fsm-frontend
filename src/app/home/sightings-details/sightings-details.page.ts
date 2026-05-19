@@ -327,6 +327,11 @@ export class SightingsDetailsPage implements OnInit {
     this.photoViewer.open(imgUrl);
   }
 
+  async downloadImage(imageUrl: string) {
+    if (!imageUrl) return;
+    await this.photoViewer.download(imageUrl);
+  }
+
   private resolveReporterDetails() {
     if (!this.sighting) return;
 
