@@ -21,7 +21,7 @@
           </div>
         </div>
 
-        <button *ngIf="userRole === '1'" (click)="setFilterOpen(true)" class="glass-btn" style="margin-left: auto;">
+        <button (click)="setFilterOpen(true)" class="glass-btn" style="margin-left: auto;">
           <ion-icon name="options-outline" style="font-size: 20px; color: white;"></ion-icon>
         </button>
       </div>
@@ -30,7 +30,7 @@
 
   <div class="logs-container">
     <!-- Advanced Admin Filters -->
-    <div class="admin-filter-bar" *ngIf="userRole === '1'">
+    <div class="admin-filter-bar">
       <!-- Row 1: Search -->
       <div class="search-box-row">
         <ion-icon name="search-outline"></ion-icon>

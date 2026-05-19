@@ -43,24 +43,6 @@ export class LoginPage implements OnInit, OnDestroy {
     // Initial checks if needed
   }
 
-  onlyNumbers(event: any) {
-    const pattern = /[0-9]/;
-    const inputChar = String.fromCharCode(event.charCode);
-    if (!pattern.test(inputChar)) {
-      event.preventDefault();
-    }
-  }
-
-  onPhoneInput(event: any) {
-    const input = event.target;
-    let value = input.value.replace(/[^0-9]/g, '');
-    if (value.length > 10) {
-      value = value.substring(0, 10);
-    }
-    this.loginData.phone = value;
-    input.value = value;
-  }
-
   ionViewWillEnter() {
     // Persistent login check: Prevent showing login page if already logged in
     const token = localStorage.getItem('api_token');
@@ -160,17 +142,6 @@ export class LoginPage implements OnInit, OnDestroy {
 async login() {
   if (!this.loginData.phone || !this.loginData.password) {
     this.presentToast('Please enter both contact and password', 'warning');
-    return;
-  }
-
-  const phoneTrim = this.loginData.phone.trim();
-  if (phoneTrim.length !== 10 || !/^[0-9]+$/.test(phoneTrim)) {
-    this.presentToast('Please enter a valid 10-digit mobile number', 'warning');
-    return;
-  }
-
-  if (this.loginData.password.length < 4) {
-    this.presentToast('Password must be at least 4 characters long', 'warning');
     return;
   }
 

@@ -22,7 +22,6 @@ export class PatrolLogsPage implements OnInit {
   @ViewChild(IonContent) content!: IonContent;
   
   public showScrollTop = false;
-  public userRole: string = '3';
   private syncSub!: Subscription;
 
   public patrolLogs: any[] = [];
@@ -39,6 +38,7 @@ export class PatrolLogsPage implements OnInit {
   public filterTo: string = '';
   public rangerName: string = '';
   public maxDate: string = new Date().toISOString().split('T')[0];
+  public userRole: string = '3';
   constructor(
     private navCtrl: NavController,
     private router: Router,
@@ -72,8 +72,8 @@ export class PatrolLogsPage implements OnInit {
   private companyId: any = 0;
 
   ngOnInit() { 
-    this.companyId = Number(localStorage.getItem('company_id') || '0');
     this.userRole = localStorage.getItem('user_role') || '3';
+    this.companyId = Number(localStorage.getItem('company_id') || '0');
     this.loadFilterOptions();
     // Auto-refresh when sync completes
     this.syncSub = this.dataService.syncCompleted$.subscribe(() => {
