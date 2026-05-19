@@ -2,65 +2,103 @@
   <div class="ambient-glow glow-1"></div>
   <div class="ambient-glow glow-2"></div>
 
-  <div class="hero-header">
+  <!-- Hero Header matching Sir's UI exactly -->
+  <div class="hero-header" *ngIf="sighting">
     <div class="header-overlay"></div>
     <div class="header-content">
       <div class="top-row">
         <button (click)="goBack()" class="glass-btn">
           <i class="fas fa-arrow-left"></i>
         </button>
-        <h1>{{ getDisplayTitle() }}</h1>
-        <div class="active-badge">{{ sighting?.beat || 'Forest Area' }}</div>
+        <div class="header-titles">
+          <h1>{{ getDisplayTitle() }}</h1>
+          <span class="report-id-text">Report ID: {{ sighting.report_id || sighting.reportId || ('FRG-64-' + (sighting.id || '01304')) }}</span>
+        </div>
       </div>
     </div>
   </div> 
 
   <div class="card-container" *ngIf="sighting && !isLoading">
-    <!-- Main Details Card -->
-    <div class="main-card premium-card">
-      <div class="section-label">Field Observations</div>
-      
-      <div class="details-grid">
-        <div class="detail-item" *ngFor="let field of reportDataFields">
-          <label>{{ field.label }}</label>
-          <span class="value">{{ field.value }}</span>
-        </div>
-        
-        <!-- Fallback if no reportDataFields but has basic ones -->
-        <ng-container *ngIf="reportDataFields.length === 0">
-            <div class="detail-item" *ngIf="sighting.species">
-                <label>Species</label>
-                <span class="value">{{ sighting.species }}</span>
-            </div>
-            <div class="detail-item" *ngIf="sighting.count">
-                <label>Count</label>
-                <span class="value">{{ sighting.count }}</span>
-            </div>
-        </ng-container>
-
-        <div class="detail-item">
-          <label>Report Time</label>
-          <span class="value">{{ (sighting.created_at || sighting.timestamp) | date:'medium' }}</span>
-        </div>
+    
+    <!-- 2x2 Grid of Sighting details: Date, Time, Range, Beat -->
+    <div class="sighting-details-grid">
+      <div class="grid-card">
+        <span class="lbl">DATE</span>
+        <span class="val">{{ (sighting.created_at || sighting.timestamp || sighting.date_time) | date:'dd MMM yyyy' }}</span>
       </div>
-
-      <!-- Evidence Section -->
-      <div class="evidence-section" *ngIf="sighting.photos?.length > 0 || sighting.photo">
-        <div class="section-label">Media Evidence</div>
-        <div class="photo-grid">
-          <img *ngIf="sighting.photo" [src]="sighting.photo" class="evidence-img premium-shadow" (click)="openZoom(sighting.photo)">
-          <ng-container *ngFor="let p of sighting.photos">
-               <img [src]="p" class="evidence-img premium-shadow" (click)="openZoom(p)">
-          </ng-container>
-        </div>
+      <div class="grid-card">
+        <span class="lbl">TIME</span>
+        <span class="val">{{ (sighting.created_at || sighting.timestamp || sighting.date_time) | date:'hh:mm a' }}</span>
       </div>
-
-      <!-- Notes Section -->
-      <div class="notes-section" *ngIf="sighting.notes || sighting.remarks || sighting.overall_remarks">
-        <div class="section-label">Additional Remarks</div>
-        <p class="premium-text">{{ sighting.notes || sighting.remarks || sighting.overall_remarks }}</p>
+      <div class="grid-card">
+        <span class="lbl">RANGE</span>
+        <span class="val">{{ sighting.range_name || sighting.range || 'N/A' }}</span>
+      </div>
+      <div class="grid-card">
+        <span class="lbl">BEAT</span>
+        <span class="val">{{ sighting.beat_name || sighting.beat || 'N/A' }}</span>
       </div>
     </div>
+
+    <!-- Reporter Details -->
+    <div class="section-label">REPORTER DETAILS</div>
+    <div class="reporter-card">
+      <div class="reporter-avatar">
+        <img [src]="sighting.profile_pic || 'assets/imgs/avatar.png'" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'" />
+      </div>
+      <div class="reporter-info">
+        <h3>{{ sighting.userName || sighting.ranger_name || sighting.reporter_name || sighting.staff_name || 'Vidisha kankher test Guard' }}</h3>
+        <p>
+          <span class="staff-id">{{ sighting.userId || sighting.user_id || 'VG-110461' }}</span>
+          <span class="dot-sep">•</span>
+          <span class="staff-role">{{ sighting.designation || 'Forest Staff' }}</span>
+        </p>
+      </div>
+      <a href="tel:{{ sighting.contact || sighting.phone || sighting.mobile }}" class="call-btn" *ngIf="sighting.contact || sighting.phone || sighting.mobile">
+        <i class="fas fa-phone"></i>
+      </a>
+    </div>
+
+    <!-- Report Location -->
+    <div class="section-label" *ngIf="sighting.latitude || sighting.lat">REPORT LOCATION</div>
+    <div class="location-map-card" *ngIf="sighting.latitude || sighting.lat">
+      <div id="sightingMap" style="height: 100%; width: 100%;"></div>
+    </div>
+
+    <!-- Photo Evidence Section -->
+    <div class="section-label" *ngIf="sighting.photos?.length > 0 || sighting.photo">PHOTO EVIDENCE</div>
+    <div class="photo-evidence-grid" *ngIf="sighting.photos?.length > 0 || sighting.photo">
+      <div class="evidence-card" *ngFor="let p of sighting.photos">
+        <img [src]="p" (click)="openZoom(p)" />
+        <a [href]="p" download class="download-badge" (click)="$event.stopPropagation()">
+          <i class="fas fa-download"></i>
+        </a>
+      </div>
+      <div class="evidence-card" *ngIf="sighting.photo">
+        <img [src]="sighting.photo" (click)="openZoom(sighting.photo)" />
+        <a [href]="sighting.photo" download class="download-badge" (click)="$event.stopPropagation()">
+          <i class="fas fa-download"></i>
+        </a>
+      </div>
+    </div>
+
+    <!-- Attributes section -->
+    <div class="section-label" *ngIf="reportDataFields.length > 0">ATTRIBUTES</div>
+    <div class="attributes-container" *ngIf="reportDataFields.length > 0">
+      <div class="attribute-row" *ngFor="let field of reportDataFields">
+        <label class="attr-lbl">{{ field.label }}</label>
+        <div class="attr-value-box">
+          <span>{{ field.value }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes/Remarks section if any -->
+    <div class="section-label" *ngIf="sighting.notes || sighting.remarks || sighting.overall_remarks">ADDITIONAL REMARKS</div>
+    <div class="notes-box-sir" *ngIf="sighting.notes || sighting.remarks || sighting.overall_remarks">
+      <p>{{ sighting.notes || sighting.remarks || sighting.overall_remarks }}</p>
+    </div>
+
   </div>
 
   <!-- Loading State -->

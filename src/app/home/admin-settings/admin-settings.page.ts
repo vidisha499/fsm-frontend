@@ -288,8 +288,14 @@ loadUserData() {
           ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
           : nameParts[0][0].toUpperCase();
 
-        // Role ID 2 is Admin from your Roles table
-        this.adminUser.role = userData.role_id === 2 ? 'Admin' : 'Super Admin';
+        // Map correct designations based on Role ID
+        if (userData.role_id === 1) {
+          this.adminUser.role = 'Super Admin';
+        } else if (userData.role_id === 7) {
+          this.adminUser.role = 'Admin';
+        } else {
+          this.adminUser.role = 'Forester';
+        }
         
         // Use division if present, otherwise default to All Ranges
         this.adminUser.ranges = userData.division || 'All Ranges';

@@ -43,13 +43,31 @@ export class LoginPage implements OnInit, OnDestroy {
     // Initial checks if needed
   }
 
+  onlyNumbers(event: any) {
+    const pattern = /[0-9]/;
+    const inputChar = String.fromCharCode(event.charCode);
+    if (!pattern.test(inputChar)) {
+      event.preventDefault();
+    }
+  }
+
+  onPhoneInput(event: any) {
+    const input = event.target;
+    let value = input.value.replace(/[^0-9]/g, '');
+    if (value.length > 10) {
+      value = value.substring(0, 10);
+    }
+    this.loginData.phone = value;
+    input.value = value;
+  }
+
   ionViewWillEnter() {
     // Persistent login check: Prevent showing login page if already logged in
     const token = localStorage.getItem('api_token');
     const role = localStorage.getItem('user_role');
     
     if (token) {
-      if (role === '1' || role === '2') {
+      if (role === '1' || role === '2' || role === '7') {
         this.navCtrl.navigateRoot('/admin');
       } else {
         this.navCtrl.navigateRoot('/home');
@@ -142,6 +160,17 @@ export class LoginPage implements OnInit, OnDestroy {
 async login() {
   if (!this.loginData.phone || !this.loginData.password) {
     this.presentToast('Please enter both contact and password', 'warning');
+    return;
+  }
+
+  const phoneTrim = this.loginData.phone.trim();
+  if (phoneTrim.length !== 10 || !/^[0-9]+$/.test(phoneTrim)) {
+    this.presentToast('Please enter a valid 10-digit mobile number', 'warning');
+    return;
+  }
+
+  if (this.loginData.password.length < 4) {
+    this.presentToast('Password must be at least 4 characters long', 'warning');
     return;
   }
 
@@ -288,15 +317,11 @@ async login() {
         this.dataService.loginSuccess$.next();
 
         // --- NAVIGATION LOGIC ---
-        // Role 3 = Supervisor, Role 4 = Ranger
-        if (userRole === 3 || userRole === 4) { 
-          // Dono ko home dashboard par bhejo
-          this.navCtrl.navigateRoot('/home'); 
-        } else if (userRole === 1 || userRole === 2) {
-          // Admins ke liye alag route
+        if (userRole === 1 || userRole === 2 || userRole === 7) { 
+          // Admins, Supervisors and Range Officers ke liye alag route
           this.navCtrl.navigateRoot('/admin');
         } else {
-          // Default fallback
+          // Default fallback (e.g. guards, rangers, etc.)
           this.navCtrl.navigateRoot('/home');
         }
 

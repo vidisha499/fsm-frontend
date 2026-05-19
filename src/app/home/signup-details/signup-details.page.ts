@@ -195,9 +195,9 @@ export class SignupDetailsPage implements OnInit {
   getRoleName(id: any): string {
     const rId = Number(id);
     if (rId === 1) return 'SUPER ADMIN';
-    if (rId === 2) return 'ADMIN';
+    if (rId === 2) return 'FORESTER';
     if (rId === 3) return 'GUARD / RANGER';
-    if (rId === 4) return 'SUPERVISOR';
+    if (rId === 4) return 'FORESTER';
     if (rId === 7) return 'ADMIN';
     return '';
   }

@@ -24,6 +24,9 @@ export class AdminEventsRecordsPage implements OnInit {
   public displayBeats: string[] = [];
   public selectedRange: string = 'all';
   public selectedBeat: string = 'all';
+  public userRole: string = '3';
+  public assignedRange: string = '';
+  public assignedBeat: string = '';
 
   constructor(
     private navCtrl: NavController,
@@ -32,12 +35,44 @@ export class AdminEventsRecordsPage implements OnInit {
   ) {}
 
   ngOnInit() {
+    this.userRole = localStorage.getItem('user_role') || '3';
+    
     // 🌐 Read Global Filter from Admin Dashboard
     const globalFilter = localStorage.getItem('global_date_filter') || 'today';
     const globalFrom   = localStorage.getItem('global_date_from')   || '';
     const globalTo     = localStorage.getItem('global_date_to')     || '';
-    this.selectedRange = localStorage.getItem('global_range_filter') || 'all';
-    this.selectedBeat  = localStorage.getItem('global_beat_filter')  || 'all';
+
+    // Resolve hierarchy assignments for non-Superadmins (roles 2, 7, etc.)
+    if (this.userRole !== '1') {
+      const storageData = localStorage.getItem('user_data');
+      if (storageData) {
+        try {
+          const user = JSON.parse(storageData);
+          this.assignedRange = user.range_name || user.range || user.division || user.division_name || '';
+          this.assignedBeat = user.site_name || user.beat_name || user.beat || '';
+        } catch (e) {
+          console.error("Error parsing user_data for hierarchy resolution:", e);
+        }
+      }
+      if (!this.assignedBeat) {
+        this.assignedBeat = localStorage.getItem('user_site_name') || localStorage.getItem('site_name') || '';
+      }
+
+      if (this.assignedRange) {
+        this.selectedRange = this.assignedRange;
+      } else {
+        this.selectedRange = localStorage.getItem('global_range_filter') || 'all';
+      }
+
+      if (this.assignedBeat) {
+        this.selectedBeat = this.assignedBeat;
+      } else {
+        this.selectedBeat = localStorage.getItem('global_beat_filter') || 'all';
+      }
+    } else {
+      this.selectedRange = localStorage.getItem('global_range_filter') || 'all';
+      this.selectedBeat = localStorage.getItem('global_beat_filter') || 'all';
+    }
 
     const today = new Date().toISOString().split('T')[0];
 
@@ -291,8 +326,13 @@ export class AdminEventsRecordsPage implements OnInit {
   resetFilter() {
     this.filterFrom = '';
     this.filterTo = '';
-    this.selectedRange = 'all';
-    this.selectedBeat = 'all';
+    if (this.userRole === '1') {
+      this.selectedRange = 'all';
+      this.selectedBeat = 'all';
+    } else {
+      this.selectedRange = this.assignedRange || 'all';
+      this.selectedBeat = this.assignedBeat || 'all';
+    }
     this.updateVisibleBeats();
     this.applyFilter();
   }

@@ -265,7 +265,7 @@ export class AppComponent implements OnInit {
     const dynamicRole = parsedUser?.role_name || parsedUser?.designation || localStorage.getItem('user_role_name');
     console.log("🔍 [DEBUG] Extracted dynamicRole candidate:", dynamicRole);
     
-    const roleMap: any = { '1': 'SUPER ADMIN', '2': 'ADMIN', '3': 'FOREST GUARD', '4': 'SUPERVISOR', '7': 'ADMIN' };
+    const roleMap: any = { '1': 'SUPER ADMIN', '2': 'FORESTER', '3': 'FOREST GUARD', '4': 'FORESTER', '7': 'ADMIN' };
     
     if (dynamicRole && dynamicRole !== 'null' && dynamicRole.trim() !== '' && !dynamicRole.toLowerCase().includes('beat')) {
       console.log("✅ [DEBUG] Using Dynamic Role:", dynamicRole.toUpperCase());

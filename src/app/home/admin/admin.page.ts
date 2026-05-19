@@ -160,6 +160,30 @@ export class AdminPage implements OnInit, AfterViewInit {
   criminalActivityCount15: number = 0;
   sightingsCount15: number = 0;
   fireAlertsCount15: number = 0;
+
+  // --- DYNAMIC SNAPSHOT CARDS ---
+  masterSnapshotCards: any[] = [
+    { id: 'fire', labelKey: 'ADMIN.FIRE_LABEL', color: '#f97316', type: 'fire', count: 0, trend: [], iconLabel: 'Y_ALERTS' },
+    { id: 'assets', labelKey: 'ADMIN.ASSETS_LABEL', color: '#6366f1', type: 'assets', count: 0, trend: [], iconLabel: 'Y_EVENTS' },
+    // Criminal Sub-categories
+    { id: 'illegal_felling', labelKey: 'ANALYTICS.ILLEGAL_FELLING', color: '#f43f5e', type: 'criminal', count: 0, trend: [], iconLabel: 'Y_CASES' },
+    { id: 'timber_transport', labelKey: 'ANALYTICS.TIMBER_TRANSPORT', color: '#f43f5e', type: 'criminal', count: 0, trend: [], iconLabel: 'Y_CASES' },
+    { id: 'timber_storage', labelKey: 'ANALYTICS.TIMBER_STORAGE', color: '#f43f5e', type: 'criminal', count: 0, trend: [], iconLabel: 'Y_CASES' },
+    { id: 'wild_animal_poaching', labelKey: 'ANALYTICS.WILD_ANIMAL_POACHING', color: '#f43f5e', type: 'criminal', count: 0, trend: [], iconLabel: 'Y_CASES' },
+    { id: 'encroachment', labelKey: 'ANALYTICS.ENCROACHMENT', color: '#f43f5e', type: 'criminal', count: 0, trend: [], iconLabel: 'Y_CASES' },
+    { id: 'illegal_mining', labelKey: 'ANALYTICS.ILLEGAL_MINING', color: '#f43f5e', type: 'criminal', count: 0, trend: [], iconLabel: 'Y_CASES' },
+    // Events Sub-categories
+    { id: 'jfmc', labelKey: 'ANALYTICS.JFMC', color: '#f59e0b', type: 'events', count: 0, trend: [], iconLabel: 'Y_EVENTS' },
+    { id: 'wild_animal_sighting', labelKey: 'ANALYTICS.WILD_ANIMAL_SIGHTING', color: '#f59e0b', type: 'events', count: 0, trend: [], iconLabel: 'Y_EVENTS' },
+    { id: 'water_source', labelKey: 'ANALYTICS.WATER_SOURCE', color: '#f59e0b', type: 'events', count: 0, trend: [], iconLabel: 'Y_EVENTS' },
+    { id: 'wildlife_compensation', labelKey: 'ANALYTICS.WILDLIFE_COMPENSATION', color: '#f59e0b', type: 'events', count: 0, trend: [], iconLabel: 'Y_EVENTS' }
+  ];
+  activeSnapshotCards: any[] = [];
+  snapshotChartInstances: any = {};
+  userRole: string = '3'; // 🔐 Role-based access for KPI elements
+  assignedRange: string = ''; // 🔒 Assigned range to lock non-superadmin
+  assignedBeat: string = '';  // 🔒 Assigned beat to lock non-superadmin
+
   currentPeriodDates: string[] = [];
   currentTime: string = '';
   activeTab: string = 'home';
@@ -427,16 +451,46 @@ export class AdminPage implements OnInit, AfterViewInit {
   }
 
   ngOnInit() {
+    this.userRole = localStorage.getItem('user_role') || '3';
+
     // 🌐 Restore Persistent Filters
     const savedFilter = localStorage.getItem('global_date_filter') || 'today';
     this.selectedTimeframe = savedFilter;
     this.activeDateFilter = savedFilter;
-    
-    const savedRange = localStorage.getItem('global_range_filter') || 'all';
-    this.selectedRange = savedRange;
 
-    const savedBeat = localStorage.getItem('global_beat_filter') || 'all';
-    this.selectedBeat = savedBeat;
+    // Resolve hierarchy assignments for non-Superadmins (roles 2, 7, etc.)
+    if (this.userRole !== '1') {
+      const storageData = localStorage.getItem('user_data');
+      if (storageData) {
+        try {
+          const user = JSON.parse(storageData);
+          this.assignedRange = user.range_name || user.range || user.division || user.division_name || '';
+          this.assignedBeat = user.site_name || user.beat_name || user.beat || '';
+        } catch (e) {
+          console.error("Error parsing user_data for hierarchy resolution:", e);
+        }
+      }
+      if (!this.assignedBeat) {
+        this.assignedBeat = localStorage.getItem('user_site_name') || localStorage.getItem('site_name') || '';
+      }
+
+      if (this.assignedRange) {
+        this.selectedRange = this.assignedRange;
+        localStorage.setItem('global_range_filter', this.assignedRange);
+      } else {
+        this.selectedRange = localStorage.getItem('global_range_filter') || 'all';
+      }
+
+      if (this.assignedBeat) {
+        this.selectedBeat = this.assignedBeat;
+        localStorage.setItem('global_beat_filter', this.assignedBeat);
+      } else {
+        this.selectedBeat = localStorage.getItem('global_beat_filter') || 'all';
+      }
+    } else {
+      this.selectedRange = localStorage.getItem('global_range_filter') || 'all';
+      this.selectedBeat = localStorage.getItem('global_beat_filter') || 'all';
+    }
 
     const rawData = localStorage.getItem('user_data');
   const userData = rawData ? JSON.parse(rawData) : null;
@@ -644,19 +698,24 @@ export class AdminPage implements OnInit, AfterViewInit {
 }
 
 
-  // admin.page.ts
   resetAllFilters() {
-    this.selectedRange = 'all';
-    this.selectedBeat = 'all';
+    if (this.userRole === '1') {
+      this.selectedRange = 'all';
+      this.selectedBeat = 'all';
+      localStorage.setItem('global_range_filter', 'all');
+      localStorage.setItem('global_beat_filter', 'all');
+    } else {
+      this.selectedRange = this.assignedRange || 'all';
+      this.selectedBeat = this.assignedBeat || 'all';
+      localStorage.setItem('global_range_filter', this.selectedRange);
+      localStorage.setItem('global_beat_filter', this.selectedBeat);
+    }
     this.activeDateFilter = 'today';
     this.dateFrom = '';
     this.dateTo = '';
-    // 🌐 Reset global filter state
     localStorage.setItem('global_date_filter', 'today');
     localStorage.setItem('global_date_from', '');
     localStorage.setItem('global_date_to', '');
-    localStorage.setItem('global_range_filter', 'all');
-    localStorage.setItem('global_beat_filter', 'all');
     this.loadHierarchy();
     this.doRefresh(false);
   }
@@ -1304,6 +1363,12 @@ changeTimeframe(newTimeframe: string) {
                 const rangeMap: { [name: string]: number } = {};
                 const seenIds = new Set();
 
+                const subCatTrendMap: { [id: string]: { [date: string]: number } } = {};
+                this.masterSnapshotCards.forEach(c => {
+                  c.count = 0;
+                  subCatTrendMap[c.id] = {};
+                });
+
                 list.forEach((r: any) => {
                    // Prevent double counting duplicates
                    const rId = r.id || (r.latitude + '_' + r.longitude + '_' + (r.created_at || r.date));
@@ -1339,7 +1404,8 @@ changeTimeframe(newTimeframe: string) {
                    
                    // Robust Categorization (Independent checks for count parity)
                    const rType = (r.report_type || r.event_type || r.type || '').toLowerCase();
-                   const combinedText = `${cat} ${rType}`.toLowerCase();
+                   const subCatStr = (r.sub_category || '').toLowerCase();
+                   const combinedText = `${cat} ${rType} ${subCatStr}`.toLowerCase();
                     
                    let isFire = combinedText.includes('fire');
                    let isCrim = combinedText.includes('crim') || combinedText.includes('poach') || combinedText.includes('mining') || combinedText.includes('fell') || combinedText.includes('timber') || combinedText.includes('encroach') || combinedText.includes('storage') || combinedText.includes('transport') || combinedText.includes('sos');
@@ -1353,6 +1419,24 @@ changeTimeframe(newTimeframe: string) {
 
                    if (catKey && dateYMD) {
                      trendMap[catKey][dateYMD] = (trendMap[catKey][dateYMD] || 0) + 1;
+                   }
+
+                   // Specific Sub-category resolution for Dynamic Snapshot Cards
+                   let exactId = '';
+                   if (isFire) exactId = 'fire';
+                   else if (combinedText.includes('fell')) exactId = 'illegal_felling';
+                   else if (combinedText.includes('transport')) exactId = 'timber_transport';
+                   else if (combinedText.includes('storage')) exactId = 'timber_storage';
+                   else if (combinedText.includes('poach')) exactId = 'wild_animal_poaching';
+                   else if (combinedText.includes('encroach')) exactId = 'encroachment';
+                   else if (combinedText.includes('mining')) exactId = 'illegal_mining';
+                   else if (combinedText.includes('jfmc')) exactId = 'jfmc';
+                   else if (combinedText.includes('sight') || combinedText.includes('animal')) exactId = 'wild_animal_sighting';
+                   else if (combinedText.includes('water')) exactId = 'water_source';
+                   else if (combinedText.includes('compens')) exactId = 'wildlife_compensation';
+
+                   if (exactId && dateYMD) {
+                      subCatTrendMap[exactId][dateYMD] = (subCatTrendMap[exactId][dateYMD] || 0) + 1;
                    }
 
                    // Hierarchy Filtering logic
@@ -1386,9 +1470,11 @@ changeTimeframe(newTimeframe: string) {
                       if (isFire) counts.fire++;
                       if (isCrim) counts.criminal++;
                       if (isEvent) counts.monitoring++;
-                      
-                      if (catKey && dateYMD) {
-                        // trendMap[catKey][dateYMD] = (trendMap[catKey][dateYMD] || 0) + 1;
+
+                      // Increment snapshot card count
+                      if (exactId) {
+                        const card = this.masterSnapshotCards.find(c => c.id === exactId);
+                        if (card) card.count++;
                       }
                    }
 
@@ -1400,13 +1486,24 @@ changeTimeframe(newTimeframe: string) {
                 const last30 = Array.from({length: 30}, (_, i) => {
                    const d = new Date();
                    d.setDate(d.getDate() - (29 - i));
-                   return d.toISOString().split('T')[0];
+                   const m = String(d.getMonth() + 1).padStart(2, '0');
+                   const day = String(d.getDate()).padStart(2, '0');
+                   return `${d.getFullYear()}-${m}-${day}`;
                 });
 
                 const getTrendArr = (k: string) => last30.map(d => trendMap[k][d] || 0);
                 this.criminalTrendData = getTrendArr('crim');
                 this.eventsTrendData = getTrendArr('events');
                 this.fireTrendData = getTrendArr('fire');
+
+                // Build trend arrays for snapshot cards
+                this.masterSnapshotCards.forEach(card => {
+                  if (card.id === 'assets') {
+                    card.trend = this.assetsTrendData;
+                  } else {
+                    card.trend = last30.map(d => subCatTrendMap[card.id][d] || 0);
+                  }
+                });
 
                 // --- 📅 CALCULATE TOTALS FOR SNAPSHOT (Dynamic Filtered) ---
                 this.criminalActivityCount15 = counts.criminal;
@@ -2515,27 +2612,35 @@ handleApiResponse(res: any) {
 
     // --- 2. CATEGORY SNAPSHOTS (MINI CHARTS) ---
 
-    // Dynamic Trend Logic: Agar data sirf 1 hai, toh hum use trend dikhane ke liye array mein convert kar rahe hain
+    // Generate Dynamic Array of Active Cards
+    this.activeSnapshotCards = this.masterSnapshotCards.filter(c => c.count > 0);
+    this.cdr.detectChanges(); // 🔥 Force DOM update so canvases exist
+
+    // Dynamic Trend Logic: Graceful fallback for single values
     const getTrend = (val: number) => [0, 0, 0, 0, val || 0];
 
-    const pairs: [string, number[], string, string?][] = [
-      ['mc-crim', (this.criminalTrendData?.length || 0) > 0 ? this.criminalTrendData! : getTrend(this.criminalCount), this.COLORS.rose],
-      ['mc-events', (this.eventsTrendData?.length || 0) > 0 ? this.eventsTrendData! : getTrend(this.eventsCount), this.COLORS.amber],
-      ['mc-fire', (this.fireTrendData?.length || 0) > 0 ? this.fireTrendData! : getTrend(this.fireAlertsCount), this.COLORS.orange, 'bar'],
-      ['mc-assets', (this.assetsTrendData?.length || 0) > 0 ? this.assetsTrendData! : getTrend(this.totalAssetsCount), this.COLORS.p],
-      ['mc-duty', (this.onDutyTrendData?.length || 0) > 0 ? this.onDutyTrendData! : getTrend(this.onDutyCount), this.COLORS.blue, 'bar'],
-    ];
+    const pairs: [string, number[], string, string?][] = [];
+
+    // Push dynamic snapshot cards
+    this.activeSnapshotCards.forEach(c => {
+      pairs.push([`mc-${c.id}`, (c.trend?.length || 0) > 0 ? c.trend : getTrend(c.count), c.color, c.type === 'fire' ? 'bar' : 'line']);
+    });
 
     pairs.forEach(([id, data, color, type = 'line']) => {
-      const el = document.getElementById(id) as HTMLCanvasElement;
-      if (!el) return;
+      // Small timeout to ensure Angular ngFor has rendered the canvas
+      setTimeout(() => {
+        const el = document.getElementById(id) as HTMLCanvasElement;
+        if (!el) {
+          console.warn('⚠️ Canvas element still missing in DOM:', id);
+          return;
+        }
 
-      const ctx = el.getContext('2d');
-      if (!ctx) return;
+        const ctx = el.getContext('2d');
+        if (!ctx) return;
 
-      // Purana mini-chart destroy karo
-      const oldMini = Chart.getChart(id);
-      if (oldMini) oldMini.destroy();
+        // Purana mini-chart destroy karo
+        const oldMini = Chart.getChart(id);
+        if (oldMini) oldMini.destroy();
 
       // Dynamic Type Resolution: Gracefully handle single-day datasets by switching to single-bar representations
       let finalType = type;
@@ -2600,6 +2705,7 @@ handleApiResponse(res: any) {
           },
         },
       });
+      }, 300); // Wait for ngFor to render canvases
     });
   }
 

@@ -55,7 +55,29 @@ export class PatrolDetailsPage implements OnInit {
   }
 
   loadPatrolDetails() {
-    this.patrol = { observationData: [] };
+    const hasSummary = this.patrol && (this.patrol.id || this.patrol.patrol_id);
+    if (hasSummary) {
+      console.log("ℹ️ Preserving patrol summary from state:", this.patrol);
+      // Run initial processing so the UI displays summary right away
+      this.processPatrolData(this.patrol);
+    } else {
+      this.patrol = { observationData: [] };
+    }
+
+    // Dynamic Date Range parameters to help the server find the record
+    let dateFrom = '';
+    let dateTo = '';
+    if (hasSummary && (this.patrol.created_at || this.patrol.start_time || this.patrol.date || this.patrol.startTime)) {
+      const dStr = this.patrol.created_at || this.patrol.start_time || this.patrol.date || this.patrol.startTime;
+      const d = new Date(dStr);
+      if (!isNaN(d.getTime())) {
+        const prevDay = new Date(d.getTime() - 24 * 60 * 60 * 1000);
+        const nextDay = new Date(d.getTime() + 24 * 60 * 60 * 1000);
+        
+        dateFrom = `${prevDay.getFullYear()}-${String(prevDay.getMonth() + 1).padStart(2, '0')}-${String(prevDay.getDate()).padStart(2, '0')}`;
+        dateTo = `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, '0')}-${String(nextDay.getDate()).padStart(2, '0')}`;
+      }
+    }
 
     // Layer 1: Direct ID search
     this.dataService.getPatrolById(String(this.patrolId)).subscribe({
@@ -71,10 +93,10 @@ export class PatrolDetailsPage implements OnInit {
           console.log("✅ Layer 1: Found by ID");
           this.processPatrolData(data);
         } else {
-          // Layer 2: Company List fallback
-          console.warn("⚠️ Layer 1 failed. Trying Company List...");
+          // Layer 2: Company List fallback (passing dynamic date range)
+          console.warn(`⚠️ Layer 1 failed. Trying Company List for dates: ${dateFrom} to ${dateTo}...`);
           const companyId = Number(localStorage.getItem('company_id') || '0');
-          this.dataService.getPatrolsByCompany(companyId).subscribe({
+          this.dataService.getPatrolsByCompany(companyId, dateFrom, dateTo).subscribe({
             next: (listRes: any) => {
               const list = Array.isArray(listRes) ? listRes : (listRes?.data || []);
               const match = list.find((p: any) =>
@@ -151,11 +173,78 @@ export class PatrolDetailsPage implements OnInit {
       patrolPhotos: processedPhotos
     };
 
+    // Normalize Patrol Type resolving all possible server keys
+    let pTypeStr = data.patrol_type || data.patrolType || data.type || data.type_name || data.patrol_type_name || 
+                   data.type_label || data.patrol_type_label || data.method_type || data.p_type || 
+                   data.type_str || 'SINGLE';
+    if (pTypeStr && typeof pTypeStr === 'string') {
+      pTypeStr = pTypeStr.replace(/_/g, ' ')
+                         .split(' ')
+                         .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                         .join(' ');
+    }
+    this.patrol.patrol_type = pTypeStr;
+
+    // Normalize Patrol Method resolving all possible server keys
+    let pMethodStr = data.patrol_method || data.method || data.method_name || data.patrol_method_name || 
+                     data.p_method || data.session || 'FOOT';
+    if (pMethodStr && typeof pMethodStr === 'string') {
+      pMethodStr = pMethodStr.replace(/_/g, ' ')
+                             .split(' ')
+                             .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                             .join(' ');
+    }
+    this.patrol.patrol_method = pMethodStr;
+
+    // Normalize Ranger Name resolving all possible server keys
+    this.patrol.userName = data.user_name || data.ranger_name || data.full_name || data.guard_name || 
+                           data.officer_name || data.userName || data.name || 'Officer';
+
+    // Normalize Beat Name resolving all possible server keys
+    this.patrol.beatName = data.beat_name || data.site_name || data.location || data.beat || data.beatName || 'All Beats';
+
     // Fallback property mapping and parsing
     let routeVal = this.patrol.route || this.patrol.coords || this.patrol.path || this.patrol.polyline || [];
-    if (typeof routeVal === 'string') {
-      try { routeVal = JSON.parse(routeVal); } catch(e) { routeVal = []; }
+    
+    // Multi-pass parsing in case of stringified or double-stringified JSON
+    let attempts = 0;
+    while (typeof routeVal === 'string' && attempts < 5) {
+      try {
+        let cleaned = routeVal.trim();
+        if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
+          cleaned = cleaned.substring(1, cleaned.length - 1).replace(/\\"/g, '"');
+        }
+        routeVal = JSON.parse(cleaned);
+      } catch (e) {
+        console.warn("Failed to parse route JSON on attempt", attempts, e);
+        break;
+      }
+      attempts++;
     }
+
+    // Extract coordinates from GeoJSON or other wrapped properties
+    if (routeVal && typeof routeVal === 'object' && !Array.isArray(routeVal)) {
+      if (Array.isArray((routeVal as any).coordinates)) {
+        routeVal = (routeVal as any).coordinates;
+      } else if (Array.isArray((routeVal as any).coords)) {
+        routeVal = (routeVal as any).coords;
+      } else if (Array.isArray((routeVal as any).points)) {
+        routeVal = (routeVal as any).points;
+      } else {
+        // Handle associative index maps if any (e.g. {"0": [lat,lng], "1": [lat,lng]})
+        const keys = Object.keys(routeVal).sort((a, b) => Number(a) - Number(b));
+        const resolved: any[] = [];
+        keys.forEach(k => {
+          if (!isNaN(Number(k))) {
+            resolved.push((routeVal as any)[k]);
+          }
+        });
+        if (resolved.length > 0) {
+          routeVal = resolved;
+        }
+      }
+    }
+
     this.patrol.route = Array.isArray(routeVal) ? routeVal : [];
 
     // 🚀 NEW FALLBACK: If active patrol and server has no route yet, check localStorage
@@ -165,7 +254,10 @@ export class PatrolDetailsPage implements OnInit {
       if (this.patrolId === localId || this.patrolId === localSessionId) {
         const localRoute = localStorage.getItem('active_patrol_route');
         if (localRoute) {
-          try { this.patrol.route = JSON.parse(localRoute); } catch(e) {}
+          try { 
+            let parsedLocal = JSON.parse(localRoute);
+            this.patrol.route = Array.isArray(parsedLocal) ? parsedLocal : [];
+          } catch(e) {}
         }
       }
     }
@@ -173,26 +265,96 @@ export class PatrolDetailsPage implements OnInit {
     this.patrol.start_time = this.patrol.start_time || this.patrol.start_lat_time || this.patrol.created_at || this.patrol.startTime;
     this.patrol.end_time = this.patrol.end_time || this.patrol.end_lat_time || this.patrol.ended_at || this.patrol.endTime;
 
-    // Prioritize the distance from the server (which was saved during the trip)
-    // Only calculate if server data is missing or 0
-    let serverDist = this.patrol.distanceKm || this.patrol.distance || this.patrol.distance_km || this.patrol.total_distance || '0.00';
-    let rawDist = (serverDist !== '0.00' && serverDist !== 0) ? serverDist : this.calculateDistance(this.patrol.route);
+    // Calculate duration first so we can use it in distance and speed sanity checks
+    this.patrol.duration = this.calculateDuration(this.patrol);
+    const durationInSeconds = this.parseDurationToSeconds(this.patrol.duration);
+
+    // Prioritize calculated route distance as the absolute source of truth (highly filtered & accurate)
+    let rawDist = 0;
+    if (this.patrol.route && this.patrol.route.length >= 2) {
+      rawDist = Number(this.calculateDistance(this.patrol.route));
+    } else {
+      let serverDist = Number(this.patrol.distanceKm || this.patrol.distance || this.patrol.distance_km || this.patrol.total_distance || 0);
+      if (serverDist > 150) {
+        // If the distance is abnormally high (> 150 km) but patrol duration is short (< 5 hours),
+        // it is 100% stored/returned in meters. We divide by 1000 to show the correct value in kilometers.
+        if (durationInSeconds < 18000) {
+          serverDist = serverDist / 1000;
+        }
+      }
+      rawDist = serverDist;
+    }
     
     // Ensure formatting to 2 decimal places
-    this.patrol.distanceKm = !isNaN(Number(rawDist)) ? Number(rawDist).toFixed(2) : '0.00';
+    this.patrol.distanceKm = !isNaN(rawDist) ? rawDist.toFixed(2) : '0.00';
 
-    // Calculate duration if missing
-    this.patrol.duration = this.calculateDuration(this.patrol);
+    // Prioritize the speed from the server if reasonable, otherwise compute dynamically
+    let serverSpeed = Number(this.patrol.avg_speed || this.patrol.avgSpeed || this.patrol.speed || 0);
+    if (serverSpeed > 40 && durationInSeconds < 18000) {
+      // If speed is abnormally high, check if it was calculated using meters on the server
+      serverSpeed = serverSpeed / 1000;
+    }
     
-    // Prioritize the speed from the server
-    let serverSpeed = this.patrol.avg_speed || this.patrol.avgSpeed || this.patrol.speed;
-    this.patrol.avgSpeed = (serverSpeed && serverSpeed !== '0.0' && serverSpeed !== 0) ? 
-                           Number(serverSpeed).toFixed(1) : 
+    this.patrol.avgSpeed = (serverSpeed && serverSpeed > 0 && serverSpeed <= 40) ? 
+                           serverSpeed.toFixed(1) : 
                            this.calculateSpeed(this.patrol.distanceKm, this.patrol.duration);
 
     // Ensure startTime is set for the Date field
     if (!this.patrol.startTime) {
         this.patrol.startTime = this.patrol.start_time || new Date().toISOString();
+    }
+
+    // 🚀 NEW DYNAMIC ID RESOLUTIONS: Fetch Ranger Name and Beat Name dynamically if missing
+    const uId = this.patrol.user_id || this.patrol.ranger_id;
+    const cId = this.patrol.company_id || localStorage.getItem('company_id') || '0';
+    
+    // We fetch user details if ranger name is fallback OR if beat name is fallback
+    const needsUserFetch = uId && (
+      !this.patrol.userName || 
+      this.patrol.userName === 'Officer' || 
+      !this.patrol.beatName || 
+      this.patrol.beatName === 'All Beats'
+    );
+
+    if (needsUserFetch) {
+      this.dataService.getUserDetails(uId, cId).subscribe({
+        next: (userRes: any) => {
+          const u = userRes?.data || userRes;
+          if (u) {
+            // 1. Resolve Ranger Name if missing
+            if (!this.patrol.userName || this.patrol.userName === 'Officer') {
+              this.patrol.userName = u.name || u.full_name || u.guard_name || u.user_name || u.ranger_name || this.patrol.userName;
+            }
+            
+            // 2. Resolve Beat Name if missing
+            if (!this.patrol.beatName || this.patrol.beatName === 'All Beats') {
+              this.patrol.beatName = u.site_name || u.beat_name || u.geo_name || u.location_name || u.beat || this.patrol.beatName;
+            }
+
+            // 3. Fallback: If beatName is still missing, try to resolve using user's site_id / beat_id
+            const lookupSiteId = u.site_id || u.beat_id || this.patrol.site_id || this.patrol.siteId || this.patrol.beat_id;
+            if (lookupSiteId && (!this.patrol.beatName || this.patrol.beatName === 'All Beats')) {
+              this.resolveBeatNameById(lookupSiteId, cId);
+            }
+            
+            this.cdr.detectChanges();
+          }
+        },
+        error: (err: any) => {
+          console.error("Error fetching user details in patrol details:", err);
+          // Fallback direct site ID resolution if user details call fails
+          const sId = this.patrol.site_id || this.patrol.siteId || this.patrol.beat_id;
+          if (sId) {
+            this.resolveBeatNameById(sId, cId);
+          }
+        }
+      });
+    } else {
+      // If we don't need to fetch user, check if we have a site ID to resolve
+      const sId = this.patrol.site_id || this.patrol.siteId || this.patrol.beat_id;
+      if (sId && (!this.patrol.beatName || this.patrol.beatName === 'All Beats')) {
+        this.resolveBeatNameById(sId, cId);
+      }
     }
 
     // Flag to check if we have ANY spatial data to show
@@ -214,6 +376,33 @@ export class PatrolDetailsPage implements OnInit {
     }
 
     setTimeout(() => this.initMap(), 500);
+  }
+
+  resolveBeatNameById(sId: any, cId: any) {
+    if (!sId) return;
+    this.dataService.getSites({ api_token: localStorage.getItem('api_token') || '', company_id: Number(cId) }).subscribe({
+      next: (sitesRes: any) => {
+        const list = Array.isArray(sitesRes) ? sitesRes : (sitesRes?.data || []);
+        const match = list.find((s: any) => String(s.id) === String(sId) || String(s.site_id) === String(sId));
+        if (match) {
+          this.patrol.beatName = match.site_name || match.name || match.beat_name || this.patrol.beatName;
+          this.cdr.detectChanges();
+        }
+      },
+      error: (err: any) => {
+        console.warn("getSites list failed, trying getSitesList...");
+        this.dataService.getSitesList(String(cId)).subscribe({
+          next: (listRes: any) => {
+            const list = Array.isArray(listRes) ? listRes : (listRes?.data || []);
+            const match = list.find((s: any) => String(s.id) === String(sId) || String(s.site_id) === String(sId));
+            if (match) {
+              this.patrol.beatName = match.site_name || match.name || match.beat_name || this.patrol.beatName;
+              this.cdr.detectChanges();
+            }
+          }
+        });
+      }
+    });
   }
 
   fetchObservations() {
@@ -496,6 +685,17 @@ export class PatrolDetailsPage implements OnInit {
     return speed > 40 ? '0.0' : speed.toFixed(1); // Filter out GPS jumps
   }
 
+  private parseDurationToSeconds(durStr: string): number {
+    if (!durStr) return 0;
+    const parts = durStr.split(':').map(Number);
+    if (parts.length === 3) {
+      return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    } else if (parts.length === 2) {
+      return parts[0] * 60 + parts[1];
+    }
+    return 0;
+  }
+
 initMap() {
     const mapElement = document.getElementById('detailsMap');
     if (!mapElement || !this.patrol) return;
@@ -545,6 +745,34 @@ initMap() {
         weight: 5, 
         opacity: 0.8 
       }).addTo(this.map);
+
+      // Add Start Marker (at index 0 of routeCoords)
+      const startCoord = routeCoords[0];
+      L.marker(startCoord, {
+        icon: L.divIcon({
+          className: 'patrol-start-marker',
+          html: `<div style="background-color: #10b981; width: 16px; height: 16px; border: 2.5px solid white; border-radius: 50%; box-shadow: 0 0 6px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; color: white;">
+                  <div style="background-color: white; width: 5px; height: 5px; border-radius: 50%;"></div>
+                 </div>`,
+          iconSize: [18, 18],
+          iconAnchor: [9, 9]
+        })
+      }).addTo(this.map).bindPopup('<b>Patrol Start Point</b>');
+
+      // Add End Marker (at last index of routeCoords)
+      if (routeCoords.length >= 2) {
+        const endCoord = routeCoords[routeCoords.length - 1];
+        L.marker(endCoord, {
+          icon: L.divIcon({
+            className: 'patrol-end-marker',
+            html: `<div style="background-color: #ef4444; width: 16px; height: 16px; border: 2.5px solid white; border-radius: 50%; box-shadow: 0 0 6px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; color: white;">
+                    <div style="background-color: white; width: 5px; height: 5px; border-radius: 50%;"></div>
+                   </div>`,
+            iconSize: [18, 18],
+            iconAnchor: [9, 9]
+          })
+        }).addTo(this.map).bindPopup('<b>Patrol End Point</b>');
+      }
 
       // Extend bounds to include the entire polyline
       routeCoords.forEach(coord => bounds.extend(coord));

@@ -8,53 +8,39 @@
       <div class="nav-bar">
         <div class="left-section">
           <button (click)="goBack()" class="glass-btn">
-            <ion-icon name="arrow-back-outline"></ion-icon>
+            <i class="fas fa-arrow-left"></i>
           </button>
-          <h1>{{ 'DETAILS.TITLE' | translate }}</h1>
+          <div class="header-titles">
+            <h1>{{ 'DETAILS.TITLE' | translate }}</h1>
+            <span class="header-date" *ngIf="patrol">{{ patrol.startTime | date:'dd MMMM yyyy' }}</span>
+          </div>
         </div>
         <div class="priority-chip" *ngIf="patrol">{{ 'DETAILS.ACTIVE' | translate }}</div>
+      </div>
+
+      <!-- Glass card overlay for Duration and Distance -->
+      <div class="header-glass-card" *ngIf="patrol">
+        <div class="glass-stat">
+          <span class="glass-lbl">DURATION</span>
+          <span class="glass-val">{{ patrol.duration || '00:00:00' }}</span>
+        </div>
+        <div class="glass-divider"></div>
+        <div class="glass-stat">
+          <span class="glass-lbl">DISTANCE</span>
+          <span class="glass-val">{{ patrol.distanceKm || '0.00' }} <small>KM</small></span>
+        </div>
       </div>
     </div>
   </div>
 
   <div class="card-container" *ngIf="patrol; else loadingTemplate">
     
-    <!-- Patrol Photos Gallery -->
-    <div class="patrol-gallery-section" *ngIf="patrol.photos?.length > 0">
-      <h3 class="inner-section-title">{{ 'DETAILS.PATROL_PHOTOS' | translate }}</h3>
-      <div class="patrol-photos-scroll">
-        <div class="patrol-photo-card" *ngFor="let p of patrol.photos">
-          <img [src]="p" (click)="openZoom(p)" class="premium-shadow" />
-        </div>
+    <!-- Patrol Path Map -->
+    <div class="main-card premium-card">
+      <div class="section-hdr">
+        <h3 class="inner-section-title">PATROL PATH</h3>
       </div>
-    </div>
-
-    <div class="main-card">
-      <div class="stats-grid four-cols">
-        <div class="stat-box">
-          <span class="label">{{ 'DETAILS.DISTANCE' | translate }}</span>
-          <span class="value">{{ patrol.distanceKm || '0.00' }} <small>KM</small></span>
-        </div>
-        <div class="v-divider"></div>
-        <div class="stat-box">
-          <span class="label">{{ 'DETAILS.DURATION' | translate }}</span>
-          <span class="value">{{ patrol.duration || '--:--' }}</span>
-        </div>
-        <div class="v-divider"></div>
-        <div class="stat-box">
-          <span class="label">{{ 'DETAILS.SPEED' | translate }}</span>
-          <span class="value">{{ patrol.avgSpeed || '0.0' }} <small>KM/H</small></span>
-        </div>
-        <div class="v-divider"></div>
-        <div class="stat-box">
-          <span class="label">{{ 'DETAILS.DATE' | translate }}</span>
-          <span class="value">{{ patrol.startTime | date:'dd MMM' }}</span>
-        </div>
-      </div>
-
-      <hr class="card-divider">
-
-      <h3 class="inner-section-title">{{ 'DETAILS.ROUTE_TITLE' | translate }}</h3>
+      
       <div class="embedded-map" *ngIf="patrol.hasLocationData; else noLocationTemplate">
         <div id="detailsMap" style="height: 100%; width: 100%;"></div>
       </div>
@@ -66,51 +52,102 @@
         </div>
       </ng-template>
 
-      <hr class="card-divider">
+      <!-- 2x2 Grid of Patrol Details -->
+      <div class="details-grid-sir">
+        <div class="grid-item">
+          <div class="item-icon type-color">
+            <i class="fas fa-list-ul"></i>
+          </div>
+          <div class="item-content">
+            <span class="lbl">PATROL TYPE</span>
+            <span class="val">{{ patrol.patrol_type || 'SINGLE' }}</span>
+          </div>
+        </div>
 
-      <h3 class="inner-section-title">{{ 'DETAILS.OBS_TITLE' | translate }}</h3>
-      
-      <!-- <div *ngIf="patrol.observationData?.Details?.length > 0; else noObsTemplate"> -->
-        <div *ngIf="patrol.observationData?.length > 0; else noObsTemplate">
-          <div *ngFor="let obs of patrol.observationData" class="obs-card clickable-card" (click)="viewSightingDetails(obs)">     
-            <div class="obs-card-header">
-              <div class="obs-badge" [ngClass]="getCategoryColor(obs.report_type || obs.category)">
-                <i [class]="'fas ' + getCategoryIcon(obs.report_type || obs.category)"></i>
-                <span>{{ formatTitle(obs.report_type || obs.category) }}</span>
-              </div>
-              <span class="obs-time">{{ obs.timestamp | date:'h:mm a' }}</span>
-            </div>
-            
-            <div class="obs-body">
-              <div class="obs-text-content">
-                <h4 *ngIf="obs.source === 'sighting'">{{ obs.species || ('DETAILS.UNSPECIFIED' | translate) }}</h4>
-                <p *ngIf="obs.source === 'sighting'">{{ obs.count }} {{ 'DETAILS.SPOTTED' | translate }} • {{ obs.sighting_type }}</p>
-                <p class="field-report-tag" *ngIf="obs.source === 'report'">{{ 'DETAILS.FIELD_REPORT' | translate }}</p>
-                <p class="obs-notes" *ngIf="obs.notes">"{{ obs.notes }}"</p>
-              </div>
-            </div>
+        <div class="grid-item">
+          <div class="item-icon method-color">
+            <i class="fas fa-file-alt"></i>
+          </div>
+          <div class="item-content">
+            <span class="lbl">PATROL METHOD</span>
+            <span class="val">{{ patrol.patrol_method || 'FOOT' }}</span>
+          </div>
+        </div>
 
-            <div class="obs-gallery" *ngIf="(obs.photos?.length > 0) || obs.photo">
-              <div class="obs-scroll">
-                <div class="obs-photo-item" *ngIf="obs.photo">
-                  <img [src]="obs.photo" (click)="openZoom(obs.photo); $event.stopPropagation()" />
-                </div>
-                <div class="obs-photo-item" *ngFor="let p of obs.photos">
-                  <img [src]="p" (click)="openZoom(p); $event.stopPropagation()" />
-                </div>
-              </div>
-            </div>
-          </div> 
-        </div> 
-    </div> 
-  </div>
+        <div class="grid-item">
+          <div class="item-icon start-color">
+            <i class="far fa-clock"></i>
+          </div>
+          <div class="item-content">
+            <span class="lbl">START TIME</span>
+            <span class="val">{{ patrol.start_time | date:'hh:mm a' }}</span>
+          </div>
+        </div>
 
-  <ng-template #noObsTemplate>
-    <div class="no-obs-box">
-      <ion-icon name="document-text-outline"></ion-icon>
-      <p>{{ 'DETAILS.NO_OBS' | translate }}</p>
+        <div class="grid-item">
+          <div class="item-icon end-color">
+            <i class="far fa-clock"></i>
+          </div>
+          <div class="item-content">
+            <span class="lbl">END TIME</span>
+            <span class="val">{{ patrol.end_time ? (patrol.end_time | date:'hh:mm a') : 'ONGOING' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ranger and Beat Card -->
+      <div class="ranger-beat-bar">
+        <div class="ranger-sub">
+          <div class="sub-icon user-color">
+            <i class="far fa-user"></i>
+          </div>
+          <div class="sub-content">
+            <span class="lbl">RANGER</span>
+            <span class="val">{{ patrol.userName || patrol.name || patrol.ranger_name || patrol.rangerName || 'Officer' }}</span>
+          </div>
+        </div>
+        <div class="v-line"></div>
+        <div class="beat-sub">
+          <div class="sub-icon pin-color">
+            <i class="fas fa-map-marker-alt"></i>
+          </div>
+          <div class="sub-content">
+            <span class="lbl">Beat</span>
+            <span class="val">{{ patrol.beatName || patrol.beat || patrol.beat_name || 'All Beats' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Logged Observations Section -->
+      <div class="observations-section-hdr">
+        <i class="fas fa-list-ul"></i>
+        <span>LOGGED OBSERVATIONS ({{ patrol.observationData?.length || 0 }})</span>
+      </div>
+
+      <div *ngIf="patrol.observationData?.length > 0; else noObsTemplate">
+        <div *ngFor="let obs of patrol.observationData" class="sighting-row-card" (click)="viewSightingDetails(obs)">
+          <div class="sighting-icon-wrapper">
+            <i [class]="'fas ' + getCategoryIcon(obs.report_type || obs.category)"></i>
+          </div>
+          <div class="sighting-info-wrapper">
+            <span class="sighting-title">{{ formatTitle(obs.report_type || obs.category) }}</span>
+            <span class="sighting-time">{{ (obs.created_at || obs.timestamp || obs.date_time) | date:'hh:mm a' }}</span>
+          </div>
+          <div class="sighting-arrow-wrapper">
+            <i class="fas fa-chevron-right"></i>
+          </div>
+        </div>
+      </div>
+
+      <ng-template #noObsTemplate>
+        <div class="no-obs-box-sir">
+          <i class="far fa-file-alt"></i>
+          <p>{{ 'DETAILS.NO_OBS' | translate }}</p>
+        </div>
+      </ng-template>
+
     </div>
-  </ng-template>
+  </div>
 
   <ng-template #loadingTemplate>
     <div class="loading-wrap">

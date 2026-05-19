@@ -82,12 +82,18 @@
           class="fselect"
           [(ngModel)]="selectedRange"
           (change)="onRangeFilterChange()"
+          [disabled]="userRole !== '1' && !!assignedRange"
         >
           <option value="all">{{ 'ADMIN.ALL_RANGES' | translate }}</option>
           <option *ngFor="let range of allRanges" [value]="range">{{ range }}</option>
         </select>
 
-        <select class="fselect" [(ngModel)]="selectedBeat" (change)="doRefresh(false)">
+        <select
+          class="fselect"
+          [(ngModel)]="selectedBeat"
+          (change)="doRefresh(false)"
+          [disabled]="userRole !== '1' && !!assignedBeat"
+        >
           <option value="all">{{ 'ADMIN.ALL_BEATS' | translate }}</option>
           <option *ngFor="let beat of displayBeats" [value]="beat">{{ beat }}</option>
         </select>
@@ -266,7 +272,7 @@
 
       </div>
 
-      <div class="kpi-card" data-c="ind" (click)="goToAssetsRecords()">
+      <div class="kpi-card" data-c="ind" (click)="goToAssetsRecords()" *ngIf="userRole === '1'">
         <div class="kpi-ico" style="background:#f5f3ff">
           <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#6366f1" stroke-width="2">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -276,16 +282,7 @@
         <div class="kpi-lbl">{{ 'ADMIN.ASSETS_TOOLS' | translate }}</div>
         <div class="kpi-trend up">▲  {{operationalRate}}</div>
       </div>
-      <div class="kpi-card" data-c="emerald" (click)="goToPlantations()">
-        <div class="kpi-ico" style="background:#ecfdf5">
-          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#10b981" stroke-width="2">
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-          </svg>
-        </div>
-        <div class="kpi-val" id="kv-plants">Live</div>
-        <div class="kpi-lbl">{{ 'ADMIN.PLANTATIONS' | translate }}</div>
-        <div class="kpi-trend up">▲ {{ 'ADMIN.TAP_APPROVE' | translate }}</div>
-      </div>
+
     </div>
 
 
@@ -324,40 +321,15 @@
   </div>
   
   <div class="mini-scroll">
-    <div class="mini-card" data-cat="criminal" (click)="goAnalytics('criminal')">
-      <div class="mini-lbl">{{ 'ADMIN.CRIMINAL_LABEL' | translate }}</div>
-      <div class="mini-val" style="color:var(--rose)" id="ms-crim">{{criminalCount}}</div>
-      <div class="mini-ch"><canvas id="mc-crim"></canvas></div>
-      <div class="mini-meta">{{ 'ADMIN.Y_CASES' | translate }} · {{ snapshotMetaLabel }}</div>
+    <div class="empty-snapshot" *ngIf="activeSnapshotCards.length === 0" style="padding: 20px; text-align: center; color: var(--tx3); font-size: 12px; width: 100%;">
+      {{ 'ADMIN.NO_INCIDENTS' | translate }}
     </div>
 
-    <div class="mini-card" data-cat="events" (click)="goAnalytics('events')">
-      <div class="mini-lbl">{{ 'ADMIN.EVENTS_LABEL' | translate }}</div>
-      <div class="mini-val" style="color:var(--amber)" id="ms-events">{{ eventsCount }}</div>
-      <div class="mini-ch"><canvas id="mc-events"></canvas></div>
-      <div class="mini-meta">{{ 'ADMIN.Y_EVENTS' | translate }} · {{ snapshotMetaLabel }}</div>
-    </div>
-    
-
-    <div class="mini-card" data-cat="fire" (click)="goAnalytics('fire')">
-      <div class="mini-lbl">{{ 'ADMIN.FIRE_LABEL' | translate }}</div>
-      <div class="mini-val" style="color:var(--orange)" id="ms-fire">{{fireAlertsCount}}</div>
-      <div class="mini-ch"><canvas id="mc-fire"></canvas></div>
-      <div class="mini-meta">{{ 'ADMIN.Y_ALERTS' | translate }} · {{ snapshotMetaLabel }}</div>
-    </div>
-
-    <div class="mini-card" data-cat="assets">
-      <div class="mini-lbl">{{ 'ADMIN.ASSETS_LABEL' | translate }}</div>
-      <div class="mini-val" style="color:var(--p)" id="ms-assets">{{ totalAssetsCount || 0 }}</div>
-      <div class="mini-ch"><canvas id="mc-assets"></canvas></div>
-      <div class="mini-meta">{{ 'ADMIN.Y_COUNT' | translate }} · {{ snapshotMetaLabel }}</div>
-    </div>
-
-    <div class="mini-card" data-cat="duty">
-      <div class="mini-lbl">{{ 'ADMIN.DUTY_LABEL' | translate }}</div>
-      <div class="mini-val" style="color:var(--blue)" id="ms-duty">{{ onDutyCount }}</div>
-      <div class="mini-ch"><canvas id="mc-duty"></canvas></div>
-      <div class="mini-meta">{{ 'ADMIN.Y_COUNT' | translate }} · {{ snapshotMetaLabel }}</div>
+    <div class="mini-card" *ngFor="let card of activeSnapshotCards" [attr.data-cat]="card.type" (click)="goAnalytics(card.type)">
+      <div class="mini-lbl" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;">{{ card.labelKey | translate }}</div>
+      <div class="mini-val" [style.color]="card.color" id="ms-{{card.id}}">{{ card.count }}</div>
+      <div class="mini-ch"><canvas id="mc-{{card.id}}"></canvas></div>
+      <div class="mini-meta">{{ card.iconLabel | translate }} · {{ snapshotMetaLabel }}</div>
     </div>
   </div>
   

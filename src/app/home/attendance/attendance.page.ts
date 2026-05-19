@@ -111,23 +111,40 @@ export class AttendancePage implements OnInit, OnDestroy {
             return logDate === todayStr && String(logRangerId) === String(rangerId);
           });
 
-          const hasEntry = todayLogs.some((l: any) => (l.type || l.attendance_type)?.toUpperCase() === 'ENTRY');
-          const hasExit = todayLogs.some((l: any) => (l.type || l.attendance_type)?.toUpperCase() === 'EXIT');
+          // Check if Onsite/Location attendance was marked today
+          const hasTodayOnsite = todayLogs.some((l: any) => {
+            const logType = (l.attendance_type || l.type || '').toUpperCase();
+            return logType === 'ONSITE' || logType === 'LOCATION';
+          });
 
-          // 🔥 Critical Sync: Also check local offline drafts
-          const beatDrafts = this.dataService.getAttendanceDrafts('beat');
-          const todayDraftEntry = beatDrafts.some(d => d.createdAt?.split('T')[0] === todayStr && d.isEntry !== false);
-          const todayDraftExit = beatDrafts.some(d => d.createdAt?.split('T')[0] === todayStr && d.isEntry === false);
+          // Check local onsite drafts
+          const onsiteDrafts = this.dataService.getAttendanceDrafts('onsite');
+          const hasTodayDraftOnsite = onsiteDrafts.some(d => d.createdAt?.split('T')[0] === todayStr);
 
-          const finalHasEntry = hasEntry || todayDraftEntry;
-          const finalHasExit = hasExit || todayDraftExit;
+          const finalHasOnsite = hasTodayOnsite || hasTodayDraftOnsite;
 
-          if (finalHasEntry && !finalHasExit) {
-            this.isEntry = false; // Already entered (online or offline), next is exit
-          } else if (finalHasEntry && finalHasExit) {
-            this.isAlreadyMarked = true; // Both done for today
+          if (finalHasOnsite) {
+            // Block Beat attendance because Onsite is already marked today
+            this.isAlreadyMarked = true;
           } else {
-            this.isEntry = true; // Fresh start
+            const hasEntry = todayLogs.some((l: any) => (l.type || l.attendance_type)?.toUpperCase() === 'ENTRY');
+            const hasExit = todayLogs.some((l: any) => (l.type || l.attendance_type)?.toUpperCase() === 'EXIT');
+
+            // 🔥 Critical Sync: Also check local offline drafts
+            const beatDrafts = this.dataService.getAttendanceDrafts('beat');
+            const todayDraftEntry = beatDrafts.some(d => d.createdAt?.split('T')[0] === todayStr && d.isEntry !== false);
+            const todayDraftExit = beatDrafts.some(d => d.createdAt?.split('T')[0] === todayStr && d.isEntry === false);
+
+            const finalHasEntry = hasEntry || todayDraftEntry;
+            const finalHasExit = hasExit || todayDraftExit;
+
+            if (finalHasEntry && !finalHasExit) {
+              this.isEntry = false; // Already entered (online or offline), next is exit
+            } else if (finalHasEntry && finalHasExit) {
+              this.isAlreadyMarked = true; // Both done for today
+            } else {
+              this.isEntry = true; // Fresh start
+            }
           }
         }
         this.statusChecked = true;

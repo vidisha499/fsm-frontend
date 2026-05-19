@@ -1,8 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { NavController, LoadingController, ToastController } from '@ionic/angular';
 import { DataService } from '../../data.service';
 import { PhotoViewerService } from '../../services/photo-viewer.service';
+import * as L from 'leaflet';
 
 @Component({
   selector: 'app-sightings-details',
@@ -15,6 +16,7 @@ export class SightingsDetailsPage implements OnInit {
   reportDataFields: { label: string, value: any }[] = [];
   isLoading = false;
   cachedState: any = null;
+  map!: L.Map;
 
   constructor(
     private router: Router,
@@ -23,7 +25,8 @@ export class SightingsDetailsPage implements OnInit {
     private loadingCtrl: LoadingController,
     private toastCtrl: ToastController,
     private dataService: DataService,
-    private photoViewer: PhotoViewerService
+    private photoViewer: PhotoViewerService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
@@ -52,12 +55,14 @@ export class SightingsDetailsPage implements OnInit {
     if (effectiveState && effectiveState['data']) {
       const fullData = effectiveState['data'];
       this.sighting = this.processObservationPhoto(fullData);
+      this.resolveReporterDetails();
       // Parse report_data in case it's still a string
       let rd = fullData.report_data || {};
       if (typeof rd === 'string') {
         try { rd = JSON.parse(rd); } catch(e) { rd = {}; }
       }
       this.processReportData(rd);
+      setTimeout(() => this.initMap(), 500);
       return; // We have everything we need — no API call required
     }
 
@@ -92,6 +97,7 @@ export class SightingsDetailsPage implements OnInit {
           return;
         }
         this.sighting = this.processObservationPhoto(report);
+        this.resolveReporterDetails();
         // Parse report_data if it's a string
         let rd = report.report_data || {};
         if (typeof rd === 'string') {
@@ -99,6 +105,7 @@ export class SightingsDetailsPage implements OnInit {
         }
         this.processReportData(rd);
         this.isLoading = false;
+        setTimeout(() => this.initMap(), 500);
       },
       error: (err: any) => {
         console.error('Error fetching report details:', err);
@@ -277,8 +284,94 @@ export class SightingsDetailsPage implements OnInit {
     this.navCtrl.back();
   }
 
+  initMap() {
+    const mapElement = document.getElementById('sightingMap');
+    if (!mapElement || !this.sighting) return;
+
+    const lat = Number(this.sighting.latitude || this.sighting.lat || 0);
+    const lng = Number(this.sighting.longitude || this.sighting.lng || 0);
+
+    if (lat === 0 && lng === 0) return;
+
+    if (this.map) {
+      try { this.map.remove(); } catch(e) {}
+    }
+
+    this.map = L.map('sightingMap', {
+      zoomControl: false,
+      dragging: true,
+      scrollWheelZoom: false
+    });
+
+    L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+      attribution: '&copy; Google Maps'
+    }).addTo(this.map);
+
+    this.map.setView([lat, lng], 15);
+
+    const markerIcon = L.divIcon({
+      className: 'custom-details-marker',
+      html: `<div style="background-color: #ef4444; width: 22px; height: 22px; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 8px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white; font-size: 11px;">
+              <i class="fas fa-map-marker-alt"></i>
+            </div>`,
+      iconSize: [26, 26],
+      iconAnchor: [13, 13]
+    });
+
+    L.marker([lat, lng], { icon: markerIcon }).addTo(this.map);
+  }
+
   openZoom(imgUrl: string) {
     if (!imgUrl) return;
     this.photoViewer.open(imgUrl);
+  }
+
+  private resolveReporterDetails() {
+    if (!this.sighting) return;
+
+    const uId = this.sighting.created_by || this.sighting.user_id || this.sighting.ranger_id || this.sighting.reporter_id || this.sighting.staff_id;
+    const cId = this.sighting.company_id || localStorage.getItem('company_id') || '0';
+
+    if (uId) {
+      this.dataService.getUserDetails(uId, cId).subscribe({
+        next: (userRes: any) => {
+          const u = userRes?.data || userRes;
+          if (u) {
+            // Resolve Name
+            this.sighting.userName = u.name || u.full_name || u.user_name || u.ranger_name || u.reporter_name || this.sighting.userName;
+            
+            // Resolve Staff ID / User ID
+            this.sighting.userId = u.user_id || u.id || u.staff_id || this.sighting.userId;
+
+            // Resolve Designation (if Role ID is 2, it's Forester; if 3, Forest Guard; etc.)
+            let roleName = u.designation || u.role_name || u.roleName;
+            if (!roleName) {
+              const rid = String(u.role_id || u.roleId || '');
+              if (rid === '1') roleName = 'Super Admin';
+              else if (rid === '2') roleName = 'Forester';
+              else if (rid === '3') roleName = 'Forest Guard';
+              else if (rid === '7') roleName = 'Range Officer';
+              else roleName = 'Forest Staff';
+            }
+            this.sighting.designation = roleName;
+
+            // Resolve Profile Pic URL
+            const rawPic = u.profile_pic || u.photo || u.profilePic;
+            if (rawPic && typeof rawPic === 'string' && rawPic.trim().length > 2) {
+              const cleaned = rawPic.trim();
+              if (cleaned.startsWith('http') || cleaned.startsWith('data:')) {
+                this.sighting.profile_pic = cleaned;
+              } else {
+                this.sighting.profile_pic = `https://fms.pugarch.in/public/profilepics/${cleaned}`;
+              }
+            }
+            
+            this.cdr.detectChanges();
+          }
+        },
+        error: (err) => console.error("Error resolving reporter details:", err)
+      });
+    }
   }
 }

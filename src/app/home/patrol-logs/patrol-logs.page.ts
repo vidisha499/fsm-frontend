@@ -22,6 +22,7 @@ export class PatrolLogsPage implements OnInit {
   @ViewChild(IonContent) content!: IonContent;
   
   public showScrollTop = false;
+  public userRole: string = '3';
   private syncSub!: Subscription;
 
   public patrolLogs: any[] = [];
@@ -72,6 +73,7 @@ export class PatrolLogsPage implements OnInit {
 
   ngOnInit() { 
     this.companyId = Number(localStorage.getItem('company_id') || '0');
+    this.userRole = localStorage.getItem('user_role') || '3';
     this.loadFilterOptions();
     // Auto-refresh when sync completes
     this.syncSub = this.dataService.syncCompleted$.subscribe(() => {

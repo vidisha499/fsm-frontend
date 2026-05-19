@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { NavController, LoadingController, IonContent } from '@ionic/angular';
 import { DataService } from 'src/app/data.service';
 
@@ -25,20 +25,56 @@ export class AdminPatrolLogsPage implements OnInit {
   public displayBeats: string[] = [];
   public selectedRange: string = 'all';
   public selectedBeat: string = 'all';
+  public userRole: string = '3';
+  public assignedRange: string = '';
+  public assignedBeat: string = '';
 
   constructor(
     private navCtrl: NavController,
     private dataService: DataService,
-    private loadingCtrl: LoadingController
+    private loadingCtrl: LoadingController,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
+    this.userRole = localStorage.getItem('user_role') || '3';
+    
     // 🌐 Read Global Filter from Admin Dashboard
     const globalFilter = localStorage.getItem('global_date_filter') || 'today';
     const globalFrom   = localStorage.getItem('global_date_from')   || '';
     const globalTo     = localStorage.getItem('global_date_to')     || '';
-    this.selectedRange = localStorage.getItem('global_range_filter') || 'all';
-    this.selectedBeat  = localStorage.getItem('global_beat_filter')  || 'all';
+
+    // Resolve hierarchy assignments for non-Superadmins (roles 2, 7, etc.)
+    if (this.userRole !== '1') {
+      const storageData = localStorage.getItem('user_data');
+      if (storageData) {
+        try {
+          const user = JSON.parse(storageData);
+          this.assignedRange = user.range_name || user.range || user.division || user.division_name || '';
+          this.assignedBeat = user.site_name || user.beat_name || user.beat || '';
+        } catch (e) {
+          console.error("Error parsing user_data for hierarchy resolution:", e);
+        }
+      }
+      if (!this.assignedBeat) {
+        this.assignedBeat = localStorage.getItem('user_site_name') || localStorage.getItem('site_name') || '';
+      }
+
+      if (this.assignedRange) {
+        this.selectedRange = this.assignedRange;
+      } else {
+        this.selectedRange = localStorage.getItem('global_range_filter') || 'all';
+      }
+
+      if (this.assignedBeat) {
+        this.selectedBeat = this.assignedBeat;
+      } else {
+        this.selectedBeat = localStorage.getItem('global_beat_filter') || 'all';
+      }
+    } else {
+      this.selectedRange = localStorage.getItem('global_range_filter') || 'all';
+      this.selectedBeat = localStorage.getItem('global_beat_filter') || 'all';
+    }
 
     const today = new Date().toISOString().split('T')[0];
 
@@ -76,7 +112,8 @@ export class AdminPatrolLogsPage implements OnInit {
 
       this.dataService.getAssignableUsers({ company_id: companyId.toString() }).subscribe({
         next: (res: any) => {
-          this.rangers = res.data || res.users || (Array.isArray(res) ? res : []);
+          const list = res.data || res.users || res.result || res.rangers || res.staff || res.subordinates || (Array.isArray(res) ? res : []);
+          this.rangers = Array.isArray(list) ? list : [];
           resolve();
         },
         error: (err) => {
@@ -176,11 +213,33 @@ export class AdminPatrolLogsPage implements OnInit {
   processPatrolLog(log: any) {
     // 1. Resolve Name
     let name = log.user_name || log.ranger_name || log.full_name || log.guard_name || log.officer_name;
-    if (!name || name === 'Unknown Officer') {
-      const uId = log.user_id || log.ranger_id || log.staff_id || log.guard_id || log.created_by;
-      if (uId && this.rangers.length > 0) {
-        const found = this.rangers.find(r => (r.id || r.user_id) == uId);
-        if (found) name = found.name || found.full_name;
+    
+    const uId = log.user_id || log.ranger_id || log.staff_id || log.guard_id || log.created_by;
+    if (uId) {
+      // Try resolving from rangers list first
+      if (this.rangers.length > 0) {
+        const found = this.rangers.find(r => (r.id || r.user_id || r.staff_id) == uId);
+        if (found) {
+          name = found.name || found.full_name || found.user_name || found.ranger_name;
+        }
+      }
+
+      // If still unresolved or "Unknown Officer", fetch dynamically on-demand from database
+      if (!name || name === 'Unknown Officer') {
+        const cId = log.company_id || localStorage.getItem('company_id') || '0';
+        this.dataService.getUserDetails(uId, cId).subscribe({
+          next: (userRes: any) => {
+            const u = userRes?.data || userRes;
+            if (u) {
+              const resolvedName = u.name || u.full_name || u.user_name || u.ranger_name || u.reporter_name;
+              if (resolvedName) {
+                log.displayName = resolvedName;
+                this.cdr.detectChanges();
+              }
+            }
+          },
+          error: (err) => console.warn(`Silent fail resolving officer ${uId}:`, err)
+        });
       }
     }
     
@@ -281,8 +340,13 @@ export class AdminPatrolLogsPage implements OnInit {
     const today = new Date().toISOString().split('T')[0];
     this.filterFrom = today;
     this.filterTo = today;
-    this.selectedRange = 'all';
-    this.selectedBeat = 'all';
+    if (this.userRole === '1') {
+      this.selectedRange = 'all';
+      this.selectedBeat = 'all';
+    } else {
+      this.selectedRange = this.assignedRange || 'all';
+      this.selectedBeat = this.assignedBeat || 'all';
+    }
     this.updateVisibleBeats();
     this.applyFilter();
   }

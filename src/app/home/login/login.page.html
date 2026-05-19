@@ -145,7 +145,13 @@
         <div class="field">
           <ion-icon name="call-outline"></ion-icon>
           <span class="country-prefix">+91</span>
-          <input type="tel" [(ngModel)]="loginData.phone" placeholder="Enter Mobile Number">
+          <input 
+            type="tel" 
+            [(ngModel)]="loginData.phone" 
+            placeholder="Enter Mobile Number"
+            maxlength="10"
+            (keypress)="onlyNumbers($event)"
+            (input)="onPhoneInput($event)">
         </div>
       </div>
 
@@ -157,7 +163,8 @@
           <input
             [type]="isPasswordVisible ? 'text' : 'password'"
             [(ngModel)]="loginData.password"
-            placeholder="••••••••">
+            placeholder="••••••••"
+            maxlength="30">
 
           <ion-icon
             class="eye-toggle"
