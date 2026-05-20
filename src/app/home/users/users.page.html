@@ -17,12 +17,94 @@
         <div class="header-title-group">
           <p>{{ 'USERS_PAGE.SUBTITLE' | translate }}</p>
         </div>
+
+        <!-- Filter Chips Row -->
+        <div class="chips-container animate__animated animate__fadeIn">
+          <div class="filter-chip" [class.active]="selectedFilter === 'all'" (click)="setFilter('all')">
+            <i class="fas fa-users"></i>
+            <span>All</span>
+          </div>
+          <div class="filter-chip" [class.active]="selectedFilter === 'acf'" (click)="setFilter('acf')">
+            <i class="fas fa-user-tie"></i>
+            <span>ACF</span>
+          </div>
+          <div class="filter-chip" [class.active]="selectedFilter === 'ranger'" (click)="setFilter('ranger')">
+            <i class="fas fa-user-shield"></i>
+            <span>Ranger</span>
+          </div>
+          <div class="filter-chip" [class.active]="selectedFilter === 'forest_guard'" (click)="setFilter('forest_guard')">
+            <i class="fas fa-user-ninja"></i>
+            <span>Forest Guard</span>
+          </div>
+          <div class="filter-chip" [class.active]="selectedFilter === 'unassigned'" (click)="setFilter('unassigned')">
+            <i class="fas fa-user-slash"></i>
+            <span>Unassigned</span>
+          </div>
+        </div>
       </div>
     </div>
 
+    <!-- Loading State -->
+    <div class="loading-state animate-fade-in" *ngIf="isLoading">
+      <ion-spinner name="crescent"></ion-spinner>
+      <p>Synchronizing personnel records...</p>
+    </div>
+
+    <!-- Main Container / Users List -->
+    <div class="main-container animate-fade-in" *ngIf="!isLoading">
+      <!-- User List -->
+      <div class="list-container" *ngIf="filteredUsers.length > 0">
+        <div class="user-card animate__animated animate__fadeInUp" 
+             *ngFor="let user of filteredUsers; let i = index"
+             [style.animation-delay]="i * 0.05 + 's'"
+             (click)="openUserDetail(user)">
+          <div class="card-glow"></div>
+          
+          <div class="user-avatar-section">
+            <div class="avatar-ring">
+              <img *ngIf="user.photo" [src]="user.photo" (error)="user.photo = null">
+              <div *ngIf="!user.photo" class="avatar-fallback">
+                {{ getInitials(user.name) }}
+              </div>
+            </div>
+            <div class="status-indicator" [class.online]="user.hasAttended"></div>
+          </div>
+
+          <div class="user-info-section">
+            <h3 class="user-name">{{ user.name }}</h3>
+            <div class="user-meta">
+              <span class="role-tag">{{ user.role_name }}</span>
+              <span class="meta-divider">·</span>
+              <span class="site-info">{{ user.site_name || 'General Range' }}</span>
+            </div>
+            <div class="user-contact" *ngIf="user.phone">
+              <i class="fas fa-phone-alt"></i>
+              <span>{{ user.phone }}</span>
+            </div>
+          </div>
+
+          <div class="action-section">
+            <div class="glass-btn small">
+              <i class="fas fa-chevron-right"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-state-card animate__animated animate__fadeInUp" *ngIf="filteredUsers.length === 0">
+        <div class="empty-icon-circle">
+          <i class="fas fa-users-slash"></i>
+        </div>
+        <h3>No Personnel Found</h3>
+        <p>We couldn't find any users matching the selected category.</p>
+      </div>
+    </div>
+
+    <!-- Commented Out Cards Grid -->
+    <!--
     <div class="card-container">
       <div class="users-grid animate-scale-up">
-        <!-- ACF Card -->
         <div class="user-category-card card-teal" (click)="openUserCategory('acf')">
           <div class="card-inner">
             <div class="icon-wrap">
@@ -39,7 +121,6 @@
           <div class="card-glow"></div>
         </div>
 
-        <!-- Ranger Card -->
         <div class="user-category-card card-emerald" (click)="openUserCategory('ranger')">
           <div class="card-inner">
             <div class="icon-wrap">
@@ -56,7 +137,6 @@
           <div class="card-glow"></div>
         </div>
 
-        <!-- Forest Guard Card -->
         <div class="user-category-card card-blue" (click)="openUserCategory('forest_guard')">
           <div class="card-inner">
             <div class="icon-wrap">
@@ -73,7 +153,6 @@
           <div class="card-glow"></div>
         </div>
 
-        <!-- Unassigned Users Card -->
         <div class="user-category-card card-rose" (click)="openUserCategory('unassigned')">
           <div class="card-inner">
             <div class="icon-wrap">
@@ -91,5 +170,6 @@
         </div>
       </div>
     </div>
+    -->
   </div>
 </ion-content>

@@ -61,62 +61,100 @@ export class UserListPage implements OnInit {
     this.isLoading = true;
     const companyIdStr = this.myCompanyId.toString();
 
-    let apiCall: Observable<any>;
+    if (this.category === 'acf') {
+      this.dataService.getAdminList(companyIdStr).pipe(
+        catchError(() => of([]))
+      ).subscribe({
+        next: (res: any) => {
+          const users = Array.isArray(res) ? res : (res.data || []);
+          this.allUsers = users.map((u: any) => {
+            const id = String(u.id || u.user_id || u.staff_id || u.ranger_id || '');
+            const status = (u.attendance_status || u.status || '').toLowerCase();
+            const roleId = u.role_id || u.role || (u.role ? u.role.id : '2'); // Default to Admin/ACF role
+            let rName = u.role_name || this.getRoleName(roleId);
+            if (!rName || rName === 'Staff') {
+              rName = 'Admin'; // Ensure role name matches the ACF category filter
+            }
+            return {
+              ...u,
+              id: id,
+              name: u.name || u.user_name || u.full_name || 'Admin User',
+              role_id: roleId,
+              role_name: rName,
+              photo: this.getPhotoUrl(u.profile_pic || u.image || u.photo || ''),
+              attendance_status: status,
+              hasAttended: status === 'present' || status === 'attended' || status === 'online' || u.hasAttended === true || u.is_attended === 1
+            };
+          });
 
-    switch (this.category) {
-      case 'acf':
-        apiCall = this.dataService.getAdmin(companyIdStr);
-        break;
-      case 'ranger':
-        apiCall = this.dataService.getSupervisor(companyIdStr);
-        break;
-      case 'forest_guard':
-        apiCall = this.dataService.getGuardsWithAttendStatus(companyIdStr);
-        break;
-      case 'unassigned':
-        apiCall = this.dataService.getAllUnassignedGuards(companyIdStr);
-        break;
-      default:
-        apiCall = this.dataService.getUsersByCompany(companyIdStr);
-    }
-
-    apiCall.pipe(
-      catchError(() => of({ data: [], users: [], guards: [], result: [] }))
-    ).subscribe({
-      next: (res: any) => {
-        const getArr = (obj: any) => {
-          if (Array.isArray(obj)) return obj;
-          if (!obj) return [];
-          const list = obj.data || obj.users || obj.rangers || obj.staff || obj.subordinates || obj.result || obj.guards || obj.supervisor;
-          return Array.isArray(list) ? list : [];
-        };
-
-        const users = getArr(res);
-        
-        this.allUsers = users.map((u: any) => {
-          const id = String(u.id || u.user_id || u.staff_id || u.ranger_id || '');
-          const status = (u.attendance_status || u.status || '').toLowerCase();
-          return {
-            ...u,
-            id: id,
-            name: u.name || u.user_name || u.full_name || 'User',
-            role_id: u.role_id || u.role || (u.role ? u.role.id : ''),
-            role_name: u.role_name || this.getRoleName(u.role_id || u.roleId),
-            photo: this.getPhotoUrl(u.profile_pic || u.image || u.photo || ''),
-            attendance_status: status,
-            hasAttended: status === 'present' || status === 'attended' || status === 'online' || u.hasAttended === true || u.is_attended === 1
+          this.applyCategoryFilter();
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        }
+      });
+    } else {
+      // For other categories, load via unified forkJoin
+      forkJoin({
+        allUsersGeneric: this.dataService.getUsersByCompany(companyIdStr).pipe(catchError(() => of([]))),
+        allUsersProduction: this.dataService.getRangersByCompany(companyIdStr).pipe(catchError(() => of([]))),
+        allUsersPHP: this.dataService.getAssignableUsers({ company_id: companyIdStr }).pipe(catchError(() => of([]))),
+        allUsersNode: this.hierarchyService.getRangers(this.myCompanyId).pipe(catchError(() => of([]))),
+        v2Subordinates: this.dataService.listV2Subordinates().pipe(catchError(() => of([])))
+      }).subscribe({
+        next: (res: any) => {
+          const getArr = (obj: any) => {
+            if (Array.isArray(obj)) return obj;
+            if (!obj) return [];
+            const list = obj.data || obj.users || obj.rangers || obj.staff || obj.subordinates || obj.result || obj.guards || obj.supervisor;
+            return Array.isArray(list) ? list : [];
           };
-        });
 
-        this.applyCategoryFilter();
-        this.isLoading = false;
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.isLoading = false;
-        this.cdr.detectChanges();
-      }
-    });
+          const generic = getArr(res.allUsersGeneric);
+          const production = getArr(res.allUsersProduction);
+          const php = getArr(res.allUsersPHP);
+          const node = getArr(res.allUsersNode);
+          const v2Sub = getArr(res.v2Subordinates);
+
+          // Unified list with de-duplication by ID
+          const unifiedMap = new Map();
+          const allSources = [...production, ...node, ...generic, ...v2Sub, ...php];
+
+          allSources.forEach((u: any) => {
+            const id = String(u.id || u.user_id || u.staff_id || u.ranger_id || u.guard_id || '');
+            if (id && !unifiedMap.has(id)) {
+              const status = (u.attendance_status || u.status || '').toLowerCase();
+              const roleId = u.role_id || u.role || (u.role ? u.role.id : '');
+              const resolvedRoleName = u.role_name || this.getRoleName(roleId);
+              
+              unifiedMap.set(id, {
+                ...u,
+                id: id,
+                name: u.name || u.user_name || u.full_name || 'User',
+                role_id: roleId,
+                role_name: resolvedRoleName,
+                photo: this.getPhotoUrl(u.profile_pic || u.image || u.photo || ''),
+                attendance_status: status,
+                hasAttended: status === 'present' || status === 'attended' || status === 'online' || u.hasAttended === true || u.is_attended === 1
+              });
+            }
+          });
+
+          this.allUsers = Array.from(unifiedMap.values());
+          
+          this.applyCategoryFilter();
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        }
+      });
+    }
   }
 
   applyCategoryFilter() {
