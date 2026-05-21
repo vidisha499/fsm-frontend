@@ -103,30 +103,51 @@
 
         <div class="filter-body">
           
-          <!-- Hierarchical Selection (Range -> Beat -> Employee) -->
+          <!-- Hierarchical Selection (Circle -> Division -> Range -> Section -> Beat -> Employee) -->
           <ng-container *ngIf="!activeReport.includes('Self') && !activeReport.includes('Supervisor') && !activeReport.includes('Admin') && activeReport !== 'Company Performance' && userRole === 'admin'">
-            <div class="data-row-premium">
-              <div class="row-label-group">
-                <i class="fas fa-city" style="color: #0d9488; font-size: 14px;"></i>
-                <span class="label">{{ 'REPORTS.RANGE' | translate }}</span>
-              </div>
-              <ion-select interface="popover" [placeholder]="'REPORTS.SELECT_RANGE' | translate" [(ngModel)]="selectedRange" (ionChange)="onRangeChange()" class="compact-select">
-                <ion-select-option value="all">{{ 'REPORTS.ALL_RANGES' | translate }}</ion-select-option>
-                <ion-select-option *ngFor="let r of allRanges" [value]="r">{{r}}</ion-select-option>
-              </ion-select>
-            </div>
+            
+            <!-- V2 Dynamic Hierarchy Layers -->
+            <ng-container *ngIf="layers && layers.length > 0">
+              <ng-container *ngFor="let layer of layers; let i = index">
+                <div class="data-row-premium" *ngIf="shouldShowLayer(i)">
+                  <div class="row-label-group">
+                    <i class="fas fa-sitemap" style="color: #0d9488; font-size: 14px;"></i>
+                    <span class="label">{{ layer.name | uppercase }}</span>
+                  </div>
+                  <ion-select interface="popover" [placeholder]="layer.name" [(ngModel)]="hierarchySelections[i]" (ionChange)="onLayerChange(i)" class="compact-select">
+                    <ion-select-option [value]="null">Select {{ layer.name }}</ion-select-option>
+                    <ion-select-option *ngFor="let ent of layerEntities[layer.id]" [value]="ent.id">{{ ent.name }}</ion-select-option>
+                  </ion-select>
+                </div>
+              </ng-container>
+            </ng-container>
 
-            <div class="data-row-premium">
-              <div class="row-label-group">
-                <i class="fas fa-map-marker-alt" style="color: #0d9488; font-size: 14px;"></i>
-                <span class="label">{{ 'REPORTS.BEAT' | translate }}</span>
+            <!-- Fallback Old Hierarchy (Only shown if V2 layers are not loaded/empty) -->
+            <ng-container *ngIf="!layers || layers.length === 0">
+              <div class="data-row-premium">
+                <div class="row-label-group">
+                  <i class="fas fa-city" style="color: #0d9488; font-size: 14px;"></i>
+                  <span class="label">{{ 'REPORTS.RANGE' | translate }}</span>
+                </div>
+                <ion-select interface="popover" [placeholder]="'REPORTS.SELECT_RANGE' | translate" [(ngModel)]="selectedRange" (ionChange)="onRangeChange()" class="compact-select">
+                  <ion-select-option value="all">{{ 'REPORTS.ALL_RANGES' | translate }}</ion-select-option>
+                  <ion-select-option *ngFor="let r of allRanges" [value]="r">{{r}}</ion-select-option>
+                </ion-select>
               </div>
-              <ion-select interface="popover" [placeholder]="'REPORTS.SELECT_BEAT' | translate" [(ngModel)]="selectedBeat" (ionChange)="onBeatChange()" class="compact-select">
-                <ion-select-option value="all">{{ 'REPORTS.ALL_BEATS' | translate }}</ion-select-option>
-                <ion-select-option *ngFor="let b of displayBeats" [value]="b.id">{{b.name}}</ion-select-option>
-              </ion-select>
-            </div>
 
+              <div class="data-row-premium">
+                <div class="row-label-group">
+                  <i class="fas fa-map-marker-alt" style="color: #0d9488; font-size: 14px;"></i>
+                  <span class="label">{{ 'REPORTS.BEAT' | translate }}</span>
+                </div>
+                <ion-select interface="popover" [placeholder]="'REPORTS.SELECT_BEAT' | translate" [(ngModel)]="selectedBeat" (ionChange)="onBeatChange()" class="compact-select">
+                  <ion-select-option value="all">{{ 'REPORTS.ALL_BEATS' | translate }}</ion-select-option>
+                  <ion-select-option *ngFor="let b of displayBeats" [value]="b.id">{{b.name}}</ion-select-option>
+                </ion-select>
+              </div>
+            </ng-container>
+
+            <!-- Unified Employee Selection (Always shown at the end of hierarchical selections) -->
             <div class="data-row-premium">
               <div class="row-label-group">
                 <i class="fas fa-user-tie" style="color: #0d9488; font-size: 14px;"></i>

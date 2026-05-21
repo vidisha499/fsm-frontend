@@ -47,28 +47,11 @@
             <div style="margin-top: 35px;">
                 <h3 class="section-title">{{ 'DASHBOARD.MISSION_MODULES' | translate }}</h3>
                 <div class="module-grid">
-                    <div class="module-card card-blue" *ngIf="dataService.isFeatureEnabled('attendance')" (click)="goToPage('attendance-list', { mode: 'beat' })">
-                        <div class="icon-bg"><i class="fas fa-fingerprint"></i></div>
-                        <p [innerHTML]="'DASHBOARD.BEAT_ATTENDANCE' | translate"></p>
+                    <div class="module-card" [ngClass]="mod.class" *ngFor="let mod of visibleModules" (click)="mod.action()">
+                        <div class="icon-bg"><i [class]="mod.icon"></i></div>
+                        <p [innerHTML]="mod.translateKey | translate"></p>
                         <i class="fas fa-paw watermark"></i>
                     </div>
-                    <div class="module-card card-green" *ngIf="dataService.isFeatureEnabled('know_your_area')" (click)="goToPage('geofences')">
-                        <div class="icon-bg"><i class="fas fa-map-marked-alt"></i></div>
-                        <p [innerHTML]="'DASHBOARD.ONSITE_LOG' | translate"></p>
-                        <i class="fas fa-paw watermark"></i>
-                    </div>
-                    <div class="module-card card-yellow" *ngIf="dataService.isFeatureEnabled('patrol')" (click)="goToPage('patrol-logs')">
-                        <div class="icon-bg"><i class="fas fa-hiking"></i></div>
-                        <p [innerHTML]="'DASHBOARD.PATROL_MISSIONS' | translate"></p>
-                        <i class="fas fa-paw watermark"></i>
-                    </div>
-                    <div class="module-card card-red" *ngIf="dataService.isFeatureEnabled('forest_events')" (click)="goToPage('forest-events')">
-                        <div class="icon-bg"><i class="fas fa-calendar-alt"></i></div>
-                        <p [innerHTML]="'DASHBOARD.ALERT_INCIDENT' | translate"></p>
-                        <i class="fas fa-paw watermark"></i>
-                    </div>
-
-
                 </div>
             </div>
         </div>

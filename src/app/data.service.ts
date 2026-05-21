@@ -1683,9 +1683,11 @@ export class DataService {
     return this.http.delete(`${this.baseApiUrl}/roles/${roleId}`, { params: { api_token: token } });
   }
 
-  listV2Users() {
+  listV2Users(companyId?: any) {
     const token = localStorage.getItem('api_token') || '';
-    return this.http.post(`${this.baseApiUrl}/v2/user/list`, { api_token: token });
+    const payload: any = { api_token: token };
+    if (companyId) payload.company_id = String(companyId);
+    return this.http.post(`${this.baseApiUrl}/v2/user/list`, payload);
   }
 
   getLegacyUsers(companyId: any) {

@@ -30,7 +30,7 @@
 
   <div class="logs-container">
     <!-- Advanced Admin Filters -->
-    <div class="admin-filter-bar">
+    <div class="admin-filter-bar" *ngIf="userRole === '1'">
       <!-- Row 1: Search -->
       <div class="search-box-row">
         <ion-icon name="search-outline"></ion-icon>

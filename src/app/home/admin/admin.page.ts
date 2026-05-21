@@ -203,6 +203,9 @@ export class AdminPage implements OnInit, AfterViewInit {
   allRanges: any[] = [];
   allBeats: any[] = [];
   displayBeats: any[] = [];
+  layers: any[] = [];
+  hierarchySelections: any[] = [];
+  layerEntities: { [key: number]: any[] } = {};
   hierarchyNodes: any[] = [];
   dateFrom: string = '';
   dateTo: string = '';
@@ -562,7 +565,6 @@ export class AdminPage implements OnInit, AfterViewInit {
       },
     });
   }
-
   onRangeChange(newRange: string) {
     this.selectedRange = newRange; // 'today', 'week', ya 'month'
 
@@ -571,11 +573,56 @@ export class AdminPage implements OnInit, AfterViewInit {
     this.fetchKPI('events', newRange);
   }
 
-  
+  // --- Production Filter Data Logic (V2 Hierarchy Cascade + Fallback to legacy) ---
+  loadHierarchy(force: boolean = false) {
+    if (!force && ((this.layers && this.layers.length > 0) || (this.allRanges && this.allRanges.length > 0))) {
+      return;
+    }
+    console.log('📡 [Hierarchy] Dashboard Syncing V2 Hierarchy layers...');
+    this.dataService.listV2Layers().subscribe({
+      next: (layerRes: any) => {
+        const rawLayers = layerRes?.data || layerRes || [];
+        
+        if (rawLayers.length > 0) {
+          this.layers = rawLayers
+            .sort((a: any, b: any) => (Number(a.rank || a.id)) - (Number(b.rank || b.id)))
+            .map((l: any) => ({
+              id: Number(l.id),
+              name: l.name || l.layer_name || l.label
+            }));
 
-  // --- Production Filter Data Logic (Sir's Way + getSites) ---
-  loadHierarchy() {
-    console.log('📡 [Hierarchy] Dashboard Syncing (Sir\'s way + getSites)...');
+          console.log("🎯 [Admin] V2 Layers Parsed:", this.layers);
+
+          // Initialize hierarchy selections array
+          if (!this.hierarchySelections || this.hierarchySelections.length !== this.layers.length) {
+            this.hierarchySelections = new Array(this.layers.length).fill(null);
+          }
+
+          // Load initial entities for the first layer
+          if (this.layers.length > 0) {
+            const firstLayer = this.layers[0];
+            this.dataService.listV2Entities(firstLayer.id, null).subscribe({
+              next: (entRes: any) => {
+                const nodes = entRes?.data || entRes || [];
+                this.layerEntities[firstLayer.id] = Array.isArray(nodes) ? nodes : [];
+                this.cdr.detectChanges();
+              }
+            });
+          }
+        } else {
+          console.warn("⚠️ [Admin] No V2 Layers returned. Falling back to old hierarchy.");
+          this.loadOldHierarchy();
+        }
+      },
+      error: (err) => {
+        console.error("❌ [Admin] listV2Layers API failed. Falling back to old hierarchy:", err);
+        this.loadOldHierarchy();
+      }
+    });
+  }
+
+  loadOldHierarchy() {
+    console.log('📡 [Hierarchy] Dashboard Syncing legacy range/beat layers (Sir\'s legacy way)...');
     const apiToken = localStorage.getItem('api_token') || '';
     const companyId = localStorage.getItem('company_id') || localStorage.getItem('user_company_id') || '1';
     
@@ -639,7 +686,7 @@ export class AdminPage implements OnInit, AfterViewInit {
   }
 
 
-  // Set the final data
+  // Set the final data for legacy fallback
   private finalizeHierarchy(rangeSet: Set<string>, beatArray: any[]) {
     this.allRanges = Array.from(rangeSet).sort();
     this.allBeats = beatArray;
@@ -653,10 +700,74 @@ export class AdminPage implements OnInit, AfterViewInit {
         .sort();
     }
 
-    console.log('✅ [Hierarchy] Sync Complete:', this.allRanges.length, 'Ranges,', this.displayBeats.length, 'Beats');
+    console.log('✅ [Hierarchy] Sync Complete (Legacy Fallback):', this.allRanges.length, 'Ranges,', this.displayBeats.length, 'Beats');
     this.cdr.detectChanges();
   }
 
+  onLayerChange(layerIndex: number) {
+    const selectedEntityId = this.hierarchySelections[layerIndex];
+    console.log(`🔄 [Hierarchy] Layer ${layerIndex} changed to:`, selectedEntityId);
+    
+    // 1. Clear all subsequent selections and entity arrays
+    for (let i = layerIndex + 1; i < this.layers.length; i++) {
+      this.hierarchySelections[i] = null;
+      this.layerEntities[this.layers[i].id] = [];
+    }
+
+    // 2. Load next layer entities from V2 API
+    if (selectedEntityId && layerIndex + 1 < this.layers.length) {
+      const nextLayer = this.layers[layerIndex + 1];
+      
+      this.dataService.listV2Entities(nextLayer.id, selectedEntityId).subscribe({
+        next: (res: any) => {
+          const nodes = res?.data || res || [];
+          this.layerEntities[nextLayer.id] = Array.isArray(nodes) ? nodes : [];
+          console.log(`🎯 [Hierarchy] Populated ${this.layerEntities[nextLayer.id].length} entities for Layer ID ${nextLayer.id}`);
+          
+          this.loadData(true); // reload dashboard content
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          console.error("❌ [Hierarchy] Failed to load entities:", err);
+          this.loadData(true);
+        }
+      });
+    } else {
+      this.loadData(true);
+    }
+  }
+
+  shouldShowLayer(layerIndex: number): boolean {
+    if (layerIndex === 0) return true;
+    return !!this.hierarchySelections[layerIndex - 1];
+  }
+
+  isRecordMatchingHierarchy(r: any, deepestSelection: any): boolean {
+    if (!deepestSelection) return true;
+    
+    const { entityId, name } = deepestSelection;
+    if (!name) return true;
+    
+    // 1. Try matching by ID
+    const rSiteId = String(r.site_id || r.siteId || r.beat_id || r.entity_id || r.range_id || r.id || '');
+    if (rSiteId === String(entityId)) return true;
+    
+    // 2. Robust name string match
+    const fieldsToSearch = [
+      r.beat_name, r.site_name, r.location, r.location_name,
+      r.range_name, r.range, r.region, r.division_name, r.division,
+      r.client_name, r.name, r.beat
+    ];
+    
+    const matchName = name.toLowerCase();
+    for (const f of fieldsToSearch) {
+      if (f && String(f).toLowerCase().includes(matchName)) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
 
   onRangeFilterChange() {
     console.log('🔄 Range Filter Changed:', this.selectedRange);
@@ -699,6 +810,19 @@ export class AdminPage implements OnInit, AfterViewInit {
 
 
   resetAllFilters() {
+    if (this.layers && this.layers.length > 0) {
+      this.hierarchySelections = new Array(this.layers.length).fill(null);
+      // Reload entities for the first layer
+      const firstLayer = this.layers[0];
+      this.dataService.listV2Entities(firstLayer.id, null).subscribe({
+        next: (entRes: any) => {
+          const nodes = entRes?.data || entRes || [];
+          this.layerEntities[firstLayer.id] = Array.isArray(nodes) ? nodes : [];
+          this.cdr.detectChanges();
+        }
+      });
+    }
+
     if (this.userRole === '1') {
       this.selectedRange = 'all';
       this.selectedBeat = 'all';
@@ -1199,6 +1323,25 @@ changeTimeframe(newTimeframe: string) {
             const list = this.allReportsCache || [];
             const assetList = this.allAssetsCache || [];
 
+            // Resolve deepest V2 hierarchy selection
+            let deepestSelection: any = null;
+            if (this.layers && this.layers.length > 0 && this.hierarchySelections) {
+              for (let i = this.hierarchySelections.length - 1; i >= 0; i--) {
+                if (this.hierarchySelections[i] && this.hierarchySelections[i] !== 'null') {
+                  const selId = this.hierarchySelections[i];
+                  const layerId = this.layers[i].id;
+                  const ent = this.layerEntities[layerId]?.find((e: any) => String(e.id) === String(selId));
+                  if (ent) {
+                    deepestSelection = { entityId: selId, name: ent.name || ent.label || '' };
+                    break;
+                  }
+                }
+              }
+            }
+            if (deepestSelection) {
+              console.log("🔍 [Admin Dashboard] Active V2 Deepest Selection:", deepestSelection);
+            }
+
             // Calculate Period Dates dynamically based on date filter
             let periodDates: string[] = [];
             const now = new Date(nowL);
@@ -1268,39 +1411,46 @@ changeTimeframe(newTimeframe: string) {
                  let datePass = true;
                  if (this.activeDateFilter === 'today') {
                     datePass = aDate && (aDate.includes(todayYMD) || aDate.includes(todayDMY));
-                 } else if (this.activeDateFilter === 'week') {
-                    const rTimestamp = getTS(aDate);
-                    const nowTS = nowL.getTime();
-                    datePass = rTimestamp > (nowTS - (7 * 24 * 60 * 60 * 1000));
-                 } else if (this.activeDateFilter === 'month') {
-                    const rTimestamp = getTS(aDate);
-                    const nowTS = nowL.getTime();
-                    datePass = rTimestamp > (nowTS - (30 * 24 * 60 * 60 * 1000));
-                 } else if (this.activeDateFilter === 'custom') {
-                    const rTimestamp = getTS(aDate);
-                    const fromTS = new Date(dates.from).setHours(0, 0, 0, 0);
-                    const toTS = new Date(dates.to).setHours(23, 59, 59, 999);
-                    datePass = rTimestamp >= fromTS && rTimestamp <= toTS;
-                 }
+                  } else if (this.activeDateFilter === 'week') {
+                     const rTimestamp = getTS(aDate);
+                     const nowTS = nowL.getTime();
+                     datePass = rTimestamp > (nowTS - (7 * 24 * 60 * 60 * 1000));
+                  } else if (this.activeDateFilter === 'month') {
+                     const rTimestamp = getTS(aDate);
+                     const nowTS = nowL.getTime();
+                     datePass = rTimestamp > (nowTS - (30 * 24 * 60 * 60 * 1000));
+                  } else if (this.activeDateFilter === 'custom') {
+                     const rTimestamp = getTS(aDate);
+                     const fromTS = new Date(dates.from).setHours(0, 0, 0, 0);
+                     const toTS = new Date(dates.to).setHours(23, 59, 59, 999);
+                     datePass = rTimestamp >= fromTS && rTimestamp <= toTS;
+                  }
 
-                 // Range filter (Inclusive)
-                 let rangePass = true;
-                 if (this.selectedRange && this.selectedRange !== 'all') {
-                    const aRange = (a.range_name || a.range || '').toLowerCase();
-                    const filterRange = this.selectedRange.toLowerCase();
-                    rangePass = aRange.includes(filterRange) || filterRange.includes(aRange);
-                 }
+                  // Hierarchy or Legacy filter
+                  let hierarchyPass = true;
+                  if (deepestSelection) {
+                    hierarchyPass = this.isRecordMatchingHierarchy(a, deepestSelection);
+                  } else {
+                    // Range filter (Inclusive)
+                    let rangePass = true;
+                    if (this.selectedRange && this.selectedRange !== 'all') {
+                       const aRange = (a.range_name || a.range || '').toLowerCase();
+                       const filterRange = this.selectedRange.toLowerCase();
+                       rangePass = aRange.includes(filterRange) || filterRange.includes(aRange);
+                    }
 
-                 // Beat filter (Inclusive)
-                 let beatPass = true;
-                 if (this.selectedBeat && this.selectedBeat !== 'all') {
-                    const aBeat = (a.beat_name || a.beat || '').toLowerCase();
-                    const filterBeat = this.selectedBeat.toLowerCase();
-                    beatPass = aBeat.includes(filterBeat) || filterBeat.includes(aBeat);
-                 }
+                    // Beat filter (Inclusive)
+                    let beatPass = true;
+                    if (this.selectedBeat && this.selectedBeat !== 'all') {
+                       const aBeat = (a.beat_name || a.beat || '').toLowerCase();
+                       const filterBeat = this.selectedBeat.toLowerCase();
+                       beatPass = aBeat.includes(filterBeat) || filterBeat.includes(aBeat);
+                    }
+                    hierarchyPass = rangePass && beatPass;
+                  }
 
-                 return datePass && rangePass && beatPass;
-              });
+                  return datePass && hierarchyPass;
+               });
 
               this.totalAssetsCount = filteredAssets.length;
               
@@ -1442,16 +1592,20 @@ changeTimeframe(newTimeframe: string) {
                    // Hierarchy Filtering logic
                    let isPass = true;
 
-                   // RANGE FILTER (Inclusive Matching)
-                   if (this.selectedRange && this.selectedRange !== 'all') {
-                      const filterRange = this.selectedRange.toLowerCase();
-                      if (!rRange.includes(filterRange) && !filterRange.includes(rRange)) isPass = false;
-                   }
+                   if (deepestSelection) {
+                      isPass = this.isRecordMatchingHierarchy(r, deepestSelection);
+                   } else {
+                      // RANGE FILTER (Inclusive Matching)
+                      if (this.selectedRange && this.selectedRange !== 'all') {
+                         const filterRange = this.selectedRange.toLowerCase();
+                         if (!rRange.includes(filterRange) && !filterRange.includes(rRange)) isPass = false;
+                      }
 
-                   // BEAT FILTER (Inclusive Matching)
-                   if (isPass && this.selectedBeat && this.selectedBeat !== 'all') {
-                      const filterBeat = this.selectedBeat.toLowerCase();
-                      if (!rBeat.includes(filterBeat) && !filterBeat.includes(rBeat)) isPass = false;
+                      // BEAT FILTER (Inclusive Matching)
+                      if (isPass && this.selectedBeat && this.selectedBeat !== 'all') {
+                         const filterBeat = this.selectedBeat.toLowerCase();
+                         if (!rBeat.includes(filterBeat) && !filterBeat.includes(rBeat)) isPass = false;
+                      }
                    }
 
                    // DATE FILTER (Dashboard context: Today/Week/Month)
@@ -1573,16 +1727,23 @@ changeTimeframe(newTimeframe: string) {
                          isPass = rTimestamp >= fromTS && rTimestamp <= toTS;
                       }
 
-                      // RANGE FILTER on map pins
-                      if (isPass && this.selectedRange && this.selectedRange !== 'all') {
-                        const fRange = (f.range_name || f.range || f.region || '').toLowerCase();
-                        if (!fRange.includes(this.selectedRange.toLowerCase())) isPass = false;
-                      }
+                      // HIERARCHY FILTER on map pins
+                      if (isPass) {
+                        if (deepestSelection) {
+                          isPass = this.isRecordMatchingHierarchy(f, deepestSelection);
+                        } else {
+                          // RANGE FILTER on map pins
+                          if (this.selectedRange && this.selectedRange !== 'all') {
+                            const fRange = (f.range_name || f.range || f.region || '').toLowerCase();
+                            if (!fRange.includes(this.selectedRange.toLowerCase())) isPass = false;
+                          }
 
-                      // BEAT FILTER on map pins
-                      if (isPass && this.selectedBeat && this.selectedBeat !== 'all') {
-                        const fBeat = (f.beat_name || f.beat || '').toLowerCase();
-                        if (!fBeat.includes(this.selectedBeat.toLowerCase())) isPass = false;
+                          // BEAT FILTER on map pins
+                          if (isPass && this.selectedBeat && this.selectedBeat !== 'all') {
+                            const fBeat = (f.beat_name || f.beat || '').toLowerCase();
+                            if (!fBeat.includes(this.selectedBeat.toLowerCase())) isPass = false;
+                          }
+                        }
                       }
 
                       return latValid && isPass;

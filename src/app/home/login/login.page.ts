@@ -28,6 +28,26 @@ export class LoginPage implements OnInit, OnDestroy {
   loginData = { phone: '', password: '' };
   resetData = { otp: '', newPassword: '', confirmPassword: '' };
 
+  get isPhoneValid(): boolean {
+    if (!this.loginData.phone) return false;
+    const stripped = this.loginData.phone.replace(/\D/g, '');
+    return stripped.length === 10;
+  }
+
+  get isPasswordValid(): boolean {
+    return !!this.loginData.password && this.loginData.password.length >= 4;
+  }
+
+  get isFormValid(): boolean {
+    return this.isPhoneValid && this.isPasswordValid;
+  }
+
+  onPhoneInput(event: any) {
+    const val = event.target.value || '';
+    const digits = val.replace(/\D/g, '');
+    this.loginData.phone = digits.substring(0, 10);
+  }
+
   private loginSub?: Subscription;
 
   constructor(
@@ -140,8 +160,12 @@ export class LoginPage implements OnInit, OnDestroy {
 
 
 async login() {
-  if (!this.loginData.phone || !this.loginData.password) {
-    this.presentToast('Please enter both contact and password', 'warning');
+  if (!this.isFormValid) {
+    if (!this.isPhoneValid) {
+      this.presentToast('Please enter a valid 10-digit mobile number', 'warning');
+    } else if (!this.isPasswordValid) {
+      this.presentToast('Password must be at least 4 characters long', 'warning');
+    }
     return;
   }
 

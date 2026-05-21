@@ -77,6 +77,45 @@ passwordType: string = 'password';
     'Marathi': 'mr'
   };
 
+  get visibleModules(): any[] {
+    const modules = [
+      {
+        id: 'attendance',
+        class: 'card-blue',
+        icon: 'fas fa-fingerprint',
+        translateKey: 'DASHBOARD.BEAT_ATTENDANCE',
+        action: () => this.goToPage('attendance-list', { mode: 'beat' })
+      },
+      {
+        id: 'patrol',
+        class: 'card-yellow',
+        icon: 'fas fa-hiking',
+        translateKey: 'DASHBOARD.PATROL_MISSIONS',
+        action: () => this.goToPage('patrol-logs')
+      },
+      {
+        id: 'forest_events',
+        class: 'card-red',
+        icon: 'fas fa-calendar-alt',
+        translateKey: 'DASHBOARD.ALERT_INCIDENT',
+        action: () => this.goToPage('forest-events')
+      },
+      {
+        id: 'know_your_area',
+        class: 'card-green',
+        icon: 'fas fa-map-marked-alt',
+        translateKey: 'DASHBOARD.ONSITE_LOG',
+        action: () => this.goToPage('geofences')
+      }
+    ];
+
+    // Filter by whether the feature is enabled (permitted for that role)
+    const enabled = modules.filter(m => this.dataService.isFeatureEnabled(m.id));
+    
+    // Safety check: Limit to maximum 4 cards to keep UI clean and consistent
+    return enabled.slice(0, 4);
+  }
+
   constructor(
     private menuCtrl: MenuController,
     private router: Router,

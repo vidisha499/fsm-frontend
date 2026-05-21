@@ -140,17 +140,20 @@
       <h2 class="form-title">Login</h2>
 
       <!-- MOBILE -->
-      <div class="input-group">
+      <div class="input-group" [class.input-error]="loginData.phone && !isPhoneValid" [class.input-success]="isPhoneValid">
         <label>MOBILE NUMBER</label>
         <div class="field">
           <ion-icon name="call-outline"></ion-icon>
           <span class="country-prefix">+91</span>
-          <input type="tel" [(ngModel)]="loginData.phone" placeholder="Enter Mobile Number">
+          <input type="tel" [value]="loginData.phone" (input)="onPhoneInput($event)" placeholder="Enter Mobile Number" maxlength="10">
+        </div>
+        <div class="validation-message" *ngIf="loginData.phone && !isPhoneValid">
+          Please enter a valid 10-digit mobile number.
         </div>
       </div>
 
       <!-- PASSWORD -->
-      <div class="input-group">
+      <div class="input-group" [class.input-error]="loginData.password && !isPasswordValid" [class.input-success]="isPasswordValid">
         <label>SECURITY PASSWORD</label>
         <div class="field">
           <ion-icon name="lock-closed-outline"></ion-icon>
@@ -165,13 +168,16 @@
             (click)="isPasswordVisible = !isPasswordVisible">
           </ion-icon>
         </div>
+        <div class="validation-message" *ngIf="loginData.password && !isPasswordValid">
+          Password must be at least 4 characters.
+        </div>
       </div>
 
       <div class="forgot-link">
         <a (click)="forgotPassword()">FORGOT PASSWORD?</a>
       </div>
 
-      <button class="login-btn" (click)="login()">
+      <button class="login-btn" (click)="login()" [disabled]="!isFormValid">
         LOG IN
         <ion-icon name="arrow-forward-outline"></ion-icon>
       </button>

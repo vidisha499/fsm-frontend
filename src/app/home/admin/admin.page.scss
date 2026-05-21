@@ -128,10 +128,12 @@
         display: flex;
         gap: 8px;
         width: 100%;
+        flex-wrap: wrap;
       }
 
       .fselect {
         flex: 1;
+        min-width: 110px;
         background: var(--surf2);
         border: 1px solid var(--bord);
         border-radius: 8px;

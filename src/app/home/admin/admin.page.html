@@ -78,25 +78,43 @@
 
     <div class="filter-bar" [class.collapsed]="isFilterCollapsed">
       <div class="filter-group">
-        <select
-          class="fselect"
-          [(ngModel)]="selectedRange"
-          (change)="onRangeFilterChange()"
-          [disabled]="userRole !== '1' && !!assignedRange"
-        >
-          <option value="all">{{ 'ADMIN.ALL_RANGES' | translate }}</option>
-          <option *ngFor="let range of allRanges" [value]="range">{{ range }}</option>
-        </select>
+        <!-- V2 Dynamic Hierarchy Cascade Layers -->
+        <ng-container *ngIf="layers && layers.length > 0">
+          <ng-container *ngFor="let layer of layers; let i = index">
+            <select
+              *ngIf="shouldShowLayer(i)"
+              class="fselect"
+              [(ngModel)]="hierarchySelections[i]"
+              (change)="onLayerChange(i)"
+            >
+              <option [value]="null">Select {{ layer.name }}</option>
+              <option *ngFor="let ent of layerEntities[layer.id]" [value]="ent.id">{{ ent.name }}</option>
+            </select>
+          </ng-container>
+        </ng-container>
 
-        <select
-          class="fselect"
-          [(ngModel)]="selectedBeat"
-          (change)="doRefresh(false)"
-          [disabled]="userRole !== '1' && !!assignedBeat"
-        >
-          <option value="all">{{ 'ADMIN.ALL_BEATS' | translate }}</option>
-          <option *ngFor="let beat of displayBeats" [value]="beat">{{ beat }}</option>
-        </select>
+        <!-- Legacy Fallback -->
+        <ng-container *ngIf="!layers || layers.length === 0">
+          <select
+            class="fselect"
+            [(ngModel)]="selectedRange"
+            (change)="onRangeFilterChange()"
+            [disabled]="userRole !== '1' && !!assignedRange"
+          >
+            <option value="all">{{ 'ADMIN.ALL_RANGES' | translate }}</option>
+            <option *ngFor="let range of allRanges" [value]="range">{{ range }}</option>
+          </select>
+
+          <select
+            class="fselect"
+            [(ngModel)]="selectedBeat"
+            (change)="doRefresh(false)"
+            [disabled]="userRole !== '1' && !!assignedBeat"
+          >
+            <option value="all">{{ 'ADMIN.ALL_BEATS' | translate }}</option>
+            <option *ngFor="let beat of displayBeats" [value]="beat">{{ beat }}</option>
+          </select>
+        </ng-container>
 
         <button
           class="refresh-btn"
