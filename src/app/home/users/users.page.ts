@@ -42,6 +42,8 @@ export class UsersPage implements OnInit {
     this.isLoading = true;
     const companyIdStr = this.myCompanyId.toString();
 
+    /*
+    // --- COMMENTED OUT LEGACY APIS AS REQUESTED BY USER'S SIR ---
     forkJoin({
       allUsersGeneric: this.dataService.getUsersByCompany(companyIdStr).pipe(catchError(() => of([]))),
       allUsersProduction: this.dataService.getRangersByCompany(companyIdStr).pipe(catchError(() => of([]))),
@@ -97,6 +99,52 @@ export class UsersPage implements OnInit {
 
         this.allUsers = Array.from(unifiedMap.values());
         
+        // Sort users alphabetically
+        this.allUsers.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+        this.applyFilter();
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
+    */
+
+    // --- INTEGRATING BEST NEW V2 USER LIST API: listV2Users ---
+    this.dataService.listV2Users().pipe(
+      catchError(() => of([]))
+    ).subscribe({
+      next: (res: any) => {
+        const getArr = (obj: any) => {
+          if (Array.isArray(obj)) return obj;
+          if (!obj) return [];
+          const list = obj.data || obj.users || obj.rangers || obj.staff || obj.subordinates || obj.result || obj.guards || obj.supervisor;
+          return Array.isArray(list) ? list : [];
+        };
+
+        const users = getArr(res);
+
+        this.allUsers = users.map((u: any) => {
+          const id = String(u.id || u.user_id || u.staff_id || u.ranger_id || '');
+          const status = (u.attendance_status || u.status || '').toLowerCase();
+          const roleId = u.role_id || u.role || (u.role ? u.role.id : '');
+          const resolvedRoleName = u.role_name || this.getRoleName(roleId);
+          
+          return {
+            ...u,
+            id: id,
+            name: u.name || u.user_name || u.full_name || 'User',
+            role_id: roleId,
+            role_name: resolvedRoleName,
+            photo: this.getPhotoUrl(u.profile_pic || u.image || u.photo || ''),
+            attendance_status: status,
+            hasAttended: status === 'present' || status === 'attended' || status === 'online' || u.hasAttended === true || u.is_attended === 1
+          };
+        });
+
         // Sort users alphabetically
         this.allUsers.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
