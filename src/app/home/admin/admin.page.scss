@@ -1029,6 +1029,9 @@
   /* --- PREMIUM LAYER PANEL (THE MAIN PART) --- */
   .layer-panel {
     position: absolute; bottom: 0; left: 0; right: 0;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
     background: #fff; z-index: 2000; border-radius: 24px 24px 0 0;
     box-shadow: 0 -10px 40px rgba(0,0,0,0.15);
     transition: transform 0.4s cubic-bezier(0.36, 0.66, 0.04, 1);
@@ -1039,12 +1042,42 @@
   .lp-handle { width: 40px; height: 4px; background: #e2e8f0; border-radius: 2px; margin: 12px auto; }
 
   .lp-hdr {
-    display: flex; justify-content: space-between; padding: 0 20px 15px;
+    display: flex; justify-content: space-between; align-items: center; padding: 0 20px 15px;
     .lp-title { font-size: 16px; font-weight: 800; color: var(--tx); }
     .lp-sub { font-size: 11px; color: var(--tx3); }
+    .lp-close {
+      background: #ef4444;
+      color: #fff;
+      border: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      padding: 0;
+      &:active {
+        background: #dc2626;
+        transform: scale(0.95);
+      }
+    }
   }
 
-  .lp-body { max-height: 50vh; overflow-y: auto; padding-bottom: 30px; }
+  .lp-qrow {
+    display: flex;
+    gap: 12px;
+    padding: 0 20px 15px;
+    .qchip {
+      flex: 1;
+      text-align: center;
+      cursor: pointer;
+    }
+  }
+
+  .lp-body { flex: 1; overflow-y: auto; padding-bottom: 30px; }
 
   .lp-cat-hdr {
     font-size: 9px; font-weight: 800; color: var(--tx3); text-transform: uppercase;

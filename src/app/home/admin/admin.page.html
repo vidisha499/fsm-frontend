@@ -78,6 +78,7 @@
 
     <div class="filter-bar" [class.collapsed]="isFilterCollapsed">
       <div class="filter-group">
+<<<<<<< Updated upstream
         <!-- V2 Dynamic Hierarchy Cascade Layers -->
         <ng-container *ngIf="layers && layers.length > 0">
           <ng-container *ngFor="let layer of layers; let i = index">
@@ -115,6 +116,27 @@
             <option *ngFor="let beat of displayBeats" [value]="beat">{{ beat }}</option>
           </select>
         </ng-container>
+=======
+        <select
+          class="fselect"
+          [(ngModel)]="selectedRange"
+          (change)="onRangeFilterChange()"
+          [disabled]="userRole !== '1' && !!assignedRange"
+        >
+          <option value="all">{{ 'ADMIN.ALL_RANGES' | translate }}</option>
+          <option *ngFor="let range of allRanges" [value]="range">{{ range }}</option>
+        </select>
+
+        <select
+          class="fselect"
+          [(ngModel)]="selectedBeat"
+          (change)="doRefresh(false)"
+          [disabled]="userRole !== '1' && !!assignedBeat"
+        >
+          <option value="all">{{ 'ADMIN.ALL_BEATS' | translate }}</option>
+          <option *ngFor="let beat of displayBeats" [value]="beat">{{ beat }}</option>
+        </select>
+>>>>>>> Stashed changes
 
         <button
           class="refresh-btn"
@@ -479,11 +501,9 @@
       <div class="lp-sub">{{ 'ADMIN.TOGGLE_MAP' | translate }}</div>
     </div>
     <button
-  class="layers-btn"
-  [class.open]="isLayerPanelOpen"
-  (click)="toggleLayerPanel(); $event.stopPropagation()"
->
-    <!-- <button class="lp-close" (click)="toggleLayerPanel(); $event.stopPropagation()" > -->
+      class="lp-close"
+      (click)="toggleLayerPanel(); $event.stopPropagation()"
+    >
       <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
     </button>
   </div>

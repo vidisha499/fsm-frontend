@@ -32,11 +32,19 @@
       </div>
       <div class="grid-card">
         <span class="lbl">RANGE</span>
+<<<<<<< Updated upstream
         <span class="val">{{ userRangeDisplay }}</span>
       </div>
       <div class="grid-card">
         <span class="lbl">BEAT</span>
         <span class="val">{{ userBeatDisplay }}</span>
+=======
+        <span class="val">{{ sighting.range_name || sighting.range || 'N/A' }}</span>
+      </div>
+      <div class="grid-card">
+        <span class="lbl">BEAT</span>
+        <span class="val">{{ sighting.beat_name || sighting.beat || 'N/A' }}</span>
+>>>>>>> Stashed changes
       </div>
     </div>
 
@@ -47,9 +55,15 @@
         <img [src]="sighting.profile_pic || 'assets/imgs/avatar.png'" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'" />
       </div>
       <div class="reporter-info">
+<<<<<<< Updated upstream
         <h3>{{ sighting.userName || sighting.ranger_name || sighting.reporter_name || sighting.staff_name || 'Officer' }}</h3>
         <p>
           <span class="staff-id">{{ sighting.userId || sighting.user_id || '—' }}</span>
+=======
+        <h3>{{ sighting.userName || sighting.ranger_name || sighting.reporter_name || sighting.staff_name || 'Vidisha kankher test Guard' }}</h3>
+        <p>
+          <span class="staff-id">{{ sighting.userId || sighting.user_id || 'VG-110461' }}</span>
+>>>>>>> Stashed changes
           <span class="dot-sep">•</span>
           <span class="staff-role">{{ sighting.designation || 'Forest Staff' }}</span>
         </p>
@@ -70,6 +84,7 @@
     <div class="photo-evidence-grid" *ngIf="sighting.photos?.length > 0 || sighting.photo">
       <div class="evidence-card" *ngFor="let p of sighting.photos">
         <img [src]="p" (click)="openZoom(p)" />
+<<<<<<< Updated upstream
         <button class="download-badge" (click)="downloadImage(p); $event.stopPropagation()">
           <i class="fas fa-download"></i>
         </button>
@@ -79,6 +94,17 @@
         <button class="download-badge" (click)="downloadImage(sighting.photo); $event.stopPropagation()">
           <i class="fas fa-download"></i>
         </button>
+=======
+        <a [href]="p" download class="download-badge" (click)="$event.stopPropagation()">
+          <i class="fas fa-download"></i>
+        </a>
+      </div>
+      <div class="evidence-card" *ngIf="sighting.photo">
+        <img [src]="sighting.photo" (click)="openZoom(sighting.photo)" />
+        <a [href]="sighting.photo" download class="download-badge" (click)="$event.stopPropagation()">
+          <i class="fas fa-download"></i>
+        </a>
+>>>>>>> Stashed changes
       </div>
     </div>
 

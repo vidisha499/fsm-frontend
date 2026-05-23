@@ -101,6 +101,7 @@ export class AttendancePage implements OnInit, OnDestroy {
 
     const todayStr = new Date().toISOString().split('T')[0];
 
+<<<<<<< Updated upstream
     this.dataService.checkTodayAttendanceStatus().subscribe({
       next: ({ hasBeat, hasOnsite }) => {
         if (hasOnsite) {
@@ -133,6 +134,43 @@ export class AttendancePage implements OnInit, OnDestroy {
           return;
         } else {
           this.isEntry = true;
+=======
+          // Check if Onsite/Location attendance was marked today
+          const hasTodayOnsite = todayLogs.some((l: any) => {
+            const logType = (l.attendance_type || l.type || '').toUpperCase();
+            return logType === 'ONSITE' || logType === 'LOCATION';
+          });
+
+          // Check local onsite drafts
+          const onsiteDrafts = this.dataService.getAttendanceDrafts('onsite');
+          const hasTodayDraftOnsite = onsiteDrafts.some(d => d.createdAt?.split('T')[0] === todayStr);
+
+          const finalHasOnsite = hasTodayOnsite || hasTodayDraftOnsite;
+
+          if (finalHasOnsite) {
+            // Block Beat attendance because Onsite is already marked today
+            this.isAlreadyMarked = true;
+          } else {
+            const hasEntry = todayLogs.some((l: any) => (l.type || l.attendance_type)?.toUpperCase() === 'ENTRY');
+            const hasExit = todayLogs.some((l: any) => (l.type || l.attendance_type)?.toUpperCase() === 'EXIT');
+
+            // 🔥 Critical Sync: Also check local offline drafts
+            const beatDrafts = this.dataService.getAttendanceDrafts('beat');
+            const todayDraftEntry = beatDrafts.some(d => d.createdAt?.split('T')[0] === todayStr && d.isEntry !== false);
+            const todayDraftExit = beatDrafts.some(d => d.createdAt?.split('T')[0] === todayStr && d.isEntry === false);
+
+            const finalHasEntry = hasEntry || todayDraftEntry;
+            const finalHasExit = hasExit || todayDraftExit;
+
+            if (finalHasEntry && !finalHasExit) {
+              this.isEntry = false; // Already entered (online or offline), next is exit
+            } else if (finalHasEntry && finalHasExit) {
+              this.isAlreadyMarked = true; // Both done for today
+            } else {
+              this.isEntry = true; // Fresh start
+            }
+          }
+>>>>>>> Stashed changes
         }
         this.finishStatusCheck();
       },
