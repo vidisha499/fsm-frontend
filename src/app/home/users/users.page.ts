@@ -43,11 +43,9 @@ export class UsersPage implements OnInit {
     const companyIdStr = this.myCompanyId.toString();
 
     forkJoin({
-      allUsersGeneric: this.dataService.getUsersByCompany(companyIdStr).pipe(catchError(() => of([]))),
-      allUsersProduction: this.dataService.getRangersByCompany(companyIdStr).pipe(catchError(() => of([]))),
-      allUsersPHP: this.dataService.getAssignableUsers({ company_id: companyIdStr }).pipe(catchError(() => of([]))),
-      allUsersNode: this.hierarchyService.getRangers(this.myCompanyId).pipe(catchError(() => of([]))),
       v2Subordinates: this.dataService.listV2Subordinates().pipe(catchError(() => of([]))),
+      v2Assignments: this.dataService.getMySubordinates().pipe(catchError(() => of([]))),
+      v2UserList: this.dataService.getV2UserList({ paginate: false, per_page: 1000 }).pipe(catchError(() => of([]))),
       acfList: this.dataService.getAdminList(companyIdStr).pipe(catchError(() => of([])))
     }).subscribe({
       next: (res: any) => {
@@ -58,16 +56,14 @@ export class UsersPage implements OnInit {
           return Array.isArray(list) ? list : [];
         };
 
-        const generic = getArr(res.allUsersGeneric);
-        const production = getArr(res.allUsersProduction);
-        const php = getArr(res.allUsersPHP);
-        const node = getArr(res.allUsersNode);
         const v2Sub = getArr(res.v2Subordinates);
+        const v2Assign = getArr(res.v2Assignments);
+        const v2List = getArr(res.v2UserList);
         const acf = getArr(res.acfList);
 
         // Unified list with de-duplication by ID
         const unifiedMap = new Map();
-        const allSources = [...production, ...node, ...generic, ...v2Sub, ...php, ...acf];
+        const allSources = [...v2Sub, ...v2Assign, ...v2List, ...acf];
 
         allSources.forEach((u: any) => {
           const id = String(u.id || u.user_id || u.staff_id || u.ranger_id || u.guard_id || '');

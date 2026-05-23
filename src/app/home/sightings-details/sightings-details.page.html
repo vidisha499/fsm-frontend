@@ -32,11 +32,11 @@
       </div>
       <div class="grid-card">
         <span class="lbl">RANGE</span>
-        <span class="val">{{ sighting.range_name || sighting.range || 'N/A' }}</span>
+        <span class="val">{{ userRangeDisplay }}</span>
       </div>
       <div class="grid-card">
         <span class="lbl">BEAT</span>
-        <span class="val">{{ sighting.beat_name || sighting.beat || 'N/A' }}</span>
+        <span class="val">{{ userBeatDisplay }}</span>
       </div>
     </div>
 
@@ -47,9 +47,9 @@
         <img [src]="sighting.profile_pic || 'assets/imgs/avatar.png'" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'" />
       </div>
       <div class="reporter-info">
-        <h3>{{ sighting.userName || sighting.ranger_name || sighting.reporter_name || sighting.staff_name || 'Vidisha kankher test Guard' }}</h3>
+        <h3>{{ sighting.userName || sighting.ranger_name || sighting.reporter_name || sighting.staff_name || 'Officer' }}</h3>
         <p>
-          <span class="staff-id">{{ sighting.userId || sighting.user_id || 'VG-110461' }}</span>
+          <span class="staff-id">{{ sighting.userId || sighting.user_id || '—' }}</span>
           <span class="dot-sep">•</span>
           <span class="staff-role">{{ sighting.designation || 'Forest Staff' }}</span>
         </p>

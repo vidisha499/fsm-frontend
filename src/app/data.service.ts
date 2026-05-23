@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { environment } from '../environments/environment';
 import { Observable, of, Subject, forkJoin } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { map, catchError, switchMap, tap } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
 export class DataService {
@@ -10,6 +10,10 @@ export class DataService {
   private selectedIncident: any;
   private selectedAttendance: any;
   private selectedAsset: any;
+  private userDisplayCache = new Map<
+    string,
+    { range: string; beat: string; reporterName: string; isDynamic: boolean }
+  >();
 
   // Bridge for Sidebar Refresh
   public loginSuccess$ = new Subject<void>();
@@ -20,6 +24,646 @@ export class DataService {
   constructor(private http: HttpClient) {}
 
   getApiUrl() { return this.baseApiUrl; }
+
+  private isInvalidBeatLabel(label: string): boolean {
+    const s = String(label || '').trim().toLowerCase();
+    if (!s) return true;
+    const blocked = [
+      'current location', 'on location', 'onsite', 'general', 'unknown',
+      'unknown entity', 'unknown beat', 'not assigned', 'loading', 'fetching'
+    ];
+    return blocked.some(b => s === b || s.includes(b));
+  }
+
+  private isInvalidRangeLabel(label: string): boolean {
+    const s = String(label || '').trim().toLowerCase();
+    if (!s) return true;
+    return ['general', 'general range', 'unknown', 'not assigned'].includes(s);
+  }
+
+  /** Pick first valid range/beat from multiple sources (static + dynamic). */
+  pickBestHierarchy(...sources: { range: string; beat: string }[]): { range: string; beat: string } {
+    let beat = '';
+    let range = '';
+    for (const s of sources) {
+      if (!beat && !this.isInvalidBeatLabel(s?.beat)) beat = String(s.beat).trim();
+      if (!range && !this.isInvalidRangeLabel(s?.range)) range = String(s.range).trim();
+    }
+    return { range, beat };
+  }
+
+  mergeHierarchyLabels(
+    fromAssign: { range: string; beat: string },
+    fromProfile: { range: string; beat: string }
+  ): { range: string; beat: string } {
+    return this.pickBestHierarchy(fromAssign, fromProfile);
+  }
+
+  /** Only use a site row that belongs to this user — never sites[0] from full company list. */
+  private parseSitesHierarchy(res: any, userId: string | number): { range: string; beat: string } {
+    const data = res?.data ?? res;
+    const sites = Array.isArray(data) ? data : data && typeof data === 'object' ? [data] : [];
+    if (!sites.length) return { range: '', beat: '' };
+
+    const uid = String(userId);
+    let match = sites.find((s: any) => {
+      const rowUser = String(s.user_id || s.guard_id || s.ranger_id || s.applicant_id || '');
+      return rowUser !== '' && rowUser === uid;
+    });
+
+    // getSites(user_id) may return assigned sites without repeating user_id on each row
+    if (!match && sites.length === 1) {
+      match = sites[0];
+    }
+
+    if (!match) return { range: '', beat: '' };
+
+    return {
+      beat: String(
+        match.site_name || match.name || match.beat_name || match.beat || match.site || ''
+      ).trim(),
+      range: String(
+        match.client_name || match.range_name || match.range || match.division_name || ''
+      ).trim()
+    };
+  }
+
+  fetchUserSitesFromApi(
+    userId: string | number,
+    companyId: string | number
+  ): Observable<{ range: string; beat: string }> {
+    const token = localStorage.getItem('api_token') || '';
+    const cId = String(companyId || localStorage.getItem('company_id') || '');
+    const formData = new FormData();
+    formData.append('api_token', token);
+    formData.append('company_id', cId);
+    formData.append('user_id', String(userId));
+    return this.http.post(`${this.baseApiUrl}/getSites`, formData).pipe(
+      map((res: any) => this.parseSitesHierarchy(res, userId)),
+      catchError(() => of({ range: '', beat: '' }))
+    );
+  }
+
+  fetchGuardSiteHierarchy(userId: string | number): Observable<{ range: string; beat: string }> {
+    const token = localStorage.getItem('api_token') || '';
+    const uid = String(userId);
+    return this.getGuardSite({
+      guard_id: userId,
+      user_id: userId,
+      api_token: token
+    }).pipe(
+      map((res: any) => {
+        if (res?.status === 'ERROR' || res?.success === false) {
+          return { range: '', beat: '' };
+        }
+        const site = res?.data || res;
+        if (!site || typeof site !== 'object' || Array.isArray(site)) {
+          return { range: '', beat: '' };
+        }
+        const beat = String(
+          site.site_name || site.name || site.beat_name || site.beat || ''
+        ).trim();
+        const range = String(
+          site.client_name || site.range_name || site.range || site.division_name || ''
+        ).trim();
+        if (this.isInvalidBeatLabel(beat)) return { range: '', beat: '' };
+        return { range, beat };
+      }),
+      catchError(() => of({ range: '', beat: '' }))
+    );
+  }
+
+  /** True when user is on V2 dynamic beat assignment (not fixed static site). */
+  isUserDynamic(u: any): boolean {
+    if (!u) return false;
+    return !!(
+      u.dynamic_assignment?.entity_id ||
+      u.dynamic_assignment?.entity?.id ||
+      u.is_dynamic === true ||
+      u.is_dynamic === 1 ||
+      String(u.user_type || '').toLowerCase() === 'dynamic' ||
+      String(u.assignment_type || '').toLowerCase() === 'dynamic'
+    );
+  }
+
+  /** Range/beat from user profile (static site_name or dynamic_assignment entity). */
+  getUserHierarchyLabels(u: any): {
+    range: string;
+    beat: string;
+    entityId: string;
+    parentId: string;
+  } {
+    if (!u) return { range: '', beat: '', entityId: '', parentId: '' };
+
+    const hasDynamic = !!(
+      u.dynamic_assignment?.entity?.name ||
+      u.dynamic_assignment?.entity_id
+    );
+
+    const staticBeat =
+      u.site_name ||
+      u.beat_name ||
+      u.beat ||
+      u.assigned_beat_name ||
+      u.site?.name ||
+      u.assigned_site?.name ||
+      u.guard_site?.site_name ||
+      '';
+    const staticRange =
+      u.range_name ||
+      u.range ||
+      u.division_name ||
+      u.division ||
+      u.client_name ||
+      u.site?.client_name ||
+      u.guard_site?.client_name ||
+      '';
+
+    const dynamicBeat = u.dynamic_assignment?.entity?.name || '';
+    const dynamicRange =
+      u.dynamic_assignment?.parent?.name || u.dynamic_assignment?.range_name || '';
+
+    const beat = hasDynamic
+      ? (dynamicBeat || staticBeat)
+      : (staticBeat || dynamicBeat);
+    const range = hasDynamic
+      ? (dynamicRange || staticRange)
+      : (staticRange || dynamicRange);
+
+    const entityId = String(
+      u.dynamic_assignment?.entity?.id ||
+      u.dynamic_assignment?.entity_id ||
+      u.assigned_entity_id ||
+      u.entity_id ||
+      ''
+    ).trim();
+    const parentId = String(
+      u.dynamic_assignment?.entity?.parent_id ||
+      u.dynamic_assignment?.parent?.id ||
+      u.dynamic_assignment?.parent_id ||
+      ''
+    ).trim();
+
+    return {
+      range: String(range || '').trim(),
+      beat: String(beat || '').trim(),
+      entityId,
+      parentId
+    };
+  }
+
+  resolveRangeNameForBeat(beatName: string, companyId: string): Observable<string> {
+    if (!beatName || !companyId) return of('');
+    const normalized = String(beatName).toLowerCase().trim();
+    return this.getHierarchyForFilters(companyId).pipe(
+      map(h => {
+        const match = h.beats.find(b => {
+          const n = String(b.name || '').toLowerCase().trim();
+          return (
+            n === normalized ||
+            n.includes(normalized) ||
+            normalized.includes(n) ||
+            n.replace(/^beat\s+/i, '') === normalized.replace(/^beat\s+/i, '')
+          );
+        });
+        return match?.parentName || '';
+      }),
+      catchError(() => of(''))
+    );
+  }
+
+  private orgEntitiesCache: { companyId: string; entities: any[] } | null = null;
+
+  private loadOrgEntities(companyId: string): Observable<any[]> {
+    const cId = String(companyId || '');
+    if (
+      this.orgEntitiesCache &&
+      this.orgEntitiesCache.companyId === cId &&
+      this.orgEntitiesCache.entities.length
+    ) {
+      return of(this.orgEntitiesCache.entities);
+    }
+    return this.listOrgEntities('', cId).pipe(
+      map((res: any) => {
+        const entities = res?.data ?? res;
+        const list = Array.isArray(entities) ? entities : [];
+        if (list.length) {
+          this.orgEntitiesCache = { companyId: cId, entities: list };
+        }
+        return list;
+      }),
+      catchError(() => of([]))
+    );
+  }
+
+  /** Resolve range name from beat entity id or explicit parent id in org tree. */
+  resolveRangeFromOrgEntity(
+    entityId: string | number,
+    parentId: string | number,
+    companyId: string | number
+  ): Observable<string> {
+    const eId = entityId != null && String(entityId) !== '' && String(entityId) !== '0'
+      ? String(entityId)
+      : '';
+    const pId = parentId != null && String(parentId) !== '' && String(parentId) !== '0'
+      ? String(parentId)
+      : '';
+    if (!eId && !pId) return of('');
+
+    return this.loadOrgEntities(String(companyId)).pipe(
+      map(entities => {
+        if (pId) {
+          const parent = entities.find((e: any) => String(e.id) === pId);
+          if (parent?.name && !this.isInvalidRangeLabel(parent.name)) {
+            return String(parent.name).trim();
+          }
+        }
+        if (eId) {
+          const entity = entities.find((e: any) => String(e.id) === eId);
+          if (!entity) return '';
+          const pid = entity.parent_id ?? entity.parentId;
+          if (pid) {
+            const parent = entities.find((p: any) => String(p.id) === String(pid));
+            if (parent?.name && !this.isInvalidRangeLabel(parent.name)) {
+              return String(parent.name).trim();
+            }
+          }
+        }
+        return '';
+      }),
+      catchError(() => of(''))
+    );
+  }
+
+  /** V2 assignments API — authoritative beat/range for a user (not report entity). */
+  parseAssignmentHierarchy(assignments: any[]): {
+    range: string;
+    beat: string;
+    entityId: string;
+    parentId: string;
+  } {
+    const list = Array.isArray(assignments)
+      ? assignments
+      : assignments && typeof assignments === 'object'
+        ? (assignments as any).data || [(assignments as any)]
+        : [];
+    if (!list.length) return { range: '', beat: '', entityId: '', parentId: '' };
+
+    const active =
+      list.find((a: any) => a.is_active === true || a.is_active === 1) ||
+      list.find((a: any) => a.is_active !== false && a.is_active !== 0) ||
+      list[0];
+    const entity = active?.entity || active?.assigned_entity || active?.beat || {};
+    const beat = String(
+      entity.name ||
+      active.entity_name ||
+      active.beat_name ||
+      active.site_name ||
+      active.beat ||
+      ''
+    ).trim();
+    const range = String(
+      entity.parent?.name ||
+      entity.parent_name ||
+      active.parent_name ||
+      active.range_name ||
+      entity.range_name ||
+      active.range ||
+      ''
+    ).trim();
+    const entityId = String(
+      entity.id ||
+      active.entity_id ||
+      active.assigned_entity_id ||
+      active.beat_id ||
+      active.site_id ||
+      ''
+    ).trim();
+    const parentId = String(
+      entity.parent?.id ||
+      entity.parent_id ||
+      entity.parentId ||
+      active.parent_id ||
+      active.range_id ||
+      ''
+    ).trim();
+    return { range, beat, entityId, parentId };
+  }
+
+  private pickAssignmentEntityMeta(
+    ...sources: { entityId?: string; parentId?: string; beat?: string }[]
+  ): { entityId: string; parentId: string } {
+    for (const s of sources) {
+      if ((s.entityId || s.parentId) && !this.isInvalidBeatLabel(s.beat || '')) {
+        return { entityId: s.entityId || '', parentId: s.parentId || '' };
+      }
+    }
+    for (const s of sources) {
+      if (s.entityId || s.parentId) {
+        return { entityId: s.entityId || '', parentId: s.parentId || '' };
+      }
+    }
+    return { entityId: '', parentId: '' };
+  }
+
+  private fetchAssignmentsForUser(
+    userId: string | number
+  ): Observable<{ range: string; beat: string; entityId: string; parentId: string }> {
+    return this.getUserAssignments(userId).pipe(
+      map((res: any) => {
+        const list = res?.data ?? res?.assignments ?? res;
+        return this.parseAssignmentHierarchy(Array.isArray(list) ? list : []);
+      }),
+      catchError(() => of({ range: '', beat: '', entityId: '', parentId: '' }))
+    );
+  }
+
+  private finishHierarchyLabels(
+    labels: { range: string; beat: string },
+    companyId: string | number,
+    trustedBeat?: string,
+    entityMeta?: { entityId?: string; parentId?: string }
+  ): Observable<{ range: string; beat: string }> {
+    if (labels.range) {
+      return of(labels);
+    }
+
+    const entityId = entityMeta?.entityId || '';
+    const parentId = entityMeta?.parentId || '';
+    const resolveFromOrg =
+      entityId || parentId
+        ? this.resolveRangeFromOrgEntity(entityId, parentId, companyId)
+        : of('');
+
+    return resolveFromOrg.pipe(
+      switchMap(rangeFromOrg => {
+        if (rangeFromOrg) {
+          return of({ range: rangeFromOrg, beat: labels.beat });
+        }
+        const beatForLookup = trustedBeat || labels.beat;
+        if (!beatForLookup || !companyId) {
+          return of(labels);
+        }
+        return this.resolveRangeNameForBeat(beatForLookup, String(companyId)).pipe(
+          map(parentRange => ({
+            range: parentRange || labels.range,
+            beat: labels.beat
+          }))
+        );
+      })
+    );
+  }
+
+  private getUserDetailsWithFallback(
+    userId: string | number,
+    companyId: string | number
+  ): Observable<any> {
+    return this.getUserDetails(userId, companyId).pipe(
+      catchError(() =>
+        this.getProfileById(userId).pipe(catchError(() => of(null)))
+      )
+    );
+  }
+
+  resolveUserAssignmentLabels(
+    userId: string | number,
+    companyId: string | number
+  ): Observable<{ range: string; beat: string }> {
+    return this.resolveUserDisplayInfo(userId, companyId).pipe(
+      map(({ range, beat }) => ({ range, beat }))
+    );
+  }
+
+  resolveUserDisplayInfo(
+    userId: string | number,
+    companyId: string | number,
+    _reportContext?: { beat?: string; range?: string }
+  ): Observable<{ range: string; beat: string; reporterName: string; isDynamic: boolean }> {
+    const cId = companyId || localStorage.getItem('company_id') || '0';
+
+    return this.getUserDetailsWithFallback(userId, cId).pipe(
+      switchMap((profileRes: any) => {
+        const u = profileRes?.data || profileRes?.user || profileRes || {};
+        const isDynamic = this.isUserDynamic(u);
+        const idCandidates = [u.id, u.user_id, userId, u.staff_id, u.guard_id, u.ranger_id]
+          .filter((id) => id != null && String(id) !== '' && String(id) !== '0')
+          .map((id) => String(id));
+        const uniqueIds = [...new Set(idCandidates)];
+        const assignmentCalls = uniqueIds.map((id) => this.fetchAssignmentsForUser(id));
+
+        return forkJoin({
+          assignmentResults: assignmentCalls.length
+            ? forkJoin(assignmentCalls)
+            : of([] as { range: string; beat: string; entityId: string; parentId: string }[]),
+          guardSite: this.fetchGuardSiteHierarchy(userId),
+          sites: this.fetchUserSitesFromApi(userId, cId),
+          profileSites: uniqueIds[0]
+            ? this.fetchUserSitesFromApi(uniqueIds[0], cId)
+            : of({ range: '', beat: '' })
+        }).pipe(
+          switchMap(({ assignmentResults, guardSite, sites, profileSites }) => {
+            const assignments = this.pickBestHierarchy(...assignmentResults);
+            const fromProfile = this.getUserHierarchyLabels(u);
+            const merged = this.pickBestHierarchy(
+              assignments,
+              fromProfile,
+              guardSite,
+              sites,
+              profileSites
+            );
+
+            const entityMeta = this.pickAssignmentEntityMeta(
+              ...assignmentResults,
+              fromProfile
+            );
+
+            const reporterName = String(
+              u?.name ||
+              u?.full_name ||
+              u?.user_name ||
+              u?.ranger_name ||
+              u?.guard_name ||
+              u?.username ||
+              ''
+            ).trim();
+
+            const trustedBeat = !this.isInvalidBeatLabel(assignments.beat)
+              ? assignments.beat
+              : !this.isInvalidBeatLabel(fromProfile.beat)
+                ? fromProfile.beat
+                : !this.isInvalidBeatLabel(guardSite.beat)
+                  ? guardSite.beat
+                  : '';
+
+            return this.finishHierarchyLabels(merged, cId, trustedBeat, entityMeta).pipe(
+              map((labels) => ({ ...labels, reporterName, isDynamic }))
+            );
+          })
+        );
+      }),
+      catchError(() =>
+        forkJoin({
+          assignments: this.fetchAssignmentsForUser(userId),
+          guardSite: this.fetchGuardSiteHierarchy(userId),
+          sites: this.fetchUserSitesFromApi(userId, cId)
+        }).pipe(
+          switchMap(({ assignments, guardSite, sites }) => {
+            const merged = this.pickBestHierarchy(assignments, guardSite, sites);
+            const trustedBeat = !this.isInvalidBeatLabel(assignments.beat) ? assignments.beat : '';
+            const entityMeta = {
+              entityId: assignments.entityId,
+              parentId: assignments.parentId
+            };
+            return this.finishHierarchyLabels(merged, cId, trustedBeat, entityMeta).pipe(
+              map((labels) => ({ ...labels, reporterName: '', isDynamic: false }))
+            );
+          }),
+          catchError(() => of({ range: '', beat: '', reporterName: '', isDynamic: false }))
+        )
+      )
+    );
+  }
+
+  getCachedUserDisplayInfo(
+    userId: string | number,
+    companyId: string | number,
+    reportContext?: { beat?: string; range?: string }
+  ): Observable<{ range: string; beat: string; reporterName: string; isDynamic: boolean }> {
+    const ctxKey = reportContext
+      ? `${reportContext.beat || ''}:${reportContext.range || ''}`
+      : '';
+    const key = `v6:${userId}:${companyId}:${ctxKey}`;
+    const hit = this.userDisplayCache.get(key);
+    if (hit && (hit.beat || hit.range)) return of(hit);
+    return this.resolveUserDisplayInfo(userId, companyId, reportContext).pipe(
+      tap((info) => {
+        if (info.beat || info.range || info.reporterName) {
+          this.userDisplayCache.set(key, info);
+        }
+      })
+    );
+  }
+
+  getCachedUserAssignmentLabels(
+    userId: string | number,
+    companyId: string | number
+  ): Observable<{ range: string; beat: string }> {
+    return this.getCachedUserDisplayInfo(userId, companyId).pipe(
+      map(({ range, beat }) => ({ range, beat }))
+    );
+  }
+
+  private attachReportDisplayHierarchy(
+    report: any,
+    info: { range: string; beat: string; reporterName?: string; isDynamic?: boolean }
+  ) {
+    const reporter =
+      info.reporterName ||
+      report.name ||
+      report.staff_name ||
+      report.ranger_name ||
+      report.user_name ||
+      report.userName ||
+      report.applicant_name ||
+      report.guard_name ||
+      '';
+    const reportRange = String(report.range_name || report.range || '').trim();
+    const reportBeat = String(report.beat_name || report.beat || report.site_name || '').trim();
+    const assignRange = String(info.range || '').trim();
+    const assignBeat = String(info.beat || '').trim();
+    const hasAssignRange = assignRange && !this.isInvalidRangeLabel(assignRange);
+    const hasAssignBeat = assignBeat && !this.isInvalidBeatLabel(assignBeat);
+    const isDynamic = info.isDynamic === true;
+
+    let displayRange: string;
+    let displayBeat: string;
+    if (isDynamic) {
+      displayRange = hasAssignRange ? assignRange : 'Not assigned';
+      displayBeat = hasAssignBeat ? assignBeat : 'Not assigned';
+    } else {
+      displayRange = hasAssignRange ? assignRange : reportRange || '—';
+      displayBeat = hasAssignBeat ? assignBeat : reportBeat || '—';
+    }
+
+    return {
+      ...report,
+      displayRange,
+      displayBeat,
+      displayReporter: reporter,
+      reporterIsDynamic: isDynamic
+    };
+  }
+
+  enrichReportsWithReporterHierarchy(
+    reports: any[],
+    companyId: string | number
+  ): Observable<any[]> {
+    if (!reports?.length) return of([]);
+
+    const company = companyId || localStorage.getItem('company_id') || '0';
+    const rows = reports.map(report => {
+      const uId =
+        report.applicant_id ||
+        report.staff_id ||
+        report.ranger_id ||
+        report.guard_id ||
+        report.user_id ||
+        report.reporter_id ||
+        report.logged_by ||
+        report.submitted_by ||
+        report.created_by;
+      return { report, userId: uId ? String(uId) : '' };
+    });
+
+    const uniqueIds = [...new Set(rows.map(r => r.userId).filter(id => id))];
+    if (uniqueIds.length === 0) {
+      return of(
+        reports.map(r =>
+          this.attachReportDisplayHierarchy(r, {
+            range: '',
+            beat: '',
+            reporterName: '',
+            isDynamic: false
+          })
+        )
+      );
+    }
+
+    return forkJoin(
+      rows.map(({ report, userId }) => {
+        if (!userId) {
+          return of({
+            userId,
+            info: {
+              range: '',
+              beat: '',
+              reporterName: '',
+              isDynamic: false
+            }
+          });
+        }
+        return this.getCachedUserDisplayInfo(userId, company).pipe(
+          catchError(() => of({ range: '', beat: '', reporterName: '', isDynamic: false })),
+          map((info) => ({ userId, info }))
+        );
+      })
+    ).pipe(
+      map(pairs => {
+        const infoMap = new Map(pairs.map(p => [p.userId, p.info]));
+        return rows.map(({ report, userId }) =>
+          this.attachReportDisplayHierarchy(
+            report,
+            infoMap.get(userId) || {
+              range: '',
+              beat: '',
+              reporterName: '',
+              isDynamic: false
+            }
+          )
+        );
+      })
+    );
+  }
 
   // --- PERMISSION UTILITIES ---
   isFeatureEnabled(feature: string): boolean {
@@ -547,11 +1191,101 @@ export class DataService {
   notify() { return this.http.post(`${this.baseApiUrl}/notify`, {}); }
   
   markAttendance(payload: any, headers?: any) { 
-    return this.http.post(`${this.baseApiUrl}/markAttendance`, payload, { headers }); 
+    return this.http.post(`${this.baseApiUrl}/v2/attendance/mark`, payload, { headers }); 
   }
   
   markAttendanceExit(payload: any, headers?: any) { 
-    return this.http.post(`${this.baseApiUrl}/markAttendanceExit`, payload, { headers }); 
+    return this.http.post(`${this.baseApiUrl}/v2/attendance/exit`, payload, { headers }); 
+  }
+
+  /** True when log is on-location / onsite attendance (not beat). */
+  isOnsiteAttendance(log: any): boolean {
+    if (!log) return false;
+    const typeStr = String(log.type || log.attendance_type || '').toUpperCase();
+    const siteId = String(log.site_id ?? '').toLowerCase();
+    const geoName = String(log.geo_name || log.geofence || '').toLowerCase();
+    const remark = String(log.remark || '').toLowerCase();
+
+    if (typeStr === 'LOCATION' || typeStr === 'ONSITE') return true;
+    if (siteId === '99999' || siteId === 'onsite') return true;
+    if (String(log.geo_id) === '99999') return true;
+    if (geoName.includes('[on location]') || geoName.includes('[onsite]')) return true;
+    if (log.site_name && String(log.site_name).toLowerCase().includes('onsite')) return true;
+    if (remark.includes('on location') || remark.includes('onsite attendance')) return true;
+    return false;
+  }
+
+  /** True when log is beat (geofence) attendance — never overlaps onsite. */
+  isBeatAttendance(log: any): boolean {
+    if (!log || this.isOnsiteAttendance(log)) return false;
+
+    const siteId = String(log.site_id ?? '').toLowerCase();
+    const typeStr = String(log.type || log.attendance_type || '').toUpperCase();
+    const remark = String(log.remark || '').toLowerCase();
+
+    if (siteId === 'beat') return true;
+    if (typeStr === 'BEAT') return true;
+    if (remark.includes('beat attendance')) return true;
+    if (typeStr === 'ENTRY' || typeStr === 'EXIT') return true;
+    const entityId = Number(log.entity_id);
+    if (!Number.isNaN(entityId) && entityId > 0) return true;
+    return false;
+  }
+
+  private extractAttendanceLogsArray(res: any): any[] {
+    if (Array.isArray(res)) return res;
+    if (res?.data && Array.isArray(res.data)) return res.data;
+    if (res?.attendance && Array.isArray(res.attendance)) return res.attendance;
+    if (res?.data?.attendance && Array.isArray(res.data.attendance)) return res.data.attendance;
+    return [];
+  }
+
+  private logBelongsToRangerToday(log: any, rangerId: string, todayStr: string): boolean {
+    const dateVal = log.timestamp || log.entryDateTime || log.created_at || log.createdAt || log.date;
+    if (!dateVal) return false;
+    let logDate = String(dateVal).split(' ')[0].split('T')[0];
+    if (logDate.includes('-') && logDate.split('-')[0].length === 2) {
+      const parts = logDate.split('-');
+      logDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+    if (logDate !== todayStr) return false;
+    const logRangerId = String(log.user_id || log.ranger_id || log.applicant_id || log.guard_id || '');
+    return logRangerId === '' || logRangerId === String(rangerId);
+  }
+
+  /** Whether beat and/or onsite attendance exists today for the current ranger. */
+  checkTodayAttendanceStatus(): Observable<{ hasBeat: boolean; hasOnsite: boolean }> {
+    const companyId = this.getUserCompanyId();
+    const rangerId = this.getRangerId();
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    if (!companyId || !rangerId) {
+      return of({ hasBeat: false, hasOnsite: false });
+    }
+
+    return forkJoin({
+      monthly: this.getAttendanceLogsByRanger(companyId).pipe(catchError(() => of([]))),
+      requests: this.getAttendanceRequests(companyId).pipe(catchError(() => of([])))
+    }).pipe(
+      map(({ monthly, requests }) => {
+        const combined = [
+          ...this.extractAttendanceLogsArray(monthly),
+          ...this.extractAttendanceLogsArray(requests)
+        ];
+        const todayLogs = combined.filter(l => this.logBelongsToRangerToday(l, rangerId, todayStr));
+
+        let hasBeat = todayLogs.some(l => this.isBeatAttendance(l));
+        let hasOnsite = todayLogs.some(l => this.isOnsiteAttendance(l));
+
+        const beatDrafts = this.getAttendanceDrafts('beat');
+        const onsiteDrafts = this.getAttendanceDrafts('onsite');
+        if (beatDrafts.some(d => (d.createdAt || '').split('T')[0] === todayStr)) hasBeat = true;
+        if (onsiteDrafts.some(d => (d.createdAt || '').split('T')[0] === todayStr)) hasOnsite = true;
+
+        return { hasBeat, hasOnsite };
+      }),
+      catchError(() => of({ hasBeat: false, hasOnsite: false }))
+    );
   }
 
   testGroupBy() { return this.http.post(`${this.baseApiUrl}/testGroupBy`, {}); }
@@ -598,6 +1332,31 @@ export class DataService {
   }
   requestExitAttendance(payload: any) { return this.http.post(`${this.baseApiUrl}/requestExitAttendance`, payload); }
   
+  // --- V2 APIS ---
+  getV2UserList(payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/user/list`, {
+      api_token: token,
+      ...payload
+    });
+  }
+
+  getV2DashboardData(payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/dashboard/data`, {
+      api_token: token,
+      ...payload
+    });
+  }
+
+  getV2KPIDetails(payload: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/dashboard/kpi-details`, {
+      api_token: token,
+      ...payload
+    });
+  }
+
   getAttendanceRequests(companyId: string) { 
     const formData = new FormData();
     const token = localStorage.getItem('api_token') || '';
@@ -647,7 +1406,16 @@ export class DataService {
 
   getAttendanceLogsByRanger(companyId: string) { 
     const token = localStorage.getItem('api_token');
-    const payload = { company_id: companyId, api_token: token };
+    const rangerId = localStorage.getItem('ranger_id');
+    const now = new Date();
+    const payload = { 
+      company_id: companyId, 
+      api_token: token,
+      user_id: rangerId,
+      ranger_id: rangerId,
+      month: now.getMonth() + 1,
+      year: now.getFullYear()
+    };
     const headers = { 'Bypass-Token': 'true' };
     return this.getUserMonthlyAttendance(payload, headers); 
   }
@@ -2057,6 +2825,18 @@ export class DataService {
       for (const draft of beatDrafts) {
         try {
           const isExit = draft.mode_type === 'exit' || draft.isEntry === false;
+          
+          // Preserve old beat attendance drafts but do not send geo_id when entity_id is null.
+          if (draft.entity_id === null || draft.entity_id === undefined || draft.entity_id === 'null') {
+            delete draft.geo_id;
+          }
+
+          if (!draft.latitude && draft.location) {
+            const parts = String(draft.location).split(',');
+            draft.latitude = parts[0];
+            draft.longitude = parts[1];
+          }
+
           if (isExit) {
             await this.markAttendanceExit(draft).toPromise();
           } else {

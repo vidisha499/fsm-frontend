@@ -17,6 +17,8 @@ export class SightingsDetailsPage implements OnInit {
   isLoading = false;
   cachedState: any = null;
   map!: L.Map;
+  userRangeDisplay = '—';
+  userBeatDisplay = '—';
 
   constructor(
     private router: Router,
@@ -54,7 +56,7 @@ export class SightingsDetailsPage implements OnInit {
     // 1. Use state data directly — it's already pre-parsed and complete
     if (effectiveState && effectiveState['data']) {
       const fullData = effectiveState['data'];
-      this.sighting = this.processObservationPhoto(fullData);
+      this.sighting = this.prepareSighting(fullData);
       this.resolveReporterDetails();
       // Parse report_data in case it's still a string
       let rd = fullData.report_data || {};
@@ -96,7 +98,7 @@ export class SightingsDetailsPage implements OnInit {
           this.goBack();
           return;
         }
-        this.sighting = this.processObservationPhoto(report);
+        this.sighting = this.prepareSighting(report);
         this.resolveReporterDetails();
         // Parse report_data if it's a string
         let rd = report.report_data || {};
@@ -128,50 +130,29 @@ export class SightingsDetailsPage implements OnInit {
 
   private processReportData(data: any) {
     this.reportDataFields = [];
-    
-    // 1. Add important root-level fields first
-    const rootFields = [
-      { key: 'beat', label: 'Beat' },
-      { key: 'range_name', label: 'Range' },
-      { key: 'staff_name', label: 'Reported By' },
-      { key: 'section_name', label: 'Section' },
-      { key: 'block_name', label: 'Block' }
-    ];
-
-    rootFields.forEach(f => {
-      if (this.sighting[f.key]) {
-        this.reportDataFields.push({
-          label: f.label,
-          value: this.sighting[f.key]
-        });
-      }
-    });
-
     if (!data) return;
 
-    // 2. Convert report_data object to array for extra dynamic fields
+    const skipInAttributes = new Set([
+      'beat', 'beat_name', 'range', 'range_name', 'assigned beat',
+      'staff_name', 'site', 'site_name', 'site id', 'entity_id', 'entity id'
+    ]);
+
     Object.keys(data).forEach(key => {
       let value = data[key];
-      
-      // Skip empty or purely technical fields if any
       if (value === null || value === undefined || value === '') return;
-      if (typeof value === 'object') return; // Skip complex objects if any
-      
-      // Skip photo keys so they don't render as text URLs
+      if (typeof value === 'object') return;
+
       const lowerKey = key.toLowerCase();
       if (lowerKey === 'photo' || lowerKey === 'photos' || lowerKey.includes('photo')) return;
 
-      // Formatting keys for better display (e.g., "area_burnt" -> "Area Burnt")
       const formattedLabel = key
         .replace(/_/g, ' ')
         .replace(/\b\w/g, l => l.toUpperCase());
 
-      // Avoid duplicates if already added from root
+      if (skipInAttributes.has(lowerKey) || skipInAttributes.has(formattedLabel.toLowerCase())) return;
+
       if (!this.reportDataFields.find(f => f.label.toLowerCase() === formattedLabel.toLowerCase())) {
-        this.reportDataFields.push({
-          label: formattedLabel,
-          value: value
-        });
+        this.reportDataFields.push({ label: formattedLabel, value });
       }
     });
   }
@@ -332,51 +313,92 @@ export class SightingsDetailsPage implements OnInit {
     await this.photoViewer.download(imageUrl);
   }
 
+  private prepareSighting(report: any) {
+    const s = this.processObservationPhoto({ ...report });
+    this.userRangeDisplay =
+      s.range_name || s.range || s.division_name || '—';
+    this.userBeatDisplay =
+      s.beat_name || s.beat || s.site_name || '—';
+    return s;
+  }
+
+  private applyRangeBeatFromResolution(info: {
+    range: string;
+    beat: string;
+    isDynamic: boolean;
+  }) {
+    const reportRange = String(
+      this.sighting.range_name || this.sighting.range || ''
+    ).trim();
+    const reportBeat = String(
+      this.sighting.beat_name || this.sighting.beat || this.sighting.site_name || ''
+    ).trim();
+    const assignRange = String(info.range || '').trim();
+    const assignBeat = String(info.beat || '').trim();
+
+    if (info.isDynamic) {
+      this.userRangeDisplay = assignRange || 'Not assigned';
+      this.userBeatDisplay = assignBeat || 'Not assigned';
+    } else {
+      this.userRangeDisplay = assignRange || reportRange || '—';
+      this.userBeatDisplay = assignBeat || reportBeat || '—';
+    }
+    this.cdr.detectChanges();
+  }
+
   private resolveReporterDetails() {
     if (!this.sighting) return;
 
-    const uId = this.sighting.created_by || this.sighting.user_id || this.sighting.ranger_id || this.sighting.reporter_id || this.sighting.staff_id;
+    const uId =
+      this.sighting.applicant_id ||
+      this.sighting.staff_id ||
+      this.sighting.ranger_id ||
+      this.sighting.guard_id ||
+      this.sighting.user_id ||
+      this.sighting.created_by;
     const cId = this.sighting.company_id || localStorage.getItem('company_id') || '0';
 
-    if (uId) {
-      this.dataService.getUserDetails(uId, cId).subscribe({
-        next: (userRes: any) => {
-          const u = userRes?.data || userRes;
-          if (u) {
-            // Resolve Name
-            this.sighting.userName = u.name || u.full_name || u.user_name || u.ranger_name || u.reporter_name || this.sighting.userName;
-            
-            // Resolve Staff ID / User ID
-            this.sighting.userId = u.user_id || u.id || u.staff_id || this.sighting.userId;
+    if (!uId) return;
 
-            // Resolve Designation (if Role ID is 2, it's Forester; if 3, Forest Guard; etc.)
-            let roleName = u.designation || u.role_name || u.roleName;
-            if (!roleName) {
-              const rid = String(u.role_id || u.roleId || '');
-              if (rid === '1') roleName = 'Super Admin';
-              else if (rid === '2') roleName = 'Forester';
-              else if (rid === '3') roleName = 'Forest Guard';
-              else if (rid === '7') roleName = 'Range Officer';
-              else roleName = 'Forest Staff';
-            }
-            this.sighting.designation = roleName;
+    this.dataService.resolveUserDisplayInfo(uId, cId).subscribe({
+      next: (info) => {
+        if (info.reporterName) this.sighting.userName = info.reporterName;
+        this.applyRangeBeatFromResolution(info);
+      }
+    });
 
-            // Resolve Profile Pic URL
-            const rawPic = u.profile_pic || u.photo || u.profilePic;
-            if (rawPic && typeof rawPic === 'string' && rawPic.trim().length > 2) {
-              const cleaned = rawPic.trim();
-              if (cleaned.startsWith('http') || cleaned.startsWith('data:')) {
-                this.sighting.profile_pic = cleaned;
-              } else {
-                this.sighting.profile_pic = `https://fms.pugarch.in/public/profilepics/${cleaned}`;
-              }
-            }
-            
-            this.cdr.detectChanges();
-          }
-        },
-        error: (err) => console.error("Error resolving reporter details:", err)
-      });
-    }
+    this.dataService.getUserDetails(uId, cId).subscribe({
+      next: (userRes: any) => {
+        const u = userRes?.data || userRes;
+        if (!u) return;
+        if (!this.sighting.userName) {
+          this.sighting.userName =
+            u.name || u.full_name || u.user_name || u.ranger_name || this.sighting.userName;
+        }
+        this.sighting.userId = u.user_id || u.id || u.staff_id || this.sighting.userId;
+
+        let roleName = u.designation || u.role_name || u.roleName;
+        if (!roleName) {
+          const rid = String(u.role_id || u.roleId || '');
+          if (rid === '1') roleName = 'Super Admin';
+          else if (rid === '2') roleName = 'Forester';
+          else if (rid === '3') roleName = 'Forest Guard';
+          else if (rid === '7') roleName = 'Range Officer';
+          else roleName = 'Forest Staff';
+        }
+        this.sighting.designation = roleName;
+
+        const rawPic = u.profile_pic || u.photo || u.profilePic;
+        if (rawPic && typeof rawPic === 'string' && rawPic.trim().length > 2) {
+          const cleaned = rawPic.trim();
+          this.sighting.profile_pic =
+            cleaned.startsWith('http') || cleaned.startsWith('data:')
+              ? cleaned
+              : `https://fms.pugarch.in/public/profilepics/${cleaned}`;
+        }
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('Error resolving reporter profile:', err)
+    });
   }
 }

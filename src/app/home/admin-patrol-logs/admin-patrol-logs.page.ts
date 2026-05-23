@@ -211,35 +211,32 @@ export class AdminPatrolLogsPage implements OnInit {
   }
 
   processPatrolLog(log: any) {
-    // 1. Resolve Name
+    // 1. Resolve Name and Beat
     let name = log.user_name || log.ranger_name || log.full_name || log.guard_name || log.officer_name;
+    let beatName = log.beat_name || log.site_name || log.location || log.beat;
     
     const uId = log.user_id || log.ranger_id || log.staff_id || log.guard_id || log.created_by;
+
+    // Get the logged-in user's full profile from localStorage (has dynamic_assignment)
+    const loggedInUserData = (() => {
+      try { return JSON.parse(localStorage.getItem('user_data') || '{}'); } catch(e) { return {}; }
+    })();
+    const loggedInUserId = String(loggedInUserData?.id || loggedInUserData?.user_id || '');
+
     if (uId) {
-      // Try resolving from rangers list first
-      if (this.rangers.length > 0) {
+      // A. If this log belongs to the logged-in user, use their cached profile directly
+      if (String(uId) === loggedInUserId) {
+        if (!name) name = loggedInUserData.name || loggedInUserData.full_name || loggedInUserData.user_name;
+        if (!beatName) beatName = loggedInUserData.dynamic_assignment?.entity?.name || 
+                                  loggedInUserData.site_name || loggedInUserData.beat_name;
+      }
+
+      // B. Try resolving from the pre-fetched rangers list
+      if (!name && this.rangers.length > 0) {
         const found = this.rangers.find(r => (r.id || r.user_id || r.staff_id) == uId);
         if (found) {
           name = found.name || found.full_name || found.user_name || found.ranger_name;
         }
-      }
-
-      // If still unresolved or "Unknown Officer", fetch dynamically on-demand from database
-      if (!name || name === 'Unknown Officer') {
-        const cId = log.company_id || localStorage.getItem('company_id') || '0';
-        this.dataService.getUserDetails(uId, cId).subscribe({
-          next: (userRes: any) => {
-            const u = userRes?.data || userRes;
-            if (u) {
-              const resolvedName = u.name || u.full_name || u.user_name || u.ranger_name || u.reporter_name;
-              if (resolvedName) {
-                log.displayName = resolvedName;
-                this.cdr.detectChanges();
-              }
-            }
-          },
-          error: (err) => console.warn(`Silent fail resolving officer ${uId}:`, err)
-        });
       }
     }
     
@@ -273,13 +270,40 @@ export class AdminPatrolLogsPage implements OnInit {
     // 3. Determine Status
     let status = log.status || (log.end_time || log.ended_at || log.endTime ? 'completed' : 'In Progress');
 
-    return {
+    // Create the returned object first, so async callbacks can modify IT instead of the unmapped log
+    const displayObj = {
       ...log,
       displayName: name || 'Unknown Officer',
+      displayBeat: beatName || 'Unknown Beat',
+      displayRange: log.range_name || 'Forest Range',
       displayPhoto: thumb,
       displayStatus: status,
       formattedDate: this.formatDate(log.start_time || log.created_at)
     };
+
+    // C. If still unresolved after localStorage check, fetch from API as last resort
+    if (uId && (!name || name === 'Unknown Officer' || !beatName)) {
+      const cId = log.company_id || localStorage.getItem('company_id') || '0';
+      this.dataService.getUserDetails(uId, cId).subscribe({
+        next: (userRes: any) => {
+          const u = userRes?.data || userRes;
+          if (u) {
+            const resolvedName = u.name || u.full_name || u.user_name || u.ranger_name || u.reporter_name;
+            if (resolvedName && (!name || name === 'Unknown Officer')) {
+              displayObj.displayName = resolvedName;
+            }
+            const resolvedBeat = u.dynamic_assignment?.entity?.name || u.site_name || u.beat_name || u.geo_name || u.location_name || u.beat;
+            if (resolvedBeat && !beatName) {
+              displayObj.displayBeat = resolvedBeat;
+            }
+            this.cdr.detectChanges();
+          }
+        },
+        error: (err) => console.warn(`Silent fail resolving officer ${uId}:`, err)
+      });
+    }
+
+    return displayObj;
   }
 
   loadHierarchy(): Promise<void> {

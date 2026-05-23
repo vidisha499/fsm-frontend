@@ -94,67 +94,55 @@ export class AttendancePage implements OnInit, OnDestroy {
   async checkTodayStatus() {
     const companyId = this.dataService.getUserCompanyId();
     const rangerId = this.dataService.getRangerId();
-    if (!companyId || !rangerId) return;
+    if (!companyId || !rangerId) {
+      this.statusChecked = true;
+      return;
+    }
 
-    this.dataService.getAttendanceLogsByRanger(companyId).subscribe({
-      next: (res: any) => {
-        const logs = res.attendance || res.data || res || [];
-        if (Array.isArray(logs)) {
-          const todayStr = new Date().toISOString().split('T')[0];
-          
-          // Filter logs for today and THIS ranger
-          const todayLogs = logs.filter((l: any) => {
-            const dateVal = l.created_at || l.createdAt || l.date_time || l.timestamp;
-            if (!dateVal) return false;
-            const logDate = dateVal.split(' ')[0].split('T')[0];
-            const logRangerId = l.user_id || l.ranger_id || l.applicant_id;
-            return logDate === todayStr && String(logRangerId) === String(rangerId);
-          });
+    const todayStr = new Date().toISOString().split('T')[0];
 
-          // Check if Onsite/Location attendance was marked today
-          const hasTodayOnsite = todayLogs.some((l: any) => {
-            const logType = (l.attendance_type || l.type || '').toUpperCase();
-            return logType === 'ONSITE' || logType === 'LOCATION';
-          });
-
-          // Check local onsite drafts
-          const onsiteDrafts = this.dataService.getAttendanceDrafts('onsite');
-          const hasTodayDraftOnsite = onsiteDrafts.some(d => d.createdAt?.split('T')[0] === todayStr);
-
-          const finalHasOnsite = hasTodayOnsite || hasTodayDraftOnsite;
-
-          if (finalHasOnsite) {
-            // Block Beat attendance because Onsite is already marked today
-            this.isAlreadyMarked = true;
-          } else {
-            const hasEntry = todayLogs.some((l: any) => (l.type || l.attendance_type)?.toUpperCase() === 'ENTRY');
-            const hasExit = todayLogs.some((l: any) => (l.type || l.attendance_type)?.toUpperCase() === 'EXIT');
-
-            // 🔥 Critical Sync: Also check local offline drafts
-            const beatDrafts = this.dataService.getAttendanceDrafts('beat');
-            const todayDraftEntry = beatDrafts.some(d => d.createdAt?.split('T')[0] === todayStr && d.isEntry !== false);
-            const todayDraftExit = beatDrafts.some(d => d.createdAt?.split('T')[0] === todayStr && d.isEntry === false);
-
-            const finalHasEntry = hasEntry || todayDraftEntry;
-            const finalHasExit = hasExit || todayDraftExit;
-
-            if (finalHasEntry && !finalHasExit) {
-              this.isEntry = false; // Already entered (online or offline), next is exit
-            } else if (finalHasEntry && finalHasExit) {
-              this.isAlreadyMarked = true; // Both done for today
-            } else {
-              this.isEntry = true; // Fresh start
+    this.dataService.checkTodayAttendanceStatus().subscribe({
+      next: ({ hasBeat, hasOnsite }) => {
+        if (hasOnsite) {
+          this.isAlreadyMarked = true;
+        } else if (hasBeat) {
+          const beatDrafts = this.dataService.getAttendanceDrafts('beat');
+          const todayDraftExit = beatDrafts.some(
+            d => d.createdAt?.split('T')[0] === todayStr && d.isEntry === false
+          );
+          this.dataService.getAttendanceLogsByRanger(companyId).subscribe({
+            next: (res: any) => {
+              const logs = res.attendance || res.data || res || [];
+              const hasTodayExit = Array.isArray(logs) && logs.some((l: any) => {
+                const dateVal = l.created_at || l.createdAt || l.timestamp;
+                if (!dateVal) return false;
+                const logDate = String(dateVal).split(' ')[0].split('T')[0];
+                if (logDate !== todayStr) return false;
+                return (l.type || l.attendance_type)?.toUpperCase() === 'EXIT';
+              });
+              this.isAlreadyMarked = hasTodayExit || todayDraftExit;
+              if (!this.isAlreadyMarked) this.isEntry = false;
+              this.finishStatusCheck();
+            },
+            error: () => {
+              this.isAlreadyMarked = todayDraftExit;
+              if (!this.isAlreadyMarked) this.isEntry = false;
+              this.finishStatusCheck();
             }
-          }
+          });
+          return;
+        } else {
+          this.isEntry = true;
         }
-        this.statusChecked = true;
-        this.cdr.detectChanges();
+        this.finishStatusCheck();
       },
-      error: () => {
-        this.statusChecked = true;
-        this.cdr.detectChanges();
-      }
+      error: () => this.finishStatusCheck()
     });
+  }
+
+  private finishStatusCheck() {
+    this.statusChecked = true;
+    this.cdr.detectChanges();
   }
 
   async fetchBeats() {
@@ -439,13 +427,26 @@ async submitAttendance() {
   const token = localStorage.getItem('api_token');
   const headers = { 'Bypass-Token': 'true' };
 
+  // V2 API requires the dynamic_assignment entity_id, NOT the old geo_id
+  // Cascade: dynamic_assignment > selectedBeat > geo_id from beat dropdown
+  const dynamicEntityId = userData?.dynamic_assignment?.entity_id || userData?.entity_id;
+  const selectedBeatId = this.selectedBeat?.id;
+  const resolvedEntityId = dynamicEntityId || selectedBeatId || this.selectedBeat?.entity_id || 1;
+
+  console.log('🔑 Entity ID Resolution:', { dynamicEntityId, selectedBeatId, resolvedEntityId, userData_keys: userData ? Object.keys(userData) : 'null' });
+
   const commonPayload = {
     api_token: token,
-    geo_id: this.selectedBeat?.id || '1', 
-    geo_name: this.selectedBeat?.name || this.currentAddress || 'Unknown Location',
-    site_id: 'beat', 
-    site_name: this.selectedBeat?.name || this.siteName,
+    entity_id: resolvedEntityId,
+    latitude: this.currentLat.toString(),
+    longitude: this.currentLng.toString(),
     photo: this.capturedPhoto,
+    // Maintaining these properties for local offline fallback compatibility
+    geo_id: dynamicEntityId || '1', 
+    geo_name: this.selectedBeat?.name || userData?.dynamic_assignment?.entity?.name || this.currentAddress || 'Unknown Location',
+    site_id: 'beat',
+    attendance_type: 'BEAT',
+    site_name: this.selectedBeat?.name || userData?.dynamic_assignment?.entity?.name || this.siteName,
     location: `${this.currentLat},${this.currentLng}`,
     remark: this.remark || 'Beat Attendance'
   };

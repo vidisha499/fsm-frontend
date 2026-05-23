@@ -46,7 +46,11 @@
 
           <div class="card-info">
             <div class="type-tag">{{ formatTitle(report.report_type) }}</div>
-            <h3 class="beat-name">{{ report.beat || 'General Beat' }}</h3>
+            <h3 class="beat-name">{{ report.displayReporter || report.staff_name || report.name || 'Officer' }}</h3>
+            <div class="hierarchy-row">
+              <span class="hierarchy-pill range"><i class="fas fa-layer-group"></i> {{ report.displayRange }}</span>
+              <span class="hierarchy-pill beat"><i class="fas fa-map-marker-alt"></i> {{ report.displayBeat }}</span>
+            </div>
             <div class="meta-row">
               <span class="date"><i class="far fa-clock"></i> {{ formatDate(report.displayDate) }}</span>
               <span class="status-chip success">LOGGED</span>

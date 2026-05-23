@@ -299,43 +299,39 @@ fieldsConfig: any = {
   }
 
 async loadDefaultBeat() {
-  // 1. First Priority: Check localStorage (Matches Home Page behavior)
-  const cachedBeat = localStorage.getItem('assigned_beat_name');
-  if (cachedBeat && cachedBeat !== 'FETCHING...' && cachedBeat !== 'NOT ASSIGNED') {
-    this.assignedBeat = cachedBeat;
-    this.reportData['Assigned Beat'] = cachedBeat;
-    this.reportData['beat'] = cachedBeat; // Backup key
-    console.log("📍 [SYNC] Beat pre-populated from Cache:", cachedBeat);
-  }
-
-  // 2. Second Priority: Fetch from Server if Cache is missing or to refresh
   const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
-  const rangerId = userData.id;
+  const rangerId = userData.id || this.dataService.getRangerId();
+  const companyId = userData.company_id || this.dataService.getUserCompanyId();
 
-  if (rangerId) {
-    this.hierarchyService.getAssignedBeat(rangerId).subscribe({
-      next: (res: any) => {
-        const sites = Array.isArray(res) ? res : (res?.data || []);
-        if (sites.length > 0) {
-          const firstSite = sites[0];
-          const siteName = firstSite.site_name || firstSite.name || 'General';
-          
-          this.assignedBeat = siteName;
-          this.currentSiteId = String(firstSite.id || '');
-          this.reportData['Assigned Beat'] = siteName;
-          this.reportData['beat'] = siteName;
-          
-          localStorage.setItem('assigned_beat_name', siteName);
-        }
-      },
-      error: () => {
-        if (!this.assignedBeat || this.assignedBeat === 'Loading...') {
-          this.assignedBeat = 'General';
-          this.reportData['Assigned Beat'] = 'General';
-        }
+  if (!rangerId) return;
+
+  this.dataService.resolveUserAssignmentLabels(rangerId, companyId || '0').subscribe({
+    next: ({ range, beat }) => {
+      if (beat) {
+        this.assignedBeat = beat;
+        this.reportData['Assigned Beat'] = beat;
+        this.reportData['beat'] = beat;
+        localStorage.setItem('assigned_beat_name', beat);
       }
-    });
-  }
+      if (range) {
+        this.reportData['range'] = range;
+        this.reportData['range_name'] = range;
+      }
+      const entityId =
+        userData.dynamic_assignment?.entity_id ||
+        userData.entity_id ||
+        localStorage.getItem('assigned_entity_id');
+      if (entityId) this.currentSiteId = String(entityId);
+    },
+    error: () => {
+      const cachedBeat = localStorage.getItem('assigned_beat_name');
+      if (cachedBeat && cachedBeat !== 'FETCHING...' && cachedBeat !== 'NOT ASSIGNED') {
+        this.assignedBeat = cachedBeat;
+        this.reportData['Assigned Beat'] = cachedBeat;
+        this.reportData['beat'] = cachedBeat;
+      }
+    }
+  });
 }
 
 async fetchLocation() {
@@ -712,40 +708,99 @@ async fetchLocation() {
           lng = parts[1].trim();
        }
     }
-    const photoArray = this.capturedPhotos.map(p => ({ photo: p }));
 
-    // --- SIR'S API ALIGNMENT ---
-    // IMPORTANT: Sir's database expects an INTEGER for patrol_id.
-    // If we send the String UID (e.g. PATROL_123...), the server saves it as 0.
-    // We MUST prioritize the Numeric ID (e.g. 2987).
+    // --- PATROL ID RESOLUTION ---
+    // Sir's database expects an INTEGER for patrol_id.
     let cleanPatrolId: any = "0";
     const numericId = this.patrolId || localStorage.getItem('active_patrol_id');
     const sessionString = localStorage.getItem('active_patrol_session_id');
 
     if (numericId && numericId !== '0' && numericId !== 'null' && numericId !== 'undefined') {
-      cleanPatrolId = numericId; // Use the Numeric ID for DB mapping
+      cleanPatrolId = numericId;
     } else if (sessionString) {
-      cleanPatrolId = sessionString; // Fallback to string only if no number found
+      cleanPatrolId = sessionString;
     }
 
     const photoArrayStr = JSON.stringify(this.capturedPhotos.map(p => ({ photo: p })));
 
-    const payload = {
+    // --- ENTITY ID RESOLUTION ---
+    // V2 API uses entity_id. Try to get it from:
+    // 1. currentSiteId (loaded from assigned beat)
+    // 2. localStorage (set during V2 assignment flow)
+    // 3. null (V2 backend will handle gracefully for unassigned users)
+    const userData = (() => {
+      try { return JSON.parse(localStorage.getItem('user_data') || '{}'); } catch { return {}; }
+    })();
+    const isDynamic = this.dataService.isUserDynamic(userData);
+    const dynamicEntityId =
+      userData.dynamic_assignment?.entity_id || userData.entity_id || null;
+    const resolvedEntityId = isDynamic && dynamicEntityId
+      ? String(dynamicEntityId)
+      : this.currentSiteId ||
+        localStorage.getItem('assigned_entity_id') ||
+        localStorage.getItem('active_entity_id') ||
+        null;
+
+    const hierarchy = this.dataService.getUserHierarchyLabels(userData);
+    const beatName =
+      this.assignedBeat ||
+      hierarchy.beat ||
+      formattedReportData['beat'] ||
+      '';
+    const rangeName =
+      hierarchy.range ||
+      formattedReportData['range'] ||
+      formattedReportData['range_name'] ||
+      '';
+    if (beatName) {
+      formattedReportData['beat'] = beatName;
+      formattedReportData['beat_name'] = beatName;
+    }
+    if (rangeName) formattedReportData['range'] = rangeName;
+
+    const reportDataStr = JSON.stringify(formattedReportData);
+
+    // --- V2 PAYLOAD (Primary — works for both static & dynamic users) ---
+    const v2Payload = {
+      api_token: localStorage.getItem('api_token'),
+      category: this.currentCategory || 'Events & Monitoring',
+      report_type: this.eventTitle || 'General Report',
+      entity_id: resolvedEntityId,
+      site_id: this.currentSiteId || null,
+      beat: beatName || null,
+      beat_name: beatName || null,
+      range_name: rangeName || null,
+      range: rangeName || null,
+      latitude: String(lat),
+      longitude: String(lng),
+      patrol_id: cleanPatrolId,
+      report_data: reportDataStr,
+      photo: photoArrayStr
+    };
+
+    // --- LEGACY PAYLOAD (Fallback) ---
+    const legacyPayload = {
       api_token: localStorage.getItem('api_token'),
       category: this.currentCategory || 'Events & Monitoring',
       report_type: this.eventTitle || 'General Report',
       latitude: Number(lat),
       longitude: Number(lng),
       patrol_id: cleanPatrolId,
-      site_id: this.currentSiteId, // Dynamically loaded from /getSites
-      report_data: JSON.stringify(formattedReportData),
-      photo: photoArrayStr // Saved both online and in offline drafts!
+      site_id: this.currentSiteId || null,
+      beat_id: this.currentSiteId || null,
+      beat: beatName || null,
+      beat_name: beatName || null,
+      range_name: rangeName || null,
+      range: rangeName || null,
+      data: reportDataStr,
+      report_data: reportDataStr,
+      photo: photoArrayStr
     };
 
-    // 1. Check Network Connectivity
+    // 1. Check Network Connectivity — save draft if offline
     if (!this.dataService.isOnline()) {
       console.warn("🌐 Device is OFFLINE. Saving as draft immediately.");
-      this.saveAsDraft(payload);
+      this.saveAsDraft(legacyPayload);
       return;
     }
 
@@ -755,24 +810,31 @@ async fetchLocation() {
     });
     await loading.present();
 
-    const finalPayload = {
-      ...payload,
-      beat_id: payload.site_id, // Sir's Postman uses beat_id
-      data: payload.report_data, // Sir's Postman uses data for JSON content
-      photo: payload.photo
-    };
+    console.log("🚀 [V2] Submitting forest report via V2 API. Patrol ID:", cleanPatrolId, "Entity ID:", resolvedEntityId);
 
-    console.log("🚀 [STRICT SYNC] Using forest-reports API. Patrol ID:", cleanPatrolId);
-    
-    const headers = { 'Bypass-Token': 'true' };
-    this.dataService.submitForestEvent(finalPayload, headers).subscribe({
-      next: async (res) => {
+    // 2. Try V2 API first — both static & dynamic users supported
+    this.dataService.storeV2ForestReport(v2Payload).subscribe({
+      next: async (res: any) => {
         await loading.dismiss();
-        this.handleSuccess(payload);
+        console.log("✅ [V2] Forest report submitted successfully:", res);
+        this.handleSuccess(legacyPayload);
       },
-      error: async (err) => {
-        await loading.dismiss();
-        this.handleError(err, finalPayload);
+      error: async (v2Err: any) => {
+        console.warn("⚠️ [V2] V2 API failed (status:", v2Err?.status, "). Falling back to legacy API...");
+
+        // 3. Fallback to legacy /forest-reports for backward compatibility
+        const headers = { 'Bypass-Token': 'true' };
+        this.dataService.submitForestEvent(legacyPayload, headers).subscribe({
+          next: async (res) => {
+            await loading.dismiss();
+            console.log("✅ [Legacy] Forest report submitted via legacy API:", res);
+            this.handleSuccess(legacyPayload);
+          },
+          error: async (legacyErr) => {
+            await loading.dismiss();
+            this.handleError(legacyErr, legacyPayload);
+          }
+        });
       }
     });
   }

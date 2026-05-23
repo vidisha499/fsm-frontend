@@ -152,6 +152,10 @@ export class PatrolDetailsPage implements OnInit {
   }
 
   processPatrolData(data: any) {
+    // Preserve existing resolved names if they exist before overwriting this.patrol
+    const existingName = this.patrol?.userName || this.patrol?.displayName;
+    const existingBeat = this.patrol?.beatName || this.patrol?.displayBeat;
+
     // Try to get photos from the main response first
     let rawPhotos = data.patrol_photos || data.patrolPhotos || data.photos || data.photo || [];
     if (typeof rawPhotos === 'string') {
@@ -197,11 +201,11 @@ export class PatrolDetailsPage implements OnInit {
     this.patrol.patrol_method = pMethodStr;
 
     // Normalize Ranger Name resolving all possible server keys
-    this.patrol.userName = data.user_name || data.ranger_name || data.full_name || data.guard_name || 
-                           data.officer_name || data.userName || data.name || 'Officer';
+    this.patrol.userName = data.displayName || data.user_name || data.ranger_name || data.full_name || data.guard_name || 
+                           data.officer_name || data.userName || data.name || existingName || 'Officer';
 
     // Normalize Beat Name resolving all possible server keys
-    this.patrol.beatName = data.beat_name || data.site_name || data.location || data.beat || data.beatName || 'All Beats';
+    this.patrol.beatName = data.displayBeat || data.beat_name || data.site_name || data.location || data.beat || data.beatName || existingBeat || 'All Beats';
 
     // Fallback property mapping and parsing
     let routeVal = this.patrol.route || this.patrol.coords || this.patrol.path || this.patrol.polyline || [];
@@ -309,31 +313,55 @@ export class PatrolDetailsPage implements OnInit {
     const cId = this.patrol.company_id || localStorage.getItem('company_id') || '0';
     
     // We fetch user details if ranger name is fallback OR if beat name is fallback
-    const needsUserFetch = uId && (
-      !this.patrol.userName || 
-      this.patrol.userName === 'Officer' || 
-      !this.patrol.beatName || 
-      this.patrol.beatName === 'All Beats'
-    );
+    const isFallbackBeat = !this.patrol.beatName || 
+                           this.patrol.beatName === 'All Beats' || 
+                           this.patrol.beatName === 'Unknown Beat' || 
+                           this.patrol.beatName === 'Forest Range';
 
-    if (needsUserFetch) {
+    const needsNameFetch = !this.patrol.userName || 
+                           this.patrol.userName === 'Officer' || 
+                           this.patrol.userName === 'Unknown Officer';
+
+    // 🔑 FASTEST PATH: If this patrol belongs to the currently logged-in user,
+    // their full profile with dynamic_assignment is already in localStorage!
+    const loggedInUserData = (() => {
+      try { return JSON.parse(localStorage.getItem('user_data') || '{}'); } catch(e) { return {}; }
+    })();
+    const loggedInUserId = String(loggedInUserData?.id || loggedInUserData?.user_id || '');
+    
+    if (uId && String(uId) === loggedInUserId) {
+      // Use cached profile — no API call needed
+      if (needsNameFetch) {
+        this.patrol.userName = loggedInUserData.name || loggedInUserData.full_name || loggedInUserData.user_name || this.patrol.userName;
+      }
+      if (isFallbackBeat) {
+        this.patrol.beatName = loggedInUserData.dynamic_assignment?.entity?.name || 
+                               loggedInUserData.site_name || loggedInUserData.beat_name || this.patrol.beatName;
+      }
+      this.cdr.detectChanges();
+      // Still try via API if still missing after localStorage
+      if (!this.patrol.beatName || this.patrol.beatName === 'Unknown Beat') {
+        const entityId = loggedInUserData.dynamic_assignment?.entity_id;
+        if (entityId) this.resolveBeatNameById(entityId, cId);
+      }
+    } else if (uId && (needsNameFetch || isFallbackBeat)) {
       this.dataService.getUserDetails(uId, cId).subscribe({
         next: (userRes: any) => {
           const u = userRes?.data || userRes;
           if (u) {
             // 1. Resolve Ranger Name if missing
-            if (!this.patrol.userName || this.patrol.userName === 'Officer') {
+            if (needsNameFetch) {
               this.patrol.userName = u.name || u.full_name || u.guard_name || u.user_name || u.ranger_name || this.patrol.userName;
             }
             
             // 2. Resolve Beat Name if missing
-            if (!this.patrol.beatName || this.patrol.beatName === 'All Beats') {
-              this.patrol.beatName = u.site_name || u.beat_name || u.geo_name || u.location_name || u.beat || this.patrol.beatName;
+            if (isFallbackBeat) {
+              this.patrol.beatName = u.dynamic_assignment?.entity?.name || u.site_name || u.beat_name || u.geo_name || u.location_name || u.beat || this.patrol.beatName;
             }
 
             // 3. Fallback: If beatName is still missing, try to resolve using user's site_id / beat_id
-            const lookupSiteId = u.site_id || u.beat_id || this.patrol.site_id || this.patrol.siteId || this.patrol.beat_id;
-            if (lookupSiteId && (!this.patrol.beatName || this.patrol.beatName === 'All Beats')) {
+            const lookupSiteId = u.dynamic_assignment?.entity_id || u.site_id || u.beat_id || this.patrol.site_id || this.patrol.siteId || this.patrol.beat_id;
+            if (lookupSiteId && isFallbackBeat) {
               this.resolveBeatNameById(lookupSiteId, cId);
             }
             
@@ -342,7 +370,6 @@ export class PatrolDetailsPage implements OnInit {
         },
         error: (err: any) => {
           console.error("Error fetching user details in patrol details:", err);
-          // Fallback direct site ID resolution if user details call fails
           const sId = this.patrol.site_id || this.patrol.siteId || this.patrol.beat_id;
           if (sId) {
             this.resolveBeatNameById(sId, cId);

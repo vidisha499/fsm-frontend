@@ -198,6 +198,7 @@ async login() {
         const userRole = parseInt(res.role_id);
 
         const userInfo = {
+          ...userData,  // Preserve ALL server fields (including dynamic_assignment)
           id: userData.id,
           name: userData.name,
           phone: userData.contact || userData.mobile || userData.phone || '',
@@ -266,7 +267,10 @@ async login() {
           // Also cache by user ID for next-device fallback
           if (userData.id) localStorage.setItem(`cached_photo_id_${userData.id}`, profilePic);
         } else {
-          // --- 🔥 SIR'S INSTRUCTION: FETCH LATEST DETAILS FROM DB IMMEDIATELY ---
+          localStorage.removeItem('user_photo');
+        }
+
+        // --- 🔥 ALWAYS fetch full user details from DB to enrich dynamic_assignment ---
         if (userData.id && userData.company_id) {
           console.log("🚀 Calling /getUserDetails to fetch latest DB profile...");
           this.dataService.getUserDetails(userData.id, userData.company_id).subscribe({
@@ -275,12 +279,8 @@ async login() {
               console.log("📊 [DATABASE STATUS] Full User Object:", d);
               
               const dbPhoto = d.profile_pic || d.photo || d.image || d.profilePic || '';
-              const faceId = d.personIdFaceRecog || 'NOT GENERATED';
 
               if (dbPhoto && dbPhoto !== 'null' && dbPhoto.length > 5) {
-                console.log("✅ [DATABASE CHECK] Profile Pic is SAVED:", dbPhoto);
-                console.log("🆔 [DATABASE CHECK] Face ID Status:", faceId);
-                
                 let resolvedUrl = String(dbPhoto).trim();
                 if (!resolvedUrl.startsWith('http') && !resolvedUrl.startsWith('data:')) {
                   let c = resolvedUrl.startsWith('/') ? resolvedUrl.substring(1) : resolvedUrl;
@@ -289,13 +289,9 @@ async login() {
                     : `https://fms.pugarch.in/public/profilepics/${c}`;
                 }
                 localStorage.setItem('user_photo', resolvedUrl);
-              } else {
-                console.warn("❌ [DATABASE CHECK] Profile Pic is NULL or EMPTY in database!");
-                console.log("🆔 [DATABASE CHECK] Face ID Status:", faceId);
-                localStorage.removeItem('user_photo');
               }
               
-              // Update local storage with fresh data from DB
+              // Merge full DB data (with dynamic_assignment) into stored user_data
               const updatedUserInfo = { ...userInfo, ...d };
               localStorage.setItem('user_data', JSON.stringify(updatedUserInfo));
             },
@@ -303,7 +299,6 @@ async login() {
               console.error("❌ Failed to fetch getUserDetails:", err);
             }
           });
-        }
         }
 
         this.presentToast(`Welcome, ${userData.name}!`, 'success');

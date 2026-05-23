@@ -169,7 +169,7 @@ export class AdminFireRecordsPage implements OnInit {
     const alertsList = this.allStatsCache.alerts || this.allStatsCache.sos || [];
     const combined = [...this.allReportsCache, ...alertsList];
 
-    this.submittedReports = combined.filter((r: any) => {
+    const filtered = combined.filter((r: any) => {
       const cat = (r.category || '').toLowerCase();
       const rType = (r.report_type || r.event_type || r.type || '').toLowerCase();
       const rDesc = (r.description || r.message || '').toLowerCase();
@@ -191,22 +191,44 @@ export class AdminFireRecordsPage implements OnInit {
         }
       }
 
-      // 2. Hierarchy Filter
-      const rBeat = (r.beat_name || r.site_name || r.location || '').toLowerCase();
-      const beatObj = this.allBeats.find(b => b.name.toLowerCase() === rBeat);
-      const rRange = (r.range_name || r.range || r.region || (beatObj ? beatObj.parentName : '')).toLowerCase();
-      
-      const filterRange = this.selectedRange.toLowerCase();
-      const filterBeat = this.selectedBeat.toLowerCase();
-      const matchesRange = this.selectedRange === 'all' || rRange.includes(filterRange) || filterRange.includes(rRange);
-      const matchesBeat = this.selectedBeat === 'all' || rBeat.includes(filterBeat) || filterBeat.includes(rBeat);
-
-      return matchesDate && matchesRange && matchesBeat;
+      return matchesDate;
     })
     .sort((a, b) => getTS(b.created_at || b.date) - getTS(a.created_at || a.date))
     .map((r: any) => this.processPhotos(r));
 
-    this.isLoading = false;
+    const companyId = (() => {
+      try {
+        const u = JSON.parse(localStorage.getItem('user_data') || '{}');
+        return u.company_id || u.companyId || localStorage.getItem('company_id') || '0';
+      } catch {
+        return localStorage.getItem('company_id') || '0';
+      }
+    })();
+
+    this.dataService.enrichReportsWithReporterHierarchy(filtered, companyId).subscribe({
+      next: (enriched) => {
+        this.submittedReports = enriched.filter((r: any) => {
+          const rRange = String(r.displayRange || '').toLowerCase();
+          const rBeat = String(r.displayBeat || '').toLowerCase();
+          const filterRange = this.selectedRange.toLowerCase();
+          const filterBeat = this.selectedBeat.toLowerCase();
+          const matchesRange =
+            this.selectedRange === 'all' ||
+            rRange.includes(filterRange) ||
+            filterRange.includes(rRange);
+          const matchesBeat =
+            this.selectedBeat === 'all' ||
+            rBeat.includes(filterBeat) ||
+            filterBeat.includes(rBeat);
+          return matchesRange && matchesBeat;
+        });
+        this.isLoading = false;
+      },
+      error: () => {
+        this.submittedReports = filtered;
+        this.isLoading = false;
+      }
+    });
   }
 
   processPhotos(report: any) {

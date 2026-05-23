@@ -67,13 +67,10 @@ export class OfficersPage implements OnInit {
       logs: this.dataService.getAttendanceLogsByRanger(companyIdStr).pipe(catchError(() => of([]))),
       requests: this.dataService.getAttendanceRequests(companyIdStr).pipe(catchError(() => of([]))),
       onsite: this.dataService.getGuardsOnSite(companyIdStr).pipe(catchError(() => of([]))),
-      allUsersPHP: this.dataService.getAssignableUsers({ company_id: companyIdStr }).pipe(catchError(() => of([]))),
-      allUsersNode: this.hierarchyService.getRangers(this.myCompanyId).pipe(catchError(() => of([]))),
-      allUsersProduction: this.dataService.getRangersByCompany(companyIdStr).pipe(catchError(() => of([]))),
-      allUsersGeneric: this.dataService.getUsersByCompany(companyIdStr).pipe(catchError(() => of([]))),
       v2Subordinates: this.dataService.listV2Subordinates().pipe(catchError(() => of([]))),
       v2Assignments: this.dataService.getMySubordinates().pipe(catchError(() => of([]))),
-      v2Node28: this.dataService.getNodeAssignments(28).pipe(catchError(() => of([])))
+      v2UserList: this.dataService.getV2UserList({ company_id: companyIdStr, paginate: false, per_page: 1000 }).pipe(catchError(() => of([]))),
+      legacyUsers: this.dataService.getAssignableUsers({ company_id: companyIdStr }).pipe(catchError(() => of([])))
     }).subscribe({
       next: (res: any) => {
         const getArr = (obj: any) => {
@@ -87,52 +84,66 @@ export class OfficersPage implements OnInit {
         const logsArray = getArr(res.logs);
         const reqArray = getArr(res.requests);
         const onsiteArray = getArr(res.onsite);
-        
-        // 🧩 MERGE ALL SOURCES (Unified cross-sync)
-        const phpUsers = getArr(res.allUsersPHP);
-        const nodeUsers = getArr(res.allUsersNode);
-        const productionUsers = getArr(res.allUsersProduction);
-        const genericUsers = getArr(res.allUsersGeneric);
         const v2Subordinates = getArr(res.v2Subordinates);
         const v2Assignments = getArr(res.v2Assignments);
-        const v2Node28 = getArr(res.v2Node28);
+        const v2UserList = getArr(res.v2UserList);
+        const legacyUsers = getArr(res.legacyUsers);
         
         // Create a Unified List with De-duplication by ID
+        // Priority: V2 Subordinates (dynamic hierarchy) > V2 Assignments > V2 User List
         const unifiedMap = new Map();
-        
-        // Order of priority: Production > Node > Generic > PHP
-        const allSources = [
-          ...productionUsers,
-          ...nodeUsers,
-          ...genericUsers,
+
+        const allV2Sources = [
+          ...legacyUsers,
           ...v2Subordinates,
           ...v2Assignments,
-          ...v2Node28,
-          ...phpUsers
+          ...v2UserList
         ];
 
-        allSources.forEach((u: any) => {
+        // Also extract users from attendance records (safety net)
+        [...logsArray, ...reqArray, ...onsiteArray].forEach((record: any) => {
+          const uId = String(record.guard_id || record.guardId || record.user_id || record.userId || record.staff_id || record.ranger_id || '');
+          const uName = record.guard_name || record.user_name || record.ranger_name || record.name || '';
+          if (uId && uName) {
+            allV2Sources.push({
+              id: uId,
+              name: uName,
+              role_id: record.role_id || record.user_role || '',
+              profile_pic: record.photo || record.profile_pic || record.profile_Pic || record.image || '',
+              site_name: record.site_name || record.geo_name || record.beat_name || '',
+              source: 'attendance-record'
+            });
+          }
+        });
+
+        allV2Sources.forEach((u: any) => {
           const id = String(u.id || u.user_id || u.staff_id || u.ranger_id || '');
-          if (id && !unifiedMap.has(id)) {
-            // 🏷️ EXTENSIVE NAME RESOLUTION
-            let resolvedName = u.name || u.user_name || u.full_name || u.fullName 
+          const roleId = String(u.role_id || u.role || (u.role ? u.role.id : ''));
+          const resolvedName = u.name || u.user_name || u.full_name || u.fullName 
               || u.username || u.user_name || u.firstName || u.first_name 
               || (u.firstName && u.lastName ? `${u.firstName} ${u.lastName}` : '')
               || (u.first_name && u.last_name ? `${u.first_name} ${u.last_name}` : '')
               || u.contact || u.phone || u.mobile || 'Officer';
 
+          // Skip superadmins
+          if (roleId === '1' || resolvedName.toLowerCase().includes('superadmin')) {
+            return;
+          }
+
+          if (id && !unifiedMap.has(id)) {
+            // 🏷️ EXTENSIVE NAME RESOLUTION
             unifiedMap.set(id, { 
               ...u, 
               id: id,
               name: resolvedName, 
-              role_id: u.role_id || u.role || u.user_role || (u.role ? u.role.id : ''),
-              source: u.source || 'combined' 
+              role_id: roleId,
+              source: u.source || 'v2-hierarchy' 
             });
           }
         });
 
         const finalMergedList = Array.from(unifiedMap.values());
-        console.log(`🧩 [OFFICERS] Ultimate Merge: Total Sources(${allSources.length}) -> Unique(${finalMergedList.length})`);
+        console.log(`🧩 [OFFICERS] V2 Hierarchy Loaded: Subordinates(${v2Subordinates.length}) + Assignments(${v2Assignments.length}) + UserList(${v2UserList.length}) -> Unique(${finalMergedList.length})`);
 
         const nowL = new Date();
         const todayYMD = `${nowL.getFullYear()}-${String(nowL.getMonth() + 1).padStart(2, '0')}-${String(nowL.getDate()).padStart(2, '0')}`;

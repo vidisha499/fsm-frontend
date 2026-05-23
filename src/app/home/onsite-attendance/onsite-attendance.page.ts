@@ -124,46 +124,14 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
   async checkTodayStatus() {
     const companyId = this.dataService.getUserCompanyId();
     const rangerId = this.dataService.getRangerId();
-    if (!companyId || !rangerId) return;
+    if (!companyId || !rangerId) {
+      this.statusChecked = true;
+      return;
+    }
 
-    this.dataService.getAttendanceLogsByRanger(companyId).subscribe({
-      next: (res: any) => {
-        const logs = res.attendance || res.data || res || [];
-        if (Array.isArray(logs)) {
-          const todayStr = new Date().toISOString().split('T')[0];
-          
-          // Filter logs for today and THIS ranger
-          const todayLogs = logs.filter((l: any) => {
-            const dateVal = l.created_at || l.createdAt || l.date_time || l.timestamp;
-            if (!dateVal) return false;
-            const logDate = dateVal.split(' ')[0].split('T')[0];
-            const logRangerId = l.user_id || l.ranger_id || l.applicant_id;
-            return logDate === todayStr && String(logRangerId) === String(rangerId);
-          });
-
-          // Check if Onsite/Location attendance was marked today
-          const hasTodayOnsite = todayLogs.some((l: any) => {
-            const logType = (l.attendance_type || l.type || '').toUpperCase();
-            return logType === 'ONSITE' || logType === 'LOCATION';
-          });
-
-          // Check if Beat attendance was marked today
-          const hasTodayBeat = todayLogs.some((l: any) => {
-            const logType = (l.attendance_type || l.type || '').toUpperCase();
-            return logType === 'ENTRY' || logType === 'EXIT';
-          });
-
-          // 🔥 Check local onsite drafts too
-          const onsiteDrafts = this.dataService.getAttendanceDrafts('onsite');
-          const hasTodayDraftOnsite = onsiteDrafts.some(d => d.createdAt?.split('T')[0] === todayStr);
-
-          // Check local beat drafts too
-          const beatDrafts = this.dataService.getAttendanceDrafts('beat');
-          const hasTodayDraftBeat = beatDrafts.some(d => d.createdAt?.split('T')[0] === todayStr);
-
-          // Block if EITHER Onsite is marked today OR Beat is marked today
-          this.isAlreadyMarked = hasTodayOnsite || hasTodayDraftOnsite || hasTodayBeat || hasTodayDraftBeat;
-        }
+    this.dataService.checkTodayAttendanceStatus().subscribe({
+      next: ({ hasBeat, hasOnsite }) => {
+        this.isAlreadyMarked = hasBeat || hasOnsite;
         this.statusChecked = true;
         this.cdr.detectChanges();
       },

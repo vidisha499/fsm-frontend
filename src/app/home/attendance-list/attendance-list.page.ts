@@ -126,9 +126,25 @@ async fetchAndFilter() {
 }
 
 applyFrontendLogic() {
+  const userRole = localStorage.getItem('user_role') || '3';
+  const isAdmin = userRole === '1' || userRole === '2' || userRole === '7';
+  const myRangerId = localStorage.getItem('ranger_id');
+
   if (!this.startDate || !this.endDate) {
     const today = new Date().toISOString().split('T')[0];
-    this.attendanceLogs = this.allLogs.filter(log => log.createdAt && log.createdAt.startsWith(today));
+    this.attendanceLogs = this.allLogs.filter(log => {
+      if (!log.createdAt || !log.createdAt.startsWith(today)) return false;
+
+      // Filter by Ranger ID
+      if (!isAdmin && myRangerId) {
+        const logRangerId = String(log.user_id || log.ranger_id || log.applicant_id || log.rangerId || log.guard_id || '');
+        if (logRangerId !== '' && logRangerId !== String(myRangerId)) {
+          return false;
+        }
+      }
+
+      return this.matchesSelectedMode(log);
+    });
     return;
   }
 
@@ -136,16 +152,27 @@ applyFrontendLogic() {
   const end = this.endDate.split('T')[0];
 
   this.attendanceLogs = this.allLogs.filter(log => {
+    // 0. Ranger ID check
+    if (!isAdmin && myRangerId) {
+      const logRangerId = String(log.user_id || log.ranger_id || log.applicant_id || log.rangerId || log.guard_id || '');
+      
+      // If backend gave an ID, verify it
+      if (logRangerId !== '') {
+        if (logRangerId !== String(myRangerId)) return false;
+      } else {
+        // If no ID, verify by name as fallback
+        const myName = (localStorage.getItem('ranger_username') || localStorage.getItem('ranger_name') || '').toLowerCase().trim();
+        const logName = String(log.name || log.rangerName || log.guard_name || '').toLowerCase().trim();
+        if (myName && logName && myName !== logName) {
+           return false;
+        }
+      }
+    }
+
     const logDate = log.createdAt.split('T')[0];
     const isWithinDate = logDate >= start && logDate <= end;
     
-    // Mode check (Beat vs Onsite)
-    const isOnsite = String(log.site_id) === '99999' || String(log.geo_id) === '99999' ||
-                      log.site_id === 'onsite' || 
-                      (log.site_name && String(log.site_name).toLowerCase().includes('onsite')) ||
-                      (log.geo_name && String(log.geo_name).toLowerCase().includes('[onsite]')) ||
-                      (log.geofence && String(log.geofence).toLowerCase().includes('[onsite]'));
-    const matchesMode = (this.selectedMode === 'onsite') ? isOnsite : !isOnsite;
+    const matchesMode = this.matchesSelectedMode(log);
 
     let isMatchLocation = true;
     if (this.filterLocation) {
@@ -206,15 +233,15 @@ async loadAttendanceLogs() {
         forkJoin([logsObs, reqsObs]).subscribe({
           next: ([logsRes, reqsRes]: [any, any]) => {
             try {
-              let approvedLogs = this.extractLogsArray(logsRes);
+              let approvedLogs = this.extractLogsArray(logsRes)
+                .filter((l: any) => this.dataService.isOnsiteAttendance(l));
               let pendingReqs = this.extractLogsArray(reqsRes);
 
-              // Mark status and normalize fields
               approvedLogs = approvedLogs.map((l: any) => ({ ...l, status: String(l.status || 'pending').toLowerCase() }));
               
               pendingReqs = pendingReqs.filter((r: any) => {
                 const rId = String(r.guard_id || r.user_id || r.ranger_id || r.rangerId || '');
-                return rId === rangerId;
+                return rId === rangerId && this.dataService.isOnsiteAttendance(r);
               }).map((r: any) => {
                 const rawStatus = String(r.status || 'pending').toLowerCase();
                 return { ...r, status: rawStatus, isRequest: true };
@@ -308,31 +335,45 @@ private processLogsResponse(res: any, loader: any) {
       }
     } catch (e) { formattedDate = rawDate; }
       
-    const isOnsite = log.isRequest || 
-                     String(log.site_id) === '99999' || String(log.geo_id) === '99999' ||
-                     log.site_id === 'onsite' || 
-                     !log.geo_id || log.geo_id === '0' ||
-                     (log.site_name && String(log.site_name).toLowerCase().includes('onsite')) ||
-                     (log.geo_name && String(log.geo_name).toLowerCase().includes('[onsite]'));
-
-      // 🔍 DEBUG: See exactly what backend sent
-      console.log(`Log [${formattedDate}]: Backend Status = "${log.status}"`);
+    const isOnsite = this.dataService.isOnsiteAttendance(log);
 
       // Map backend statuses to readable strings
-      // "1" = active/exists (NOT approved), only "approved" = approved
       const statusStr = String(log.status || '').toLowerCase().trim();
       let mappedStatus = 'pending';
       let statusLabel = 'PENDING';
+      
       if (statusStr === 'approved') {
         mappedStatus = 'approved';
         statusLabel = 'APPROVED';
       } else if (statusStr === '0' || statusStr === 'rejected') {
         mappedStatus = 'rejected';
         statusLabel = 'REJECTED';
+      } else if (statusStr === '1') {
+        // For Beat Attendance, '1' usually means it's successfully logged (Present)
+        if (!isOnsite) {
+          mappedStatus = 'approved';
+          statusLabel = 'PRESENT';
+        } else {
+          mappedStatus = 'pending';
+          statusLabel = 'PENDING';
+        }
       } else {
-        // "1", "pending", "requested", "" — all mean pending
+        // "pending", "requested", "" — all mean pending
         mappedStatus = 'pending';
         statusLabel = 'PENDING';
+      }
+
+      let photoUrl = log.photo || log.image || log.profile_pic || log.guard_photo || null;
+      if (photoUrl && typeof photoUrl === 'string') {
+        photoUrl = photoUrl.trim();
+        if (!photoUrl.startsWith('http') && !photoUrl.startsWith('data:')) {
+          let cleaned = photoUrl.startsWith('/') ? photoUrl.substring(1) : photoUrl;
+          if (!cleaned.includes('profilepics') && !cleaned.includes('attendance')) {
+             photoUrl = `https://fms.pugarch.in/public/${cleaned}`;
+          } else {
+             photoUrl = `https://fms.pugarch.in/public/${cleaned}`;
+          }
+        }
       }
 
       return {
@@ -341,7 +382,8 @@ private processLogsResponse(res: any, loader: any) {
         geofence: isOnsite ? this.parseLocation(log.location || log.address || log.geo_name || log.geofence || 'Onsite') : (log.geo_name || log.geofence || 'General Area'),
         rangerName: log.name || log.rangerName || log.guard_name || 'Ranger',
         status: mappedStatus,
-        statusLabel: statusLabel
+        statusLabel: statusLabel,
+        photo: photoUrl
       };
   });
 
@@ -356,17 +398,28 @@ private processLogsResponse(res: any, loader: any) {
   // Filter logic
   const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
   console.log('📅 Today string:', todayStr);
+  
+  const userRole = localStorage.getItem('user_role') || '3';
+  const isAdmin = userRole === '1' || userRole === '2' || userRole === '7';
+  const myRangerId = localStorage.getItem('ranger_id');
+
   this.attendanceLogs = this.allLogs.filter(log => {
-    // 1. Determine Mode (Onsite vs Beat)
-    const isOnsite = log.isRequest || 
-                     String(log.site_id) === '99999' || String(log.geo_id) === '99999' ||
-                     log.site_id === 'onsite' || 
-                     !log.geo_id || log.geo_id === '0' ||
-                     (log.site_name && log.site_name.toLowerCase().includes('onsite')) ||
-                     (log.geo_name && log.geo_name.toLowerCase().includes('[onsite]'));
-    
-    const matchesMode = (this.selectedMode === 'onsite') ? isOnsite : !isOnsite;
-    if (!matchesMode) return false;
+    // 0. Filter by Ranger ID for non-admins
+    if (!isAdmin && myRangerId) {
+      const logRangerId = String(log.user_id || log.ranger_id || log.applicant_id || log.rangerId || log.guard_id || '');
+      
+      if (logRangerId !== '') {
+        if (logRangerId !== String(myRangerId)) return false;
+      } else {
+        const myName = (localStorage.getItem('ranger_username') || localStorage.getItem('ranger_name') || '').toLowerCase().trim();
+        const logName = String(log.name || log.rangerName || log.guard_name || '').toLowerCase().trim();
+        if (myName && logName && myName !== logName) {
+           return false;
+        }
+      }
+    }
+
+    if (!this.matchesSelectedMode(log)) return false;
 
     // 2. Date Filtering:
     const logDate = log.createdAt ? new Date(log.createdAt).toLocaleDateString('en-CA') : '';
@@ -573,17 +626,7 @@ async applyFilters() {
     const logDate = new Date(log.createdAt).toLocaleDateString('en-CA');
     const isWithin = logDate >= start && logDate <= end;
     
-    // Mode check (Beat vs Onsite)
-    const isOnsite = log.isRequest || 
-                     String(log.site_id) === '99999' || String(log.geo_id) === '99999' ||
-                     log.site_id === 'onsite' || 
-                     !log.geo_id || log.geo_id === '0' ||
-                     (log.site_name && log.site_name.toLowerCase().includes('onsite')) ||
-                     (log.geo_name && log.geo_name.toLowerCase().includes('[onsite]'));
-    
-    const matchesMode = (this.selectedMode === 'onsite') ? isOnsite : !isOnsite;
-    
-    return isWithin && matchesMode;
+    return isWithin && this.matchesSelectedMode(log);
   });
 
   this.isModalOpen = false;
@@ -599,9 +642,37 @@ resetFilters() {
 
 
 
+  private matchesSelectedMode(log: any): boolean {
+    return this.selectedMode === 'onsite'
+      ? this.dataService.isOnsiteAttendance(log)
+      : this.dataService.isBeatAttendance(log);
+  }
+
   async goToMarkAttendance() {
+    const status = await firstValueFrom(this.dataService.checkTodayAttendanceStatus());
+
+    if (this.selectedMode === 'beat' && status.hasOnsite) {
+      const alert = await this.alertCtrl.create({
+        header: 'Onsite already marked',
+        message: 'You have already marked onsite attendance today. Beat attendance is not allowed on the same day.',
+        buttons: ['OK']
+      });
+      await alert.present();
+      return;
+    }
+
+    if (this.selectedMode === 'onsite' && status.hasBeat) {
+      const alert = await this.alertCtrl.create({
+        header: 'Beat already marked',
+        message: 'You have already marked beat attendance today. Onsite attendance is not allowed on the same day.',
+        buttons: ['OK']
+      });
+      await alert.present();
+      return;
+    }
+
     if (this.selectedMode === 'beat') {
-      this.navCtrl.navigateForward('/attendance'); 
+      this.navCtrl.navigateForward('/attendance');
     } else {
       this.navCtrl.navigateForward('/onsite-attendance');
     }

@@ -1270,10 +1270,9 @@ changeTimeframe(newTimeframe: string) {
     const fetchReportsObs = this.allReportsCache ? of(this.allReportsCache) : this.dataService.getForestReports(undefined, force);
     const fetchAssetsObs = this.allAssetsCache ? of(this.allAssetsCache) : this.dataService.getAssets(myCompanyId);
 
-    // FETCH STATS AND ALERTS IN BACKGROUND
-    this.dataService.getDashboardStats(myCompanyId, dates.from, dates.to).subscribe({
-      next: (apiResponse: any) => {
-        console.log("📊 Unified Admin Dashboard Response (Stats):", apiResponse);
+    // FETCH STATS AND ALERTS - TRY V2 FIRST, FALLBACK TO LEGACY
+    const processStatsResponse = (apiResponse: any) => {
+        console.log("📊 Admin Dashboard Response (Stats):", apiResponse);
         const res = apiResponse.data ? apiResponse.data : apiResponse;
         
         const stats = res.stats?.data || res.stats || {};
@@ -1303,8 +1302,25 @@ changeTimeframe(newTimeframe: string) {
         if (this.map && this.activeSegment === 'map') {
           this.updateFilteredAlerts();
         }
+    };
+
+    // Try V2 Dashboard API first
+    this.dataService.getV2DashboardData({
+      date_from: dates.from,
+      date_to: dates.to
+    }).subscribe({
+      next: (v2Response: any) => {
+        console.log("✅ V2 Dashboard API Success");
+        processStatsResponse(v2Response);
       },
-      error: (err) => console.error("Stats Fetch Error:", err)
+      error: () => {
+        console.warn("⚠️ V2 Dashboard API failed, falling back to legacy...");
+        // Fallback to legacy endpoint
+        this.dataService.getDashboardStats(myCompanyId, dates.from, dates.to).subscribe({
+          next: processStatsResponse,
+          error: (err) => console.error("Stats Fetch Error:", err)
+        });
+      }
     });
 
     // FETCH AND PROCESS REPORTS/ASSETS (INSTANT IF CACHED)

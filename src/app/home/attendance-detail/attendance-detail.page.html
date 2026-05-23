@@ -21,10 +21,17 @@
     <div class="detail-card photo-card">
       <div class="card-header-line">
         <span class="label">Verified Selfie</span>
-        <span class="badge" [class.entry]="attendance.type === 'ENTRY'">{{ attendance.type }}</span>
+        <span class="badge" [class.entry]="attendance.type === 'ENTRY'">{{ attendance.type || 'ENTRY' }}</span>
       </div>
       <div class="image-frame">
-        <img [src]="attendance.photo" alt="Attendance Photo" (click)="openZoom(attendance.photo)">
+        <!-- Show photo if available -->
+        <img *ngIf="attendance.photo" [src]="attendance.photo" alt="Attendance Photo" (click)="openZoom(attendance.photo)" (error)="attendance.photo = null">
+        
+        <!-- Show fallback if photo is missing -->
+        <div *ngIf="!attendance.photo" class="placeholder-icon" style="width: 100%; height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #e2e8f0; color: #94a3b8; border-radius: 12px;">
+          <ion-icon name="camera-outline" style="font-size: 48px; margin-bottom: 10px;"></ion-icon>
+          <span>No Photo Captured</span>
+        </div>
       </div>
     </div>
 

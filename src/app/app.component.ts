@@ -345,11 +345,14 @@ export class AppComponent implements OnInit {
 
             // 🔒 Sync Permissions
             let rawPerms = data.permissions;
+            let hasCustomPerms = false;
+            
             if (rawPerms) {
                if (typeof rawPerms === 'string') {
                  try { rawPerms = JSON.parse(rawPerms); } catch(e) { rawPerms = []; }
                }
                if (Array.isArray(rawPerms) && rawPerms.length > 0) {
+                 hasCustomPerms = true;
                  const currentPerms = localStorage.getItem('user_permissions');
                  const newPermsStr = JSON.stringify(rawPerms);
                  if (currentPerms !== newPermsStr) {
@@ -358,6 +361,12 @@ export class AppComponent implements OnInit {
                     this.dataService.permissionsUpdated$.next();
                  }
                }
+            }
+            
+            // 🛡️ Fallback: If no custom permissions, sync from base role
+            if (!hasCustomPerms && data.role_id && !localStorage.getItem('user_custom_role_id')) {
+                console.log(`⚠️ User has no explicit permissions, fetching from base role_id: ${data.role_id}`);
+                this.syncFromRoleList(data.role_id);
             }
             this.cdr.detectChanges();
           }

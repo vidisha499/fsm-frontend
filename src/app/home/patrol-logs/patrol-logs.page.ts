@@ -233,10 +233,14 @@ export class PatrolLogsPage implements OnInit {
     const storedCompanyId = localStorage.getItem('company_id');
     const userRole = localStorage.getItem('user_role');
 
+    // Admin roles (1=SuperAdmin, 2=Admin, 7=Admin) see ALL patrols
+    // Non-admin roles only see their own patrols
+    const isAdmin = userRole === '1' || userRole === '2' || userRole === '7';
+    
     let params: string[] = [];
     if (from) params.push(`from=${from}`);
     if (to) params.push(`to=${to}`);
-    if (userRole === 'RANGER' && userData.id) params.push(`userId=${userData.id}`); 
+    if (!isAdmin && userData.id) params.push(`userId=${userData.id}`); 
     if (!storedCompanyId) {
       loader.dismiss();
       return;
@@ -246,7 +250,8 @@ export class PatrolLogsPage implements OnInit {
       next: (res: any) => {
         const allLogs = Array.isArray(res) ? res : res.data || [];
         let filteredLogs = allLogs;
-        if (userRole === 'RANGER' && userData.id) {
+        // Non-admin users: filter to only their own patrols
+        if (!isAdmin && userData.id) {
           filteredLogs = allLogs.filter((p: any) => p.user_id == userData.id || p.ranger_id == userData.id);
         }
         const fetchedLogs = filteredLogs.map((p: any) => {
