@@ -810,10 +810,8 @@ export class AdminPage implements OnInit, AfterViewInit {
 
 
   resetAllFilters() {
-<<<<<<< Updated upstream
     if (this.layers && this.layers.length > 0) {
       this.hierarchySelections = new Array(this.layers.length).fill(null);
-      // Reload entities for the first layer
       const firstLayer = this.layers[0];
       this.dataService.listV2Entities(firstLayer.id, null).subscribe({
         next: (entRes: any) => {
@@ -824,8 +822,6 @@ export class AdminPage implements OnInit, AfterViewInit {
       });
     }
 
-=======
->>>>>>> Stashed changes
     if (this.userRole === '1') {
       this.selectedRange = 'all';
       this.selectedBeat = 'all';

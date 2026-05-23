@@ -17,11 +17,8 @@ export class SightingsDetailsPage implements OnInit {
   isLoading = false;
   cachedState: any = null;
   map!: L.Map;
-<<<<<<< Updated upstream
   userRangeDisplay = '—';
   userBeatDisplay = '—';
-=======
->>>>>>> Stashed changes
 
   constructor(
     private router: Router,
@@ -59,11 +56,7 @@ export class SightingsDetailsPage implements OnInit {
     // 1. Use state data directly — it's already pre-parsed and complete
     if (effectiveState && effectiveState['data']) {
       const fullData = effectiveState['data'];
-<<<<<<< Updated upstream
       this.sighting = this.prepareSighting(fullData);
-=======
-      this.sighting = this.processObservationPhoto(fullData);
->>>>>>> Stashed changes
       this.resolveReporterDetails();
       // Parse report_data in case it's still a string
       let rd = fullData.report_data || {};
@@ -105,11 +98,7 @@ export class SightingsDetailsPage implements OnInit {
           this.goBack();
           return;
         }
-<<<<<<< Updated upstream
         this.sighting = this.prepareSighting(report);
-=======
-        this.sighting = this.processObservationPhoto(report);
->>>>>>> Stashed changes
         this.resolveReporterDetails();
         // Parse report_data if it's a string
         let rd = report.report_data || {};
@@ -319,7 +308,6 @@ export class SightingsDetailsPage implements OnInit {
     this.photoViewer.open(imgUrl);
   }
 
-<<<<<<< Updated upstream
   async downloadImage(imageUrl: string) {
     if (!imageUrl) return;
     await this.photoViewer.download(imageUrl);
@@ -412,53 +400,5 @@ export class SightingsDetailsPage implements OnInit {
       },
       error: (err) => console.error('Error resolving reporter profile:', err)
     });
-=======
-  private resolveReporterDetails() {
-    if (!this.sighting) return;
-
-    const uId = this.sighting.created_by || this.sighting.user_id || this.sighting.ranger_id || this.sighting.reporter_id || this.sighting.staff_id;
-    const cId = this.sighting.company_id || localStorage.getItem('company_id') || '0';
-
-    if (uId) {
-      this.dataService.getUserDetails(uId, cId).subscribe({
-        next: (userRes: any) => {
-          const u = userRes?.data || userRes;
-          if (u) {
-            // Resolve Name
-            this.sighting.userName = u.name || u.full_name || u.user_name || u.ranger_name || u.reporter_name || this.sighting.userName;
-            
-            // Resolve Staff ID / User ID
-            this.sighting.userId = u.user_id || u.id || u.staff_id || this.sighting.userId;
-
-            // Resolve Designation (if Role ID is 2, it's Forester; if 3, Forest Guard; etc.)
-            let roleName = u.designation || u.role_name || u.roleName;
-            if (!roleName) {
-              const rid = String(u.role_id || u.roleId || '');
-              if (rid === '1') roleName = 'Super Admin';
-              else if (rid === '2') roleName = 'Forester';
-              else if (rid === '3') roleName = 'Forest Guard';
-              else if (rid === '7') roleName = 'Range Officer';
-              else roleName = 'Forest Staff';
-            }
-            this.sighting.designation = roleName;
-
-            // Resolve Profile Pic URL
-            const rawPic = u.profile_pic || u.photo || u.profilePic;
-            if (rawPic && typeof rawPic === 'string' && rawPic.trim().length > 2) {
-              const cleaned = rawPic.trim();
-              if (cleaned.startsWith('http') || cleaned.startsWith('data:')) {
-                this.sighting.profile_pic = cleaned;
-              } else {
-                this.sighting.profile_pic = `https://fms.pugarch.in/public/profilepics/${cleaned}`;
-              }
-            }
-            
-            this.cdr.detectChanges();
-          }
-        },
-        error: (err) => console.error("Error resolving reporter details:", err)
-      });
-    }
->>>>>>> Stashed changes
   }
 }
