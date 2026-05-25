@@ -186,13 +186,19 @@ export class TasksPage implements OnInit {
       users: [this.newTask.assigned_to] // Sending as an array since the field name is 'users'
     };
 
+    console.log('Submitting task payload:', payload);
     this.dataService.storeForestTask(payload).subscribe({
       next: async (res) => {
+        console.log('Task store response:', res);
         await loading.dismiss();
         this.isModalOpen = false;
         this.swipeWidth = 0;
         this.isSwiped = false;
         this.loadTasks();
+
+        // Reset form
+        this.newTask = { title: '', description: '', deadline: '', priority: 'normal', assigned_to: '' };
+
         const toast = await this.toastCtrl.create({
           message: 'Task created successfully',
           duration: 2000,
@@ -274,5 +280,12 @@ export class TasksPage implements OnInit {
     if (!dateStr) return '';
     const d = new Date(dateStr);
     return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString();
+  }
+
+  // Problem 1 Fix: assigned user ka naam users array se dhundho
+  getUserName(userId: any): string {
+    if (!userId) return '';
+    const user = this.users.find(u => String(u.id || u.user_id) === String(userId));
+    return user ? user.name : String(userId);
   }
 }

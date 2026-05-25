@@ -5,6 +5,8 @@ import { TranslateService } from '@ngx-translate/core';
 import { environment } from 'src/environments/environment';
 import { Subscription } from 'rxjs';
 
+import { PushNotificationService } from 'src/app/services/push-notification.service';
+
 @Component({
   selector: 'app-login',
   templateUrl: './login.page.html',
@@ -56,7 +58,8 @@ export class LoginPage implements OnInit, OnDestroy {
     private dataService: DataService,
     private alertController: AlertController,
     private loadingCtrl: LoadingController,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private pushService: PushNotificationService
   ) {}
 
   ngOnInit() {
@@ -169,22 +172,35 @@ async login() {
     return;
   }
 
-  const loading = await this.loadingCtrl.create({ 
-    message: 'Authenticating...', 
-    mode: 'ios',
-    spinner: 'crescent'
-  });
-  await loading.present();
+    // GET FCM TOKEN BEFORE SHOWING LOADER (so permission prompt isn't blocked by overlay)
+    let actualFcmToken = 'fcm_mock_token_123';
+    try {
+      const generatedToken = await this.pushService.getFcmToken();
+      if (generatedToken) {
+        actualFcmToken = generatedToken;
+      }
+    } catch (e) {
+      console.error('Failed to get FCM token', e);
+    }
 
-  const payload = { 
-    email: this.loginData.phone.trim(), 
-    mobile: this.loginData.phone.trim(), 
-    contact: this.loginData.phone.trim(), 
-    identifier: this.loginData.phone.trim(), // Most common field name for mobile/email
-    password: this.loginData.password,
-    imei: '123456789012345', 
-    fcm_token: 'fcm_mock_token_123' 
-  };
+    const loading = await this.loadingCtrl.create({ 
+      message: 'Authenticating...', 
+      mode: 'ios',
+      spinner: 'crescent'
+    });
+    await loading.present();
+
+    const payload = { 
+      email: this.loginData.phone.trim(), 
+      mobile: this.loginData.phone.trim(), 
+      contact: this.loginData.phone.trim(), 
+      identifier: this.loginData.phone.trim(), // Most common field name for mobile/email
+      password: this.loginData.password,
+      imei: '123456789012345', 
+      fcm_token: actualFcmToken 
+    };
+
+    console.log("👉 FRONTEND SE YEH PAYLOAD JA RAHA HAI:", payload);
 
   this.loginSub = this.dataService.login(payload).subscribe({
     next: async (res: any) => {

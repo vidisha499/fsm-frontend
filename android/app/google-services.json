@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "465674382494",
+    "project_id": "pugmarg-fsm",
+    "storage_bucket": "pugmarg-fsm.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:465674382494:android:6c7dd03aafaa6e71241f8f",
+        "android_client_info": {
+          "package_name": "com.pugmarg.fsm"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "465674382494-km1fvhtsfhll6ea70219n4117ct34s20.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCKGcHQCU-UJJg3ydb8yn7ZPW1KB5LNlBg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "465674382494-km1fvhtsfhll6ea70219n4117ct34s20.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
