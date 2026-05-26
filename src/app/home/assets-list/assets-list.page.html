@@ -45,6 +45,22 @@
         </div>
 
         <div class="filter-row">
+          <span class="label">CONDITION</span>
+          <select [(ngModel)]="filters.condition" class="custom-select">
+            <option value="all">All Conditions</option>
+            <option value="Good">Good</option>
+            <option value="Fair">Fair</option>
+            <option value="Needs Repair">Needs Repair</option>
+            <option value="Damaged">Damaged</option>
+          </select>
+        </div>
+
+        <div class="filter-row">
+          <span class="label">SEARCH</span>
+          <input type="text" [(ngModel)]="filters.searchQuery" placeholder="Search by name/desc" class="custom-input">
+        </div>
+
+        <div class="filter-row">
           <span class="label">FROM</span>
           <ion-datetime-button datetime="fromDate"></ion-datetime-button>
         </div>

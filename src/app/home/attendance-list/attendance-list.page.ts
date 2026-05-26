@@ -27,7 +27,7 @@ filterLocation: string = ''; // Location input ke liye
   startDate: string | undefined;
   endDate: string | undefined;
   maxDate: string = new Date().toISOString();
-  filters: any = { fromDate: '', toDate: '', location: '' };
+  filters: any = { fromDate: '', toDate: '', location: '', status: 'all' };
   isFiltered: boolean = false;
   private syncSub!: Subscription;
   todayDateOnly: string = new Date().toISOString().split('T')[0]; // Format: "2026-02-25"
@@ -626,13 +626,19 @@ async applyFilters() {
     const logDate = new Date(log.createdAt).toLocaleDateString('en-CA');
     const isWithin = logDate >= start && logDate <= end;
     
-    return isWithin && this.matchesSelectedMode(log);
+    let matchesStatus = true;
+    if (this.filters.status && this.filters.status !== 'all') {
+      matchesStatus = log.status === this.filters.status;
+    }
+    
+    return isWithin && matchesStatus && this.matchesSelectedMode(log);
   });
 
   this.isModalOpen = false;
 }
 
 resetFilters() {
+  this.filters.status = 'all';
   this.resetToToday();
   this.isModalOpen = false;
 }

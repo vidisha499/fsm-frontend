@@ -17,6 +17,9 @@ export class EventsReportsPage implements OnInit {
   isFilterModalOpen: boolean = false;
   filterFrom: string = '';
   filterTo: string = '';
+  filterCategory: string = 'all';
+  filterType: string = 'all';
+  allReports: any[] = [];
   maxDate: string = new Date().toISOString().split('T')[0];
 
 
@@ -77,7 +80,9 @@ export class EventsReportsPage implements OnInit {
     this.dataService.getForestReports(params).subscribe({
       next: (res: any) => {
         const rawData = res?.data || res || [];
-        this.submittedReports = rawData.map((r: any) => this.processPhotos(r));
+        const processed = rawData.map((r: any) => this.processPhotos(r));
+        this.allReports = processed;
+        this.applyFrontendFilters();
         this.isLoading = false;
       },
       error: (err) => {
@@ -85,6 +90,76 @@ export class EventsReportsPage implements OnInit {
         this.isLoading = false;
       }
     });
+  }
+
+  applyFrontendFilters() {
+    let filtered = [...this.allReports];
+
+    // 1. Date filter
+    if (this.filterFrom && this.filterTo) {
+      const start = new Date(this.filterFrom);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(this.filterTo);
+      end.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(r => {
+        const d = new Date(r.displayDate || r.created_at || r.date_time || r.timestamp || '');
+        return d >= start && d <= end;
+      });
+    }
+
+    // 2. Category filter
+    if (this.filterCategory && this.filterCategory !== 'all') {
+      if (this.filterCategory === 'criminal') {
+        filtered = filtered.filter(r => {
+          const cat = (r.category || r.report_category || '').toLowerCase();
+          return cat.includes('criminal');
+        });
+      } else if (this.filterCategory === 'events') {
+        filtered = filtered.filter(r => {
+          const cat = (r.category || r.report_category || '').toLowerCase();
+          return cat.includes('event') || cat.includes('monitor');
+        });
+      }
+
+      // 3. Dynamic Type filter within category
+      if (this.filterType && this.filterType !== 'all') {
+        filtered = filtered.filter(r => {
+          const typeVal = (r.report_type || r.type || '').toLowerCase().replace(/[\/\s\-_]+/g, '');
+          const filterVal = this.filterType.toLowerCase().replace(/[\/\s\-_]+/g, '');
+          return typeVal.includes(filterVal) || filterVal.includes(typeVal);
+        });
+      }
+    }
+
+    this.submittedReports = filtered;
+  }
+
+  onCategoryChange() {
+    this.filterType = 'all';
+  }
+
+  getAvailableTypes() {
+    if (this.filterCategory === 'criminal') {
+      return [
+        { value: 'all', label: 'All Types' },
+        { value: 'illegal_felling', label: 'Illegal Felling' },
+        { value: 'illegal_timber_transport', label: 'Illegal Timber Transport' },
+        { value: 'illegal_timber_storage', label: 'Illegal Timber Storage' },
+        { value: 'wild_animal_poaching', label: 'Wild Animal Poaching' },
+        { value: 'encroachment', label: 'Encroachment' },
+        { value: 'illegal_mining', label: 'Illegal Mining' }
+      ];
+    } else if (this.filterCategory === 'events') {
+      return [
+        { value: 'all', label: 'All Types' },
+        { value: 'jfmc_/_social_forestry', label: 'JFMC / Social Forestry' },
+        { value: 'wild_animal_sighting', label: 'Wild Animal Sighting' },
+        { value: 'water_source_status', label: 'Water Source Status' },
+        { value: 'fire_alerts', label: 'Fire Alerts' },
+        { value: 'wildlife_compensation', label: 'Wildlife Compensation' }
+      ];
+    }
+    return [];
   }
 
   processPhotos(report: any) {
@@ -196,15 +271,24 @@ export class EventsReportsPage implements OnInit {
 
   applyFilter() {
     this.isFilterModalOpen = false;
-    this.isLoading = true;
-    this.loadSubmittedReports(this.filterFrom, this.filterTo);
+    if (this.allReports.length > 0) {
+      // Already have data — just re-filter on frontend
+      this.applyFrontendFilters();
+    } else {
+      this.isLoading = true;
+      this.loadSubmittedReports(this.filterFrom, this.filterTo);
+    }
   }
 
   resetFilter() {
     const today = new Date().toISOString().split('T')[0];
     this.filterFrom = today;
     this.filterTo = today;
-    this.applyFilter();
+    this.filterCategory = 'all';
+    this.filterType = 'all';
+    this.isFilterModalOpen = false;
+    this.isLoading = true;
+    this.loadSubmittedReports(today, today);
   }
 
 

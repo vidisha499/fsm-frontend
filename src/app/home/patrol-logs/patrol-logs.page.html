@@ -29,8 +29,7 @@
   </div>
 
   <div class="logs-container">
-    <!-- Advanced Admin Filters -->
-    <div class="admin-filter-bar" *ngIf="userRole === '1'">
+    <div class="admin-filter-bar" *ngIf="userRole === '1' || userRole === '2' || userRole === '7' || userRole === '4'">
       <!-- Row 1: Search -->
       <div class="search-box-row">
         <ion-icon name="search-outline"></ion-icon>
@@ -75,7 +74,7 @@
           </select>
         </div>
 
-        <div class="filter-item">
+        <div class="filter-item" *ngIf="userRole !== '4'">
           <select [(ngModel)]="selectedOfficer" (change)="applyAdvancedFilters()">
             <option value="">{{ 'FILTERS.SELECT_OFFICER' | translate }}</option>
             <option *ngFor="let o of officers" [value]="o.id">{{ o.username || o.first_name || 'Staff' }}</option>
@@ -189,10 +188,10 @@
       
       <div class="modal-header">
         <div class="title-row">
-          <ion-icon name="calendar" class="title-icon"></ion-icon>
-          <h3>Filter by Date</h3>
+          <ion-icon name="options" class="title-icon"></ion-icon>
+          <h3>Filter Patrols</h3>
         </div>
-        <p class="subtitle">Select date range to filter incidents</p>
+        <p class="subtitle">Filter by date, type and method</p>
       </div>
 
       <div class="filter-body">
@@ -208,6 +207,28 @@
           <div class="date-pill">
              <input type="date" [(ngModel)]="filterTo" [max]="maxDate">
           </div>
+        </div>
+
+        <div class="date-row">
+          <span class="label">TYPE</span>
+          <select [(ngModel)]="filterPatrolType" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: white; padding: 6px 12px; border-radius: 8px; font-size: 14px; outline: none; text-align: end; text-align-last: end; width: 150px;">
+            <option value="all" style="background: #0f172a; color: white;">All Types</option>
+            <option value="ROUTINE" style="background: #0f172a; color: white;">Routine</option>
+            <option value="SPECIAL" style="background: #0f172a; color: white;">Special</option>
+            <option value="BEAT INSPECTION" style="background: #0f172a; color: white;">Beat Inspection</option>
+            <option value="JOINT" style="background: #0f172a; color: white;">Joint</option>
+            <option value="OTHER" style="background: #0f172a; color: white;">Other</option>
+          </select>
+        </div>
+
+        <div class="date-row">
+          <span class="label">METHOD</span>
+          <select [(ngModel)]="filterPatrolMethod" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: white; padding: 6px 12px; border-radius: 8px; font-size: 14px; outline: none; text-align: end; text-align-last: end; width: 150px;">
+            <option value="all" style="background: #0f172a; color: white;">All Methods</option>
+            <option value="VEHICLE" style="background: #0f172a; color: white;">Vehicle</option>
+            <option value="BICYCLE" style="background: #0f172a; color: white;">Bicycle</option>
+            <option value="ON FOOT" style="background: #0f172a; color: white;">On Foot</option>
+          </select>
         </div>
       </div>
 

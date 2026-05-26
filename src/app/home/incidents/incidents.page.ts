@@ -21,8 +21,41 @@ export class IncidentsPage {
 public endDate: string = '';
 public isFilterOpen: boolean = false;
 maxDate: string = new Date().toISOString();
-allIncidents: any[] = []; // Isme hamesha original poora data rahega
-  filteredIncidents: any[] = [];
+  allIncidents: any[] = []; // Isme hamesha original poora data rahega
+  filteredIncidentsList: any[] = [];
+  isFiltered: boolean = false;
+
+  get filteredIncidents() {
+    let list = this.allIncidents;
+
+    // 1. Filter by status tabs (Pending vs Resolved)
+    if (this.statusFilter === 'pending') {
+      list = list.filter(item => {
+        const s = (item.status || '').toLowerCase();
+        return s !== 'resolved' && s !== 'completed' && s !== 'done' && s !== 'closed';
+      });
+    } else {
+      list = list.filter(item => {
+        const s = (item.status || '').toLowerCase();
+        return s === 'resolved' || s === 'completed' || s === 'done' || s === 'closed';
+      });
+    }
+
+    // 2. Filter by date (if isFiltered is true)
+    if (this.isFiltered) {
+      const start = new Date(this.filters.fromDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(this.filters.toDate);
+      end.setHours(23, 59, 59, 999);
+
+      list = list.filter(item => {
+        const itemDate = new Date(item.localDate || item.createdAt);
+        return itemDate >= start && itemDate <= end;
+      });
+    }
+
+    return list;
+  }
 
   
   filters = {
@@ -149,6 +182,7 @@ getTranslationKey(val: string) {
     this.dataService.deleteForestReport(id).subscribe({
       next: async () => {
         await loader.dismiss();
+        this.allIncidents = this.allIncidents.filter(item => item.id !== id);
         this.incidents = this.incidents.filter(item => item.id !== id);
         const successMsg = await this.translate.get('INCIDENTS.DELETE_SUCCESS').toPromise();
         this.presentToast(successMsg, 'danger');
@@ -212,20 +246,8 @@ toggleFilter() {
   this.isFilterOpen = !this.isFilterOpen;
 }
 
-// 2. applyFilter function ko aise update karo
 applyFilters() {
-  const start = new Date(this.startDate);
-  start.setHours(0, 0, 0, 0); // Din ki shuruat
-
-  const end = new Date(this.endDate);
-  end.setHours(23, 59, 59, 999); // Din ka anth (taaki raat ke reports miss na hon)
-
-  this.incidents = this.allIncidents.filter(item => {
-    // item.localDate ab 100% India ke time par set hai
-    const itemDate = new Date(item.localDate);
-    return itemDate >= start && itemDate <= end;
-  });
-
+  this.isFiltered = true;
   if (this.modal) {
     this.modal.dismiss();
   }
@@ -234,10 +256,9 @@ applyFilters() {
 
 // 3. clearFilter function ko aise update karo
 resetFilters() {
-  this.startDate = new Date().toISOString();
-  this.endDate = new Date().toISOString();
-  // Wapas saara data 'incidents' mein daal do
-  this.incidents = [...this.allIncidents];
+  this.isFiltered = false;
+  this.filters.fromDate = new Date().toISOString();
+  this.filters.toDate = new Date().toISOString();
   if (this.modal) {
     this.modal.dismiss();
   }

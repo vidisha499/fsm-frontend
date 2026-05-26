@@ -25,8 +25,10 @@ export class AssetsListPage implements OnInit {
 
   filters = {
     category: 'all',
-    fromDate:  new Date().toISOString() , // Last 30 days default
-    toDate: new Date().toISOString()
+    fromDate: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString(), // Last 30 days default
+    toDate: new Date().toISOString(),
+    condition: 'all',
+    searchQuery: ''
   };
 
   constructor(
@@ -101,9 +103,20 @@ openAssetDetails(asset: any) {
     this.assets = this.allAssets.filter(item => {
       const itemDate = new Date(item.created_at || item.date);
       const matchesDate = itemDate >= start && itemDate <= end;
-      const matchesCategory = this.filters.category === 'all' || item.category === this.filters.category;
       
-      return matchesDate && matchesCategory;
+      const matchesCategory = this.filters.category === 'all' || 
+        (item.category && item.category.toLowerCase() === this.filters.category.toLowerCase());
+      
+      const itemCondition = item.condition || item.condition_status || '';
+      const matchesCondition = this.filters.condition === 'all' || 
+        (itemCondition && itemCondition.toLowerCase() === this.filters.condition.toLowerCase());
+
+      const query = (this.filters.searchQuery || '').trim().toLowerCase();
+      const matchesSearch = !query || 
+        (item.name && item.name.toLowerCase().includes(query)) ||
+        (item.description && item.description.toLowerCase().includes(query));
+
+      return matchesDate && matchesCategory && matchesCondition && matchesSearch;
     });
 
     this.isModalOpen = false;
@@ -113,7 +126,9 @@ openAssetDetails(asset: any) {
     this.filters = {
       category: 'all',
       fromDate: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString(),
-      toDate: new Date().toISOString()
+      toDate: new Date().toISOString(),
+      condition: 'all',
+      searchQuery: ''
     };
     this.assets = [...this.allAssets];
     this.isModalOpen = false;

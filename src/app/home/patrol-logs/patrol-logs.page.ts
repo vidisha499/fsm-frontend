@@ -36,6 +36,8 @@ export class PatrolLogsPage implements OnInit {
   public isFilterModalOpen = false;
   public filterFrom: string = '';
   public filterTo: string = '';
+  public filterPatrolType: string = 'all';
+  public filterPatrolMethod: string = 'all';
   public rangerName: string = '';
   public maxDate: string = new Date().toISOString().split('T')[0];
   public userRole: string = '3';
@@ -150,7 +152,7 @@ export class PatrolLogsPage implements OnInit {
       }
     }
 
-    // 3. Patrol Type Filter
+    // 3. Top-bar Patrol Type Filter (Admin selector)
     if (this.selectedPatrolType) {
       logs = logs.filter(l => l.patrolType === this.selectedPatrolType.toUpperCase());
     }
@@ -160,7 +162,33 @@ export class PatrolLogsPage implements OnInit {
       logs = logs.filter(l => l.user_id == this.selectedOfficer || l.ranger_id == this.selectedOfficer);
     }
 
-    // 5. Date Filter (Already handled by API load, but good to have client-side too if needed)
+    // 5. Bottom Modal Date Filter
+    if (this.filterFrom && this.filterTo) {
+      const start = new Date(this.filterFrom);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(this.filterTo);
+      end.setHours(23, 59, 59, 999);
+      logs = logs.filter(l => {
+        const d = new Date(l.startTime || l.created_at || '');
+        return d >= start && d <= end;
+      });
+    }
+
+    // 6. Bottom Modal Patrol Type Filter
+    if (this.filterPatrolType && this.filterPatrolType !== 'all') {
+      logs = logs.filter(l => {
+        const t = (l.patrolType || l.type || '').toUpperCase();
+        return t.includes(this.filterPatrolType.toUpperCase());
+      });
+    }
+
+    // 7. Bottom Modal Patrol Method Filter
+    if (this.filterPatrolMethod && this.filterPatrolMethod !== 'all') {
+      logs = logs.filter(l => {
+        const m = (l.patrolName || l.method || '').toUpperCase();
+        return m.includes(this.filterPatrolMethod.toUpperCase());
+      });
+    }
 
     this.filteredLogs = logs;
   }
@@ -576,8 +604,11 @@ export class PatrolLogsPage implements OnInit {
     this.loadPatrolLogs(this.filterFrom, this.filterTo);
   }
 
+
   resetFilter() {
     this.filterFrom = ''; this.filterTo = '';
+    this.filterPatrolType = 'all';
+    this.filterPatrolMethod = 'all';
     // ✅ Clear persisted filters
     localStorage.removeItem('patrol_filter_from');
     localStorage.removeItem('patrol_filter_to');

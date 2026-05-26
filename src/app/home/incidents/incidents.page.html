@@ -132,7 +132,7 @@
 
       <div class="incident-list">
         <div class="incident-row-compact animate__animated animate__fadeInUp" 
-             *ngFor="let item of incidents" 
+             *ngFor="let item of filteredIncidents" 
              (click)="viewDetails(item)">
 
           <div class="mini-thumb">
@@ -172,7 +172,7 @@
           </div>
         </div>
 
-        <div class="empty-state" *ngIf="incidents.length === 0">
+        <div class="empty-state" *ngIf="filteredIncidents.length === 0">
           <i class="fas fa-clipboard-check"></i>
           <p>{{ 'INCIDENTS.EMPTY_STATE' | translate }}</p>
         </div>

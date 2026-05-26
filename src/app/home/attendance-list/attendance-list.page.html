@@ -127,6 +127,16 @@
             <span class="label">TO</span>
             <ion-datetime-button datetime="toDate"></ion-datetime-button>
           </div>
+
+          <div class="date-row">
+            <span class="label">STATUS</span>
+            <select [(ngModel)]="filters.status" class="custom-select-light" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: white; padding: 6px 12px; border-radius: 8px; font-size: 14px; outline: none; text-align: end; text-align-last: end; width: 120px;">
+              <option value="all" style="background: #0f172a; color: white;">All</option>
+              <option value="approved" style="background: #0f172a; color: white;">Approved</option>
+              <option value="pending" style="background: #0f172a; color: white;">Pending</option>
+              <option value="rejected" style="background: #0f172a; color: white;">Rejected</option>
+            </select>
+          </div>
         </div>
 
         <div class="modal-footer">
