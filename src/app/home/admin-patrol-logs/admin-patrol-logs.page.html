@@ -103,6 +103,39 @@
           </div>
 
           <div class="date-row">
+            <span class="label">PATROL TYPE</span>
+            <div class="date-pill">
+               <select [(ngModel)]="selectedPatrolType" (change)="refreshData()">
+                 <option value="all">All Types</option>
+                 <option value="ROUTINE">Routine</option>
+                 <option value="SPECIAL">Special</option>
+                 <option value="BEAT INSPECTION">Beat Inspection</option>
+                 <option value="JOINT">Joint</option>
+                 <option value="OTHER">Other</option>
+               </select>
+            </div>
+          </div>
+
+          <div class="date-row">
+            <span class="label">METHOD</span>
+            <div class="date-pill">
+               <select [(ngModel)]="selectedPatrolMethod" (change)="refreshData()">
+                 <option value="all">All Methods</option>
+                 <option value="VEHICLE">Vehicle</option>
+                 <option value="BICYCLE">Bicycle</option>
+                 <option value="ON FOOT">On Foot</option>
+               </select>
+            </div>
+          </div>
+
+          <div class="date-row">
+            <span class="label">GUARD NAME</span>
+            <div class="date-pill">
+               <input type="text" [(ngModel)]="filterGuard" placeholder="Search by name" style="border: none; background: #f1f5f9; padding: 6px 10px; border-radius: 8px; font-weight: 700; color: #0f172a; outline: none; min-width: 120px; font-size: 13px; text-align: right;">
+            </div>
+          </div>
+
+          <div class="date-row">
             <span class="label">FROM</span>
             <div class="date-pill">
                <input type="date" [(ngModel)]="filterFrom" [max]="maxDate">

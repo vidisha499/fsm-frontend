@@ -24,6 +24,7 @@ export class AdminEventsRecordsPage implements OnInit {
   public displayBeats: string[] = [];
   public selectedRange: string = 'all';
   public selectedBeat: string = 'all';
+  public selectedType: string = 'all';
   public userRole: string = '3';
   public assignedRange: string = '';
   public assignedBeat: string = '';
@@ -167,6 +168,15 @@ export class AdminEventsRecordsPage implements OnInit {
           const fromTS = new Date(from).setHours(0, 0, 0, 0);
           const toTS = new Date(to).setHours(23, 59, 59, 999);
           matchesDate = rTimestamp >= fromTS && rTimestamp <= toTS;
+        }
+      }
+
+      // 2. Dynamic Type filter within category
+      if (this.selectedType && this.selectedType !== 'all') {
+        const typeVal = rType.replace(/[\/\s\-_]+/g, '');
+        const filterVal = this.selectedType.toLowerCase().replace(/[\/\s\-_]+/g, '');
+        if (!typeVal.includes(filterVal) && !filterVal.includes(typeVal)) {
+          return false;
         }
       }
 
@@ -347,6 +357,7 @@ export class AdminEventsRecordsPage implements OnInit {
   resetFilter() {
     this.filterFrom = '';
     this.filterTo = '';
+    this.selectedType = 'all';
     if (this.userRole === '1') {
       this.selectedRange = 'all';
       this.selectedBeat = 'all';

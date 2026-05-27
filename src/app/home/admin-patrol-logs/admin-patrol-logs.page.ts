@@ -25,6 +25,8 @@ export class AdminPatrolLogsPage implements OnInit {
   public displayBeats: string[] = [];
   public selectedRange: string = 'all';
   public selectedBeat: string = 'all';
+  public selectedPatrolType: string = 'all';
+  public selectedPatrolMethod: string = 'all';
   public userRole: string = '3';
   public assignedRange: string = '';
   public assignedBeat: string = '';
@@ -194,7 +196,14 @@ export class AdminPatrolLogsPage implements OnInit {
           const matchesRange = this.selectedRange === 'all' || rRange.includes(fRange) || fRange.includes(rRange);
           const matchesBeat  = this.selectedBeat === 'all' || rBeat.includes(fBeat) || fBeat.includes(rBeat);
 
-          return matchesRange && matchesBeat;
+          // 🏃‍♂️ 3. Patrol Type & Method Filters
+          const logType = (log.patrol_type || log.type || '').toLowerCase();
+          const logMethod = (log.patrol_method || log.method || '').toLowerCase();
+          
+          const matchesPatrolType = this.selectedPatrolType === 'all' || logType.includes(this.selectedPatrolType.toLowerCase());
+          const matchesPatrolMethod = this.selectedPatrolMethod === 'all' || logMethod.includes(this.selectedPatrolMethod.toLowerCase());
+
+          return matchesRange && matchesBeat && matchesPatrolType && matchesPatrolMethod;
         });
 
         this.patrolLogs = filtered
@@ -364,6 +373,8 @@ export class AdminPatrolLogsPage implements OnInit {
     const today = new Date().toISOString().split('T')[0];
     this.filterFrom = today;
     this.filterTo = today;
+    this.selectedPatrolType = 'all';
+    this.selectedPatrolMethod = 'all';
     if (this.userRole === '1') {
       this.selectedRange = 'all';
       this.selectedBeat = 'all';

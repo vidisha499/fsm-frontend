@@ -230,8 +230,7 @@ export class OfficersPage implements OnInit {
           return (a.name || '').localeCompare(b.name || '');
         });
 
-        this.filteredOfficers = [...this.allOfficers];
-        this.totalCount = this.allOfficers.length;
+        this.onSearch();
         this.attendedCount = this.allOfficers.filter(o => o.hasAttended).length;
         
         this.isLoading = false;

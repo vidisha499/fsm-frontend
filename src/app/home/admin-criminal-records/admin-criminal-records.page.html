@@ -103,6 +103,21 @@
           </div>
 
           <div class="date-row">
+            <span class="label">TYPE</span>
+            <div class="date-pill">
+               <select [(ngModel)]="selectedType" (change)="refreshData()">
+                 <option value="all">All Types</option>
+                 <option value="illegal_felling">Illegal Felling</option>
+                 <option value="illegal_timber_transport">Illegal Timber Transport</option>
+                 <option value="illegal_timber_storage">Illegal Timber Storage</option>
+                 <option value="wild_animal_poaching">Wild Animal Poaching</option>
+                 <option value="encroachment">Encroachment</option>
+                 <option value="illegal_mining">Illegal Mining</option>
+               </select>
+            </div>
+          </div>
+
+          <div class="date-row">
             <span class="label">FROM</span>
             <div class="date-pill">
                <input type="date" [(ngModel)]="filterFrom" [max]="maxDate">

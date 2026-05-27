@@ -3342,7 +3342,7 @@ handleApiResponse(res: any) {
     const newDataStr = JSON.stringify({ labels, values });
     const existingChart = Chart.getChart('c-trend');
     
-    if (this.lastTrendState === newDataStr && existingChart) {
+    if (this.lastTrendState === newDataStr && existingChart && existingChart.canvas === canvas) {
       this.isStatsLoading = false;
       this.cdr.detectChanges();
       return; 
