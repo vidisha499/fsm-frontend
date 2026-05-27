@@ -199,7 +199,7 @@
     <div class="custom-nav-bar">
         <div class="nav-tab active"><i class="fas fa-home"></i><span>{{ 'NAV.HOME' | translate }}</span></div>
         <div class="nav-tab" (click)="goToPage('patrol-logs')"><i class="fas fa-shoe-prints"></i><span>{{ 'NAV.PATROL' | translate }}</span></div>
-        <div class="sos-anchor" (click)="triggerEmergency()">
+        <div *ngIf="dataService.hasPermission('SOS', 'add')" class="sos-anchor" (click)="triggerEmergency()">
     <div class="sos-circle">
         <i class="fas fa-exclamation-triangle"></i>
         <span>{{ 'NAV.SOS' | translate }}</span>

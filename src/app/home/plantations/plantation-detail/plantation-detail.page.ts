@@ -25,7 +25,7 @@ export class PlantationDetailPage implements OnInit {
 
   constructor(
     private route: ActivatedRoute,
-    private dataService: DataService,
+    public dataService: DataService,
     private navCtrl: NavController,
     private loadingCtrl: LoadingController,
     private toastCtrl: ToastController,

@@ -165,7 +165,7 @@
           </div>
 
           <div class="row-actions">
-            <ion-button fill="clear" color="danger" (click)="confirmDelete($event, item.id)">
+            <ion-button *ngIf="dataService.hasPermission('Forest Reports', 'delete')" fill="clear" color="danger" (click)="confirmDelete($event, item.id)">
               <ion-icon slot="icon-only" name="trash-outline" style="font-size: 19px;"></ion-icon>
             </ion-button>
             <ion-icon name="chevron-forward" class="chevron"></ion-icon>
@@ -180,7 +180,7 @@
     </div>
 
     <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-      <ion-fab-button class="premium-fab" routerLink="/new-incident">
+      <ion-fab-button *ngIf="dataService.hasPermission('Forest Reports', 'add')" class="premium-fab" routerLink="/new-incident">
         <ion-icon name="add"></ion-icon>
       </ion-fab-button>
     </ion-fab>

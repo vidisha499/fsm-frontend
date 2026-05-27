@@ -52,7 +52,7 @@ export class PatrolLogsPage implements OnInit {
     private gestureCtrl: GestureController,
     private domCtrl: DomController,
     private translate: TranslateService,
-    private dataService: DataService
+    public dataService: DataService
   ) {}
 
   // --- Advanced Filters ---
@@ -132,6 +132,9 @@ export class PatrolLogsPage implements OnInit {
 
   applyAdvancedFilters() {
     let logs = [...this.patrolLogs];
+
+    // 🔥 Multi-assignment Region Filtering (e.g. Supervisor sees only assigned Beats/Ranges)
+    logs = logs.filter(l => this.dataService.isRecordVisible(l.entity_id || l.beat_id || l.range_id || l.site_id));
 
     // 1. Search Filter
     if (this.searchTerm) {
@@ -531,6 +534,18 @@ export class PatrolLogsPage implements OnInit {
         this.navCtrl.navigateForward(['/patrol-details', detailId.toString()]);
       }
     }
+  }
+
+  editPatrolLog(log: any, event: Event) {
+    event.stopPropagation();
+    const detailId = log.id || log.patrolId || log.sessionId;
+    if (!detailId) {
+      this.presentToast('Invalid patrol ID', 'danger');
+      return;
+    }
+    this.navCtrl.navigateForward(['/patrol-details', detailId.toString()], {
+      state: { data: log, isEditing: true }
+    });
   }
 
   async deleteLog(id: number, event: Event) {

@@ -294,6 +294,9 @@ export class AppComponent implements OnInit {
       this.dataService.getUserAssignments(rangerId).subscribe({
         next: (res: any) => {
           const assignments = res?.data || res || [];
+          // 🔥 Run multi-assignment V2 sync & parsing
+          this.dataService.parseAssignmentHierarchy(assignments);
+          
           if (assignments.length > 0) {
             const active = assignments[0];
             const cRid = active.custom_role_id || active.role_id || (active.role ? active.role.id : null);

@@ -178,7 +178,9 @@
     "HIDE": "छिपाएं",
     "EDIT": "संपादित करें",
     "REGISTER_BTN": "उपयोगकर्ता पंजीकृत करें",
-    "SAVING": "सहेजा जा रहा है..."
+    "SAVING": "सहेजा जा रहा है...",
+    "ADD_ASSIGNMENT_BTN": "असाइनमेंट सूची में जोड़ें",
+    "ADDED_ASSIGNMENTS_TITLE": "जोड़े गए असाइनमेंट"
   },
   "NOTIFICATIONS": {
     "TITLE": "सूचनाएं",

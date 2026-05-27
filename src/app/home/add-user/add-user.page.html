@@ -84,34 +84,53 @@
         </div>
 
         <ng-container *ngIf="shouldShowHierarchy()">
-          <ng-container *ngFor="let layer of layers; let i = index">
-
-            <!-- Dropdown: show only if shouldShowLayer returns true -->
-            <div class="input-pill" *ngIf="shouldShowLayer(i)">
-              <label>{{ layer.name | uppercase }}</label>
-              <div class="pill-content">
-                <i class="fas fa-sitemap"></i>
-                <select [(ngModel)]="hierarchySelections[i]" (change)="onLayerChange(i)">
-                  <option [value]="null">{{ 'ADD_USER_PAGE.PH_LAYER' | translate }} {{ layer.name }}</option>
-                  <option *ngFor="let ent of layerEntities[layer.id]" [value]="ent.id">
-                    {{ ent.name }}
-                  </option>
-                </select>
+          <div *ngFor="let layer of layers; let i = index">
+            <!-- Only show this layer's dropdown if shouldShowLayer(i) returns true -->
+            <ng-container *ngIf="shouldShowLayer(i)">
+              <div class="input-pill animate__animated animate__fadeIn" *ngIf="(layerEntities[layer.id] || []).length > 0">
+                <label>{{ layer.name | uppercase }}</label>
+                <div class="pill-content">
+                  <i class="fas fa-layer-group"></i>
+                  <select [(ngModel)]="hierarchySelections[i]" (change)="onLayerChange(i)">
+                    <option [value]="null">-- Select {{ layer.name }} --</option>
+                    <option *ngFor="let ent of layerEntities[layer.id]" [value]="ent.id">{{ ent.name }}</option>
+                  </select>
+                </div>
               </div>
-            </div>
 
-            <!-- Checkbox: show only after value selected AND not last layer -->
-            <div class="stop-here-row"
-                 *ngIf="shouldShowLayer(i) && hierarchySelections[i] && i < layers.length - 1">
-              <label class="stop-here-label">
-                <input type="checkbox"
-                       [(ngModel)]="stopHereFlags[i]"
-                       (change)="onStopHereChange(i)">
-                <span>{{ 'ADD_USER_PAGE.ASSIGN_LEVEL' | translate }} <b>{{ layer.name }}</b></span>
-              </label>
-            </div>
+              <!-- "Assign at this level only" checkbox — only shown AFTER a selection is made -->
+              <div class="stop-here-row" *ngIf="hierarchySelections[i] && hierarchySelections[i] !== 'null' && (i < layers.length - 1)">
+                <label class="stop-here-label">
+                  <input type="checkbox"
+                         [checked]="stopHereFlags[i]"
+                         (change)="stopHereFlags[i] = !stopHereFlags[i]; onStopHereChange(i)">
+                  <span>Assign at <b>{{ layer.name }}</b> level only</span>
+                </label>
+              </div>
+            </ng-container>
+          </div>
 
-          </ng-container>
+          <!-- ➕ Add to Assignments List Button -->
+          <button class="add-assignment-btn" (click)="addSelectedAssignment()" *ngIf="getDeepestSelectedEntity()">
+            <i class="fas fa-plus-circle"></i>
+            <span>Add to Assignments List</span>
+          </button>
+
+          <!-- 📋 Selected Assignments List -->
+          <div class="assignments-list" *ngIf="selectedAssignments.length > 0">
+            <label class="assignments-list-label">
+              <i class="fas fa-clipboard-list"></i> Assigned Entities ({{ selectedAssignments.length }})
+            </label>
+            <div class="assignment-chip" *ngFor="let item of selectedAssignments; let idx = index">
+              <div class="chip-info">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>{{ item.name }} <small>({{ item.layerName }})</small></span>
+              </div>
+              <button class="chip-remove" (click)="removeSelectedAssignment(idx)">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
         </ng-container>
         
 

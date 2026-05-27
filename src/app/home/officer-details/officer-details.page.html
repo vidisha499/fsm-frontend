@@ -18,7 +18,7 @@
     <!-- Bottom Row: Action Buttons (Left) & Avatar (Right) -->
     <div class="header-bottom-flex">
       <div class="header-actions-left">
-        <button class="mini-action-btn trash" (click)="doDelete()">
+        <button *ngIf="dataService.hasPermission('User Management', 'delete')" class="mini-action-btn trash" (click)="doDelete()">
           <ion-icon name="trash-outline"></ion-icon>
         </button>
         <button class="mini-action-btn sync" (click)="doRefresh()">
@@ -92,6 +92,16 @@
           <div class="setting-sub">Automatically approve check-ins</div>
         </div>
         <ion-toggle mode="ios" color="success"></ion-toggle>
+      </div>
+
+      <div class="setting-row" *ngIf="dataService.hasPermission('User Management', 'reset_password')">
+        <div class="setting-text">
+          <div class="setting-label">Reset Password</div>
+          <div class="setting-sub">Reset password for this user account</div>
+        </div>
+        <button class="reset-pass-btn" (click)="resetPassword()">
+          RESET
+        </button>
       </div>
     </div>
 

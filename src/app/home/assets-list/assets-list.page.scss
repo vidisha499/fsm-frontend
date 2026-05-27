@@ -95,6 +95,13 @@
           &:active { transform: scale(0.9); background: #fecaca; }
           ion-icon { font-size: 18px; }
         }
+        .edit-card-btn {
+          background: #e0f2fe; color: #0284c7; width: 34px; height: 34px; border-radius: 10px;
+          display: flex; align-items: center; justify-content: center; border: none;
+          transition: all 0.2s ease;
+          &:active { transform: scale(0.9); background: #bae6fd; }
+          ion-icon { font-size: 18px; }
+        }
       }
 
       .card-details {

@@ -178,7 +178,9 @@
     "HIDE": "लपवा",
     "EDIT": "संपादित करा",
     "REGISTER_BTN": "वापरकर्ता नोंदणी करा",
-    "SAVING": "जतन करत आहे..."
+    "SAVING": "जतन करत आहे...",
+    "ADD_ASSIGNMENT_BTN": "असाइनमेंट सूचीमध्ये जोडा",
+    "ADDED_ASSIGNMENTS_TITLE": "जोडलेले असाइनमेंट"
   },
   "NOTIFICATIONS": {
     "TITLE": "सूचना",

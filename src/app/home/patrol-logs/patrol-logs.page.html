@@ -103,7 +103,7 @@
             <p class="log-date">{{ log.startTime | date:'MMM d, h:mm a' }}</p>
           </div>
         </div>
-        <div style="display: flex; align-items: center; justify-content: flex-end; flex: 1;">
+        <div style="display: flex; align-items: center; justify-content: flex-end; flex: 1; gap: 8px;">
           <span class="status-pill" 
             [ngClass]="{
               'completed': log.status === 'COMPLETED',
@@ -112,6 +112,12 @@
             }">
             {{ log.isOffline ? 'OFFLINE' : (log.status === 'ACTIVE' ? 'ON-DUTY' : log.status) }}
           </span>
+          <button *ngIf="dataService.hasPermission('Patrolling', 'update')" class="edit-card-btn" (click)="editPatrolLog(log, $event)">
+            <ion-icon name="create-outline"></ion-icon>
+          </button>
+          <button *ngIf="dataService.hasPermission('Patrolling', 'delete')" class="delete-card-btn" (click)="deleteLog(log.id, $event)">
+            <ion-icon name="trash-outline"></ion-icon>
+          </button>
         </div>
       </div>
     </div>
@@ -129,7 +135,7 @@
         <ion-icon name="chevron-up-outline"></ion-icon>
       </button>
       <div class="fab-tooltip">start patrol</div>
-      <button class="fab-circle" (click)="setOpen(true)">
+      <button class="fab-circle" *ngIf="dataService.hasPermission('Patrolling', 'add')" (click)="setOpen(true)">
         <ion-icon name="add-outline"></ion-icon>
       </button>
     </div>

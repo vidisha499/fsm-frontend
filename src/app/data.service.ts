@@ -309,6 +309,25 @@ export class DataService {
         : [];
     if (!list.length) return { range: '', beat: '', entityId: '', parentId: '' };
 
+    // 🔥 V2 Multi-Assignment Sync: Collect all assigned entity IDs & parent IDs
+    const entityIds = list.map((a: any) => {
+      const entity = a?.entity || a?.assigned_entity || a?.beat || {};
+      return String(entity.id || a.entity_id || a.assigned_entity_id || a.beat_id || a.site_id || '').trim();
+    }).filter((id: string) => id !== '' && id !== '0');
+    
+    const parentIds = list.map((a: any) => {
+      const entity = a?.entity || a?.assigned_entity || a?.beat || {};
+      return String(entity.parent?.id || entity.parent_id || a.parent_id || a.range_id || '').trim();
+    }).filter((id: string) => id !== '' && id !== '0');
+
+    const allAssignedIds = [...new Set([...entityIds, ...parentIds])];
+    if (allAssignedIds.length > 0) {
+      localStorage.setItem('assigned_entity_ids', JSON.stringify(allAssignedIds));
+      console.log("📂 [V2 MULTI-ASSIGNMENT] Saved Assigned Entity IDs:", allAssignedIds);
+    } else {
+      localStorage.removeItem('assigned_entity_ids');
+    }
+
     const active =
       list.find((a: any) => a.is_active === true || a.is_active === 1) ||
       list.find((a: any) => a.is_active !== false && a.is_active !== 0) ||
@@ -348,6 +367,35 @@ export class DataService {
       ''
     ).trim();
     return { range, beat, entityId, parentId };
+  }
+
+  /** Exposes strict region filtering based on V2 Multi-Assignments */
+  isRecordVisible(recordEntityId: any): boolean {
+    const userRole = localStorage.getItem('user_role') || '3';
+    // Super Admins (1) and Admins (2) and Specialized Admins (7) always have global visibility
+    if (userRole === '1' || userRole === '2' || userRole === '7') {
+      return true;
+    }
+    
+    const assignedIdsStr = localStorage.getItem('assigned_entity_ids');
+    if (!assignedIdsStr) {
+      // Fallback to true if no explicit assignments exist (so we do not break general users)
+      return true;
+    }
+
+    try {
+      const assignedIds = JSON.parse(assignedIdsStr);
+      if (!Array.isArray(assignedIds) || assignedIds.length === 0) {
+        return true;
+      }
+      if (recordEntityId === undefined || recordEntityId === null || String(recordEntityId).trim() === '') {
+        // Records without an entity ID are considered global/general
+        return true;
+      }
+      return assignedIds.map(id => String(id).trim()).includes(String(recordEntityId).trim());
+    } catch (e) {
+      return true;
+    }
   }
 
   private pickAssignmentEntityMeta(
@@ -787,22 +835,49 @@ export class DataService {
     }
 
     const permsStr = localStorage.getItem('user_permissions');
-    if (!permsStr) return false;
+    const featuresStr = localStorage.getItem('user_features');
+
+    if (!permsStr && !featuresStr) {
+      return true; // Fallback to full access if both are missing
+    }
 
     try {
-      let perms = JSON.parse(permsStr);
-      // 🔥 SECONDARY PARSE: If it returned a string instead of array, parse again
-      if (typeof perms === 'string') {
-        try { perms = JSON.parse(perms); } catch (e) { perms = []; }
+      let perms: any[] = [];
+      if (permsStr) {
+        perms = JSON.parse(permsStr);
+        // 🔥 SECONDARY PARSE: If it returned a string instead of array, parse again
+        if (typeof perms === 'string') {
+          try { perms = JSON.parse(perms); } catch (e) { perms = []; }
+        }
       }
 
-      if (!Array.isArray(perms)) return false;
+      if (!Array.isArray(perms)) perms = [];
 
       const modLower = module.toLowerCase();
       const actLower = action.toLowerCase();
 
+      // If user_permissions is empty, fallback to user_features check
+      if (perms.length === 0 && featuresStr) {
+        let features: any[] = [];
+        try { features = JSON.parse(featuresStr); } catch (e) { features = []; }
+        if (Array.isArray(features)) {
+          return features.some((f: any) => {
+            const fStr = String(f.module_key || f.name || f.module || f || '').toLowerCase();
+            return fStr.includes(modLower);
+          });
+        }
+      }
+
       return perms.some((p: any) => {
-        const pStr = String(p.module_key || p.name || p || '').toLowerCase();
+        const pStr = String(p.module_key || p.name || p.module || p || '').toLowerCase();
+        
+        // --- LEGACY FALLBACK ---
+        // If the permission string does not contain a dot ('.'), it represents a full module permission.
+        // If it matches or contains the module name, we grant access to all actions.
+        if (!pStr.includes('.') && pStr.includes(modLower)) {
+          return true;
+        }
+
         // Strict match for "Module.Action" or "Module" and "Action" present in string
         return pStr.includes(modLower) && pStr.includes(actLower);
       });
@@ -1229,6 +1304,13 @@ export class DataService {
     if (typeStr === 'ENTRY' || typeStr === 'EXIT') return true;
     const entityId = Number(log.entity_id);
     if (!Number.isNaN(entityId) && entityId > 0) return true;
+    
+    // Check geo_id: any valid ID that is not 99999 (which is reserved for onsite)
+    if (log.geo_id !== undefined && log.geo_id !== null && String(log.geo_id) !== '99999') {
+      const geoIdNum = Number(log.geo_id);
+      if (!Number.isNaN(geoIdNum) && geoIdNum > 0) return true;
+    }
+    
     return false;
   }
 
@@ -2607,6 +2689,11 @@ export class DataService {
   listV2Subordinates() {
     const token = localStorage.getItem('api_token') || '';
     return this.http.post(`${this.baseApiUrl}/v2/user/subordinates`, { api_token: token });
+  }
+
+  deleteV2User(userId: any) {
+    const token = localStorage.getItem('api_token') || '';
+    return this.http.post(`${this.baseApiUrl}/v2/user/delete`, { api_token: token, user_id: userId });
   }
 
   // 24.3 Attendance (V2)

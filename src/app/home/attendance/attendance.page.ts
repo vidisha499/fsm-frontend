@@ -428,12 +428,23 @@ async submitAttendance() {
   const headers = { 'Bypass-Token': 'true' };
 
   // V2 API requires the dynamic_assignment entity_id, NOT the old geo_id
-  // Cascade: dynamic_assignment > selectedBeat > geo_id from beat dropdown
+  // Static users should send entity_id as null, and geo_id as the selected beat ID
+  const isDynamicUser = !!(userData?.dynamic_assignment?.entity_id || userData?.is_dynamic || String(userData?.user_type || '').toLowerCase() === 'dynamic');
   const dynamicEntityId = userData?.dynamic_assignment?.entity_id || userData?.entity_id;
   const selectedBeatId = this.selectedBeat?.id;
-  const resolvedEntityId = dynamicEntityId || selectedBeatId || this.selectedBeat?.entity_id || 1;
 
-  console.log('🔑 Entity ID Resolution:', { dynamicEntityId, selectedBeatId, resolvedEntityId, userData_keys: userData ? Object.keys(userData) : 'null' });
+  let resolvedEntityId: any = null;
+  let resolvedGeoId: any = '1';
+
+  if (isDynamicUser) {
+    resolvedEntityId = dynamicEntityId || selectedBeatId || 1;
+    resolvedGeoId = dynamicEntityId || '1';
+  } else {
+    resolvedEntityId = null; // Send null for static users
+    resolvedGeoId = '1'; // Always send 1 for geo_id as requested
+  }
+
+  console.log('🔑 Entity ID Resolution:', { isDynamicUser, dynamicEntityId, selectedBeatId, resolvedEntityId, resolvedGeoId });
 
   const commonPayload = {
     api_token: token,
@@ -442,7 +453,7 @@ async submitAttendance() {
     longitude: this.currentLng.toString(),
     photo: this.capturedPhoto,
     // Maintaining these properties for local offline fallback compatibility
-    geo_id: dynamicEntityId || '1', 
+    geo_id: resolvedGeoId, 
     geo_name: this.selectedBeat?.name || userData?.dynamic_assignment?.entity?.name || this.currentAddress || 'Unknown Location',
     site_id: 'beat',
     attendance_type: 'BEAT',

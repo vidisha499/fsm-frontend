@@ -44,6 +44,8 @@ export class AddUserPage implements OnInit {
   isSaving: boolean = false;
   showBeatSuggestions: boolean = false;
   stopHereFlags: boolean[] = []; // Per-layer "assign at this level" checkbox state
+  selectedAssignments: any[] = []; // Stores the list of added assignments for multi-assignment
+  checkedEntities: { [key: string]: boolean } = {}; // Tracks checked hierarchy entities for multi-assignment
 
   // Permissions State
   rolePermissions: string[] = [];       // Flat list e.g. ["patrol.view", "report.create"]
@@ -140,22 +142,29 @@ export class AddUserPage implements OnInit {
           if (rawLayers.length > 0) {
             this.layers = rawLayers
               .sort((a: any, b: any) => (Number(a.rank || a.id)) - (Number(b.rank || b.id)))
-              .map((l: any) => ({
-                id: Number(l.id),
-                name: l.name || l.layer_name || l.label
-              }));
+              .map((l: any) => {
+                let lName = l.name || l.layer_name || l.label;
+                if (String(l.id) === '9') lName = 'Section';
+                if (String(l.id) === '10') lName = 'Beat';
+                return {
+                  id: Number(l.id),
+                  name: lName
+                };
+              });
 
             console.log("🎯 V2 Processed Layers:", this.layers);
 
-            // 3. Load Initial Entities for the first layer
+            // 3. Load Initial Entities for all layers
             if (this.layers.length > 0) {
-              const firstLayer = this.layers[0];
-              this.dataService.listV2Entities(firstLayer.id, null).subscribe({
-                next: (entRes: any) => {
-                  const nodes = entRes?.data || entRes || [];
-                  this.layerEntities[firstLayer.id] = Array.isArray(nodes) ? nodes : [];
-                  this.cdr.detectChanges();
-                }
+              this.layers.forEach(layer => {
+                this.dataService.listV2Entities(layer.id, null).subscribe({
+                  next: (entRes: any) => {
+                    const nodes = entRes?.data || entRes || [];
+                    this.layerEntities[layer.id] = Array.isArray(nodes) ? nodes : [];
+                    console.log(`🎯 Loaded V2 entities for Layer ${layer.name} (${layer.id}):`, this.layerEntities[layer.id].length);
+                    this.cdr.detectChanges();
+                  }
+                });
               });
             }
 
@@ -420,15 +429,23 @@ export class AddUserPage implements OnInit {
   // Jab "Assign at this level" checkbox change ho
   onStopHereChange(layerIndex: number) {
     if (this.stopHereFlags[layerIndex]) {
-      // Checkbox ticked: clear all selections below this level
+      // Checkbox CHECKED (assign at this level only): clear all selections below
       for (let i = layerIndex + 1; i < this.layers.length; i++) {
         this.hierarchySelections[i] = null;
-        this.layerEntities[this.layers[i].id] = [];
-        this.stopHereFlags[i] = true; // Reset to default true
+        this.stopHereFlags[i] = true;
       }
     } else {
-      // Checkbox UN-TICKED: Trigger loading of the next level
-      this.onLayerChange(layerIndex);
+      // Checkbox UNCHECKED: load children for the next level
+      if (this.hierarchySelections[layerIndex] && layerIndex + 1 < this.layers.length) {
+        const nextLayer = this.layers[layerIndex + 1];
+        this.dataService.listV2Entities(nextLayer.id, this.hierarchySelections[layerIndex]).subscribe({
+          next: (res: any) => {
+            const nodes = res?.data || res || [];
+            this.layerEntities[nextLayer.id] = Array.isArray(nodes) ? nodes : [];
+            this.cdr.detectChanges();
+          }
+        });
+      }
     }
     this.cdr.detectChanges();
   }
@@ -438,6 +455,117 @@ export class AddUserPage implements OnInit {
     if (layerIndex === 0) return true;
     // Pichla layer select hua ho AND pichle layer ka stopHere false ho
     return !!this.hierarchySelections[layerIndex - 1] && !this.stopHereFlags[layerIndex - 1];
+  }
+
+  getDeepestSelectedEntity(): any {
+    if (!this.shouldShowHierarchy()) return null;
+    
+    // Walk from bottom to top, find the deepest layer with a valid selection
+    for (let i = this.layers.length - 1; i >= 0; i--) {
+      if (this.hierarchySelections[i] && this.hierarchySelections[i] !== 'null') {
+        const layerId = this.layers[i].id;
+        const entId = this.hierarchySelections[i];
+        const ent = this.layerEntities[layerId]?.find((e: any) => String(e.id) === String(entId));
+        if (ent) {
+          return {
+            id: entId,
+            name: ent.name,
+            layerName: this.layers[i].name
+          };
+        }
+      }
+    }
+    return null;
+  }
+
+  addSelectedAssignment() {
+    const selected = this.getDeepestSelectedEntity();
+    if (!selected) {
+      this.showToast('Please select a range or beat first', 'warning');
+      return;
+    }
+    
+    // Check duplicate
+    const exists = this.selectedAssignments.some(item => String(item.id) === String(selected.id));
+    if (exists) {
+      this.showToast('This assignment is already added', 'warning');
+      return;
+    }
+
+    this.selectedAssignments.push(selected);
+    this.showToast(`Added: ${selected.name} (${selected.layerName})`, 'success');
+
+    // DON'T fully reset - keep the parent selections so user can quickly add
+    // more entities from the same Range. Only clear the deepest selected level.
+    for (let i = this.layers.length - 1; i >= 0; i--) {
+      if (this.hierarchySelections[i] && this.hierarchySelections[i] !== 'null') {
+        this.hierarchySelections[i] = null;
+        this.stopHereFlags[i] = true;
+        break; // only clear the deepest one
+      }
+    }
+    this.cdr.detectChanges();
+  }
+
+  removeSelectedAssignment(index: number) {
+    this.selectedAssignments.splice(index, 1);
+    this.cdr.detectChanges();
+  }
+
+  getVisibleEntities(layerIndex: number): any[] {
+    if (!this.layers || this.layers.length === 0 || !this.layers[layerIndex]) return [];
+    
+    // First layer is always fully visible
+    if (layerIndex === 0) {
+      return this.layerEntities[this.layers[layerIndex].id] || [];
+    }
+
+    const parentLayer = this.layers[layerIndex - 1];
+    const parentEntities = this.layerEntities[parentLayer.id] || [];
+
+    // Filter parents that are checked
+    const checkedParentIds = parentEntities
+      .filter((p: any) => this.checkedEntities[String(p.id)] === true)
+      .map((p: any) => String(p.id));
+
+    if (checkedParentIds.length === 0) return [];
+
+    const currentLayer = this.layers[layerIndex];
+    const entities = this.layerEntities[currentLayer.id] || [];
+    return entities.filter((e: any) => checkedParentIds.includes(String(e.parent_id)));
+  }
+
+  hasVisibleEntities(layerIndex: number): boolean {
+    return this.getVisibleEntities(layerIndex).length > 0;
+  }
+
+  toggleEntity(entityId: any, layerIndex: number, event: any) {
+    const isChecked = event.target.checked;
+    const strId = String(entityId);
+    this.checkedEntities[strId] = isChecked;
+
+    if (!isChecked) {
+      // Recursively uncheck all child entities
+      this.uncheckChildren(strId, layerIndex);
+    }
+    this.cdr.detectChanges();
+  }
+
+  uncheckChildren(parentId: string, parentLayerIndex: number) {
+    const nextLayerIndex = parentLayerIndex + 1;
+    if (nextLayerIndex >= this.layers.length) return;
+
+    const nextLayer = this.layers[nextLayerIndex];
+    const children = this.layerEntities[nextLayer.id]?.filter((e: any) => String(e.parent_id) === parentId) || [];
+
+    children.forEach((child: any) => {
+      const childId = String(child.id);
+      if (this.checkedEntities[childId]) {
+        this.checkedEntities[childId] = false;
+        // Recursively uncheck downstream children
+        this.uncheckChildren(childId, nextLayerIndex);
+      }
+    });
   }
 
   getStandardRoles() {
@@ -480,46 +608,112 @@ export class AddUserPage implements OnInit {
       return;
     }
 
+    // --- DUPLICATE MOBILE CHECK ---
+    try {
+      const loader = await this.loadingCtrl.create({ message: 'Checking if user exists...' });
+      await loader.present();
+
+      const existingUsers: any = await this.dataService.getUsersByCompany(this.userData.companyId).toPromise();
+      loader.dismiss();
+
+      const users = existingUsers?.data || existingUsers || [];
+      const duplicate = users.find((u: any) => {
+        const uMobile = String(u.mobile || u.phone || u.contact || '').trim();
+        return uMobile === String(this.userData.contact).trim();
+      });
+
+      if (duplicate) {
+        const name = duplicate.name || duplicate.firstName || 'Unknown';
+        this.showToast(`⚠️ User already exists! (${name} - ${this.userData.contact})`, 'danger');
+        return;
+      }
+    } catch (err) {
+      console.warn('⚠️ Could not verify duplicate, proceeding with registration...', err);
+    }
+
     this.isSaving = true;
-    const token = localStorage.getItem('api_token') || '';
+    
+    // -------------------
+    // Determine all entity IDs that should be assigned.
+    // Priority: selectedAssignments list > current dropdown selection
+    // -------------------
+    const assignedEntityIds: any[] = [];
+    
+    // 1. Primary: from the "Add to Assignments" list
+    if (this.selectedAssignments.length > 0) {
+      this.selectedAssignments.forEach(item => {
+        assignedEntityIds.push(item.id);
+      });
+    }
 
-    // Extract dynamic hierarchy values
-    let deepestEntityId: any = null;
-    let deepestEntityName: string = '';
-    let parentEntityName: string = '';
+    // 2. Also include current dropdown selection if not already in list
+    const currentSelection = this.getDeepestSelectedEntity();
+    if (currentSelection) {
+      const alreadyAdded = assignedEntityIds.some(id => String(id) === String(currentSelection.id));
+      if (!alreadyAdded) {
+        assignedEntityIds.push(currentSelection.id);
+      }
+    }
 
-    const showH = this.shouldShowHierarchy();
-    if (showH) {
-      // Find the deepest non-null selection
-      for (let i = this.hierarchySelections.length - 1; i >= 0; i--) {
-        if (this.hierarchySelections[i]) {
-          deepestEntityId = this.hierarchySelections[i];
-          const layerId = this.layers[i].id;
-          const ent = this.layerEntities[layerId]?.find(e => String(e.id) === String(deepestEntityId));
-          deepestEntityName = ent?.name || '';
-          
-          // Get parent name if available (for range/department fallback)
-          if (i > 0 && this.hierarchySelections[i-1]) {
-            const pLayerId = this.layers[i-1].id;
-            const pEnt = this.layerEntities[pLayerId]?.find(e => String(e.id) === String(this.hierarchySelections[i-1]));
-            parentEntityName = pEnt?.name || '';
-          } else if (i === 0) {
-             parentEntityName = deepestEntityName;
-          }
-          break;
+    // 3. Fallback to old dropdown selections if both are empty
+    if (assignedEntityIds.length === 0) {
+      for (let i = 0; i < this.layers.length; i++) {
+        if (this.hierarchySelections[i] && this.stopHereFlags[i]) {
+          assignedEntityIds.push(this.hierarchySelections[i]);
+        }
+      }
+      if (assignedEntityIds.length === 0) {
+        const deepest = this.getDeepestSelectedEntity();
+        if (deepest) {
+          assignedEntityIds.push(deepest.id);
         }
       }
     }
 
-    const resolvedCustomRoleId = this.userData.dynamicRoleId || this.userData.roleId;
+    // The deepest entity (used for user profile) is the last selected one.
+    let deepestEntityId: any = null;
+    let deepestEntityName: string = '';
+    let parentEntityName: string = '';
+    if (assignedEntityIds.length > 0) {
+      deepestEntityId = assignedEntityIds[assignedEntityIds.length - 1];
+      
+      // Attempt to find layer id and entity details
+      let foundEnt: any = null;
+      for (let layer of this.layers) {
+        foundEnt = this.layerEntities[layer.id]?.find(e => String(e.id) === String(deepestEntityId));
+        if (foundEnt) {
+          deepestEntityName = foundEnt.name || '';
+          break;
+        }
+      }
 
+      // Fallback parent names
+      if (assignedEntityIds.length > 1) {
+        const parentId = assignedEntityIds[assignedEntityIds.length - 2];
+        let foundParent: any = null;
+        for (let layer of this.layers) {
+          foundParent = this.layerEntities[layer.id]?.find(e => String(e.id) === String(parentId));
+          if (foundParent) {
+            parentEntityName = foundParent.name || '';
+            break;
+          }
+        }
+      } else {
+        parentEntityName = deepestEntityName;
+      }
+    }
+    // ------------------- End of entity ID gathering -------------------
+
+    // Build payload for user registration
+    const resolvedCustomRoleId = this.userData.dynamicRoleId || this.userData.roleId;
+    
     // Find the actual name of the dynamic role to send as designation
     let dynamicRoleName = deepestEntityName || 'Officer';
     if (this.userData.dynamicRoleId) {
       const selectedRole = this.dynamicRoles.find(r => String(r.id) === String(this.userData.dynamicRoleId));
       if (selectedRole) dynamicRoleName = selectedRole.displayName;
     }
-
+    
     const payload: any = {
       name: `${this.userData.firstName} ${this.userData.lastName}`.trim(),
       firstName: this.userData.firstName,
@@ -541,39 +735,42 @@ export class AddUserPage implements OnInit {
       emp_id: `FSM-${Date.now().toString().slice(-6)}`,
       permissions: JSON.stringify(this.rolePermissions) 
     };
-
+    
     console.log("🚀 V2 Registering User (addRegistration):", payload);
-
+    
     // Revert to Stringify since the DB column expects a string
     const finalPayload = { ...payload, permissions: JSON.stringify(this.rolePermissions) };
-
+    
     this.dataService.addRegistration(finalPayload).subscribe({
       next: async (res: any) => {
         this.isSaving = false;
         console.log("📥 [V2 REGISTER RESPONSE]:", res);
-
+        
         const isSuccess = res?.status?.toLowerCase() === 'success' ||
                           res?.message?.toLowerCase().includes('success') ||
                           res?.code === 200;
-
+        
         if (isSuccess) {
           const newUserId = res?.data?.id || res?.id;
           
-          // 🚀 V2 SYNC: Link to Hierarchy and Role immediately
-          if (newUserId) {
-            const assignmentPayload = {
-              user_id: newUserId,
-              role_id: payload.role_id,
-              custom_role_id: payload.custom_role_id,
-              entity_id: payload.entity_id,
-              company_id: payload.company_id,
-              permissions: payload.permissions,
-              role_name: payload.designation
-            };
-
-            this.dataService.saveV2Assignment(assignmentPayload).subscribe({
-              next: (assignRes: any) => console.log("🔗 [ADD-USER] V2 Assignment Linked:", assignRes),
-              error: (assignErr: any) => console.error("❌ [ADD-USER] V2 Assignment Failed:", assignErr)
+          // -------------------
+          // MULTI‑ASSIGNMENT: iterate over all assignedEntityIds and link each.
+          // -------------------
+          if (newUserId && assignedEntityIds.length > 0) {
+            assignedEntityIds.forEach(assignedId => {
+              const assignmentPayload = {
+                user_id: newUserId,
+                role_id: payload.role_id,
+                custom_role_id: payload.custom_role_id,
+                entity_id: assignedId,
+                company_id: payload.company_id,
+                permissions: payload.permissions,
+                role_name: dynamicRoleName
+              };
+              this.dataService.saveV2Assignment(assignmentPayload).subscribe({
+                next: (assignRes: any) => console.log('🔗 [ADD-USER] V2 Assignment Linked (multi):', assignRes),
+                error: (assignErr: any) => console.error('❌ [ADD-USER] V2 Assignment Failed (multi):', assignErr)
+              });
             });
           }
 

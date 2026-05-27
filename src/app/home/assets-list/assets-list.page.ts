@@ -34,7 +34,7 @@ export class AssetsListPage implements OnInit {
   constructor(
     private navCtrl: NavController,
     private menuCtrl: MenuController,
-    private dataService: DataService,
+    public dataService: DataService,
     private loadingCtrl: LoadingController,
     private toastCtrl: ToastController,
     private alertCtrl: AlertController
@@ -77,7 +77,7 @@ openAssetDetails(asset: any) {
   this.dataService.getMyAssets(companyId, userId).subscribe({
     next: (data: any) => {
       const list = Array.isArray(data) ? data : (data.data || []);
-      this.allAssets = list;
+      this.allAssets = list.filter((item: any) => this.dataService.isRecordVisible(item.entity_id || item.site_id || item.beat_id || item.range_id));
       this.assets = [...this.allAssets];
       this.isLoading = false;
       // 🔍 DEBUG: Pehla asset ka raw structure dekho
@@ -143,6 +143,13 @@ openAssetDetails(asset: any) {
   openMenu() { this.menuCtrl.open(); }
   
   goToAddAsset() { this.navCtrl.navigateForward('/assets'); }
+
+  editAsset(event: Event, asset: any) {
+    event.stopPropagation();
+    asset.isEditing = true;
+    this.dataService.setSelectedAsset(asset);
+    this.navCtrl.navigateForward('/assets');
+  }
 
   // goBack() { this.navCtrl.navigateBack('/home'); }
   goBack() {

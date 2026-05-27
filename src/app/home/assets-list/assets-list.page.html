@@ -140,9 +140,14 @@
             </div>
             <h3>{{ asset.name }}</h3>
           </div>
-          <button class="delete-card-btn" (click)="confirmDelete($event, asset)">
-            <ion-icon name="trash-outline"></ion-icon>
-          </button>
+          <div style="display: flex; gap: 8px;">
+            <button *ngIf="dataService.hasPermission('Asset Management', 'update')" class="edit-card-btn" (click)="editAsset($event, asset)">
+              <ion-icon name="create-outline"></ion-icon>
+            </button>
+            <button *ngIf="dataService.hasPermission('Asset Management', 'delete')" class="delete-card-btn" (click)="confirmDelete($event, asset)">
+              <ion-icon name="trash-outline"></ion-icon>
+            </button>
+          </div>
         </div>
 
         <div class="card-details">
@@ -177,7 +182,7 @@
     <ion-fab-button class="scroll-top-btn" *ngIf="showScrollTop" (click)="scrollToTop()" style="margin-bottom: 10px; --background: #1e293b; --color: white;">
       <ion-icon name="chevron-up-outline"></ion-icon>
     </ion-fab-button>
-    <ion-fab-button (click)="goToAddAsset()" class="add-fab">
+    <ion-fab-button *ngIf="dataService.hasPermission('Asset Management', 'add')" (click)="goToAddAsset()" class="add-fab">
       <ion-icon name="add"></ion-icon>
     </ion-fab-button>
   </ion-fab>

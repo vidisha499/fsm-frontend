@@ -89,7 +89,7 @@
     <ion-fab-button class="scroll-top-btn" *ngIf="showScrollTop" (click)="scrollToTop()" style="margin-bottom: 10px; --background: #1e293b; --color: white;">
       <ion-icon name="chevron-up-outline"></ion-icon>
     </ion-fab-button>
-    <ion-fab-button class="custom-fab-btn" (click)="addPlantation()">
+    <ion-fab-button *ngIf="dataService.hasPermission('Plantation', 'add')" class="custom-fab-btn" (click)="addPlantation()">
       <ion-icon name="add"></ion-icon>
     </ion-fab-button>
   </ion-fab>

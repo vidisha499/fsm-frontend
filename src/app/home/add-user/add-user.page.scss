@@ -154,6 +154,94 @@
 
 .bottom-spacer { height: 40px; }
 
+// --- ADD ASSIGNMENT BUTTON ---
+.add-assignment-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 20px;
+  margin: 12px 0;
+  background: linear-gradient(135deg, #0d9488, #14b8a6);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(13, 148, 136, 0.3);
+  
+  &:active { transform: scale(0.97); }
+  i { font-size: 16px; }
+}
+
+// --- ASSIGNMENTS LIST ---
+.assignments-list {
+  margin: 12px 0;
+  padding: 14px;
+  background: #f0fdf9;
+  border: 1.5px solid #99f6e4;
+  border-radius: 16px;
+  
+  .assignments-list-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 800;
+    color: #0d9488;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    letter-spacing: 0.05em;
+    i { margin-right: 6px; }
+  }
+}
+
+.assignment-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s;
+  animation: fadeInSlide 0.3s ease-out;
+  
+  &:last-child { margin-bottom: 0; }
+  
+  .chip-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    i { color: #0d9488; font-size: 14px; }
+    span {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0f172a;
+      small { font-weight: 500; color: #64748b; }
+    }
+  }
+  
+  .chip-remove {
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    i { color: #ef4444; font-size: 11px; }
+    &:active { background: #fca5a5; }
+  }
+}
+
+
 
 // --- ROLE PERMISSIONS PREVIEW ---
 .perm-preview-section {

@@ -178,7 +178,9 @@
     "HIDE": "Hide",
     "EDIT": "Edit",
     "REGISTER_BTN": "REGISTER USER",
-    "SAVING": "SAVING..."
+    "SAVING": "SAVING...",
+    "ADD_ASSIGNMENT_BTN": "Add to Assignments List",
+    "ADDED_ASSIGNMENTS_TITLE": "ADDED ASSIGNMENTS"
   },
   "NOTIFICATIONS": {
     "TITLE": "Notifications",

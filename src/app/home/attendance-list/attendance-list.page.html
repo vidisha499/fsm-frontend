@@ -82,7 +82,7 @@
               </span>
             </div>
             
-            <div class="priority-title">{{ log.name || 'Officer' }}</div>
+            <div class="priority-title">{{ log.rangerName || log.name || 'Officer' }}</div>
 
             <div class="reporter-line">
               <ion-icon name="location-outline"></ion-icon>
@@ -91,7 +91,10 @@
             </div>
           </div>
 
-          <div class="row-actions">
+          <div class="row-actions" style="display: flex; align-items: center; gap: 8px;">
+            <button *ngIf="dataService.hasPermission('Attendance', 'delete')" class="delete-row-btn" (click)="confirmDelete($event, log.id)">
+              <ion-icon name="trash-outline"></ion-icon>
+            </button>
             <ion-icon name="chevron-forward-outline" class="chevron"></ion-icon>
           </div>
         </div>
@@ -167,7 +170,7 @@
     </ion-fab-button>
     
     <!-- Add Button -->
-    <ion-fab-button (click)="goToMarkAttendance()" class="premium-fab" style="margin: 0;">
+    <ion-fab-button *ngIf="dataService.hasPermission('Attendance', 'add')" (click)="goToMarkAttendance()" class="premium-fab" style="margin: 0;">
       <ion-icon name="add"></ion-icon>
     </ion-fab-button>
   </ion-fab>

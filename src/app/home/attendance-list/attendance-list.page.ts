@@ -42,7 +42,7 @@ filterLocation: string = ''; // Location input ke liye
     private http: HttpClient,
     private loadingCtrl: LoadingController,
     private router: Router,
-    private dataService: DataService,
+    public dataService: DataService,
     private translate: TranslateService,
     private alertCtrl: AlertController,
     private route: ActivatedRoute
@@ -125,63 +125,73 @@ async fetchAndFilter() {
   });
 }
 
-applyFrontendLogic() {
+private toYYYYMMDD(val: any): string {
+  if (!val) return '';
+  try {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return String(val).split('T')[0] || '';
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  } catch (e) {
+    return String(val).split('T')[0] || '';
+  }
+}
+
+updateDisplayedLogs() {
   const userRole = localStorage.getItem('user_role') || '3';
   const isAdmin = userRole === '1' || userRole === '2' || userRole === '7';
   const myRangerId = localStorage.getItem('ranger_id');
-
-  if (!this.startDate || !this.endDate) {
-    const today = new Date().toISOString().split('T')[0];
-    this.attendanceLogs = this.allLogs.filter(log => {
-      if (!log.createdAt || !log.createdAt.startsWith(today)) return false;
-
-      // Filter by Ranger ID
-      if (!isAdmin && myRangerId) {
-        const logRangerId = String(log.user_id || log.ranger_id || log.applicant_id || log.rangerId || log.guard_id || '');
-        if (logRangerId !== '' && logRangerId !== String(myRangerId)) {
-          return false;
-        }
-      }
-
-      return this.matchesSelectedMode(log);
-    });
-    return;
-  }
-
-  const start = this.startDate.split('T')[0];
-  const end = this.endDate.split('T')[0];
+  const todayStr = this.toYYYYMMDD(new Date());
 
   this.attendanceLogs = this.allLogs.filter(log => {
-    // 0. Ranger ID check
+    // 1. Multi-assignment Region Filtering (e.g. Supervisor sees only assigned Beats/Ranges)
+    const recordEntityId = log.entity_id || log.geo_id || log.geofence_id || log.site_id;
+    if (!this.dataService.isRecordVisible(recordEntityId)) {
+      return false;
+    }
+
+    // 2. Filter by Ranger ID for non-admins
     if (!isAdmin && myRangerId) {
       const logRangerId = String(log.user_id || log.ranger_id || log.applicant_id || log.rangerId || log.guard_id || '');
-      
-      // If backend gave an ID, verify it
       if (logRangerId !== '') {
         if (logRangerId !== String(myRangerId)) return false;
       } else {
-        // If no ID, verify by name as fallback
         const myName = (localStorage.getItem('ranger_username') || localStorage.getItem('ranger_name') || '').toLowerCase().trim();
         const logName = String(log.name || log.rangerName || log.guard_name || '').toLowerCase().trim();
-        if (myName && logName && myName !== logName) {
-           return false;
-        }
+        if (myName && logName && myName !== logName) return false;
       }
     }
 
-    const logDate = log.createdAt.split('T')[0];
-    const isWithinDate = logDate >= start && logDate <= end;
-    
-    const matchesMode = this.matchesSelectedMode(log);
+    // 3. Mode Match (Beat vs Onsite)
+    if (!this.matchesSelectedMode(log)) return false;
 
-    let isMatchLocation = true;
+    // 4. Date Range Filtering
+    const logDate = this.toYYYYMMDD(log.createdAt);
+    if (!logDate) return false;
+
+    if (this.isFiltered) {
+      const start = this.toYYYYMMDD(this.filters.fromDate);
+      const end = this.toYYYYMMDD(this.filters.toDate);
+      if (logDate < start || logDate > end) return false;
+    } else {
+      if (logDate !== todayStr) return false;
+    }
+
+    // 5. Search Location Filter
     if (this.filterLocation) {
       const query = this.filterLocation.toLowerCase();
-      const locName = (log.geofence || log.location_name || '').toLowerCase();
-      isMatchLocation = locName.includes(query);
+      const locName = String(log.geofence || log.location_name || '').toLowerCase();
+      if (!locName.includes(query)) return false;
     }
-    return isWithinDate && isMatchLocation && matchesMode;
+
+    return true;
   });
+}
+
+applyFrontendLogic() {
+  this.updateDisplayedLogs();
 }
 
   ionViewWillEnter() {
@@ -395,46 +405,8 @@ private processLogsResponse(res: any, loader: any) {
 
   this.onDutyCount = this.allLogs.filter(l => l.status === 'approved').length;
 
-  // Filter logic
-  const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
-  console.log('📅 Today string:', todayStr);
-  
-  const userRole = localStorage.getItem('user_role') || '3';
-  const isAdmin = userRole === '1' || userRole === '2' || userRole === '7';
-  const myRangerId = localStorage.getItem('ranger_id');
-
-  this.attendanceLogs = this.allLogs.filter(log => {
-    // 0. Filter by Ranger ID for non-admins
-    if (!isAdmin && myRangerId) {
-      const logRangerId = String(log.user_id || log.ranger_id || log.applicant_id || log.rangerId || log.guard_id || '');
-      
-      if (logRangerId !== '') {
-        if (logRangerId !== String(myRangerId)) return false;
-      } else {
-        const myName = (localStorage.getItem('ranger_username') || localStorage.getItem('ranger_name') || '').toLowerCase().trim();
-        const logName = String(log.name || log.rangerName || log.guard_name || '').toLowerCase().trim();
-        if (myName && logName && myName !== logName) {
-           return false;
-        }
-      }
-    }
-
-    if (!this.matchesSelectedMode(log)) return false;
-
-    // 2. Date Filtering:
-    const logDate = log.createdAt ? new Date(log.createdAt).toLocaleDateString('en-CA') : '';
-
-    if (this.isFiltered) {
-      const start = new Date(this.filters.fromDate).toLocaleDateString('en-CA');
-      const end = new Date(this.filters.toDate).toLocaleDateString('en-CA');
-      
-      const isWithin = logDate >= start && logDate <= end;
-      return isWithin;
-    } else {
-      // Default: Only Today
-      return logDate === todayStr;
-    }
-  });
+  // Delegate all filtering to updateDisplayedLogs
+  this.updateDisplayedLogs();
   
   this.isLoading = false;
   loader.dismiss();
@@ -614,7 +586,9 @@ private handleError(err: any, loader: any) {
 //   if (this.filterModal) this.filterModal.dismiss();
 // }
 async applyFilters() {
+  console.log('applyFilters triggered with:', this.filters);
   this.isFiltered = true;
+<<<<<<< Updated upstream
 
   // 1. Dates ko normalize karein (Local Date YYYY-MM-DD)
   const start = new Date(this.filters.fromDate).toLocaleDateString('en-CA');
@@ -634,6 +608,14 @@ async applyFilters() {
     return isWithin && matchesStatus && this.matchesSelectedMode(log);
   });
 
+=======
+  try {
+    this.updateDisplayedLogs();
+    console.log('updateDisplayedLogs success, filtered count:', this.attendanceLogs?.length);
+  } catch (e) {
+    console.error('Error in applyFilters:', e);
+  }
+>>>>>>> Stashed changes
   this.isModalOpen = false;
 }
 

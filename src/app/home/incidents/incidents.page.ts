@@ -75,7 +75,7 @@ maxDate: string = new Date().toISOString();
     private loadingCtrl: LoadingController,
     private platform: Platform,
     private router: Router,
-    private dataService: DataService,
+    public dataService: DataService,
     private translate: TranslateService // Injected
   ) {
     this.startDate = new Date().toISOString();
@@ -126,8 +126,9 @@ async loadIncidents() {
           };
         }); 
         
-        this.allIncidents = [...mappedData]; 
-        this.incidents = [...mappedData]; 
+        const filteredList = mappedData.filter((incident: any) => this.dataService.isRecordVisible(incident.entity_id || incident.site_id || incident.beat_id || incident.range_id));
+        this.allIncidents = [...filteredList]; 
+        this.incidents = [...filteredList]; 
         loader.dismiss(); 
       },
       error: (err) => { 

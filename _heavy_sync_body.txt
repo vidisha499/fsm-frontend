@@ -1,0 +1,524 @@
+
+    // Calculate Period Dates dynamically based on date filter
+    let periodDates: string[] = [];
+    const now = new Date(nowL);
+    if (this.activeDateFilter === 'today') {
+       periodDates = [todayYMD];
+    } else if (this.activeDateFilter === 'week') {
+       periodDates = Array.from({length: 7}, (_, i) => {
+          const d = new Date(now);
+          d.setDate(now.getDate() - (6 - i));
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          return `${d.getFullYear()}-${m}-${day}`;
+       });
+    } else if (this.activeDateFilter === 'month') {
+       periodDates = Array.from({length: 30}, (_, i) => {
+          const d = new Date(now);
+          d.setDate(now.getDate() - (29 - i));
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          return `${d.getFullYear()}-${m}-${day}`;
+       });
+    } else if (this.activeDateFilter === 'custom' && dates.from && dates.to) {
+       const start = new Date(dates.from);
+       const end = new Date(dates.to);
+       const diffTime = Math.abs(end.getTime() - start.getTime());
+       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+       const totalDays = Math.min(diffDays, 90);
+       periodDates = Array.from({length: totalDays}, (_, i) => {
+          const d = new Date(start);
+          d.setDate(start.getDate() + i);
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          return `${d.getFullYear()}-${m}-${day}`;
+       });
+    } else {
+       periodDates = Array.from({length: 30}, (_, i) => {
+          const d = new Date(now);
+          d.setDate(now.getDate() - (29 - i));
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          return `${d.getFullYear()}-${m}-${day}`;
+       });
+    }
+    this.currentPeriodDates = periodDates;
+
+    // Helper for robust date parsing (Shared for Assets and Reports)
+    const getTS = (d: any) => {
+      if (!d) return 0;
+      if (typeof d === 'string' && d.includes('-')) {
+        const parts = d.split(' ')[0].split('-');
+        if (parts[0].length === 2 && parts[2].length === 4) {
+          return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime();
+        }
+      }
+      return new Date(d).getTime();
+    };
+
+    // --- A. PROCESS ASSETS ---
+    if (assetList.length > 0) {
+      console.log("≡ƒôè Asset Sync: Found", assetList.length, "Total Assets");
+      
+      // --- ADD FILTERING LOGIC FOR ASSETS ---
+      let filteredAssets = assetList.filter((a: any) => {
+         const aDate = a.created_at || a.date_time || a.date || '';
+         
+         // Date filter
+         let datePass = true;
+         if (this.activeDateFilter === 'today') {
+            datePass = aDate && (aDate.includes(todayYMD) || aDate.includes(todayDMY));
+          } else if (this.activeDateFilter === 'week') {
+             const rTimestamp = getTS(aDate);
+             const nowTS = nowL.getTime();
+             datePass = rTimestamp > (nowTS - (7 * 24 * 60 * 60 * 1000));
+          } else if (this.activeDateFilter === 'month') {
+             const rTimestamp = getTS(aDate);
+             const nowTS = nowL.getTime();
+             datePass = rTimestamp > (nowTS - (30 * 24 * 60 * 60 * 1000));
+          } else if (this.activeDateFilter === 'custom') {
+             const rTimestamp = getTS(aDate);
+             const fromTS = new Date(dates.from).setHours(0, 0, 0, 0);
+             const toTS = new Date(dates.to).setHours(23, 59, 59, 999);
+             datePass = rTimestamp >= fromTS && rTimestamp <= toTS;
+          }
+
+          // Hierarchy or Legacy filter
+          let hierarchyPass = true;
+          if (deepestSelection) {
+            hierarchyPass = this.isRecordMatchingHierarchy(a, deepestSelection);
+          } else {
+            // Range filter (Inclusive)
+            let rangePass = true;
+            if (this.selectedRange && this.selectedRange !== 'all') {
+               const aRange = (a.range_name || a.range || '').toLowerCase();
+               const filterRange = this.selectedRange.toLowerCase();
+               rangePass = aRange.includes(filterRange) || filterRange.includes(aRange);
+            }
+
+            // Beat filter (Inclusive)
+            let beatPass = true;
+            if (this.selectedBeat && this.selectedBeat !== 'all') {
+               const aBeat = (a.beat_name || a.beat || '').toLowerCase();
+               const filterBeat = this.selectedBeat.toLowerCase();
+               beatPass = aBeat.includes(filterBeat) || filterBeat.includes(aBeat);
+            }
+            hierarchyPass = rangePass && beatPass;
+          }
+
+          return datePass && hierarchyPass;
+       });
+
+      this.totalAssetsCount = filteredAssets.length;
+      
+      // Category Reset
+      this.realNurseryCount = 0;
+      this.realPlantationCount = 0;
+      this.realOfficeCount = 0;
+      this.realEcoCount = 0;
+      let goodCount = 0;
+
+      filteredAssets.forEach((a: any) => {
+        const cat = (a.category || '').toLowerCase();
+        const status = (a.status || '').toLowerCase();
+
+        if (cat.includes('nursery')) this.realNurseryCount++;
+        else if (cat.includes('plantation')) this.realPlantationCount++;
+        else if (cat.includes('office')) this.realOfficeCount++;
+        else if (cat.includes('eco')) this.realEcoCount++;
+
+        if (status === 'good' || status === 'operational') goodCount++;
+      });
+
+      this.operationalRate = filteredAssets.length > 0 
+        ? Math.round((goodCount / filteredAssets.length) * 100) + '%' 
+        : '100%';
+
+      // ADD ASSET TREND DATA
+      const assetsTrendMap: { [date: string]: number } = {};
+      assetList.forEach((a: any) => {
+         const aDate = a.created_at || a.date_time || a.date || '';
+         let dateYMD = '';
+         if (aDate && aDate.includes('-')) {
+             const parts = aDate.split('T')[0].split(' ')[0].split('-');
+             if (parts.length === 3) {
+               dateYMD = parts[0].length === 4 ? `${parts[0]}-${parts[1]}-${parts[2]}` : `${parts[2]}-${parts[1]}-${parts[0]}`;
+             }
+         }
+         if (dateYMD) {
+             assetsTrendMap[dateYMD] = (assetsTrendMap[dateYMD] || 0) + 1;
+         }
+      });
+
+      const last30 = Array.from({length: 30}, (_, i) => {
+         const d = new Date();
+         d.setDate(d.getDate() - (29 - i));
+         const m = String(d.getMonth() + 1).padStart(2, '0');
+         const day = String(d.getDate()).padStart(2, '0');
+         return `${d.getFullYear()}-${m}-${day}`;
+      });
+      this.assetsTrendData = last30.map(d => assetsTrendMap[d] || 0);
+    }
+
+
+    // --- B. PROCESS REPORTS ---
+    if (list.length > 0) {
+        console.log("≡ƒôè Direct Database Sync: Found", list.length, "Total Records");
+        
+        const counts = { criminal: 0, monitoring: 0, fire: 0 };
+        const trendMap: { [cat: string]: { [date: string]: number } } = { crim: {}, events: {}, fire: {} };
+        const rangeMap: { [name: string]: number } = {};
+        const seenIds = new Set();
+
+        const subCatTrendMap: { [id: string]: { [date: string]: number } } = {};
+        this.masterSnapshotCards.forEach(c => {
+          c.count = 0;
+          subCatTrendMap[c.id] = {};
+        });
+
+        list.forEach((r: any) => {
+           // Prevent double counting duplicates
+           const rId = r.id || (r.latitude + '_' + r.longitude + '_' + (r.created_at || r.date));
+           if (seenIds.has(rId)) return;
+           seenIds.add(rId);
+
+           const cat = (r.category || '').toLowerCase();
+           const rDate = r.date || ''; 
+           const rCreatedAt = r.created_at || r.date_time || '';
+           
+           // Hierarchy Resolution (Standardized with sub-pages)
+           const rBeat = (r.beat_name || r.site_name || r.location || '').toLowerCase();
+           const beatObj = this.allBeats.find(b => b.name.toLowerCase() === rBeat);
+           const rRange = (r.range_name || r.range || r.region || (beatObj ? beatObj.parentName : '') || 'General').toLowerCase();
+
+           const rFullDate = rCreatedAt || rDate;
+           const rTimestamp = getTS(rFullDate);
+           
+           // Robust Today Check
+           const isToday = (rFullDate && (rFullDate.includes(todayYMD) || rFullDate.includes(todayDMY) || rFullDate.includes(todayYMD.replace(/-/g, '/'))));
+
+           // Timeframe Checks for Week/Month (Calendar-based for Parity)
+           const dayStart = new Date(nowL).setHours(0, 0, 0, 0);
+           const isThisWeek = rTimestamp >= (dayStart - (7 * 24 * 60 * 60 * 1000));
+           const isThisMonth = rTimestamp >= (dayStart - (30 * 24 * 60 * 60 * 1000));
+
+           // Record for trend mapping (Last 30 Days logic)
+           let dateYMD = '';
+           if (rFullDate && rFullDate.includes('-')) {
+             const parts = rFullDate.split(' ')[0].split('-');
+             dateYMD = parts[0].length === 4 ? `${parts[0]}-${parts[1]}-${parts[2]}` : `${parts[2]}-${parts[1]}-${parts[0]}`;
+           }
+           
+           // Robust Categorization (Independent checks for count parity)
+           const rType = (r.report_type || r.event_type || r.type || '').toLowerCase();
+           const subCatStr = (r.sub_category || '').toLowerCase();
+           const combinedText = `${cat} ${rType} ${subCatStr}`.toLowerCase();
+            
+           let isFire = combinedText.includes('fire');
+           let isCrim = combinedText.includes('crim') || combinedText.includes('poach') || combinedText.includes('mining') || combinedText.includes('fell') || combinedText.includes('timber') || combinedText.includes('encroach') || combinedText.includes('storage') || combinedText.includes('transport') || combinedText.includes('sos');
+           let isEvent = combinedText.includes('event') || combinedText.includes('sight') || combinedText.includes('monit') || combinedText.includes('animal') || combinedText.includes('flora') || combinedText.includes('fauna');
+
+           // Standardize catKey for Trend Mapping (Dashboard Trend only shows one category per record)
+           let catKey = '';
+           if (isFire) catKey = 'fire';
+           else if (isCrim) catKey = 'crim';
+           else if (isEvent) catKey = 'events';
+
+           if (catKey && dateYMD) {
+             trendMap[catKey][dateYMD] = (trendMap[catKey][dateYMD] || 0) + 1;
+           }
+
+           // Specific Sub-category resolution for Dynamic Snapshot Cards
+           let exactId = '';
+           if (isFire) exactId = 'fire';
+           else if (combinedText.includes('fell')) exactId = 'illegal_felling';
+           else if (combinedText.includes('transport')) exactId = 'timber_transport';
+           else if (combinedText.includes('storage')) exactId = 'timber_storage';
+           else if (combinedText.includes('poach')) exactId = 'wild_animal_poaching';
+           else if (combinedText.includes('encroach')) exactId = 'encroachment';
+           else if (combinedText.includes('mining')) exactId = 'illegal_mining';
+           else if (combinedText.includes('jfmc')) exactId = 'jfmc';
+           else if (combinedText.includes('sight') || combinedText.includes('animal')) exactId = 'wild_animal_sighting';
+           else if (combinedText.includes('water')) exactId = 'water_source';
+           else if (combinedText.includes('compens')) exactId = 'wildlife_compensation';
+
+           if (exactId && dateYMD) {
+              subCatTrendMap[exactId][dateYMD] = (subCatTrendMap[exactId][dateYMD] || 0) + 1;
+           }
+
+           // Hierarchy Filtering logic
+           let isPass = true;
+
+           if (deepestSelection) {
+              isPass = this.isRecordMatchingHierarchy(r, deepestSelection);
+           } else {
+              // RANGE FILTER (Inclusive Matching)
+              if (this.selectedRange && this.selectedRange !== 'all') {
+                 const filterRange = this.selectedRange.toLowerCase();
+                 if (!rRange.includes(filterRange) && !filterRange.includes(rRange)) isPass = false;
+              }
+
+              // BEAT FILTER (Inclusive Matching)
+              if (isPass && this.selectedBeat && this.selectedBeat !== 'all') {
+                 const filterBeat = this.selectedBeat.toLowerCase();
+                 if (!rBeat.includes(filterBeat) && !filterBeat.includes(rBeat)) isPass = false;
+              }
+           }
+
+           // DATE FILTER (Dashboard context: Today/Week/Month)
+           if (isPass) {
+              if (this.activeDateFilter === 'today' && !isToday) isPass = false;
+              else if (this.activeDateFilter === 'week' && !isThisWeek) isPass = false;
+              else if (this.activeDateFilter === 'month' && !isThisMonth) isPass = false;
+              else if (this.activeDateFilter === 'custom') {
+                const fromTS = new Date(dates.from).setHours(0, 0, 0, 0);
+                const toTS = new Date(dates.to).setHours(23, 59, 59, 999);
+                if (rTimestamp < fromTS || rTimestamp > toTS) isPass = false;
+              }
+           }
+
+           if (isPass) {
+              if (isFire) counts.fire++;
+              if (isCrim) counts.criminal++;
+              if (isEvent) counts.monitoring++;
+
+              // Increment snapshot card count
+              if (exactId) {
+                const card = this.masterSnapshotCards.find(c => c.id === exactId);
+                if (card) card.count++;
+              }
+           }
+
+           // Populate rangeMap for Coverage (Always Case-Insensitive)
+           const normalizedRange = rRange.toLowerCase().trim() || 'general';
+           rangeMap[normalizedRange] = (rangeMap[normalizedRange] || 0) + 1;
+        });
+
+        const last30 = Array.from({length: 30}, (_, i) => {
+           const d = new Date();
+           d.setDate(d.getDate() - (29 - i));
+           const m = String(d.getMonth() + 1).padStart(2, '0');
+           const day = String(d.getDate()).padStart(2, '0');
+           return `${d.getFullYear()}-${m}-${day}`;
+        });
+
+        const getTrendArr = (k: string) => last30.map(d => trendMap[k][d] || 0);
+        this.criminalTrendData = getTrendArr('crim');
+        this.eventsTrendData = getTrendArr('events');
+        this.fireTrendData = getTrendArr('fire');
+
+        // Build trend arrays for snapshot cards
+        this.masterSnapshotCards.forEach(card => {
+          if (card.id === 'assets') {
+            card.trend = this.assetsTrendData;
+          } else {
+            card.trend = last30.map(d => subCatTrendMap[card.id][d] || 0);
+          }
+        });
+
+        // --- ≡ƒôà CALCULATE TOTALS FOR SNAPSHOT (Dynamic Filtered) ---
+        this.criminalActivityCount15 = counts.criminal;
+        this.sightingsCount15 = counts.monitoring;
+        this.fireAlertsCount15 = counts.fire;
+
+        // --- ≡ƒù║∩╕Å BEAT COVERAGE CALCULATION (Merged & Unique) ---
+        const totalReports = list.length || 1;
+        const sortedRanges = Object.keys(rangeMap)
+          .sort((a, b) => rangeMap[b] - rangeMap[a])
+          .slice(0, 6);
+
+        this.beatCoverage = sortedRanges.map(name => ({
+           label: name.toUpperCase(),
+           val: Math.round(((rangeMap[name] || 0) / totalReports) * 100),
+           color: this.COLORS.p
+        }));
+
+        this.criminalCount = counts.criminal;
+        this.eventsCount = counts.monitoring;
+        this.fireAlertsCount = counts.fire;
+
+        // Sync Bottom Snapshot variables
+        this.criminalActivityCount = this.criminalCount;
+        this.sightingsCount = this.eventsCount;
+
+        // Total Summary
+        const totalSummary = this.criminalCount + this.eventsCount + this.fireAlertsCount;
+        
+        // ≡ƒ¢æ Smart Guard: Prevent re-rendering if counts haven't changed
+        const currentSyncState = `${this.criminalCount}-${this.eventsCount}-${this.fireAlertsCount}-${this.totalAssetsCount}`;
+        if (this.lastDashboardState === currentSyncState) {
+           console.log("ΓÖ╗∩╕Å Data identical, skipping chart re-render.");
+           this.isFetching = false;
+           this.cdr.detectChanges();
+           return;
+        }
+        this.lastDashboardState = currentSyncState;
+
+        console.log(`%c≡ƒôè Final Dashboard Sync: Criminal=${this.criminalCount}, Events=${this.eventsCount}, Fire=${this.fireAlertsCount}, Assets=${this.totalAssetsCount}`, 'color: #10b981; font-weight: bold;');
+
+        // --- ≡ƒôì MAP MARKER PROCESSING ---
+        let processedPins: any[] = [];
+        if (list.length > 0) {
+          processedPins = list
+            .filter((f: any) => {
+              const latRaw = f.latitude || f.lat;
+              const latValid = latRaw && !isNaN(parseFloat(latRaw)) && parseFloat(latRaw) !== 0;
+              
+              const fDate = f.created_at || f.date || f.date_time || '';
+              
+              let isPass = true;
+              if (this.activeDateFilter === 'today') {
+                 isPass = fDate && (fDate.includes(todayYMD) || fDate.includes(todayDMY));
+              } else if (this.activeDateFilter === 'week') {
+                 const rTimestamp = fDate ? new Date(fDate).getTime() : 0;
+                 const nowTS = new Date().getTime();
+                 isPass = rTimestamp > (nowTS - (7 * 24 * 60 * 60 * 1000));
+              } else if (this.activeDateFilter === 'month') {
+                 const rTimestamp = fDate ? new Date(fDate).getTime() : 0;
+                 const nowTS = new Date().getTime();
+                 isPass = rTimestamp > (nowTS - (30 * 24 * 60 * 60 * 1000));
+              } else if (this.activeDateFilter === 'custom') {
+                 const rTimestamp = fDate ? new Date(fDate).getTime() : 0;
+                 const fromTS = new Date(dates.from).getTime();
+                 const toTS = new Date(dates.to).getTime() + (24 * 60 * 60 * 1000) - 1;
+                 isPass = rTimestamp >= fromTS && rTimestamp <= toTS;
+              }
+
+              // HIERARCHY FILTER on map pins
+              if (isPass) {
+                if (deepestSelection) {
+                  isPass = this.isRecordMatchingHierarchy(f, deepestSelection);
+                } else {
+                  // RANGE FILTER on map pins
+                  if (this.selectedRange && this.selectedRange !== 'all') {
+                    const fRange = (f.range_name || f.range || f.region || '').toLowerCase();
+                    if (!fRange.includes(this.selectedRange.toLowerCase())) isPass = false;
+                  }
+
+                  // BEAT FILTER on map pins
+                  if (isPass && this.selectedBeat && this.selectedBeat !== 'all') {
+                    const fBeat = (f.beat_name || f.beat || '').toLowerCase();
+                    if (!fBeat.includes(this.selectedBeat.toLowerCase())) isPass = false;
+                  }
+                }
+              }
+
+              return latValid && isPass;
+            })
+            .map((f: any) => {
+              const cat = (f.category || '').toLowerCase();
+              const rType = (f.report_type || f.event_type || '').toLowerCase();
+              const fullType = `${cat} ${rType}`.toLowerCase();
+              let layerId = 'general_incident';
+              if (fullType.includes('poach')) layerId = 'animal_poaching';
+              else if (fullType.includes('encroach')) layerId = 'encroachment';
+              else if (fullType.includes('mining')) layerId = 'illegal_mining';
+              else if (fullType.includes('fell')) layerId = 'illegal_felling';
+              else if (fullType.includes('timber storage')) layerId = 'timber_storage';
+              else if (fullType.includes('timber transport')) layerId = 'timber_transport';
+              else if (fullType.includes('timber')) layerId = 'timber_storage';
+              else if (fullType.includes('sight')) layerId = 'animal_sighting';
+              else if (fullType.includes('water')) layerId = 'water_status';
+              else if (fullType.includes('jfmc') || fullType.includes('social')) layerId = 'jfmc';
+              else if (fullType.includes('compensation')) layerId = 'wildlife_compensation';
+              else if (fullType.includes('fire')) layerId = 'fire_alerts';
+              else if (fullType.includes('storage')) layerId = 'timber_storage';
+              else if (fullType.includes('transport')) layerId = 'timber_transport';
+              else if (fullType.includes('sos')) layerId = 'sos';
+              return {
+                ...f,
+                latitude: parseFloat(f.latitude || f.lat),
+                longitude: parseFloat(f.longitude || f.lng),
+                layerId: layerId,
+                displayLabel: f.report_type || f.category || 'Forest Report'
+              };
+            });
+        }
+        this.allIncidents = processedPins;
+        console.log(`≡ƒôì Map Pins for Today: ${processedPins.length}`);
+        
+        // ≡ƒöä SYNC DASHBOARD COUNTS
+        // We use the counts calculated during the full list iteration (which includes records without coordinates)
+        this.criminalCount = counts.criminal;
+        this.eventsCount = counts.monitoring;
+        this.fireAlertsCount = counts.fire;
+        this.incidentsCount = counts.criminal + counts.monitoring + counts.fire;
+
+        // Sync Bottom Snapshot variables for the Home page
+        this.criminalActivityCount = this.criminalCount;
+        this.sightingsCount = this.eventsCount;
+
+        console.log(`%c≡ƒôè Robust KPI Sync: Criminal=${this.criminalCount}, Events=${this.eventsCount}, Fire=${this.fireAlertsCount}`, 'color: #10b981; font-weight: bold;');
+
+        this.updateVisiblePins();
+        
+        this.loadTrendData();
+        this.initHomeCharts();
+        this.cdr.detectChanges();
+
+        // --- ≡ƒÜ¿ ALERTS & SOS PROCESSING (Enhanced with Forest Reports) ---
+        const rawAlerts = this.alerts || [];
+        
+        // Add fire alerts from system alerts to KPI if they are from today
+        rawAlerts.forEach((a: any) => {
+           const aType = (a.type || a.category || a.report_type || '').toLowerCase();
+           const aDate = a.created_at || a.date || '';
+           const isTodayAlert = (aDate.includes(todayYMD) || aDate.includes(todayDMY) || aDate.includes(todayYMD.replace(/-/g, '/')));
+           
+           if ((aType.includes('fire') || aType.includes('sos')) && isTodayAlert) {
+              if (aType.includes('fire')) {
+                this.fireAlertsCount++;
+              } else if (aType.includes('sos')) {
+                this.criminalCount++;
+              }
+              this.incidentsCount++;
+           }
+        });
+        
+        // Transform the forest reports (Today's only) into Alerts format
+        const syncAlerts = (this.allIncidents || []).map(inc => {
+          const theme = this.getAlertTheme(inc.layerId || inc.category || inc.type);
+          
+          // Resolve Name from IDs if direct name missing
+          const uId = inc.user_id || inc.ranger_id || inc.staff_id || inc.added_by || inc.created_by;
+          let uName = inc.user_name || inc.ranger_name;
+          
+          if (!uName && uId && this.rangers) {
+            const found = this.rangers.find(r => (r.id || r.user_id) == uId);
+            if (found) uName = found.name || found.full_name;
+          }
+
+          return {
+            ...inc,
+            displayTitle: (inc.displayLabel || inc.report_type || inc.category || 'Incident').toLowerCase(),
+            displayDesc: `${uName || 'Officer'} at ${inc.beat_name || inc.range_name || 'Field Area'}`,
+            displayTime: this.formatTime(inc.created_at || inc.date || new Date().toISOString()),
+            severity: this.getSeverityFromLayer(inc.layerId),
+            ...theme // Adds icon, color, bg, label from getAlertTheme
+          };
+        });
+
+        // Combine system alerts with synced forest reports
+        this.alertsData = [...rawAlerts, ...syncAlerts];
+        
+        // Remove duplicates if any (based on unique ID)
+        
+        const seen = new Set();
+        this.alertsData = this.alertsData.filter(a => {
+           const uniqueKey = a.id || (a.latitude + '_' + a.longitude + '_' + a.created_at);
+           if (seen.has(uniqueKey)) return false;
+           seen.add(uniqueKey);
+           return true;
+        });
+
+        if (this.alertsData.length > 0) {
+          this.critCount = this.alertsData.filter((a: any) => a.severity === 'critical').length;
+          this.warnCount = this.alertsData.filter((a: any) => a.severity === 'warning').length;
+          this.infoCount = this.alertsData.filter((a: any) => a.severity === 'info').length;
+        } else {
+          this.critCount = 0;
+          this.warnCount = 0;
+          this.infoCount = 0;
+        }
+
+        this.updateFilteredAlerts();

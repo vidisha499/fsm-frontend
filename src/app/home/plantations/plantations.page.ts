@@ -19,7 +19,7 @@ export class PlantationsPage implements OnInit {
 
   constructor(
     private navCtrl: NavController,
-    private dataService: DataService,
+    public dataService: DataService,
     private loadingCtrl: LoadingController
   ) { }
 

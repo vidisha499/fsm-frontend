@@ -145,6 +145,14 @@
     &.offline { background: rgba(249, 115, 22, 0.15) !important; color: #f97316 !important; border: 1px solid rgba(249, 115, 22, 0.3) !important; }
   }
 
+  .delete-card-btn {
+    background: #fee2e2; color: #ef4444; width: 34px; height: 34px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; border: none;
+    transition: all 0.2s ease;
+    &:active { transform: scale(0.9); background: #fecaca; }
+    ion-icon { font-size: 18px; }
+  }
+
   .list-sync-header {
     display: flex;
     justify-content: flex-end;
