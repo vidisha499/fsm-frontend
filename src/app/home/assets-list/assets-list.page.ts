@@ -28,7 +28,8 @@ export class AssetsListPage implements OnInit {
     fromDate: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString(), // Last 30 days default
     toDate: new Date().toISOString(),
     condition: 'all',
-    searchQuery: ''
+    searchQuery: '',
+    guardName: ''
   };
 
   constructor(
@@ -116,7 +117,11 @@ openAssetDetails(asset: any) {
         (item.name && item.name.toLowerCase().includes(query)) ||
         (item.description && item.description.toLowerCase().includes(query));
 
-      return matchesDate && matchesCategory && matchesCondition && matchesSearch;
+      const guardQ = (this.filters.guardName || '').trim().toLowerCase();
+      const matchesGuard = !guardQ ||
+        (item.added_by_name || item.ranger_name || item.officer_name || item.created_by_name || item.user_name || 'Officer').toLowerCase().includes(guardQ);
+
+      return matchesDate && matchesCategory && matchesCondition && matchesSearch && matchesGuard;
     });
 
     this.isModalOpen = false;
@@ -128,7 +133,8 @@ openAssetDetails(asset: any) {
       fromDate: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString(),
       toDate: new Date().toISOString(),
       condition: 'all',
-      searchQuery: ''
+      searchQuery: '',
+      guardName: ''
     };
     this.assets = [...this.allAssets];
     this.isModalOpen = false;

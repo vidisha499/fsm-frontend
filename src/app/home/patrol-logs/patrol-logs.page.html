@@ -202,6 +202,11 @@
 
       <div class="filter-body">
         <div class="date-row">
+          <span class="label">GUARD NAME</span>
+          <input type="text" [(ngModel)]="filterGuard" placeholder="Search by name" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: white; padding: 6px 12px; border-radius: 8px; font-size: 14px; outline: none; text-align: end; width: 150px;">
+        </div>
+
+        <div class="date-row">
           <span class="label">FROM</span>
           <div class="date-pill">
              <input type="date" [(ngModel)]="filterFrom" [max]="maxDate">

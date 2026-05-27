@@ -19,6 +19,7 @@ export class EventsReportsPage implements OnInit {
   filterTo: string = '';
   filterCategory: string = 'all';
   filterType: string = 'all';
+  filterGuard: string = '';
   allReports: any[] = [];
   maxDate: string = new Date().toISOString().split('T')[0];
 
@@ -129,6 +130,15 @@ export class EventsReportsPage implements OnInit {
           return typeVal.includes(filterVal) || filterVal.includes(typeVal);
         });
       }
+    }
+
+    // 4. Guard filter
+    if (this.filterGuard) {
+      const q = this.filterGuard.trim().toLowerCase();
+      filtered = filtered.filter(r => {
+        const name = (r.displayReporter || r.staff_name || r.name || r.user_name || r.reporter_name || 'Officer').toLowerCase();
+        return name.includes(q);
+      });
     }
 
     this.submittedReports = filtered;
@@ -286,6 +296,7 @@ export class EventsReportsPage implements OnInit {
     this.filterTo = today;
     this.filterCategory = 'all';
     this.filterType = 'all';
+    this.filterGuard = '';
     this.isFilterModalOpen = false;
     this.isLoading = true;
     this.loadSubmittedReports(today, today);

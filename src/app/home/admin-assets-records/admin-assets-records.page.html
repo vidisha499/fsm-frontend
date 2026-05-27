@@ -114,6 +114,45 @@
           </div>
 
           <div class="date-row">
+            <span class="label">CATEGORY</span>
+            <div class="date-pill">
+               <select [(ngModel)]="filterCategory">
+                 <option value="all">All Categories</option>
+                 <option value="Offices / Govt Residence">Offices / Govt Residence</option>
+                 <option value="Nursery">Nursery</option>
+                 <option value="Plantations">Plantations</option>
+                 <option value="Other">Other</option>
+               </select>
+            </div>
+          </div>
+
+          <div class="date-row">
+            <span class="label">CONDITION</span>
+            <div class="date-pill">
+               <select [(ngModel)]="filterCondition">
+                 <option value="all">All Conditions</option>
+                 <option value="good">Good / Operational</option>
+                 <option value="needs repair">Needs Repair</option>
+                 <option value="damaged">Damaged</option>
+               </select>
+            </div>
+          </div>
+
+          <div class="date-row">
+            <span class="label">SEARCH</span>
+            <div class="date-pill">
+               <input type="text" [(ngModel)]="filterSearchQuery" placeholder="Search by name/desc" style="border: none; background: #f1f5f9; padding: 6px 10px; border-radius: 8px; font-weight: 700; color: #0f172a; outline: none; min-width: 120px; font-size: 13px; text-align: right;">
+            </div>
+          </div>
+
+          <div class="date-row">
+            <span class="label">GUARD NAME</span>
+            <div class="date-pill">
+               <input type="text" [(ngModel)]="filterGuard" placeholder="Search by name" style="border: none; background: #f1f5f9; padding: 6px 10px; border-radius: 8px; font-weight: 700; color: #0f172a; outline: none; min-width: 120px; font-size: 13px; text-align: right;">
+            </div>
+          </div>
+
+          <div class="date-row">
             <span class="label">FROM</span>
             <div class="date-pill">
               <input type="date" [(ngModel)]="filterFrom" [max]="maxDate">

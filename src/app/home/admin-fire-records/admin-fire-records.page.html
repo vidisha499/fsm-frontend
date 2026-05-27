@@ -103,6 +103,25 @@
           </div>
 
           <div class="date-row">
+            <span class="label">SEVERITY</span>
+            <div class="date-pill">
+               <select [(ngModel)]="filterSeverity">
+                 <option value="all">All Severities</option>
+                 <option value="critical">Critical</option>
+                 <option value="warning">Warning</option>
+                 <option value="info">Info</option>
+               </select>
+            </div>
+          </div>
+
+          <div class="date-row">
+            <span class="label">GUARD NAME</span>
+            <div class="date-pill">
+               <input type="text" [(ngModel)]="filterGuard" placeholder="Search by name" style="border: none; background: #f1f5f9; padding: 6px 10px; border-radius: 8px; font-weight: 700; color: #0f172a; outline: none; min-width: 120px; font-size: 13px; text-align: right;">
+            </div>
+          </div>
+
+          <div class="date-row">
             <span class="label">FROM</span>
             <div class="date-pill">
                <input type="date" [(ngModel)]="filterFrom" [max]="maxDate">

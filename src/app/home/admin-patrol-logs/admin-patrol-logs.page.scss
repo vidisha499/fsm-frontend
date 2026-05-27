@@ -243,7 +243,7 @@
 
 .custom-bottom-card {
   --height: auto;
-  --max-height: 70%;
+  --max-height: 85%;
   --border-radius: 40px 40px 0 0;
   align-items: flex-end; 
 
@@ -254,6 +254,9 @@
 
   .modal-card-content {
     padding: 20px 24px 30px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
     
     .modal-header {
       text-align: center;
@@ -271,6 +274,9 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
+      overflow-y: auto;
+      max-height: 40vh;
+      padding-right: 4px;
 
       .date-row {
         display: flex;

@@ -146,6 +146,11 @@
           </div>
 
           <div class="date-row">
+            <span class="label">GUARD NAME</span>
+            <input type="text" [(ngModel)]="filterGuard" placeholder="Search by name" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: white; padding: 6px 12px; border-radius: 8px; font-size: 14px; outline: none; text-align: end; width: 180px;">
+          </div>
+
+          <div class="date-row">
             <span class="label">CATEGORY</span>
             <select [(ngModel)]="filterCategory" (change)="onCategoryChange()" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: white; padding: 6px 12px; border-radius: 8px; font-size: 14px; outline: none; text-align: end; text-align-last: end; width: 180px;">
               <option value="all" style="background: #0f172a; color: white;">All Categories</option>

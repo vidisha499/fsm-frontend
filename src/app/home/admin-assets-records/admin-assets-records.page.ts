@@ -17,6 +17,10 @@ export class AdminAssetsRecordsPage implements OnInit {
   filterFrom: string = '';
   filterTo: string = '';
   maxDate: string = new Date().toISOString().split('T')[0];
+  public filterCategory: string = 'all';
+  public filterCondition: string = 'all';
+  public filterSearchQuery: string = '';
+  public filterGuard: string = '';
 
   // Hierarchy Filters
   public allRanges: string[] = [];
@@ -134,7 +138,44 @@ export class AdminAssetsRecordsPage implements OnInit {
           const matchesRange = this.selectedRange === 'all' || rRange.includes(filterRange) || filterRange.includes(rRange);
           const matchesBeat = this.selectedBeat === 'all' || rBeat.includes(filterBeat) || filterBeat.includes(rBeat);
 
-          return matchesDate && matchesRange && matchesBeat;
+          // 📦 3. Category Filter
+          let matchesCategory = true;
+          if (this.filterCategory !== 'all') {
+            const cat = (a.category_name || a.category || a.type || '').toLowerCase();
+            matchesCategory = cat.includes(this.filterCategory.toLowerCase());
+          }
+
+          // 🛠️ 4. Condition Filter
+          let matchesCondition = true;
+          if (this.filterCondition !== 'all') {
+            const cond = (a.status || a.condition || '').toLowerCase();
+            if (this.filterCondition === 'good') {
+              matchesCondition = ['good', 'operational', 'working', 'ok', 'active', 'available'].some(g => cond.includes(g));
+            } else if (this.filterCondition === 'needs repair') {
+              matchesCondition = cond.includes('repair') || cond.includes('bad') || cond.includes('fix');
+            } else if (this.filterCondition === 'damaged') {
+              matchesCondition = cond.includes('damage') || cond.includes('broken') || cond.includes('destroy');
+            }
+          }
+
+          // 🔍 5. Search Query Filter
+          let matchesSearch = true;
+          if (this.filterSearchQuery) {
+            const query = this.filterSearchQuery.trim().toLowerCase();
+            const name = (a.name || a.asset_name || '').toLowerCase();
+            const desc = (a.description || a.notes || '').toLowerCase();
+            matchesSearch = name.includes(query) || desc.includes(query);
+          }
+
+          // 👤 6. Guard Name Filter
+          let matchesGuard = true;
+          if (this.filterGuard) {
+            const query = this.filterGuard.trim().toLowerCase();
+            const reporter = (a.added_by_name || a.ranger_name || a.officer_name || a.created_by_name || a.user_name || 'Officer').toLowerCase();
+            matchesGuard = reporter.includes(query);
+          }
+
+          return matchesDate && matchesRange && matchesBeat && matchesCategory && matchesCondition && matchesSearch && matchesGuard;
         });
 
         this.computeCounts();
@@ -218,6 +259,10 @@ export class AdminAssetsRecordsPage implements OnInit {
     this.filterTo = '';
     this.selectedRange = 'all';
     this.selectedBeat = 'all';
+    this.filterCategory = 'all';
+    this.filterCondition = 'all';
+    this.filterSearchQuery = '';
+    this.filterGuard = '';
     this.updateVisibleBeats();
     this.applyFilter();
   }

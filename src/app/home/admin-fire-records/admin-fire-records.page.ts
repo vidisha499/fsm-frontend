@@ -18,6 +18,8 @@ export class AdminFireRecordsPage implements OnInit {
   filterFrom: string = '';
   filterTo: string = '';
   maxDate: string = new Date().toISOString().split('T')[0];
+  public filterSeverity: string = 'all';
+  public filterGuard: string = '';
 
   // Hierarchy Filters
   public allRanges: string[] = [];
@@ -191,7 +193,23 @@ export class AdminFireRecordsPage implements OnInit {
         }
       }
 
-      return matchesDate;
+      // 2. Severity Filter
+      let matchesSeverity = true;
+      if (this.filterSeverity !== 'all') {
+        const severity = ((r.title || r.message || rType).toLowerCase().includes('fire') ? 'critical' : 'warning');
+        const sevVal = (r.severity || severity || 'info').toLowerCase();
+        matchesSeverity = sevVal.includes(this.filterSeverity.toLowerCase());
+      }
+
+      // 👤 3. Guard Name Filter
+      let matchesGuard = true;
+      if (this.filterGuard) {
+        const query = this.filterGuard.trim().toLowerCase();
+        const rReporter = (r.displayReporter || r.staff_name || r.name || r.user_name || r.reporter_name || 'Officer').toLowerCase();
+        matchesGuard = rReporter.includes(query);
+      }
+
+      return matchesDate && matchesSeverity && matchesGuard;
     })
     .sort((a, b) => getTS(b.created_at || b.date) - getTS(a.created_at || a.date))
     .map((r: any) => this.processPhotos(r));
@@ -368,6 +386,8 @@ export class AdminFireRecordsPage implements OnInit {
   resetFilter() {
     this.filterFrom = '';
     this.filterTo = '';
+    this.filterSeverity = 'all';
+    this.filterGuard = '';
     if (this.userRole === '1') {
       this.selectedRange = 'all';
       this.selectedBeat = 'all';

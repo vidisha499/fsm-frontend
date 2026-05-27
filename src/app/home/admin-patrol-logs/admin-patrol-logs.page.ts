@@ -18,6 +18,7 @@ export class AdminPatrolLogsPage implements OnInit {
   filterTo: string = '';
   maxDate: string = new Date().toISOString().split('T')[0];
   rangers: any[] = [];
+  public filterGuard: string = '';
 
   // Hierarchy Filters
   public allRanges: string[] = [];
@@ -203,7 +204,28 @@ export class AdminPatrolLogsPage implements OnInit {
           const matchesPatrolType = this.selectedPatrolType === 'all' || logType.includes(this.selectedPatrolType.toLowerCase());
           const matchesPatrolMethod = this.selectedPatrolMethod === 'all' || logMethod.includes(this.selectedPatrolMethod.toLowerCase());
 
-          return matchesRange && matchesBeat && matchesPatrolType && matchesPatrolMethod;
+          // 👤 4. Guard Name Filter
+          let matchesGuard = true;
+          if (this.filterGuard) {
+            const query = this.filterGuard.trim().toLowerCase();
+            const uId = log.user_id || log.ranger_id || log.staff_id || log.guard_id || log.created_by;
+            
+            // Search in directly attached names
+            const name = (log.user_name || log.ranger_name || log.full_name || log.guard_name || log.officer_name || '').toLowerCase();
+            
+            // Search in resolved rangers list
+            let resolvedName = '';
+            if (uId && this.rangers.length > 0) {
+              const found = this.rangers.find(r => (r.id || r.user_id || r.staff_id) == uId);
+              if (found) {
+                resolvedName = (found.name || found.full_name || found.user_name || found.ranger_name || '').toLowerCase();
+              }
+            }
+            
+            matchesGuard = name.includes(query) || resolvedName.includes(query);
+          }
+
+          return matchesRange && matchesBeat && matchesPatrolType && matchesPatrolMethod && matchesGuard;
         });
 
         this.patrolLogs = filtered
@@ -375,6 +397,7 @@ export class AdminPatrolLogsPage implements OnInit {
     this.filterTo = today;
     this.selectedPatrolType = 'all';
     this.selectedPatrolMethod = 'all';
+    this.filterGuard = '';
     if (this.userRole === '1') {
       this.selectedRange = 'all';
       this.selectedBeat = 'all';

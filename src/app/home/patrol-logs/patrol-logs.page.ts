@@ -41,6 +41,7 @@ export class PatrolLogsPage implements OnInit {
   public rangerName: string = '';
   public maxDate: string = new Date().toISOString().split('T')[0];
   public userRole: string = '3';
+  public filterGuard: string = '';
   constructor(
     private navCtrl: NavController,
     private router: Router,
@@ -190,6 +191,15 @@ export class PatrolLogsPage implements OnInit {
       logs = logs.filter(l => {
         const m = (l.patrolName || l.method || '').toUpperCase();
         return m.includes(this.filterPatrolMethod.toUpperCase());
+      });
+    }
+
+    // 👤 Guard Name Filter
+    if (this.filterGuard) {
+      const q = this.filterGuard.trim().toLowerCase();
+      logs = logs.filter(l => {
+        const name = (l.user_name || l.ranger_name || l.patrolName || l.displayName || 'Officer').toLowerCase();
+        return name.includes(q);
       });
     }
 
@@ -624,6 +634,7 @@ export class PatrolLogsPage implements OnInit {
     this.filterFrom = ''; this.filterTo = '';
     this.filterPatrolType = 'all';
     this.filterPatrolMethod = 'all';
+    this.filterGuard = '';
     // ✅ Clear persisted filters
     localStorage.removeItem('patrol_filter_from');
     localStorage.removeItem('patrol_filter_to');
