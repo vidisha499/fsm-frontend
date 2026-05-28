@@ -47,14 +47,14 @@
         <h2 class="code-val">{{ plantation?.plantation_code || plantation?.code || 'N/A' }}</h2>
       </div>
       <div class="code-right">
-        <!-- Show clickable buttons if not yet processed AND user has Plantation update permission -->
-        <ng-container *ngIf="(plantation?.status !== 'Approved' && plantation?.status !== 'APPROVED' && plantation?.status !== 'APPROVE' && plantation?.status !== 1 && plantation?.status !== 'Rejected' && plantation?.status !== 'REJECTED' && plantation?.status !== 'REJECT') && dataService.hasPermission('Plantation', 'update')">
+        <!-- Show clickable buttons if not yet processed AND user is Super Admin (role 1) -->
+        <ng-container *ngIf="(plantation?.status !== 'Approved' && plantation?.status !== 'APPROVED' && plantation?.status !== 'APPROVE' && plantation?.status !== 1 && plantation?.status !== 'Rejected' && plantation?.status !== 'REJECTED' && plantation?.status !== 'REJECT') && (userRole == '1' || userRole == 1)">
           <ion-button class="approve-badge-btn" (click)="handleAction('APPROVE')">APPROVE</ion-button>
           <ion-button class="reject-badge-btn" (click)="handleAction('REJECT')">REJECT</ion-button>
         </ng-container>
         
-        <!-- PENDING badge for Regular Users -->
-        <div class="pending-pill" *ngIf="(userRole != '1' && userRole != '2' && userRole != 1 && userRole != 2) && (plantation?.status !== 'Approved' && plantation?.status !== 'APPROVED' && plantation?.status !== 'APPROVE' && plantation?.status !== 1 && plantation?.status !== '1' && plantation?.status !== 'Rejected' && plantation?.status !== 'REJECTED' && plantation?.status !== 'REJECT' && !plantation?.is_approved && plantation?.is_approved !== 1 && plantation?.is_approved !== '1')">
+        <!-- PENDING badge for Regular Users (Non-Super-Admins) -->
+        <div class="pending-pill" *ngIf="(userRole != '1' && userRole != 1) && (plantation?.status !== 'Approved' && plantation?.status !== 'APPROVED' && plantation?.status !== 'APPROVE' && plantation?.status !== 1 && plantation?.status !== '1' && plantation?.status !== 'Rejected' && plantation?.status !== 'REJECTED' && plantation?.status !== 'REJECT' && !plantation?.is_approved && plantation?.is_approved !== 1 && plantation?.is_approved !== '1')">
           PENDING APPROVAL
         </div>
 
