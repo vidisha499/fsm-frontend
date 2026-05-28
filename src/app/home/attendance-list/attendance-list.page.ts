@@ -588,34 +588,30 @@ private handleError(err: any, loader: any) {
 async applyFilters() {
   console.log('applyFilters triggered with:', this.filters);
   this.isFiltered = true;
-<<<<<<< Updated upstream
-
-  // 1. Dates ko normalize karein (Local Date YYYY-MM-DD)
-  const start = new Date(this.filters.fromDate).toLocaleDateString('en-CA');
-  const end = new Date(this.filters.toDate).toLocaleDateString('en-CA');
-  // 2. Filter logic with Mode check
-  this.attendanceLogs = this.allLogs.filter(log => {
-    if (!log.createdAt) return false;
-      
-    const logDate = new Date(log.createdAt).toLocaleDateString('en-CA');
-    const isWithin = logDate >= start && logDate <= end;
-    
-    let matchesStatus = true;
-    if (this.filters.status && this.filters.status !== 'all') {
-      matchesStatus = log.status === this.filters.status;
-    }
-    
-    return isWithin && matchesStatus && this.matchesSelectedMode(log);
-  });
-
-=======
   try {
+    // 1. Dates ko normalize karein (Local Date YYYY-MM-DD)
+    const start = new Date(this.filters.fromDate).toLocaleDateString('en-CA');
+    const end = new Date(this.filters.toDate).toLocaleDateString('en-CA');
+    // 2. Filter logic with Mode check
+    this.attendanceLogs = this.allLogs.filter(log => {
+      if (!log.createdAt) return false;
+        
+      const logDate = new Date(log.createdAt).toLocaleDateString('en-CA');
+      const isWithin = logDate >= start && logDate <= end;
+      
+      let matchesStatus = true;
+      if (this.filters.status && this.filters.status !== 'all') {
+        matchesStatus = log.status === this.filters.status;
+      }
+      
+      return isWithin && matchesStatus && this.matchesSelectedMode(log);
+    });
+
     this.updateDisplayedLogs();
     console.log('updateDisplayedLogs success, filtered count:', this.attendanceLogs?.length);
   } catch (e) {
     console.error('Error in applyFilters:', e);
   }
->>>>>>> Stashed changes
   this.isModalOpen = false;
 }
 

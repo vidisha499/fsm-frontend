@@ -443,6 +443,18 @@ export class PatrolLogsPage implements OnInit {
       lng = position.coords.longitude;
     } catch (e) { console.warn("GPS failed, using 0,0"); }
 
+    const userDataStr = localStorage.getItem('user_data');
+    let userData: any = {};
+    try {
+      userData = JSON.parse(userDataStr || '{}');
+    } catch (e) {}
+
+    const isDynamic = this.dataService.isUserDynamic(userData);
+    const dynamicEntityId = userData.dynamic_assignment?.entity_id || userData.entity_id || null;
+
+    const resolvedEntityId = isDynamic && dynamicEntityId ? String(dynamicEntityId) : null;
+    const resolvedSiteId = !isDynamic ? (userData.site_id || userData.assigned_site?.id || null) : null;
+
     // Generate a truly unique sessionId for this session
     const uniqueSessionId = `PATROL_${storedRangerId}_${Date.now()}`;
 
@@ -456,7 +468,9 @@ export class PatrolLogsPage implements OnInit {
       method: this.selectedMethod,
       patrol_type: this.selectedType,
       patrol_method: this.selectedMethod,
-      sessionId: uniqueSessionId
+      sessionId: uniqueSessionId,
+      site_id: resolvedSiteId,
+      entity_id: resolvedEntityId
     };
 
     if (!this.dataService.isOnline()) {
