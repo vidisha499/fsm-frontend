@@ -1,0 +1,204 @@
+ion-content {
+  --background: #f8f9fc;
+}
+
+.header-section {
+  position: relative;
+  background: linear-gradient(135deg, #1f8a66, #187255);
+  padding: 40px 20px 30px;
+  border-bottom-left-radius: 25px;
+  border-bottom-right-radius: 25px;
+  overflow: hidden;
+
+  .header-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(circle at top right, rgba(255,255,255,0.1), transparent);
+  }
+
+  .nav-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    z-index: 2;
+
+    .back-btn {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      border-radius: 12px;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      backdrop-filter: blur(5px);
+    }
+
+    .title-stack {
+      display: flex;
+      flex-direction: column;
+      
+      h1 {
+        margin: 0;
+        color: white;
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+      }
+      p {
+        margin: 2px 0 0;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+    }
+  }
+}
+
+.assign-content {
+  .form-container {
+    padding: 24px 20px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #64748b;
+      letter-spacing: 0.5px;
+      margin-left: 4px;
+    }
+
+    .pill-input {
+      background: white;
+      border-radius: 16px;
+      padding: 0 16px;
+      height: 54px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+
+      &.disabled-look {
+        background: #fdfdfd;
+        input { color: #0f172a; font-weight: 700; }
+      }
+
+      .start-icon {
+        color: #10b981;
+        font-size: 20px;
+      }
+
+      .end-icon {
+        color: #94a3b8;
+        font-size: 16px;
+      }
+
+      select, input {
+        flex: 1;
+        border: none;
+        background: transparent;
+        outline: none;
+        font-size: 14px;
+        font-weight: 600;
+        color: #0f172a;
+        width: 100%;
+        appearance: none;
+        
+        &::placeholder {
+          color: #94a3b8;
+          font-weight: 500;
+        }
+      }
+      
+      input[type="date"] {
+        &::-webkit-calendar-picker-indicator {
+          opacity: 0;
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          cursor: pointer;
+        }
+      }
+    }
+  }
+
+  .date-row {
+    display: flex;
+    gap: 12px;
+    
+    .half {
+      flex: 1;
+    }
+  }
+
+  .days-scroll {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-bottom: 5px;
+
+    .day-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 10px 14px;
+      transition: all 0.2s ease;
+      color: #475569;
+      font-weight: 600;
+      font-size: 14px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+
+      ion-icon {
+        font-size: 18px;
+        color: #94a3b8;
+      }
+
+      &.selected {
+        border-color: #10b981;
+        
+        ion-icon {
+          color: #10b981;
+        }
+      }
+    }
+  }
+}
+
+.footer-container {
+  padding: 16px 20px 24px;
+  background: #f8f9fc;
+  
+  .assign-btn {
+    width: 100%;
+    background: #188665;
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 16px;
+    height: 56px;
+    border: none;
+    box-shadow: 0 8px 20px rgba(24, 134, 101, 0.25);
+    transition: transform 0.1s;
+    
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+}

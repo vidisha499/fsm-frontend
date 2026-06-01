@@ -194,6 +194,10 @@ loadChildren:() => import('./admin/admin.module').then( m => m.AdminPageModule)
   {
     path: 'tasks',
     loadChildren: () => import('./tasks/tasks.module').then( m => m.TasksPageModule)
+  },
+  {
+    path: 'assign-site',
+    loadChildren: () => import('./assign-site/assign-site.module').then( m => m.AssignSitePageModule)
   }
 
 ];

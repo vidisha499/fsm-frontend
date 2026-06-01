@@ -28,6 +28,8 @@ export class AdminEventsRecordsPage implements OnInit {
   public userRole: string = '3';
   public assignedRange: string = '';
   public assignedBeat: string = '';
+  public deepestFilterName: string = '';
+  public hierarchyChain: string[] = [];
 
   constructor(
     private navCtrl: NavController,
@@ -73,6 +75,14 @@ export class AdminEventsRecordsPage implements OnInit {
     } else {
       this.selectedRange = localStorage.getItem('global_range_filter') || 'all';
       this.selectedBeat = localStorage.getItem('global_beat_filter') || 'all';
+    }
+
+    // Read V2 dynamic hierarchy filter from admin dashboard
+    this.deepestFilterName = localStorage.getItem('global_deepest_filter_name') || '';
+    try {
+      this.hierarchyChain = JSON.parse(localStorage.getItem('global_hierarchy_chain') || '[]');
+    } catch (e) {
+      this.hierarchyChain = [];
     }
 
     const today = new Date().toISOString().split('T')[0];
@@ -197,6 +207,12 @@ export class AdminEventsRecordsPage implements OnInit {
     this.dataService.enrichReportsWithReporterHierarchy(filtered, companyId).subscribe({
       next: (enriched) => {
         this.submittedReports = enriched.filter((r: any) => {
+          // V2 Dynamic Hierarchy Filter (takes priority)
+          if (this.deepestFilterName) {
+            return this.isRecordMatchingHierarchyName(r);
+          }
+
+          // Legacy range/beat filters
           const rRange = String(r.displayRange || '').toLowerCase();
           const rBeat = String(r.displayBeat || '').toLowerCase();
           const filterRange = this.selectedRange.toLowerCase();
@@ -218,6 +234,35 @@ export class AdminEventsRecordsPage implements OnInit {
         this.isLoading = false;
       }
     });
+  }
+
+  isRecordMatchingHierarchyName(r: any): boolean {
+    const fieldsToSearch = [
+      r.beat_name, r.site_name, r.location, r.location_name,
+      r.range_name, r.range, r.region, r.division_name, r.division,
+      r.client_name, r.name, r.beat,
+      r.displayRange, r.displayBeat
+    ];
+
+    const matchName = this.deepestFilterName.toLowerCase();
+    for (const f of fieldsToSearch) {
+      if (f && String(f).toLowerCase().includes(matchName)) {
+        return true;
+      }
+    }
+
+    if (this.hierarchyChain.length > 0) {
+      const deepest = this.hierarchyChain[this.hierarchyChain.length - 1]?.toLowerCase() || '';
+      if (deepest) {
+        for (const f of fieldsToSearch) {
+          if (f && String(f).toLowerCase().includes(deepest)) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
   }
 
   processPhotos(report: any) {

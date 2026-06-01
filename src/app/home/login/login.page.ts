@@ -70,9 +70,10 @@ export class LoginPage implements OnInit, OnDestroy {
     // Persistent login check: Prevent showing login page if already logged in
     const token = localStorage.getItem('api_token');
     const role = localStorage.getItem('user_role');
+    const isRestrictedAdmin = localStorage.getItem('is_restricted_admin') === 'true';
     
     if (token) {
-      if (role === '1' || role === '2' || role === '7') {
+      if (role === '1' || role === '2' || role === '7' || isRestrictedAdmin) {
         this.navCtrl.navigateRoot('/admin');
       } else {
         this.navCtrl.navigateRoot('/home');
@@ -393,13 +394,76 @@ async login() {
         this.dataService.loginSuccess$.next();
 
         // --- NAVIGATION LOGIC ---
-        if (userRole === 1 || userRole === 2 || userRole === 7) { 
-          // Admins, Supervisors and Range Officers ke liye alag route
-          this.navCtrl.navigateRoot('/admin');
-        } else {
-          // Default fallback (e.g. guards, rangers, etc.)
-          this.navCtrl.navigateRoot('/home');
-        }
+        // Fetch user assignments to determine correct dashboard
+        this.dataService.getUserAssignments(userData.id).subscribe({
+          next: (assignRes: any) => {
+            const assignments = assignRes?.data || assignRes || [];
+            const list = Array.isArray(assignments) ? assignments : [assignments];
+            let assignedLayerId: any = null;
+            let assignedEntityId: any = null;
+            
+            if (list.length > 0) {
+              const a = list[0];
+              const entity = a.entity || a.assigned_entity || a.beat || {};
+              assignedLayerId = entity.layer_id || entity.layerId || a.layer_id || entity.type_id;
+              assignedEntityId = entity.id || entity.entity_id || a.entity_id;
+            }
+
+            // To know if they are assigned to Range (index 0) or Beat (index 1), fetch layers
+            this.dataService.listV2Layers().subscribe({
+              next: (layerRes: any) => {
+                const layers = layerRes?.data || [];
+                let isRestrictedAdmin = false;
+                
+                console.log("🛡️ [DEBUG ROUTING] assignedLayerId:", assignedLayerId);
+                console.log("🛡️ [DEBUG ROUTING] fetched layers count:", layers.length);
+
+                if (assignedLayerId && layers.length > 0) {
+                  const rangeLayerId = layers[0]?.id;
+                  const beatLayerId = layers[1]?.id;
+                  
+                  console.log(`🛡️ [DEBUG ROUTING] Comparing assignedLayer (${assignedLayerId}) with Range(${rangeLayerId}) & Beat(${beatLayerId})`);
+                  
+                  if (String(assignedLayerId) === String(rangeLayerId) || String(assignedLayerId) === String(beatLayerId)) {
+                    isRestrictedAdmin = true;
+                  }
+                }
+
+                console.log("🛡️ [DEBUG ROUTING] isRestrictedAdmin evaluated to:", isRestrictedAdmin);
+
+                if (userRole === 1 || userRole === 2 || userRole === 7 || isRestrictedAdmin) {
+                  if (isRestrictedAdmin) {
+                    localStorage.setItem('is_restricted_admin', 'true');
+                    localStorage.setItem('admin_layer_id', String(assignedLayerId));
+                    if (assignedEntityId) localStorage.setItem('admin_entity_id', String(assignedEntityId));
+                  } else {
+                    localStorage.removeItem('is_restricted_admin');
+                    localStorage.removeItem('admin_layer_id');
+                    localStorage.removeItem('admin_entity_id');
+                  }
+                  this.navCtrl.navigateRoot('/admin');
+                } else {
+                  this.navCtrl.navigateRoot('/home');
+                }
+              },
+              error: () => {
+                // Fallback
+                console.warn("🛡️ [DEBUG ROUTING] listV2Layers API failed!");
+                if (userRole === 1 || userRole === 2 || userRole === 7) this.navCtrl.navigateRoot('/admin');
+                else this.navCtrl.navigateRoot('/home');
+              }
+            });
+          },
+          error: () => {
+            console.warn("🛡️ [DEBUG ROUTING] getUserAssignments API failed!");
+            // Fallback if assignment API fails
+            if (userRole === 1 || userRole === 2 || userRole === 7) { 
+              this.navCtrl.navigateRoot('/admin');
+            } else {
+              this.navCtrl.navigateRoot('/home');
+            }
+          }
+        });
 
       } else {
         // Agar status SUCCESS nahi hai toh backend ka message dikhao
