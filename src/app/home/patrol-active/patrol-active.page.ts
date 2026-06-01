@@ -10,6 +10,7 @@ import * as L from 'leaflet';
 import { ActivatedRoute } from '@angular/router';
 import { DataService } from '../../data.service';
 import { PhotoViewerService } from '../../services/photo-viewer.service';
+import { PushNotificationService } from '../../services/push-notification.service';
 
 @Component({
   selector: 'app-patrol-active',
@@ -87,7 +88,8 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     private cdr: ChangeDetectorRef,
     private route: ActivatedRoute,
     private dataService: DataService,
-    private photoViewer: PhotoViewerService
+    private photoViewer: PhotoViewerService,
+    private pushService: PushNotificationService
   ) {}
 
   ngOnInit() {
@@ -465,6 +467,13 @@ export class PatrolActivePage implements OnInit, OnDestroy, AfterViewInit {
     localStorage.removeItem('active_patrol_session_id');
     if (this.timerInterval) clearInterval(this.timerInterval);
     if (this.gpsWatchId) Geolocation.clearWatch({ id: this.gpsWatchId });
+    
+    this.pushService.triggerSelfNotification(
+      'Patrol Ended Successfully',
+      `Your patrol has been ended successfully. Total distance: ${this.totalDistanceKm.toFixed(2)} km.`,
+      'success'
+    );
+    
     this.navCtrl.navigateRoot('/home/patrol-logs');
   }
 

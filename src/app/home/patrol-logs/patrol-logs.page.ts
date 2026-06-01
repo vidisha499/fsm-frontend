@@ -9,6 +9,7 @@ import { firstValueFrom, Subscription } from 'rxjs';
 import * as L from 'leaflet';
 import { DataService } from '../../data.service';
 import { environment } from 'src/environments/environment';
+import { PushNotificationService } from '../../services/push-notification.service';
 
 @Component({
   selector: 'app-patrol-logs',
@@ -23,7 +24,7 @@ export class PatrolLogsPage implements OnInit {
   
   public showScrollTop = false;
   private syncSub!: Subscription;
-
+  
   public patrolLogs: any[] = [];
   public isModalOpen = false;
   public selectedMethod = '';
@@ -53,7 +54,8 @@ export class PatrolLogsPage implements OnInit {
     private gestureCtrl: GestureController,
     private domCtrl: DomController,
     private translate: TranslateService,
-    public dataService: DataService
+    public dataService: DataService,
+    private pushService: PushNotificationService
   ) {}
 
   // --- Advanced Filters ---
@@ -450,10 +452,44 @@ export class PatrolLogsPage implements OnInit {
     } catch (e) {}
 
     const isDynamic = this.dataService.isUserDynamic(userData);
-    const dynamicEntityId = userData.dynamic_assignment?.entity_id || userData.entity_id || null;
 
-    const resolvedEntityId = isDynamic && dynamicEntityId ? String(dynamicEntityId) : null;
-    const resolvedSiteId = !isDynamic ? (userData.site_id || userData.assigned_site?.id || null) : null;
+    // Try all possible sources for entity_id in priority order
+    let resolvedEntityId = 
+      userData.dynamic_assignment?.entity_id ||
+      userData.dynamic_assignment?.entity?.id ||
+      userData.entity_id ||
+      localStorage.getItem('entity_id') ||
+      null;
+
+    // 🔥 CRITICAL FIX: If still null, try from assigned_entity_ids (saved by parseAssignmentHierarchy)
+    if (!resolvedEntityId) {
+      try {
+        const assignedIds = JSON.parse(localStorage.getItem('assigned_entity_ids') || '[]');
+        if (Array.isArray(assignedIds) && assignedIds.length > 0) {
+          resolvedEntityId = assignedIds[0]; // Use first assigned entity
+          console.log('🔥 entity_id resolved from assigned_entity_ids:', resolvedEntityId);
+        }
+      } catch (e) {}
+    }
+
+    let resolvedSiteId = userData.site_id || 
+                         userData.assigned_site?.id || 
+                         localStorage.getItem('site_id') || 
+                         userData.dynamic_assignment?.parent_id || 
+                         userData.dynamic_assignment?.entity?.parent_id || 
+                         localStorage.getItem('parent_entity_id') || 
+                         null;
+
+    // Safety: If somehow siteId is same as entityId (due to old caching bug), clear siteId
+    if (resolvedEntityId && resolvedSiteId === resolvedEntityId) {
+        resolvedSiteId = null;
+    }
+
+    // Always prefer passing what we have. If isDynamic was incorrectly false but entityId exists, still pass it!
+    resolvedEntityId = resolvedEntityId ? String(resolvedEntityId) : null;
+    resolvedSiteId = resolvedSiteId ? String(resolvedSiteId) : null;
+
+    console.log('🚔 Patrol Start - entity_id:', resolvedEntityId, '| site_id:', resolvedSiteId, '| userData:', userData);
 
     // Generate a truly unique sessionId for this session
     const uniqueSessionId = `PATROL_${storedRangerId}_${Date.now()}`;
@@ -493,6 +529,11 @@ export class PatrolLogsPage implements OnInit {
       loader.dismiss();
       this.isModalOpen = false;
       this.presentToast('Patrol started offline.', 'secondary');
+      this.pushService.triggerSelfNotification(
+        'Patrol Started (Offline)',
+        `Your patrol (${this.selectedMethod.toUpperCase()} - ${this.selectedType}) has started offline.`,
+        'info'
+      );
       
       this.navCtrl.navigateForward(['/home/patrol-active'], {
         queryParams: { id: uniqueSessionId, patrolId: uniqueSessionId }
@@ -512,6 +553,11 @@ export class PatrolLogsPage implements OnInit {
         localStorage.setItem('patrol_session_start_time', new Date().toISOString());
         
         this.isModalOpen = false;
+        this.pushService.triggerSelfNotification(
+          'Patrol Started',
+          `Your patrol (${this.selectedMethod.toUpperCase()} - ${this.selectedType}) has started successfully.`,
+          'success'
+        );
         this.navCtrl.navigateForward(['/home/patrol-active'], {
           queryParams: { id: activeId, patrolId: activeId }
         });

@@ -63,7 +63,8 @@
       <div class="task-list">
         <div class="task-row-compact animate__animated animate__fadeInUp" 
              *ngFor="let task of filteredTasks; let i = index"
-             [style.animation-delay]="(i * 0.1) + 's'">
+             [style.animation-delay]="(i * 0.1) + 's'"
+             (click)="viewTaskDetails(task)">
 
           <div class="mini-thumb">
             <div class="icon-box">
@@ -80,7 +81,7 @@
             <h2 class="task-title">{{ task.subject || task.title || task.task_name || ('TASKS.NEW_TASK_DEFAULT' | translate) }}</h2>
             <div class="assigned-line">
               <ion-icon name="person-outline"></ion-icon>
-              <span>{{ getUserName(task.assigned_to || task.assigned_user_id) || task.assigned_to_name || task.assigned_user?.name || ('TASKS.UNASSIGNED' | translate) }}</span>
+              <span>{{ getTaskAssignees(task) || ('TASKS.UNASSIGNED' | translate) }}</span>
             </div>
           </div>
 
@@ -209,6 +210,84 @@
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </ng-template>
+    </ion-modal>
+
+    <!-- Task Details Modal -->
+    <ion-modal [isOpen]="isDetailsModalOpen" (didDismiss)="closeDetailsModal()" class="premium-modal details-modal">
+      <ng-template>
+        <div class="modal-wrapper" *ngIf="selectedTask">
+          <div class="modal-header premium-header details-header">
+            <button class="header-btn glass-effect" (click)="closeDetailsModal()">
+              <ion-icon name="close-outline"></ion-icon>
+            </button>
+            <h2>Task Details</h2>
+            <div style="width: 36px;"></div> <!-- spacer to center the title -->
+          </div>
+
+          <div class="modal-body custom-form details-body">
+
+
+            <!-- Title -->
+            <div class="detail-section title-section">
+              <h1 class="details-task-title">{{ selectedTask.subject || selectedTask.title || selectedTask.task_name || ('TASKS.NEW_TASK_DEFAULT' | translate) }}</h1>
+              <span class="category-tag">{{ selectedTask.category || ('TASKS.GENERAL' | translate) }}</span>
+            </div>
+
+            <!-- Task Meta Grid -->
+            <div class="meta-grid">
+              <div class="meta-item">
+                <i class="far fa-calendar-alt meta-icon"></i>
+                <div class="meta-label-group">
+                  <span class="meta-label">{{ 'TASKS.LABEL_DEADLINE' | translate }}</span>
+                  <span class="meta-value">{{ selectedTask.deadline ? formatDate(selectedTask.deadline) : 'No Deadline' }}</span>
+                </div>
+              </div>
+              <div class="meta-item">
+                <i class="far fa-clock meta-icon"></i>
+                <div class="meta-label-group">
+                  <span class="meta-label">Created At</span>
+                  <span class="meta-value">{{ formatDate(selectedTask.created_at) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Assignee List -->
+            <div class="detail-section assignee-section">
+              <div class="section-title">
+                <i class="far fa-user"></i>
+                <h3>Assigned To</h3>
+              </div>
+              <div class="assignee-box">
+                <div class="assignee-avatar">
+                  <ion-icon name="person-circle-outline"></ion-icon>
+                </div>
+                <div class="assignee-info">
+                  <span class="assignee-name">{{ getTaskAssignees(selectedTask) || ('TASKS.UNASSIGNED' | translate) }}</span>
+                  <span class="assignee-role" *ngIf="getTaskAssignees(selectedTask)">Assigned Personnel</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Description -->
+            <div class="detail-section desc-section">
+              <div class="section-title">
+                <i class="far fa-file-alt"></i>
+                <h3>Description</h3>
+              </div>
+              <div class="description-content-box">
+                <p>{{ selectedTask.description || 'No description provided for this task.' }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer details-footer">
+            <button class="footer-action-btn delete-btn" (click)="deleteTask(selectedTask.id); closeDetailsModal()" style="width: 100%;">
+              <ion-icon name="trash-outline"></ion-icon>
+              <span>Delete Task</span>
+            </button>
           </div>
         </div>
       </ng-template>

@@ -1,21 +1,22 @@
 <ion-content [fullscreen]="true" class="ion-no-padding" [scrollEvents]="true" (ionScroll)="handleScroll($event)">
-  <!-- Header Section -->
-  <div class="header-section">
-    <div class="toolbar">
-      <div class="tbar-left">
-        <div class="tbar-logo" (click)="goBack()">
-          <i class="fas fa-chevron-left" style="color: white; font-size: 18px;"></i>
-        </div>
-        <div>
-          <div class="tbar-title">Organization</div>
-          <div class="tbar-sub">Hierarchy & Roles</div>
+  <div class="premium-wrapper">
+    <!-- Premium Hero Header Section -->
+    <div class="hero-header">
+      <div class="header-content">
+        <div class="nav-group">
+          <button class="back-btn" (click)="goBack()">
+            <ion-icon name="arrow-back-outline"></ion-icon>
+          </button>
+          <div class="header-titles">
+            <h1>Organization</h1>
+            <span class="sub-title">Hierarchy & Roles</span>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Segment Switcher -->
-    <div class="segment-container">
-      <div class="custom-segment">
+      <!-- Segment Switcher -->
+      <div class="segment-container">
+        <div class="custom-segment">
         <button *ngIf="dataService.isFeatureEnabled('hierarchy')" [class.active]="activeSegment === 'hierarchy'" (click)="activeSegment = 'hierarchy'">Hierarchy</button>
         <button *ngIf="dataService.isFeatureEnabled('org_management')" [class.active]="activeSegment === 'org'" (click)="activeSegment = 'org'">Org</button>
         <button *ngIf="dataService.isFeatureEnabled('roles')" [class.active]="activeSegment === 'roles'" (click)="activeSegment = 'roles'">Roles</button>
@@ -71,39 +72,91 @@
           <div *ngIf="dataService.hasPermission('Dynamic Hierarchy', 'add')" class="shdr-link" (click)="openAddOrgEntity()">
             <i class="fas fa-plus-circle"></i> ADD ENTITY
           </div>
-        </div>
-      </div>
-
-      <div class="layer-filter">
-        <div class="filter-pill" [class.active]="selectedLayer === 'all'" (click)="filterEntities('all')">All</div>
-        <div class="filter-pill layer-mgmt-pill" *ngFor="let layer of orgLayers" 
-             [class.active]="selectedLayer === layer.id" 
-             (click)="filterEntities(layer.id)">
-          <span>{{ layer.name }}</span>
-          <div class="pill-actions" *ngIf="selectedLayer === layer.id">
-            <i *ngIf="dataService.hasPermission('Dynamic Hierarchy', 'update')" class="fas fa-pencil-alt" (click)="editOrgLayer(layer); $event.stopPropagation()"></i>
-            <i *ngIf="dataService.hasPermission('Dynamic Hierarchy', 'delete')" class="fas fa-times" (click)="deleteOrgLayer(layer.id); $event.stopPropagation()"></i>
+          <div *ngIf="dataService.hasPermission('Dynamic Hierarchy', 'add')" class="shdr-link bulk" (click)="isBulkModalOpen = true">
+            <i class="fas fa-file-import"></i> BULK ADD
           </div>
         </div>
       </div>
 
-      <div class="card-list">
-        <div class="management-card" *ngFor="let entity of filteredEntities">
-          <div class="node-info">
-            <div class="id-badge">ID: {{ entity.id }}</div>
-            <h3>{{ entity.name }}</h3>
-            <p>Code: {{ entity.code }} • Layer: {{ entity.layer_id }} • Parent: {{ entity.parent_id || 'None' }}</p>
-          </div>
-          <div class="card-actions">
-            <button *ngIf="dataService.hasPermission('Dynamic Hierarchy', 'update')" class="action-btn edit" (click)="editOrgEntity(entity)">
-              <i class="far fa-edit"></i>
-            </button>
-            <button *ngIf="dataService.hasPermission('Dynamic Hierarchy', 'delete')" class="action-btn delete" (click)="deleteOrgEntity(entity.id)">
-              <i class="far fa-trash-alt"></i>
-            </button>
-          </div>
+      <!-- Premium View Toggle & Controls -->
+      <div class="view-control-bar">
+        <div class="view-toggle-buttons">
+          <button class="v-btn" [class.active]="isTreeView" (click)="isTreeView = true">
+            <i class="fas fa-sitemap"></i> Tree View
+          </button>
+          <button class="v-btn" [class.active]="!isTreeView" (click)="isTreeView = false">
+            <i class="fas fa-list"></i> Flat List
+          </button>
+        </div>
+        
+        <div class="tree-controls" *ngIf="isTreeView">
+          <button class="ctrl-action-btn" (click)="expandAllTreeNodes(true)">
+            <i class="fas fa-expand-arrows-alt"></i> Expand All
+          </button>
+          <button class="ctrl-action-btn" (click)="expandAllTreeNodes(false)">
+            <i class="fas fa-compress-arrows-alt"></i> Collapse All
+          </button>
         </div>
       </div>
+
+      <!-- Search Bar -->
+      <div class="search-wrap">
+        <i class="fas fa-search"></i>
+        <input type="text" [(ngModel)]="searchQuery" (input)="onSearchChange()" placeholder="Search by name, code, or layer level...">
+        <button *ngIf="searchQuery" class="search-clear-btn" (click)="searchQuery = ''; onSearchChange()" style="background: transparent; border: none; padding: 0 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; outline: none;">
+          <i class="fas fa-times-circle" style="color: #cbd5e1; font-size: 16px;"></i>
+        </button>
+      </div>
+
+      <!-- Tree View Render -->
+      <div class="tree-view-container" *ngIf="isTreeView && displayedOrgTree.length > 0">
+        <ng-container *ngFor="let root of displayedOrgTree">
+          <ng-container *ngTemplateOutlet="nodeTemplate; context: { $implicit: root, depth: 0 }"></ng-container>
+        </ng-container>
+      </div>
+      
+      <!-- Tree View Empty State -->
+      <div class="empty-state" *ngIf="isTreeView && displayedOrgTree.length === 0" style="margin-top: 10px;">
+        <i class="fas fa-sitemap" style="font-size: 30px; color: #cbd5e1; margin-bottom: 10px;"></i>
+        <p *ngIf="!searchQuery">No hierarchy data available to show in Tree View.</p>
+        <p *ngIf="searchQuery">No matching hierarchy nodes found for "{{ searchQuery }}".</p>
+        <button *ngIf="!searchQuery" class="refresh-btn" (click)="loadOrgEntities()">Reload Entities</button>
+        <button *ngIf="searchQuery" class="refresh-btn" (click)="searchQuery = ''; onSearchChange()">Clear Search</button>
+      </div>
+
+      <!-- Flat List View Render -->
+      <ng-container *ngIf="!isTreeView">
+        <div class="layer-filter">
+          <div class="filter-pill" [class.active]="selectedLayer === 'all'" (click)="filterEntities('all')">All</div>
+          <div class="filter-pill layer-mgmt-pill" *ngFor="let layer of orgLayers" 
+               [class.active]="selectedLayer === layer.id" 
+               (click)="filterEntities(layer.id)">
+            <span>{{ layer.name }}</span>
+            <div class="pill-actions" *ngIf="selectedLayer === layer.id">
+              <i *ngIf="dataService.hasPermission('Dynamic Hierarchy', 'update')" class="fas fa-pencil-alt" (click)="editOrgLayer(layer); $event.stopPropagation()"></i>
+              <i *ngIf="dataService.hasPermission('Dynamic Hierarchy', 'delete')" class="fas fa-times" (click)="deleteOrgLayer(layer.id); $event.stopPropagation()"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-list">
+          <div class="management-card" *ngFor="let entity of filteredEntities">
+            <div class="node-info">
+              <div class="id-badge">ID: {{ entity.id }}</div>
+              <h3>{{ entity.name }}</h3>
+              <p>Code: {{ entity.code }} • Layer: {{ entity.layer_id }} ({{ getLayerName(entity.layer_id) }}) • Parent: {{ entity.parent_id || 'None' }}</p>
+            </div>
+            <div class="card-actions">
+              <button *ngIf="dataService.hasPermission('Dynamic Hierarchy', 'update')" class="action-btn edit" (click)="editOrgEntity(entity)">
+                <i class="far fa-edit"></i>
+              </button>
+              <button *ngIf="dataService.hasPermission('Dynamic Hierarchy', 'delete')" class="action-btn delete" (click)="deleteOrgEntity(entity.id)">
+                <i class="far fa-trash-alt"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </ng-container>
     </div>
 
     <!-- ROLES SECTION -->
@@ -220,6 +273,7 @@
       <ion-icon name="arrow-up-outline"></ion-icon>
     </ion-fab-button>
   </ion-fab>
+  </div>
 </ion-content>
 
 <!-- ROLE MANAGEMENT MODAL (Premium V2) -->
@@ -268,3 +322,229 @@
     </ion-content>
   </ng-template>
 </ion-modal>
+
+<!-- UNIFIED STRUCTURE BUILDER MODAL (Add/Edit Layer & Entity) -->
+<ion-modal [isOpen]="isStructureModalOpen" (didDismiss)="onStructureModalDismiss()" class="premium-modal">
+  <ng-template>
+    <div class="modal-header">
+      <h2>
+        <span *ngIf="structureModalMode === 'create'">Add New {{ structureModalType === 'layer' ? 'Layer' : 'Entity' }}</span>
+        <span *ngIf="structureModalMode === 'edit'">Update {{ structureModalType === 'layer' ? 'Layer' : 'Entity' }}</span>
+      </h2>
+      <button (click)="isStructureModalOpen = false" class="close-btn"><i class="fas fa-times"></i></button>
+    </div>
+    
+    <ion-content class="ion-padding modal-body">
+      <!-- Mode Toggle Switch (Only shown during Create, as Edit locks the type) -->
+      <div class="modal-segment-wrapper" *ngIf="structureModalMode === 'create'">
+        <div class="modal-segment">
+          <button type="button" [class.active]="structureModalType === 'layer'" (click)="setStructureType('layer')">
+            <i class="fas fa-layer-group"></i> Layer
+          </button>
+          <button type="button" [class.active]="structureModalType === 'entity'" (click)="setStructureType('entity')">
+            <i class="fas fa-sitemap"></i> Entity
+          </button>
+        </div>
+      </div>
+
+      <!-- LAYER FORM -->
+      <div *ngIf="structureModalType === 'layer'" class="form-section-group animate-slide">
+        <div class="form-section">
+          <label>LAYER NAME <span class="required-star">*</span></label>
+          <div class="input-pill" [class.invalid-pill]="structureFormTouched.layerName && isLayerNameInvalid()" [class.valid-pill]="structureFormTouched.layerName && !isLayerNameInvalid()">
+            <i class="fas fa-tag"></i>
+            <input [(ngModel)]="structureForm.layerName" (blur)="structureFormTouched.layerName = true" type="text" placeholder="e.g., Circle, Division, Section, Beat">
+          </div>
+          <div class="validation-error" *ngIf="structureFormTouched.layerName && isLayerNameInvalid()">
+            <i class="fas fa-exclamation-circle"></i> Layer Name is required.
+          </div>
+          <div class="field-guidance">Give a descriptive name to this hierarchical layer level.</div>
+        </div>
+
+        <div class="form-section">
+          <label>RANK (HIERARCHY ORDER) <span class="required-star">*</span></label>
+          <div class="input-pill" [class.invalid-pill]="structureFormTouched.layerRank && isLayerRankInvalid()" [class.valid-pill]="structureFormTouched.layerRank && !isLayerRankInvalid()">
+            <i class="fas fa-sort-numeric-up"></i>
+            <input [(ngModel)]="structureForm.layerRank" (blur)="structureFormTouched.layerRank = true" type="number" placeholder="e.g. 1 (Highest), 2, 3...">
+          </div>
+          <div class="validation-error" *ngIf="structureFormTouched.layerRank && isLayerRankInvalid()">
+            <i class="fas fa-exclamation-circle"></i> Rank order is required.
+          </div>
+          <div class="field-guidance">Determines the hierarchy sequence (1 = Top layer, e.g. Circle).</div>
+        </div>
+      </div>
+
+      <!-- ENTITY FORM -->
+      <div *ngIf="structureModalType === 'entity'" class="form-section-group animate-slide">
+        <div class="form-section">
+          <label>ENTITY NAME <span class="required-star">*</span></label>
+          <div class="input-pill" [class.invalid-pill]="structureFormTouched.entityName && isEntityNameInvalid()" [class.valid-pill]="structureFormTouched.entityName && !isEntityNameInvalid()">
+            <i class="fas fa-tree"></i>
+            <input [(ngModel)]="structureForm.entityName" (blur)="structureFormTouched.entityName = true" type="text" placeholder="e.g., Nagpur Division, Beat 12">
+          </div>
+          <div class="validation-error" *ngIf="structureFormTouched.entityName && isEntityNameInvalid()">
+            <i class="fas fa-exclamation-circle"></i> Entity Name is required.
+          </div>
+          <div class="field-guidance">The specific organizational node name.</div>
+        </div>
+
+        <div class="form-section">
+          <label>ENTITY CODE (OPTIONAL)</label>
+          <div class="input-pill">
+            <i class="fas fa-barcode"></i>
+            <input [(ngModel)]="structureForm.entityCode" type="text" placeholder="e.g., NAG-01">
+          </div>
+          <div class="field-guidance">Unique identifier or short code for quick search.</div>
+        </div>
+
+        <!-- LAYER DROPDOWN SELECTOR (Zero ID remembering!) -->
+        <div class="form-section">
+          <label>ASSIGN TO LAYER LEVEL <span class="required-star">*</span></label>
+          <div class="input-pill select-pill" [class.invalid-pill]="structureFormTouched.entityLayerId && isEntityLayerIdInvalid()" [class.valid-pill]="structureFormTouched.entityLayerId && !isEntityLayerIdInvalid()">
+            <i class="fas fa-layer-group"></i>
+            <select [(ngModel)]="structureForm.entityLayerId" (blur)="structureFormTouched.entityLayerId = true" (change)="onEntityLayerChange()" class="role-select">
+              <option value="" disabled selected>-- Select Layer Level --</option>
+              <option *ngFor="let l of orgLayers" [value]="l.id">
+                {{ l.name }} (Rank: {{ l.rank || l.id }})
+              </option>
+            </select>
+          </div>
+          <div class="validation-error" *ngIf="structureFormTouched.entityLayerId && isEntityLayerIdInvalid()">
+            <i class="fas fa-exclamation-circle"></i> Layer level selection is required.
+          </div>
+          <div class="field-guidance">Select which layer tier this entity belongs to.</div>
+        </div>
+
+        <!-- PARENT ENTITY DROPDOWN SELECTOR (Zero ID remembering!) -->
+        <div class="form-section">
+          <label>PARENT ENTITY (OPTIONAL)</label>
+          <div class="input-pill select-pill" [class.disabled-pill]="structureForm.parentLocked">
+            <i class="fas fa-network-wired"></i>
+            <select [(ngModel)]="structureForm.entityParentId" [disabled]="structureForm.parentLocked" class="role-select">
+              <option value="">-- No Parent (Root Level) --</option>
+              <option *ngFor="let ent of orgEntities" [value]="ent.id">
+                {{ ent.name }} [{{ getLayerName(ent.layer_id) }}]
+              </option>
+            </select>
+          </div>
+          <div class="field-guidance" *ngIf="!structureForm.parentLocked">
+            Select the direct parent node. Leave empty if this is a top-level root.
+          </div>
+          <div class="field-guidance locked-guidance" *ngIf="structureForm.parentLocked">
+            <i class="fas fa-lock"></i> Parent is locked under parent node creation.
+          </div>
+        </div>
+      </div>
+
+      <button class="save-btn" (click)="saveStructure()">
+        <i class="fas fa-check-circle"></i> 
+        <span>{{ structureModalMode === 'create' ? 'CREATE' : 'UPDATE' }} {{ structureModalType | uppercase }}</span>
+      </button>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- BULK ENTITY IMPORT MODAL -->
+<ion-modal [isOpen]="isBulkModalOpen" (didDismiss)="isBulkModalOpen = false" class="premium-modal bulk-modal">
+  <ng-template>
+    <div class="modal-header">
+      <h2>Bulk Add Entities</h2>
+      <button (click)="isBulkModalOpen = false" class="close-btn"><i class="fas fa-times"></i></button>
+    </div>
+    
+    <ion-content class="ion-padding modal-body">
+      <div class="form-section">
+        <label>TARGET LAYER</label>
+        <div class="input-pill select-pill">
+          <i class="fas fa-layer-group"></i>
+          <select [(ngModel)]="bulkImportData.layer_id" class="role-select">
+            <option value="" disabled selected>Select Target Layer...</option>
+            <option *ngFor="let layer of orgLayers" [value]="layer.id">{{ layer.name }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <label>DEFAULT PARENT ENTITY (OPTIONAL)</label>
+        <div class="input-pill select-pill">
+          <i class="fas fa-network-wired"></i>
+          <select [(ngModel)]="bulkImportData.parent_id" class="role-select">
+            <option value="" selected>No Default Parent (Root level)</option>
+            <option *ngFor="let entity of orgEntities" [value]="entity.id">
+              {{ entity.name }} ({{ getLayerName(entity.layer_id) }})
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <label>PASTE DATA (CSV FORMAT)</label>
+        <div class="format-guide">
+          <i class="fas fa-info-circle"></i>
+          <div>
+            <strong>Formats allowed (one per line):</strong><br>
+            • <code>Entity Name</code><br>
+            • <code>Entity Name, Code</code><br>
+            • <code>Entity Name, Code, Parent Entity ID</code>
+          </div>
+        </div>
+        <textarea [(ngModel)]="bulkImportData.rawText" class="bulk-textarea" rows="10" placeholder="Example:&#10;Beat 1, NAG-01&#10;Beat 2, NAG-02, 55&#10;Beat 3"></textarea>
+      </div>
+
+      <button class="save-btn" (click)="importBulkEntities()">
+        <i class="fas fa-file-import"></i> IMPORT ALL ENTITIES
+      </button>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- RECURSIVE TREE NODE TEMPLATE -->
+<ng-template #nodeTemplate let-node let-depth="depth">
+  <div class="tree-node-wrapper" [style.padding-left.px]="depth * 20">
+    <!-- Branch Line -->
+    <div class="tree-connector" *ngIf="depth > 0" [style.left.px]="(depth * 20) - 10"></div>
+    
+    <div class="tree-node-card" [class.has-children]="node.children && node.children.length > 0">
+      <!-- Collapse/Expand Toggle -->
+      <div class="expand-toggle" *ngIf="node.children && node.children.length > 0" (click)="node.expanded = !node.expanded; $event.stopPropagation()">
+        <i class="fas" [class.fa-chevron-down]="node.expanded" [class.fa-chevron-right]="!node.expanded"></i>
+      </div>
+      <div class="expand-toggle placeholder" *ngIf="!node.children || node.children.length === 0">
+        <i class="far fa-circle" style="font-size: 6px; color: #94a3b8;"></i>
+      </div>
+
+      <div class="node-content">
+        <div class="node-main">
+          <span class="layer-tag" [style.background-color]="getLayerColor(node.layer_id)" [style.color]="getLayerTextColor(node.layer_id)">
+            {{ getLayerName(node.layer_id) }}
+          </span>
+          <span class="node-id-badge">ID: {{ node.id }}</span>
+          <h4 class="node-title">{{ node.name }}</h4>
+          <span class="node-code" *ngIf="node.code">({{ node.code }})</span>
+        </div>
+      </div>
+
+      <div class="node-actions-premium">
+        <!-- Add Child Button -->
+        <button class="t-btn add" title="Add Sub-Entity" (click)="openAddOrgEntityWithParent(node); $event.stopPropagation()">
+          <i class="fas fa-plus-circle"></i>
+        </button>
+        <!-- Edit Button -->
+        <button class="t-btn edit" title="Edit Entity" (click)="editOrgEntity(node); $event.stopPropagation()">
+          <i class="far fa-edit"></i>
+        </button>
+        <!-- Delete Button -->
+        <button class="t-btn delete" title="Delete Entity" (click)="deleteOrgEntity(node.id); $event.stopPropagation()">
+          <i class="far fa-trash-alt"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recursive Child Nodes -->
+  <div class="children-container" *ngIf="node.expanded && node.children && node.children.length > 0">
+    <ng-container *ngFor="let child of node.children">
+      <ng-container *ngTemplateOutlet="nodeTemplate; context: { $implicit: child, depth: depth + 1 }"></ng-container>
+    </ng-container>
+  </div>
+</ng-template>

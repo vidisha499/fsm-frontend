@@ -10,6 +10,7 @@ import * as L from 'leaflet';
 import { DataService } from '../../data.service';
 import { PhotoViewerService } from '../../services/photo-viewer.service';
 import { HierarchyService } from '../../services/hierarchy.service';
+import { PushNotificationService } from '../../services/push-notification.service';
 
 @Component({
   selector: 'app-onsite',
@@ -67,7 +68,8 @@ export class OnsiteAttendancePage implements OnInit, OnDestroy {
     private translate: TranslateService,
     private dataService: DataService,
     private photoViewer: PhotoViewerService,
-    private hierarchyService: HierarchyService
+    private hierarchyService: HierarchyService,
+    private pushService: PushNotificationService
   ) {}
 
   ngOnInit() {
@@ -350,6 +352,11 @@ async submit() {
     this.isSubmitting = false;
     this.resetSlider();
     this.presentToast('On location attendance saved offline.', 'secondary');
+    this.pushService.triggerSelfNotification(
+      'Attendance Saved (Offline)',
+      'Your onsite attendance has been saved as offline draft successfully.',
+      'info'
+    );
     
     setTimeout(() => {
       this.navCtrl.navigateRoot('/attendance-list', { queryParams: { mode: 'onsite' } });
@@ -379,6 +386,11 @@ async submit() {
       // Checking for both SUCCESS status and general success flag
       if (res.status === 'SUCCESS' || res.success || res.message?.toLowerCase().includes('success')) {
         this.presentToast('Onsite Attendance Marked Successfully!', 'success');
+        this.pushService.triggerSelfNotification(
+          'Attendance Marked Successfully',
+          'Your onsite attendance has been marked successfully.',
+          'success'
+        );
         this.navCtrl.navigateRoot('/attendance-list', { queryParams: { mode: 'onsite' } });
       } else {
         this.presentToast(res.message || 'Failed to mark attendance', 'danger');

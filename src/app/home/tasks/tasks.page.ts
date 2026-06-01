@@ -16,6 +16,8 @@ export class TasksPage implements OnInit {
   public priorityFilter: string = 'all'; // 'all', 'urgent', 'priority', 'normal'
   public isLoading: boolean = false;
   public isModalOpen: boolean = false;
+  public isDetailsModalOpen: boolean = false;
+  public selectedTask: any = null;
   public currentUserId: any;
 
   // New Task Form
@@ -41,6 +43,47 @@ export class TasksPage implements OnInit {
       this.currentUserId = userData.id || userData.user_id;
     }
     this.loadUsers();
+  }
+
+  // Robust assignee resolution
+  getTaskAssignees(task: any): string {
+    if (!task) return '';
+    
+    // 1. If there's an array of users
+    const userList = task.users || task.task_users || task.assigned_users;
+    if (Array.isArray(userList) && userList.length > 0) {
+      const names = userList.map((u: any) => {
+        if (typeof u === 'object') {
+          return u.name || u.username || u.first_name || this.getUserName(u.id || u.user_id);
+        }
+        return this.getUserName(u);
+      }).filter(Boolean);
+      if (names.length > 0) {
+        return names.join(', ');
+      }
+    }
+
+    // 2. Direct name properties
+    if (task.assigned_to_name) return task.assigned_to_name;
+    if (task.assigned_user?.name) return task.assigned_user.name;
+
+    // 3. IDs lookup
+    const directId = task.assigned_to || task.assigned_user_id || task.user_id;
+    if (directId) {
+      return this.getUserName(directId);
+    }
+
+    return '';
+  }
+
+  viewTaskDetails(task: any) {
+    this.selectedTask = task;
+    this.isDetailsModalOpen = true;
+  }
+
+  closeDetailsModal() {
+    this.isDetailsModalOpen = false;
+    this.selectedTask = null;
   }
 
   ionViewWillEnter() {

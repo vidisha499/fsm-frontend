@@ -6,6 +6,7 @@ import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { DataService } from 'src/app/data.service';
 import { HierarchyService } from 'src/app/services/hierarchy.service';
 import { PhotoViewerService } from 'src/app/services/photo-viewer.service';
+import { PushNotificationService } from 'src/app/services/push-notification.service';
 
 @Component({
   selector: 'app-events-fields',
@@ -95,7 +96,7 @@ fieldsConfig: any = {
       { label: 'Area (Hectare)', type: 'number', placeholder: 'e.g. 1.5', key: 'area_hectare', required: true },
       { label: 'Number of Encroachers', type: 'number', placeholder: 'Enter count', key: 'num_encroachers' },
       { label: 'Name of Person/Occupant', type: 'text', placeholder: 'Enter name', key: 'occupant_name' },
-      { label: 'Phone Number of Person', type: 'text', placeholder: 'Enter phone', key: 'occupant_phone' },
+      { label: 'Phone Number of Person', type: 'tel', placeholder: 'Enter 10-digit phone', key: 'occupant_phone', maxlength: 10 },
       { label: 'Article Seized', type: 'select', options: ['Yes', 'No'], key: 'article_seized', required: true },
       { label: 'Article Details', type: 'text', key: 'article_details', dependsOn: 'Article Seized', showIf: 'Yes' },
       { label: 'Site Photo', type: 'file', icon: 'camera-outline', key: 'photo', required: true },
@@ -192,7 +193,8 @@ fieldsConfig: any = {
     private cdr: ChangeDetectorRef,
     private gestureCtrl: GestureController,
     private alertCtrl: AlertController,
-    private photoViewer: PhotoViewerService
+    private photoViewer: PhotoViewerService,
+    private pushService: PushNotificationService
   ) {
     this.takePhoto = this.takePhoto.bind(this);
     this.selectImageSource = this.selectImageSource.bind(this);
@@ -848,6 +850,11 @@ async fetchLocation() {
       position: 'top'
     });
     await toast.present();
+    this.pushService.triggerSelfNotification(
+      'Form Submitted Successfully',
+      `Your report "${this.eventTitle}" was submitted successfully.`,
+      'success'
+    );
     this.navCtrl.back();
   }
 
@@ -879,6 +886,11 @@ async fetchLocation() {
       position: 'top'
     });
     await toast.present();
+    this.pushService.triggerSelfNotification(
+      'Draft Saved (Offline)',
+      `Your report "${this.eventTitle}" was saved as an offline draft successfully.`,
+      'info'
+    );
     this.navCtrl.back();
   }
 

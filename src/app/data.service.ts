@@ -908,6 +908,7 @@ export class DataService {
 
   // --- 3. AUTHENTICATION & PROFILE ---
   login(data: any) { return this.http.post(`${this.baseApiUrl}/login`, data); }
+  setFCMToken(params: any) { return this.http.post(`${this.baseApiUrl}/setFCMToken`, params); }
   verifyUser() { return this.http.post(`${this.baseApiUrl}/verifyUser`, {}); }
   getProfile() {
     const formData = new FormData();

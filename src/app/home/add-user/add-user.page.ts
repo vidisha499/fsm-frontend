@@ -66,6 +66,14 @@ export class AddUserPage implements OnInit {
     await this.loadInitialData();
   }
 
+  /** Strips non-numeric characters and enforces 10-digit limit on phone fields */
+  onPhoneInput(event: Event, field: string) {
+    const input = event.target as HTMLInputElement;
+    const cleaned = input.value.replace(/\D/g, '').substring(0, 10);
+    input.value = cleaned;
+    this.userData[field] = cleaned;
+  }
+
   async loadInitialData() {
     const loader = await this.loadingCtrl.create({ message: 'Syncing V2 Hierarchy...' });
     await loader.present();

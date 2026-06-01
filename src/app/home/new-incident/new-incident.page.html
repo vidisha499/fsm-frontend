@@ -56,6 +56,7 @@
           <div class="input-wrapper">
             <i class="fas fa-bolt"></i>
             <select class="styled-select" [(ngModel)]="incidentData.priority">
+              <option value="">-- Select Priority --</option>
               <option value="High Priority">{{ 'REPORT.P_HIGH' | translate }}</option>
               <option value="Medium Priority">{{ 'REPORT.P_MED' | translate }}</option>
               <option value="Low Priority">{{ 'REPORT.P_LOW' | translate }}</option>
@@ -85,6 +86,7 @@
             <div class="input-wrapper">
               <i class="fas fa-layer-group"></i>
               <select class="styled-select" [(ngModel)]="incidentData.criteria" (change)="resetSubFields()">
+                <option value="">-- Select Category --</option>
                 <option value="Criminal Activity">⚖️ Criminal Activity</option>
                 <option value="Fire Warning">🔥 Fire Warning</option>
                 <option value="Assets & Tools">🔧 Assets & Tools</option>
@@ -97,6 +99,7 @@
             <div class="input-wrapper">
               <i class="fas fa-gavel"></i>
               <select class="styled-select" [(ngModel)]="incidentData.subCategory" (change)="resetSubFields()">
+                <option value="">-- Select Activity Type --</option>
                 <option value="Illegal Felling">Illegal Felling</option>
                 <option value="Timber Transport">Timber Transport</option>
                 <option value="Timber Storage">Timber Storage</option>
@@ -113,6 +116,7 @@
               <div class="input-wrapper">
                 <i class="fas fa-truck"></i>
                 <select class="styled-select" [(ngModel)]="incidentData.vehicleType">
+                  <option value="">-- Select Vehicle --</option>
                   <option value="Truck">Truck</option>
                   <option value="Tractor">Tractor</option>
                   <option value="Tempo">Tempo</option>
@@ -127,6 +131,7 @@
               <div class="input-wrapper">
                 <i class="fas fa-road"></i>
                 <select class="styled-select" [(ngModel)]="incidentData.route">
+                  <option value="">-- Select Route --</option>
                   <option value="Travel-Route">Travel Route</option>
                   <option value="River">River</option>
                   <option value="Village">Village Road</option>
@@ -142,6 +147,7 @@
               <div class="input-wrapper">
                 <i class="fas fa-tree"></i>
                 <select class="styled-select" [(ngModel)]="incidentData.species">
+                  <option value="">-- Select Species --</option>
                   <option value="Sal">Sal</option>
                   <option value="Saja">Saja</option>
                   <option value="Sagvan">Sagvan</option>
@@ -159,6 +165,7 @@
               <div class="input-wrapper">
                 <i class="fas fa-question-circle"></i>
                 <select class="styled-select" [(ngModel)]="incidentData.reason">
+                  <option value="">-- Select Reason --</option>
                   <option value="Trade">Trade</option>
                   <option value="Fuel">Fuel</option>
                   <option value="Agriculture">Agriculture</option>
@@ -174,6 +181,7 @@
               <div class="input-wrapper">
                 <i class="fas fa-warehouse"></i>
                 <select class="styled-select" [(ngModel)]="incidentData.storageArea">
+                  <option value="">-- Select Area --</option>
                   <option value="Godown">Godown</option>
                   <option value="Open Space">Open Space</option>
                   <option value="Others">Others</option>
@@ -201,6 +209,7 @@
               <div class="input-wrapper">
                 <i class="fas fa-paw"></i>
                 <select class="styled-select" [(ngModel)]="incidentData.species">
+                  <option value="">-- Select Animal --</option>
                   <option value="Sloth Bear">Sloth Bear</option>
                   <option value="Leopard">Leopard</option>
                   <option value="Hyena">Hyena</option>
@@ -218,6 +227,7 @@
               <div class="input-wrapper">
                 <i class="fas fa-truck-pickup"></i>
                 <select class="styled-select" [(ngModel)]="incidentData.vehicleSeized">
+                  <option value="">-- Select --</option>
                   <option value="Yes">Yes</option>
                   <option value="No">No</option>
                 </select>
@@ -268,6 +278,7 @@
               <div class="input-wrapper">
                 <i class="fas fa-fire-alt"></i>
                 <select class="styled-select" [(ngModel)]="incidentData.fireStage">
+                  <option value="">-- Select Fire Stage --</option>
                   <option value="Low">Low (Ground Smoke/Small Area)</option>
                   <option value="Medium">Medium (Active Spread)</option>
                   <option value="High">High (Crown Fire/Critical)</option>
@@ -325,6 +336,7 @@
             <div class="input-wrapper">
               <i class="fas fa-clipboard-list"></i>
               <select class="styled-select" [(ngModel)]="incidentData.cause">
+                <option value="">-- Select Cause --</option>
                 <ng-container *ngIf="incidentData.subCategory === 'Poaching'">
                   <option value="Natural">Natural</option>
                   <option value="Death">Death</option>

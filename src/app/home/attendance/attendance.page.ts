@@ -9,6 +9,7 @@ import * as L from 'leaflet';
 import { TranslateService } from '@ngx-translate/core'; 
 import { DataService } from '../../data.service';
 import { PhotoViewerService } from '../../services/photo-viewer.service';
+import { PushNotificationService } from '../../services/push-notification.service';
 
 @Component({
   selector: 'app-attendance',
@@ -65,7 +66,8 @@ export class AttendancePage implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private translate: TranslateService, // 👈 Inject TranslateService
     private dataService: DataService,
-    private photoViewer: PhotoViewerService
+    private photoViewer: PhotoViewerService,
+    private pushService: PushNotificationService
   ) {}
 
   ngOnInit() {
@@ -481,6 +483,11 @@ async submitAttendance() {
     this.isSubmitting = false;
     this.resetSlider();
     this.presentToast('Attendance saved offline. It will sync when online.', 'secondary');
+    this.pushService.triggerSelfNotification(
+      'Attendance Saved (Offline)',
+      'Your beat attendance has been saved as offline draft successfully.',
+      'info'
+    );
     
     setTimeout(() => {
       this.navCtrl.navigateRoot('/attendance-list', { queryParams: { mode: 'beat' } });
@@ -504,6 +511,11 @@ async submitAttendance() {
       await loader.dismiss();
       const msg = await this.translate.get('ATTENDANCE.SUCCESS').toPromise();
       this.presentToast(msg, 'success');
+      this.pushService.triggerSelfNotification(
+        'Attendance Marked Successfully',
+        this.isEntry ? 'Your entry beat attendance has been marked successfully.' : 'Your exit beat attendance has been marked successfully.',
+        'success'
+      );
       
       // Clear flag after success
       setTimeout(() => {

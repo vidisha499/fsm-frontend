@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { LabelService } from './services/label.service';
 import { DataService } from './data.service';
 import { PhotoViewerService } from './services/photo-viewer.service';
+import { PushNotificationService } from './services/push-notification.service';
 import * as L from 'leaflet';
 
 @Component({
@@ -68,7 +69,8 @@ export class AppComponent implements OnInit {
     private labelService: LabelService,
     private dataService: DataService,
     private photoViewer: PhotoViewerService,
-    private alertController: AlertController
+    private alertController: AlertController,
+    private pushService: PushNotificationService
   ) {
     this.renderer.removeClass(document.body, 'dark');
     this.renderer.addClass(document.body, 'light');
@@ -295,10 +297,27 @@ export class AppComponent implements OnInit {
         next: (res: any) => {
           const assignments = res?.data || res || [];
           // 🔥 Run multi-assignment V2 sync & parsing
-          this.dataService.parseAssignmentHierarchy(assignments);
+          const hierarchy = this.dataService.parseAssignmentHierarchy(assignments);
+          
+          // 🔥 CRITICAL: Save entity_id to localStorage so patrol-logs.page.ts can always find it
+          if (hierarchy.entityId && hierarchy.entityId !== '') {
+            localStorage.setItem('entity_id', hierarchy.entityId);
+            console.log('✅ [ENTITY_ID] Saved entity_id to localStorage:', hierarchy.entityId);
+          }
+          if (hierarchy.parentId && hierarchy.parentId !== '') {
+            localStorage.setItem('parent_entity_id', hierarchy.parentId);
+          }
           
           if (assignments.length > 0) {
             const active = assignments[0];
+            // Also try to extract entity_id directly from first assignment
+            const directEntityId = active.entity_id || active.assigned_entity_id || active.beat_id || 
+                                   active.entity?.id || active.assigned_entity?.id || active.beat?.id;
+            if (directEntityId && !localStorage.getItem('entity_id')) {
+              localStorage.setItem('entity_id', String(directEntityId));
+              console.log('✅ [ENTITY_ID] Saved entity_id from direct assignment:', directEntityId);
+            }
+            
             const cRid = active.custom_role_id || active.role_id || (active.role ? active.role.id : null);
             const rName = active.role_name || active.role?.name;
 
@@ -412,7 +431,39 @@ export class AppComponent implements OnInit {
       else this.navCtrl.navigateRoot('/home');
     }
 
-    this.platform.ready().then(() => {
+    this.platform.ready().then(async () => {
+      // Register FCM Token for logged-in users on startup
+      if (token) {
+        try {
+          const fcmToken = await this.pushService.getFcmToken();
+          if (fcmToken && fcmToken !== 'web_or_mock_token' && fcmToken !== 'fcm_mock_token_123') {
+            this.dataService.setFCMToken({ api_token: token, fcm_token: fcmToken }).subscribe({
+              next: () => console.log('✅ FCM Token updated on app init'),
+              error: (err) => console.error('❌ Failed to update FCM Token', err)
+            });
+          }
+        } catch (e) {
+          console.error('FCM Token generation failed on init', e);
+        }
+      }
+
+      // ✅ Check delivered notifications on startup
+      try {
+        await this.pushService.checkDeliveredNotifications();
+      } catch (e) {
+        console.error('Failed to check delivered notifications on startup', e);
+      }
+
+      // ✅ Subscribe to app resume event to capture background notifications
+      this.platform.resume.subscribe(async () => {
+        console.log('📱 [AppComponent] App resumed! Checking delivered notifications...');
+        try {
+          await this.pushService.checkDeliveredNotifications();
+        } catch (e) {
+          console.error('Failed to check delivered notifications on resume', e);
+        }
+      });
+
       this.platform.backButton.subscribeWithPriority(9999, async () => {
         if (await this.menu.isOpen()) { await this.menu.close(); return; }
         const actionSheet = await this.actionSheetCtrl.getTop();

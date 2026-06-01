@@ -173,13 +173,18 @@ async login() {
   }
 
     // GET FCM TOKEN BEFORE SHOWING LOADER (so permission prompt isn't blocked by overlay)
+    this.presentToast('Generating FCM Token...', 'primary');
     let actualFcmToken = 'fcm_mock_token_123';
     try {
       const generatedToken = await this.pushService.getFcmToken();
       if (generatedToken) {
         actualFcmToken = generatedToken;
+        this.presentToast('✅ FCM Token Generated: ' + actualFcmToken.substring(0, 10) + '...', 'success');
+      } else {
+        this.presentToast('⚠️ FCM Token generation returned empty', 'warning');
       }
     } catch (e) {
+      this.presentToast('❌ Failed to get FCM token: ' + String(e), 'danger');
       console.error('Failed to get FCM token', e);
     }
 
@@ -230,6 +235,26 @@ async login() {
         localStorage.setItem('user_role', userRole.toString());
         localStorage.setItem('company_id', userData.company_id.toString());
         localStorage.setItem('ranger_id', userData.id.toString());
+        
+        // Register FCM Token with Backend
+        if (actualFcmToken && actualFcmToken !== 'fcm_mock_token_123') {
+          this.presentToast('Sending FCM Token to backend setFCMToken...', 'primary');
+          this.dataService.setFCMToken({
+            api_token: userData.api_token,
+            fcm_token: actualFcmToken
+          }).subscribe({
+            next: (fcmRes) => {
+              console.log('✅ FCM Token registered successfully', fcmRes);
+              this.presentToast('✅ Backend setFCMToken Success!', 'success');
+            },
+            error: (err) => {
+              console.error('❌ Failed to register FCM Token', err);
+              this.presentToast('❌ Backend setFCMToken Failed: ' + (err.message || ''), 'danger');
+            }
+          });
+        } else {
+          this.presentToast('⚠️ Skipping setFCMToken (mock or empty token)', 'warning');
+        }
         
         // Explicit keys for sidebar (AppComponent)
         localStorage.setItem('ranger_username', userData.name);
@@ -307,9 +332,54 @@ async login() {
                 localStorage.setItem('user_photo', resolvedUrl);
               }
               
+              // Store entity_id directly in localStorage from various potential paths
+              const resolvedEntityId = d.dynamic_assignment?.entity_id || d.dynamic_assignment?.entity?.id || d.entity_id || d.assigned_entity_id || '';
+              if (resolvedEntityId) {
+                localStorage.setItem('entity_id', String(resolvedEntityId));
+                console.log("🔑 [ENTITY_ID] Saved to localStorage during login getUserDetails:", resolvedEntityId);
+              }
+
               // Merge full DB data (with dynamic_assignment) into stored user_data
               const updatedUserInfo = { ...userInfo, ...d };
               localStorage.setItem('user_data', JSON.stringify(updatedUserInfo));
+
+              // Also fetch assignments to populate hierarchy and direct entity mappings immediately!
+              this.dataService.getUserAssignments(userData.id).subscribe({
+                next: (assignRes: any) => {
+                  const assignments = assignRes?.data || assignRes || [];
+                  const hierarchy = this.dataService.parseAssignmentHierarchy(assignments);
+                  if (hierarchy.entityId && hierarchy.entityId !== '') {
+                    localStorage.setItem('entity_id', hierarchy.entityId);
+                    console.log('✅ [ENTITY_ID] Saved entity_id from hierarchy during login:', hierarchy.entityId);
+                  }
+                  if (hierarchy.parentId && hierarchy.parentId !== '') {
+                    localStorage.setItem('parent_entity_id', hierarchy.parentId);
+                    // ✅ FIX: Also save as site_id so patrol-logs can find it
+                    localStorage.setItem('site_id', hierarchy.parentId);
+                    console.log('✅ [SITE_ID] Saved site_id from hierarchy.parentId during login:', hierarchy.parentId);
+                  }
+                  if (assignments.length > 0) {
+                    const active = assignments[0];
+                    const directEntityId = active.entity_id || active.assigned_entity_id || active.beat_id || 
+                                           active.entity?.id || active.assigned_entity?.id || active.beat?.id;
+                    if (directEntityId) {
+                      localStorage.setItem('entity_id', String(directEntityId));
+                      console.log('✅ [ENTITY_ID] Saved entity_id from direct assignment during login:', directEntityId);
+                    }
+                    // Also save site_id from the assignment's parent fields
+                    const directSiteId = active.site_id || active.range_id || active.parent_id ||
+                                         active.entity?.parent_id || active.entity?.parent?.id ||
+                                         active.assigned_entity?.parent_id || active.beat?.parent_id;
+                    if (directSiteId) {
+                      localStorage.setItem('site_id', String(directSiteId));
+                      console.log('✅ [SITE_ID] Saved site_id from direct assignment during login:', directSiteId);
+                    }
+                  }
+                },
+                error: (err) => {
+                  console.error("❌ Failed to fetch user assignments during login:", err);
+                }
+              });
             },
             error: (err) => {
               console.error("❌ Failed to fetch getUserDetails:", err);

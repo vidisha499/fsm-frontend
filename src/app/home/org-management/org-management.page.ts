@@ -23,6 +23,44 @@ export class OrgManagementPage implements OnInit {
   selectedLayer: any = 'all';
   isLoadingEntities: boolean = false;
   
+  // Tree View State
+  isTreeView: boolean = true;
+  orgTree: any[] = [];
+
+  // Unified Structure Modal (Add/Edit Layer & Entity)
+  isStructureModalOpen: boolean = false;
+  structureModalMode: 'create' | 'edit' = 'create';
+  structureModalType: 'layer' | 'entity' = 'layer';
+  
+  structureForm: any = {
+    id: null,
+    layerName: '',
+    layerRank: null,
+    entityName: '',
+    entityCode: '',
+    entityLayerId: '',
+    entityParentId: '',
+    parentLocked: false
+  };
+
+  structureFormTouched: any = {
+    layerName: false,
+    layerRank: false,
+    entityName: false,
+    entityLayerId: false
+  };
+
+  // Bulk Import State
+  isBulkModalOpen: boolean = false;
+  bulkImportData = {
+    layer_id: '',
+    parent_id: '',
+    rawText: ''
+  };
+
+  // Search State
+  searchQuery: string = '';
+  
   // Roles Data
   customRoles: any[] = [];
   myCompanyId: any = null;
@@ -191,13 +229,14 @@ export class OrgManagementPage implements OnInit {
     if (!this.selectedLayer) return;
     
     this.isLoadingEntities = true;
-    const layerId = this.selectedLayer === 'all' ? null : this.selectedLayer;
     
-    this.dataService.listV2Entities(layerId).subscribe({ 
+    // Always fetch all entities to build a complete tree. Flat list filters local array.
+    this.dataService.listV2Entities(null).subscribe({ 
       next: (res: any) => {
-        console.log(`📥 [Org V2 Entities] Layer ${layerId || 'All'} Response:`, res);
+        console.log(`📥 [Org V2 Entities] Response:`, res);
         this.orgEntities = res?.data || res || [];
         this.filterEntities(this.selectedLayer);
+        this.buildOrgTree();
         this.isLoadingEntities = false;
       },
       error: (err) => {
@@ -211,47 +250,50 @@ export class OrgManagementPage implements OnInit {
     this.selectedLayer = layerId;
     console.log("🎯 Filtering for Layer ID:", layerId);
 
-    if (layerId === 'all') {
-      this.filteredEntities = [...this.orgEntities];
-    } else {
+    let list = [...this.orgEntities];
+
+    if (layerId !== 'all') {
       // Find the layer object to get its name for a smarter match
       const selectedLayerObj = this.orgLayers.find(l => String(l.id) === String(layerId));
       const layerName = selectedLayerObj?.name?.toLowerCase();
 
-      this.filteredEntities = this.orgEntities.filter(e => {
+      list = list.filter(e => {
         const matchesId = String(e.layer_id) === String(layerId);
         // Fallback: If ID doesn't match, check if the entity's layer name matches the tab name
         const matchesName = layerName && e.layer_name && String(e.layer_name).toLowerCase().includes(layerName);
         return matchesId || matchesName;
       });
     }
+
+    // Apply search query filter if typed
+    if (this.searchQuery && this.searchQuery.trim()) {
+      const q = this.searchQuery.toLowerCase().trim();
+      list = list.filter(e => 
+        (e.name || '').toLowerCase().includes(q) || 
+        (e.code || '').toLowerCase().includes(q) ||
+        this.getLayerName(e.layer_id).toLowerCase().includes(q)
+      );
+    }
+
+    this.filteredEntities = list;
     console.log("✅ Filtered Count:", this.filteredEntities.length);
   }
 
-  async editOrgLayer(layer: any) {
-    const alert = await this.alertCtrl.create({
-      mode: 'md',
-      header: 'Update V2 Layer',
-      inputs: [
-        { name: 'name', type: 'text', value: layer.name, placeholder: 'Layer Name' },
-        { name: 'rank', type: 'number', value: layer.rank, placeholder: 'Rank' }
-      ],
-      buttons: [
-        { text: 'Cancel', role: 'cancel' },
-        {
-          text: 'Update',
-          handler: (data) => {
-            this.dataService.updateV2Layer({ id: layer.id, ...data }).subscribe({
-              next: () => {
-                this.showToast('V2 Layer updated', 'success');
-                this.loadOrgLayers();
-              }
-            });
-          }
-        }
-      ]
-    });
-    await alert.present();
+  editOrgLayer(layer: any) {
+    this.structureModalMode = 'edit';
+    this.structureModalType = 'layer';
+    this.structureForm = {
+      id: layer.id,
+      layerName: layer.name,
+      layerRank: layer.rank,
+      entityName: '',
+      entityCode: '',
+      entityLayerId: '',
+      entityParentId: '',
+      parentLocked: false
+    };
+    this.resetStructureFormTouched();
+    this.isStructureModalOpen = true;
   }
 
   async deleteOrgLayer(id: any) {
@@ -277,63 +319,38 @@ export class OrgManagementPage implements OnInit {
     await confirm.present();
   }
 
-  async openAddOrgLayer() {
-    const alert = await this.alertCtrl.create({
-      mode: 'md',
-      header: 'New V2 Layer',
-      inputs: [
-        { name: 'name', type: 'text', placeholder: 'Layer Name' },
-        { name: 'rank', type: 'number', placeholder: 'Rank' }
-      ],
-      buttons: [
-        { text: 'Cancel', role: 'cancel' },
-        {
-          text: 'Create',
-          handler: (data) => {
-            this.dataService.storeV2Layer({ ...data, is_active: 1 }).subscribe({
-              next: () => {
-                this.showToast('V2 Layer created', 'success');
-                this.loadOrgLayers();
-              }
-            });
-          }
-        }
-      ]
-    });
-    await alert.present();
+  openAddOrgLayer() {
+    this.structureModalMode = 'create';
+    this.structureModalType = 'layer';
+    this.structureForm = {
+      id: null,
+      layerName: '',
+      layerRank: this.orgLayers.length + 1,
+      entityName: '',
+      entityCode: '',
+      entityLayerId: '',
+      entityParentId: '',
+      parentLocked: false
+    };
+    this.resetStructureFormTouched();
+    this.isStructureModalOpen = true;
   }
 
-  async openAddOrgEntity() {
-    const alert = await this.alertCtrl.create({
-      mode: 'md',
-      header: 'New V2 Entity',
-      message: 'Select a layer and enter entity details.',
-      inputs: [
-        { name: 'name', type: 'text', placeholder: 'Entity Name' },
-        { name: 'code', type: 'text', placeholder: 'Code (e.g. NAG-01)' },
-        { name: 'layer_id', type: 'number', placeholder: 'Layer ID' },
-        { name: 'parent_id', type: 'number', placeholder: 'Parent Entity ID (Optional)' }
-      ],
-      buttons: [
-        { text: 'Cancel', role: 'cancel' },
-        {
-          text: 'Create',
-          handler: (data) => {
-            if (!data.name || !data.layer_id) {
-              this.showToast('Name and Layer ID are required', 'warning');
-              return;
-            }
-            this.dataService.storeV2Entity(data).subscribe({
-              next: () => {
-                this.showToast('V2 Entity created', 'success');
-                this.loadOrgEntities();
-              }
-            });
-          }
-        }
-      ]
-    });
-    await alert.present();
+  openAddOrgEntity() {
+    this.structureModalMode = 'create';
+    this.structureModalType = 'entity';
+    this.structureForm = {
+      id: null,
+      layerName: '',
+      layerRank: null,
+      entityName: '',
+      entityCode: '',
+      entityLayerId: '',
+      entityParentId: '',
+      parentLocked: false
+    };
+    this.resetStructureFormTouched();
+    this.isStructureModalOpen = true;
   }
 
   async deleteOrgEntity(id: any) {
@@ -349,30 +366,157 @@ export class OrgManagementPage implements OnInit {
     });
   }
 
-  async editOrgEntity(entity: any) {
-     const alert = await this.alertCtrl.create({
-      mode: 'md',
-      header: 'Update V2 Entity',
-       inputs: [
-        { name: 'name', type: 'text', value: entity.name, placeholder: 'Entity Name' },
-        { name: 'code', type: 'text', value: entity.code, placeholder: 'Code' },
-      ],
-      buttons: [
-        { text: 'Cancel', role: 'cancel' },
-        {
-          text: 'Update',
-          handler: (data) => {
-            this.dataService.updateV2Entity({ id: entity.id, ...data }).subscribe({
-              next: () => {
-                this.showToast('V2 Entity updated', 'success');
-                this.loadOrgEntities();
-              }
-            });
-          }
+  editOrgEntity(entity: any) {
+    this.structureModalMode = 'edit';
+    this.structureModalType = 'entity';
+    this.structureForm = {
+      id: entity.id,
+      layerName: '',
+      layerRank: null,
+      entityName: entity.name,
+      entityCode: entity.code || '',
+      entityLayerId: entity.layer_id ? String(entity.layer_id) : '',
+      entityParentId: entity.parent_id ? String(entity.parent_id) : '',
+      parentLocked: false
+    };
+    this.resetStructureFormTouched();
+    this.isStructureModalOpen = true;
+  }
+
+  setStructureType(type: 'layer' | 'entity') {
+    this.structureModalType = type;
+    this.resetStructureFormTouched();
+  }
+
+  resetStructureFormTouched() {
+    this.structureFormTouched = {
+      layerName: false,
+      layerRank: false,
+      entityName: false,
+      entityLayerId: false
+    };
+  }
+
+  onStructureModalDismiss() {
+    this.isStructureModalOpen = false;
+    this.resetStructureFormTouched();
+  }
+
+  onEntityLayerChange() {
+    // Optional additional filtering logic
+  }
+
+  // --- INLINE VALIDATION METHODS ---
+  isLayerNameInvalid(): boolean {
+    return !this.structureForm.layerName || !this.structureForm.layerName.trim();
+  }
+
+  isLayerRankInvalid(): boolean {
+    const val = this.structureForm.layerRank;
+    return val === null || val === undefined || String(val).trim() === '';
+  }
+
+  isEntityNameInvalid(): boolean {
+    return !this.structureForm.entityName || !this.structureForm.entityName.trim();
+  }
+
+  isEntityLayerIdInvalid(): boolean {
+    return !this.structureForm.entityLayerId;
+  }
+
+  async saveStructure() {
+    if (this.structureModalType === 'layer') {
+      this.structureFormTouched.layerName = true;
+      this.structureFormTouched.layerRank = true;
+
+      if (this.isLayerNameInvalid() || this.isLayerRankInvalid()) {
+        this.showToast('Please fill all required Layer fields', 'warning');
+        return;
+      }
+
+      const loader = await this.loadingCtrl.create({
+        message: this.structureModalMode === 'create' ? 'Creating Layer...' : 'Updating Layer...',
+        mode: 'md'
+      });
+      await loader.present();
+
+      const payload: any = {
+        name: this.structureForm.layerName,
+        rank: Number(this.structureForm.layerRank),
+        is_active: 1
+      };
+
+      if (this.structureModalMode === 'edit') {
+        payload.id = this.structureForm.id;
+      }
+
+      const obs = this.structureModalMode === 'edit'
+        ? this.dataService.updateV2Layer(payload)
+        : this.dataService.storeV2Layer(payload);
+
+      obs.subscribe({
+        next: () => {
+          loader.dismiss();
+          this.showToast(this.structureModalMode === 'edit' ? 'Layer updated successfully!' : 'Layer created successfully!', 'success');
+          this.isStructureModalOpen = false;
+          this.loadOrgLayers();
+        },
+        error: (err) => {
+          loader.dismiss();
+          console.error('Layer save failed', err);
+          this.showToast('Failed to save layer', 'danger');
         }
-      ]
-    });
-    await alert.present();
+      });
+
+    } else {
+      this.structureFormTouched.entityName = true;
+      this.structureFormTouched.entityLayerId = true;
+
+      if (this.isEntityNameInvalid() || this.isEntityLayerIdInvalid()) {
+        this.showToast('Please fill all required Entity fields', 'warning');
+        return;
+      }
+
+      const loader = await this.loadingCtrl.create({
+        message: this.structureModalMode === 'create' ? 'Creating Entity...' : 'Updating Entity...',
+        mode: 'md'
+      });
+      await loader.present();
+
+      const payload: any = {
+        name: this.structureForm.entityName,
+        code: this.structureForm.entityCode,
+        layer_id: Number(this.structureForm.entityLayerId)
+      };
+
+      if (this.structureForm.entityParentId) {
+        payload.parent_id = Number(this.structureForm.entityParentId);
+      } else {
+        payload.parent_id = null;
+      }
+
+      if (this.structureModalMode === 'edit') {
+        payload.id = this.structureForm.id;
+      }
+
+      const obs = this.structureModalMode === 'edit'
+        ? this.dataService.updateV2Entity(payload)
+        : this.dataService.storeV2Entity(payload);
+
+      obs.subscribe({
+        next: () => {
+          loader.dismiss();
+          this.showToast(this.structureModalMode === 'edit' ? 'Entity updated successfully!' : 'Entity created successfully!', 'success');
+          this.isStructureModalOpen = false;
+          this.loadOrgEntities();
+        },
+        error: (err) => {
+          loader.dismiss();
+          console.error('Entity save failed', err);
+          this.showToast('Failed to save entity', 'danger');
+        }
+      });
+    }
   }
 
   // --- ROLES LOGIC ---
@@ -943,5 +1087,236 @@ export class OrgManagementPage implements OnInit {
 
   scrollToTop() {
     this.content.scrollToTop(600);
+  }
+
+  // --- TREE VIEW HELPER METHODS ---
+  buildOrgTree() {
+    if (!this.orgEntities || this.orgEntities.length === 0) {
+      this.orgTree = [];
+      return;
+    }
+
+    // 1. Create a map of all entities for O(1) lookup
+    const map = new Map();
+    this.orgEntities.forEach(e => {
+      map.set(String(e.id), {
+        ...e,
+        children: [],
+        expanded: true // Default to expanded
+      });
+    });
+
+    const roots: any[] = [];
+
+    // 2. Build the tree
+    map.forEach(node => {
+      if (node.parent_id && map.has(String(node.parent_id))) {
+        const parent = map.get(String(node.parent_id));
+        parent.children.push(node);
+      } else {
+        roots.push(node);
+      }
+    });
+
+    // 3. Sort roots and children by name
+    const sortNodes = (nodes: any[]) => {
+      nodes.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+      nodes.forEach(n => {
+        if (n.children && n.children.length > 0) {
+          sortNodes(n.children);
+        }
+      });
+    };
+
+    sortNodes(roots);
+    this.orgTree = roots;
+    console.log("🌳 [Org Tree Built Successfully]:", this.orgTree);
+  }
+
+  getLayerName(layerId: any): string {
+    const layer = this.orgLayers.find(l => String(l.id) === String(layerId));
+    return layer ? layer.name : `Layer ${layerId}`;
+  }
+
+  getLayerColor(layerId: any): string {
+    const colors: any = {
+      '26': 'rgba(16, 185, 129, 0.12)', // Range - emerald green
+      '27': 'rgba(59, 130, 246, 0.12)',  // Beat - cool blue
+      '9': 'rgba(139, 92, 246, 0.12)',   // Section - violet/purple
+      '10': 'rgba(245, 158, 11, 0.12)',  // Beat/other - warm orange
+    };
+    if (colors[String(layerId)]) return colors[String(layerId)];
+    const num = Number(layerId) || 0;
+    const hue = (num * 137) % 360;
+    return `hsla(${hue}, 70%, 45%, 0.12)`;
+  }
+
+  getLayerTextColor(layerId: any): string {
+    const colors: any = {
+      '26': '#10b981', // Emerald
+      '27': '#3b82f6', // Blue
+      '9': '#8b5cf6',  // Purple
+      '10': '#f59e0b', // Orange
+    };
+    if (colors[String(layerId)]) return colors[String(layerId)];
+    const num = Number(layerId) || 0;
+    const hue = (num * 137) % 360;
+    return `hsl(${hue}, 70%, 40%)`;
+  }
+
+  expandAllTreeNodes(expanded: boolean) {
+    const toggle = (nodes: any[]) => {
+      nodes.forEach(n => {
+        n.expanded = expanded;
+        if (n.children && n.children.length > 0) {
+          toggle(n.children);
+        }
+      });
+    };
+    toggle(this.orgTree);
+  }
+
+  openAddOrgEntityWithParent(parent: any) {
+    // Find next layer rank
+    const currentLayer = this.orgLayers.find(l => String(l.id) === String(parent.layer_id));
+    const currentRank = currentLayer ? Number(currentLayer.rank || currentLayer.id) : 0;
+    
+    // Find next layer in sequence
+    const nextLayer = this.orgLayers.find(l => Number(l.rank || l.id) > currentRank) || this.orgLayers[this.orgLayers.length - 1];
+
+    this.structureModalMode = 'create';
+    this.structureModalType = 'entity';
+    this.structureForm = {
+      id: null,
+      layerName: '',
+      layerRank: null,
+      entityName: '',
+      entityCode: '',
+      entityLayerId: nextLayer ? String(nextLayer.id) : String(parent.layer_id),
+      entityParentId: String(parent.id),
+      parentLocked: true
+    };
+    this.resetStructureFormTouched();
+    this.isStructureModalOpen = true;
+  }
+
+  async importBulkEntities() {
+    if (!this.bulkImportData.layer_id) {
+      this.showToast('Please select a target layer', 'warning');
+      return;
+    }
+    if (!this.bulkImportData.rawText.trim()) {
+      this.showToast('Please enter some entity data', 'warning');
+      return;
+    }
+
+    const loader = await this.loadingCtrl.create({
+      message: 'Processing bulk import...',
+      mode: 'md'
+    });
+    await loader.present();
+
+    const lines = this.bulkImportData.rawText.split('\n');
+    const importPromises: any[] = [];
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+
+      // Parse comma-separated values: Name, Code, ParentId
+      const parts = trimmed.split(',').map(p => p.trim());
+      const name = parts[0];
+      const code = parts[1] || '';
+      const parentId = parts[2] || this.bulkImportData.parent_id || null;
+
+      if (!name) continue;
+
+      const payload: any = {
+        name: name,
+        code: code,
+        layer_id: Number(this.bulkImportData.layer_id),
+      };
+      if (parentId) {
+        payload.parent_id = Number(parentId);
+      }
+
+      // Convert observable to promise
+      const p = new Promise<void>((resolve) => {
+        this.dataService.storeV2Entity(payload).subscribe({
+          next: () => {
+            successCount++;
+            resolve();
+          },
+          error: (err) => {
+            console.error(`Failed to import ${name}:`, err);
+            failCount++;
+            resolve(); // Resolve anyway so loop completes
+          }
+        });
+      });
+      importPromises.push(p);
+    }
+
+    // Wait for all imports to finish
+    await Promise.all(importPromises);
+    await loader.dismiss();
+
+    if (successCount > 0) {
+      this.showToast(`Successfully imported ${successCount} entities! ${failCount > 0 ? `(${failCount} failed)` : ''}`, 'success');
+      this.isBulkModalOpen = false;
+      this.bulkImportData.rawText = '';
+      this.loadOrgEntities(); // Refresh tree and list views
+    } else {
+      this.showToast('Failed to import entities. Please check the format.', 'danger');
+    }
+  }
+
+  // --- REACTIVE TREE FILTERING ENGINE ---
+  get displayedOrgTree(): any[] {
+    if (!this.searchQuery || !this.searchQuery.trim()) {
+      return this.orgTree;
+    }
+    return this.filterTreeBySearch(this.orgTree, this.searchQuery);
+  }
+
+  filterTreeBySearch(nodes: any[], query: string): any[] {
+    if (!query || !query.trim()) {
+      return nodes.map(n => ({
+        ...n,
+        expanded: true,
+        children: n.children ? this.filterTreeBySearch(n.children, '') : []
+      }));
+    }
+
+    const q = query.toLowerCase().trim();
+
+    return nodes
+      .map(node => {
+        // Recursively filter children first
+        const filteredChildren = node.children ? this.filterTreeBySearch(node.children, query) : [];
+        
+        // Check if current node matches the query
+        const matchesName = (node.name || '').toLowerCase().includes(q);
+        const matchesCode = (node.code || '').toLowerCase().includes(q);
+        const matchesLayer = this.getLayerName(node.layer_id).toLowerCase().includes(q);
+        const matchesCurrent = matchesName || matchesCode || matchesLayer;
+
+        // If current matches OR any children matches, keep it
+        if (matchesCurrent || filteredChildren.length > 0) {
+          return {
+            ...node,
+            children: filteredChildren,
+            expanded: true // Automatically expand matching paths!
+          };
+        }
+        return null;
+      })
+      .filter(n => n !== null);
+  }
+
+  onSearchChange() {
+    this.filterEntities(this.selectedLayer);
   }
 }

@@ -25,14 +25,17 @@
           </ion-label>
 
           <!-- Text aur Number Inputs -->
-          <ion-item lines="none" class="custom-input" *ngIf="field.type === 'text' || field.type === 'number'">
+          <ion-item lines="none" class="custom-input" *ngIf="field.type === 'text' || field.type === 'number' || field.type === 'tel'">
             <ion-icon *ngIf="field.icon" [name]="field.icon" slot="start" class="field-icon"></ion-icon>
             <ion-input 
               [type]="field.type" 
               [placeholder]="field.placeholder" 
               [(ngModel)]="reportData[field.label]"
               (ngModelChange)="checkFormValidity()"
-              [readonly]="field.readonly">
+              [readonly]="field.readonly"
+              [maxlength]="field.maxlength || null"
+              [inputmode]="field.type === 'tel' ? 'numeric' : ''"
+              [pattern]="field.type === 'tel' ? '[0-9]*' : ''">
             </ion-input>
           </ion-item>
 

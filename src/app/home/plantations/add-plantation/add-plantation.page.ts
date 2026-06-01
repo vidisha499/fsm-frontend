@@ -71,7 +71,11 @@ export class AddPlantationPage implements OnInit, AfterViewInit, OnDestroy {
         species: data.species || '',
         plant_count: data.plant_count || 0,
         latitude: parseFloat(data.latitude) || 21.840000,
-        longitude: parseFloat(data.longitude) || 84.030000
+        longitude: parseFloat(data.longitude) || 84.030000,
+        id: data.id,
+        status: data.status,
+        is_approved: data.is_approved,
+        plantation_code: data.plantation_code || data.code
       };
       
       this.isEditMode = true;

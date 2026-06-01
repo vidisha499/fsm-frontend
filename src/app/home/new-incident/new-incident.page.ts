@@ -32,24 +32,24 @@ private googleApiKey: string = 'AIzaSyB3vWehpSsEW0GKMTITfzB_1wDJGNxJ5Fw';
   public currentAddress: string = '';
   
 public incidentData = {
-  priority: 'High Priority',
-  criteria: 'Criminal Activity',
-  subCategory: '', // New field
-  species: 'sagvan',     // New field
-  cause: 'human error',
-  reason: 'Trade',
+  priority: '',
+  criteria: '',
+  subCategory: '',
+  species: '',
+  cause: '',
+  reason: '',
   observation: '',
-  vehicleType: 'truck', // New
-  route: 'village route',
-  storageArea: 'godown',
+  vehicleType: '',
+  route: '',
+  storageArea: '',
   range: '',
   fireStage: '',
   assetInventory: '',
   vehicleInfo: '',
   checkpost: '',
-  rangerName: '', // Will be auto-filled
+  rangerName: '',
   geofence: '',
-  vehicleSeized: 'No',
+  vehicleSeized: '',
   vehicleSeizedType: '',
 };
   constructor(
@@ -322,33 +322,27 @@ const payload = {
 }
 
 resetSubFields() {
-  // 1. DO NOT reset this.incidentData.subCategory here! 
-  // If you reset it, the UI won't know what to show.
-
-  // 2. Clear ONLY the detail fields
+  // Clear ALL detail fields to empty - user must re-select
   this.incidentData.species = '';
   this.incidentData.vehicleType = '';
   this.incidentData.route = '';
   this.incidentData.storageArea = '';
   this.incidentData.reason = '';
-  this.incidentData.range = ''; 
+  this.incidentData.range = '';
   this.incidentData.fireStage = '';
   this.incidentData.assetInventory = '';
   this.incidentData.vehicleInfo = '';
   this.incidentData.checkpost = '';
+  this.incidentData.cause = '';
+  this.incidentData.vehicleSeized = '';
+  this.incidentData.vehicleSeizedType = '';
 
-  // 3. Set specific defaults based on the subCategory
- if (this.incidentData.criteria === 'Fire Warning') {
-    this.incidentData.subCategory = 'Fire Warning'; 
-    this.incidentData.cause = 'Natural Cause';
-  } 
-    else if (this.incidentData.subCategory === 'Poaching') {
-    this.incidentData.cause = 'Natural';
-  } else if (this.incidentData.subCategory === 'illegal felling'|| this.incidentData.subCategory === 'illegal felling') {
-    this.incidentData.reason = 'Trade';
-    this.incidentData.cause = 'Human Error';
-  } else {
-    this.incidentData.cause = 'Human Error';
+  // Auto-assign subCategory for single-option categories
+  if (this.incidentData.criteria === 'Fire Warning') {
+    this.incidentData.subCategory = 'Fire Warning';
+  } else if (this.incidentData.criteria !== 'Criminal Activity') {
+    // Reset sub-category too when switching main category
+    this.incidentData.subCategory = '';
   }
   this.cdr.detectChanges();
 }

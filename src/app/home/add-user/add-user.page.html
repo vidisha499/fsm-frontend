@@ -42,7 +42,9 @@
           <label>{{ 'ADD_USER_PAGE.LABEL_MOBILE' | translate }}</label>
           <div class="pill-content">
             <i class="fas fa-phone-alt"></i>
-            <input [(ngModel)]="userData.contact" type="tel" [placeholder]="'ADD_USER_PAGE.PH_MOBILE' | translate" maxlength="10">
+            <input [(ngModel)]="userData.contact" type="tel" [placeholder]="'ADD_USER_PAGE.PH_MOBILE' | translate"
+              maxlength="10" inputmode="numeric" pattern="[0-9]*"
+              (input)="onPhoneInput($event, 'contact')">
           </div>
         </div>
 
