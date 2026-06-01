@@ -136,10 +136,12 @@ export class OfficerDetailsPage implements OnInit {
 
   loadAssignedSite() {
     if (!this.officer) return;
-    // Try to get guard site info
     const token = localStorage.getItem('api_token');
+    const userId = this.officerId;
+
+    // Try legacy API first
     this.dataService.getGuardSite({ 
-      guard_id: this.officerId, 
+      guard_id: userId, 
       api_token: token 
     }).subscribe({
       next: (res: any) => {
@@ -153,12 +155,42 @@ export class OfficerDetailsPage implements OnInit {
             shift_time_from: site.shift_time_from || site.start_time || '12:00 am',
             shift_time_to: site.shift_time_to || site.end_time || '11:57 pm'
           };
+          this.officer.site_name = this.assignedSite.name;
           this.cdr.detectChanges();
+        } else {
+          // Legacy returned no name, try V2
+          this.loadV2Assignment(userId);
         }
       },
       error: () => {
-        // Site info not available, that's OK
+        // Legacy failed, try V2
+        this.loadV2Assignment(userId);
       }
+    });
+  }
+
+  loadV2Assignment(userId: any) {
+    this.dataService.getUserAssignments(userId).subscribe({
+      next: (res: any) => {
+        const assignments = res?.data || res || [];
+        const list = Array.isArray(assignments) ? assignments : [assignments];
+        if (list.length > 0) {
+          const a = list[0]; // Take first/primary assignment
+          const entity = a.entity || a.assigned_entity || a.beat || {};
+          const entityName = entity.name || entity.beat_name || a.entity_name || a.site_name || a.beat_name || a.geo_name || a.name || `Entity #${a.entity_id || entity.id || 'N/A'}`;
+          this.assignedSite = {
+            name: entityName,
+            date_from: a.start_date || a.date_from || a.created_at?.split(' ')[0] || '',
+            date_to: a.end_date || a.date_to || '',
+            shift: a.shift || a.shift_name || 'General Shift',
+            shift_time_from: a.shift_time_from || '12:00 am',
+            shift_time_to: a.shift_time_to || '11:57 pm'
+          };
+          this.officer.site_name = entityName;
+          this.cdr.detectChanges();
+        }
+      },
+      error: (err) => console.error('V2 assignment fetch failed:', err)
     });
   }
 
@@ -341,5 +373,9 @@ export class OfficerDetailsPage implements OnInit {
 
   goBack() {
     this.navCtrl.back();
+  }
+
+  async editSite() {
+    this.router.navigate(['/home/assign-site'], { state: { officerData: this.officer } });
   }
 }

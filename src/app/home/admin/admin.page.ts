@@ -422,6 +422,12 @@ export class AdminPage implements OnInit, AfterViewInit {
 
   // --- Data ---
   beatCoverage: any[] = [];
+  latestRangeMap: { [name: string]: number } = {};
+  latestTotalReports: number = 1;
+  deepestSelection: any = null;
+
+  isRestrictedAdmin: boolean = false;
+  restrictedLayerIndex: number = -1;
 
   private _charts: { [key: string]: Chart } = {};
 
@@ -575,50 +581,114 @@ export class AdminPage implements OnInit, AfterViewInit {
 
   // --- Production Filter Data Logic (V2 Hierarchy Cascade + Fallback to legacy) ---
   loadHierarchy(force: boolean = false) {
-    if (!force && ((this.layers && this.layers.length > 0) || (this.allRanges && this.allRanges.length > 0))) {
-      return;
-    }
-    console.log('📡 [Hierarchy] Dashboard Syncing V2 Hierarchy layers...');
-    this.dataService.listV2Layers().subscribe({
-      next: (layerRes: any) => {
-        const rawLayers = layerRes?.data || layerRes || [];
-        
-        if (rawLayers.length > 0) {
-          this.layers = rawLayers
-            .sort((a: any, b: any) => (Number(a.rank || a.id)) - (Number(b.rank || b.id)))
-            .map((l: any) => ({
-              id: Number(l.id),
-              name: l.name || l.layer_name || l.label
-            }));
+    const companyId = localStorage.getItem('company_id') || localStorage.getItem('user_company_id') || '1';
+    
+    if (force || !this.layers || this.layers.length === 0) {
+      console.log('📡 [Hierarchy] Dashboard Syncing V2 Hierarchy layers...');
+      this.dataService.listV2Layers().subscribe({
+        next: (layerRes: any) => {
+          const rawLayers = layerRes?.data || layerRes || [];
+          
+          if (rawLayers.length > 0) {
+            this.layers = rawLayers
+              .sort((a: any, b: any) => (Number(a.rank || a.id)) - (Number(b.rank || b.id)))
+              .map((l: any) => ({
+                id: Number(l.id),
+                name: l.name || l.layer_name || l.label
+              }));
 
-          console.log("🎯 [Admin] V2 Layers Parsed:", this.layers);
+            console.log("🎯 [Admin] V2 Layers Parsed:", this.layers);
 
-          // Initialize hierarchy selections array
-          if (!this.hierarchySelections || this.hierarchySelections.length !== this.layers.length) {
-            this.hierarchySelections = new Array(this.layers.length).fill(null);
-          }
+            // Initialize hierarchy selections array
+            if (!this.hierarchySelections || this.hierarchySelections.length !== this.layers.length) {
+              this.hierarchySelections = new Array(this.layers.length).fill(null);
+            }
 
-          // Load initial entities for the first layer
-          if (this.layers.length > 0) {
-            const firstLayer = this.layers[0];
-            this.dataService.listV2Entities(firstLayer.id, null).subscribe({
-              next: (entRes: any) => {
-                const nodes = entRes?.data || entRes || [];
-                this.layerEntities[firstLayer.id] = Array.isArray(nodes) ? nodes : [];
-                this.cdr.detectChanges();
+            const isRestrictedAdmin = localStorage.getItem('is_restricted_admin') === 'true';
+            if (isRestrictedAdmin) {
+              const adminLayerId = localStorage.getItem('admin_layer_id');
+              const adminEntityId = localStorage.getItem('admin_entity_id');
+              const idx = this.layers.findIndex((l: any) => String(l.id) === String(adminLayerId));
+              if (idx !== -1 && adminEntityId) {
+                // Assign as string/original format to match Angular's ngModel binding correctly
+                this.hierarchySelections[idx] = adminEntityId;
+                // Temporarily store it so we can disable the dropdown in UI if needed
+                (this as any).restrictedLayerIndex = idx;
               }
-            });
+            }
+
+            // Load initial entities for the first layer
+            if (this.layers.length > 0) {
+              const firstLayer = this.layers[0];
+              this.dataService.listV2Entities(firstLayer.id, null, false, companyId).subscribe({
+                next: (entRes: any) => {
+                  const nodes = entRes?.data || entRes || [];
+                  this.layerEntities[firstLayer.id] = Array.isArray(nodes) ? nodes : [];
+                  
+                  const isRestrictedAdmin = localStorage.getItem('is_restricted_admin') === 'true';
+                  if (isRestrictedAdmin && this.restrictedLayerIndex !== -1 && this.hierarchySelections[this.restrictedLayerIndex]) {
+                    setTimeout(() => {
+                      this.onLayerChange(this.restrictedLayerIndex);
+                    }, 50);
+                  }
+
+                  this.cdr.detectChanges();
+                }
+              });
+            }
+
+            // --- 🔥 LOAD DYNAMIC RANGES FOR BEAT COVERAGE ---
+            let rangeLayer = this.layers.find(l => l.name.toLowerCase().includes('geo'));
+            if (!rangeLayer) {
+              rangeLayer = this.layers.find(l => l.name.toLowerCase().includes('range'));
+            }
+            if (rangeLayer) {
+              console.log("🎯 Found Dynamic Range Layer:", rangeLayer);
+              this.dataService.listV2Entities(rangeLayer.id, null, false, companyId).subscribe({
+                next: (entRes: any) => {
+                  const nodes = entRes?.data || entRes || [];
+                  if (Array.isArray(nodes)) {
+                    this.allRanges = nodes.map((e: any) => e.name || e.label).filter(Boolean);
+                    console.log("✅ Loaded Dynamic Ranges:", this.allRanges);
+                    this.updateBeatCoverage();
+                  }
+                }
+              });
+            } else {
+              console.warn("⚠️ No Dynamic Range Layer found, falling back to legacy...");
+              this.loadOldHierarchy();
+            }
+
+          } else {
+            console.warn("⚠️ [Admin] No V2 Layers returned, falling back to legacy...");
+            this.loadOldHierarchy();
           }
-        } else {
-          console.warn("⚠️ [Admin] No V2 Layers returned. Falling back to old hierarchy.");
+        },
+        error: (err) => {
+          console.error("❌ [Admin] listV2Layers API failed, falling back to legacy:", err);
           this.loadOldHierarchy();
         }
-      },
-      error: (err) => {
-        console.error("❌ [Admin] listV2Layers API failed. Falling back to old hierarchy:", err);
+      });
+    } else {
+      // If layers are already loaded, just refresh the dynamic range entities
+      let rangeLayer = this.layers.find(l => l.name.toLowerCase().includes('geo'));
+      if (!rangeLayer) {
+        rangeLayer = this.layers.find(l => l.name.toLowerCase().includes('range'));
+      }
+      if (rangeLayer) {
+        this.dataService.listV2Entities(rangeLayer.id, null, false, companyId).subscribe({
+          next: (entRes: any) => {
+            const nodes = entRes?.data || entRes || [];
+            if (Array.isArray(nodes)) {
+              this.allRanges = nodes.map((e: any) => e.name || e.label).filter(Boolean);
+              this.updateBeatCoverage();
+            }
+          }
+        });
+      } else {
         this.loadOldHierarchy();
       }
-    });
+    }
   }
 
   loadOldHierarchy() {
@@ -635,6 +705,10 @@ export class AdminPage implements OnInit, AfterViewInit {
         const nodes = res?.data || res || [];
         if (Array.isArray(nodes)) {
           nodes.forEach((n: any) => {
+            // Filter by active company to avoid showing ranges from Nagpur Division/other companies
+            if (n.company_id && String(n.company_id) !== String(companyId)) {
+              return;
+            }
             if (String(n.layer_id) === '2' || String(n.layer_id) === '3') {
               if (n.name) rangeSet.add(n.name);
             } else if (String(n.layer_id) === '4' || String(n.layer_id) === '5') {
@@ -701,6 +775,35 @@ export class AdminPage implements OnInit, AfterViewInit {
     }
 
     console.log('✅ [Hierarchy] Sync Complete (Legacy Fallback):', this.allRanges.length, 'Ranges,', this.displayBeats.length, 'Beats');
+    this.updateBeatCoverage();
+  }
+
+  updateBeatCoverage() {
+    const totalReports = this.latestTotalReports || 1;
+    let rangesToDisplay: string[] = [];
+    if (this.allRanges && this.allRanges.length > 0) {
+      rangesToDisplay = [...this.allRanges];
+    } else {
+      rangesToDisplay = Object.keys(this.latestRangeMap);
+    }
+
+    // Filter out duplicate or empty values
+    rangesToDisplay = Array.from(new Set(rangesToDisplay.map(r => r.trim()).filter(Boolean)));
+
+    rangesToDisplay.sort((a, b) => {
+      const valA = this.latestRangeMap[a.toLowerCase()] || 0;
+      const valB = this.latestRangeMap[b.toLowerCase()] || 0;
+      if (valB !== valA) {
+        return valB - valA;
+      }
+      return a.localeCompare(b);
+    });
+
+    this.beatCoverage = rangesToDisplay.map(name => ({
+       label: name.toUpperCase(),
+       val: Math.round(((this.latestRangeMap[name.toLowerCase()] || 0) / totalReports) * 100),
+       color: this.COLORS.p
+    }));
     this.cdr.detectChanges();
   }
 
@@ -748,11 +851,36 @@ export class AdminPage implements OnInit, AfterViewInit {
     const { entityId, name } = deepestSelection;
     if (!name) return true;
     
-    // 1. Try matching by ID
+    // 1. Match by ID (direct match)
     const rSiteId = String(r.site_id || r.siteId || r.beat_id || r.entity_id || r.range_id || r.id || '');
-    if (rSiteId === String(entityId)) return true;
+    if (rSiteId && rSiteId === String(entityId)) return true;
     
-    // 2. Robust name string match
+    // 2. Trace V2 hierarchy parents recursively
+    if (rSiteId) {
+      let currentId = rSiteId;
+      let visited = new Set<string>();
+      while (currentId && !visited.has(currentId)) {
+        visited.add(currentId);
+        let foundParentId: string | null = null;
+        for (const layerId of Object.keys(this.layerEntities)) {
+          const ent = this.layerEntities[Number(layerId)]?.find(e => String(e.id) === String(currentId));
+          if (ent) {
+            foundParentId = ent.parent_id ? String(ent.parent_id) : null;
+            break;
+          }
+        }
+        if (foundParentId) {
+          if (foundParentId === String(entityId)) {
+            return true;
+          }
+          currentId = foundParentId;
+        } else {
+          break;
+        }
+      }
+    }
+
+    // 3. Fallback: Robust name string match
     const fieldsToSearch = [
       r.beat_name, r.site_name, r.location, r.location_name,
       r.range_name, r.range, r.region, r.division_name, r.division,
@@ -763,6 +891,17 @@ export class AdminPage implements OnInit, AfterViewInit {
     for (const f of fieldsToSearch) {
       if (f && String(f).toLowerCase().includes(matchName)) {
         return true;
+      }
+    }
+    
+    // 4. Fallback: Trace through allBeats mapping if Range is the selection
+    if (this.allBeats && this.allBeats.length > 0) {
+      const rBeat = (r.beat_name || r.site_name || r.location || '').toLowerCase();
+      const bObj = this.allBeats.find(b => b.name.toLowerCase() === rBeat);
+      const resolvedRange = (r.range_name || r.range || (bObj ? bObj.parentName : '')).toLowerCase();
+      
+      if (resolvedRange && (resolvedRange.includes(matchName) || matchName.includes(resolvedRange))) {
+         return true;
       }
     }
     
@@ -789,24 +928,36 @@ export class AdminPage implements OnInit, AfterViewInit {
   }
 
   fetchKPI(category: string, range: string) {
-  const rawData = localStorage.getItem('user_data');
-  const cId = rawData ? JSON.parse(rawData).company_id : this.myCompanyId;
+    // If V2 hierarchy selections are active, don't let this API overwrite the precise locally-filtered counts
+    let hasV2Selection = false;
+    if (this.hierarchySelections) {
+      hasV2Selection = this.hierarchySelections.some(sel => sel && sel !== 'null');
+    }
+    const hasLegacySelection = (this.selectedRange && this.selectedRange !== 'all') || (this.selectedBeat && this.selectedBeat !== 'all');
+    
+    if (hasV2Selection || hasLegacySelection) {
+      console.log(`♻️ Skipping fetchKPI overwrite because active filters are set.`);
+      return;
+    }
 
-  this.dataService.getForestKPIs(cId, range, category).subscribe({
-    next: (res: any) => {
-      // ⚡ Backend se res.count aa raha hai
-      const count = res && res.count !== undefined ? res.count : 0;
-      
-      if (category === 'crimes' ) {
-        this.criminalCount = count;
-      } else {
-        this.eventsCount = count;
-      }
-      this.cdr.detectChanges(); // UI refresh
-    },
-    error: (err) => console.error("KPI Error:", err)
-  });
-}
+    const rawData = localStorage.getItem('user_data');
+    const cId = rawData ? JSON.parse(rawData).company_id : this.myCompanyId;
+
+    this.dataService.getForestKPIs(cId, range, category).subscribe({
+      next: (res: any) => {
+        // ⚡ Backend se res.count aa raha hai
+        const count = res && res.count !== undefined ? res.count : 0;
+        
+        if (category === 'crimes' ) {
+          this.criminalCount = count;
+        } else {
+          this.eventsCount = count;
+        }
+        this.cdr.detectChanges(); // UI refresh
+      },
+      error: (err) => console.error("KPI Error:", err)
+    });
+  }
 
 
   resetAllFilters() {
@@ -827,11 +978,15 @@ export class AdminPage implements OnInit, AfterViewInit {
       this.selectedBeat = 'all';
       localStorage.setItem('global_range_filter', 'all');
       localStorage.setItem('global_beat_filter', 'all');
+      localStorage.removeItem('global_deepest_filter_name');
+      localStorage.removeItem('global_hierarchy_chain');
     } else {
       this.selectedRange = this.assignedRange || 'all';
       this.selectedBeat = this.assignedBeat || 'all';
       localStorage.setItem('global_range_filter', this.selectedRange);
       localStorage.setItem('global_beat_filter', this.selectedBeat);
+      localStorage.removeItem('global_deepest_filter_name');
+      localStorage.removeItem('global_hierarchy_chain');
     }
     this.activeDateFilter = 'today';
     this.dateFrom = '';
@@ -934,9 +1089,11 @@ export class AdminPage implements OnInit, AfterViewInit {
 
   ionViewWillEnter() {
     const userRole = localStorage.getItem('user_role');
-    // 🛡️ Security: Redirect to Home if not Superadmin (1), Admin (2), or Admin (7)
-    if (userRole !== '1' && userRole !== '2' && userRole !== '7') {
-      console.warn("🚫 Access Denied: Admin Dashboard is restricted to Admin/Superadmin only.");
+    const isRestrictedAdmin = localStorage.getItem('is_restricted_admin') === 'true';
+    
+    // 🛡️ Security: Redirect to Home if not Superadmin (1), Admin (2), or Admin (7) or Restricted Admin
+    if (userRole !== '1' && userRole !== '2' && userRole !== '7' && !isRestrictedAdmin) {
+      console.warn("❌ FORCE_LOG: Access Denied! userRole:", userRole, "isRestrictedAdmin:", isRestrictedAdmin);
       this.navCtrl.navigateRoot('/home');
       return;
     }
@@ -1303,11 +1460,22 @@ changeTimeframe(newTimeframe: string) {
         }
     };
 
-    // Try V2 Dashboard API first
-    this.dataService.getV2DashboardData({
+    const adminLayerId = localStorage.getItem('admin_layer_id');
+    const adminEntityId = localStorage.getItem('admin_entity_id');
+    
+    let payload: any = {
       date_from: dates.from,
       date_to: dates.to
-    }).subscribe({
+    };
+
+    if (adminLayerId && adminEntityId) {
+      payload.layer_id = adminLayerId;
+      payload.entity_id = adminEntityId;
+      payload.is_restricted = true;
+    }
+
+    // Try V2 Dashboard API first
+    this.dataService.getV2DashboardData(payload).subscribe({
       next: (v2Response: any) => {
         console.log("✅ V2 Dashboard API Success");
         processStatsResponse(v2Response);
@@ -1339,7 +1507,7 @@ changeTimeframe(newTimeframe: string) {
             const assetList = this.allAssetsCache || [];
 
             // Resolve deepest V2 hierarchy selection
-            let deepestSelection: any = null;
+            this.deepestSelection = null;
             if (this.layers && this.layers.length > 0 && this.hierarchySelections) {
               for (let i = this.hierarchySelections.length - 1; i >= 0; i--) {
                 if (this.hierarchySelections[i] && this.hierarchySelections[i] !== 'null') {
@@ -1347,14 +1515,46 @@ changeTimeframe(newTimeframe: string) {
                   const layerId = this.layers[i].id;
                   const ent = this.layerEntities[layerId]?.find((e: any) => String(e.id) === String(selId));
                   if (ent) {
-                    deepestSelection = { entityId: selId, name: ent.name || ent.label || '' };
+                    this.deepestSelection = { entityId: selId, name: ent.name || ent.label || '' };
                     break;
                   }
                 }
               }
             }
-            if (deepestSelection) {
-              console.log("🔍 [Admin Dashboard] Active V2 Deepest Selection:", deepestSelection);
+            // 🌐 Persist V2 hierarchy filter to localStorage for detail pages
+            if (this.deepestSelection) {
+              console.log("🔍 [Admin Dashboard] Active V2 Deepest Selection:", this.deepestSelection);
+              localStorage.setItem('global_deepest_filter_name', this.deepestSelection.name || '');
+              // Build full hierarchy chain names for multi-level matching
+              const chainNames: string[] = [];
+              if (this.layers && this.hierarchySelections) {
+                for (let ci = 0; ci < this.hierarchySelections.length; ci++) {
+                  if (this.hierarchySelections[ci] && this.hierarchySelections[ci] !== 'null') {
+                    const cLayerId = this.layers[ci]?.id;
+                    const cEnt = this.layerEntities[cLayerId]?.find((e: any) => String(e.id) === String(this.hierarchySelections[ci]));
+                    if (cEnt) chainNames.push(cEnt.name || cEnt.label || '');
+                  }
+                }
+              }
+              localStorage.setItem('global_hierarchy_chain', JSON.stringify(chainNames));
+              
+              // 🔥 NEW: Map V2 hierarchy back to legacy filters for compatibility with Patrol Logs page
+              if (chainNames.length > 0) {
+                 localStorage.setItem('global_range_filter', chainNames[0]);
+                 if (chainNames.length > 1) {
+                    localStorage.setItem('global_beat_filter', chainNames[1]);
+                 } else {
+                    localStorage.setItem('global_beat_filter', 'all');
+                 }
+              }
+
+            } else {
+              localStorage.removeItem('global_deepest_filter_name');
+              localStorage.removeItem('global_hierarchy_chain');
+              
+              // Reset legacy filters
+              localStorage.setItem('global_range_filter', 'all');
+              localStorage.setItem('global_beat_filter', 'all');
             }
 
             // Calculate Period Dates dynamically based on date filter
@@ -1443,8 +1643,8 @@ changeTimeframe(newTimeframe: string) {
 
                   // Hierarchy or Legacy filter
                   let hierarchyPass = true;
-                  if (deepestSelection) {
-                    hierarchyPass = this.isRecordMatchingHierarchy(a, deepestSelection);
+                  if (this.deepestSelection) {
+                    hierarchyPass = this.isRecordMatchingHierarchy(a, this.deepestSelection);
                   } else {
                     // Range filter (Inclusive)
                     let rangePass = true;
@@ -1573,7 +1773,7 @@ changeTimeframe(newTimeframe: string) {
                    const combinedText = `${cat} ${rType} ${subCatStr}`.toLowerCase();
                     
                    let isFire = combinedText.includes('fire');
-                   let isCrim = combinedText.includes('crim') || combinedText.includes('poach') || combinedText.includes('mining') || combinedText.includes('fell') || combinedText.includes('timber') || combinedText.includes('encroach') || combinedText.includes('storage') || combinedText.includes('transport') || combinedText.includes('sos');
+                   let isCrim = combinedText.includes('crim') || combinedText.includes('poach') || combinedText.includes('mining') || combinedText.includes('fell') || combinedText.includes('timber') || combinedText.includes('storage') || combinedText.includes('transport') || combinedText.includes('sos');
                    let isEvent = combinedText.includes('event') || combinedText.includes('sight') || combinedText.includes('monit') || combinedText.includes('animal') || combinedText.includes('flora') || combinedText.includes('fauna');
 
                    // Standardize catKey for Trend Mapping (Dashboard Trend only shows one category per record)
@@ -1607,8 +1807,8 @@ changeTimeframe(newTimeframe: string) {
                    // Hierarchy Filtering logic
                    let isPass = true;
 
-                   if (deepestSelection) {
-                      isPass = this.isRecordMatchingHierarchy(r, deepestSelection);
+                   if (this.deepestSelection) {
+                      isPass = this.isRecordMatchingHierarchy(r, this.deepestSelection);
                    } else {
                       // RANGE FILTER (Inclusive Matching)
                       if (this.selectedRange && this.selectedRange !== 'all') {
@@ -1645,11 +1845,26 @@ changeTimeframe(newTimeframe: string) {
                         const card = this.masterSnapshotCards.find(c => c.id === exactId);
                         if (card) card.count++;
                       }
+                      
+                      // Populate rangeMap for Coverage (Filtered by current criteria)
+                      let matchedRange = '';
+                      if (this.allRanges && this.allRanges.length > 0) {
+                        const fieldsToSearch = [
+                          r.beat_name, r.site_name, r.location, r.location_name,
+                          r.range_name, r.range, r.region, r.division_name, r.division,
+                          r.client_name, r.name, r.beat, r.displayRange, r.displayBeat
+                        ];
+                        for (const range of this.allRanges) {
+                          const lowerRange = range.toLowerCase();
+                          if (fieldsToSearch.some(f => f && String(f).toLowerCase().includes(lowerRange))) {
+                            matchedRange = lowerRange;
+                            break;
+                          }
+                        }
+                      }
+                      const normalizedRange = matchedRange || rRange.toLowerCase().trim() || 'general';
+                      rangeMap[normalizedRange] = (rangeMap[normalizedRange] || 0) + 1;
                    }
-
-                   // Populate rangeMap for Coverage (Always Case-Insensitive)
-                   const normalizedRange = rRange.toLowerCase().trim() || 'general';
-                   rangeMap[normalizedRange] = (rangeMap[normalizedRange] || 0) + 1;
                 });
 
                 const last30 = Array.from({length: 30}, (_, i) => {
@@ -1675,21 +1890,9 @@ changeTimeframe(newTimeframe: string) {
                 });
 
                 // --- 📅 CALCULATE TOTALS FOR SNAPSHOT (Dynamic Filtered) ---
-                this.criminalActivityCount15 = counts.criminal;
-                this.sightingsCount15 = counts.monitoring;
-                this.fireAlertsCount15 = counts.fire;
-
-                // --- 🗺️ BEAT COVERAGE CALCULATION (Merged & Unique) ---
-                const totalReports = list.length || 1;
-                const sortedRanges = Object.keys(rangeMap)
-                  .sort((a, b) => rangeMap[b] - rangeMap[a])
-                  .slice(0, 6);
-
-                this.beatCoverage = sortedRanges.map(name => ({
-                   label: name.toUpperCase(),
-                   val: Math.round(((rangeMap[name] || 0) / totalReports) * 100),
-                   color: this.COLORS.p
-                }));
+                this.latestTotalReports = Object.values(rangeMap).reduce((a: any, b: any) => a + b, 0) || 1;
+                this.latestRangeMap = rangeMap;
+                this.updateBeatCoverage();
 
                 this.criminalCount = counts.criminal;
                 this.eventsCount = counts.monitoring;
@@ -1744,8 +1947,8 @@ changeTimeframe(newTimeframe: string) {
 
                       // HIERARCHY FILTER on map pins
                       if (isPass) {
-                        if (deepestSelection) {
-                          isPass = this.isRecordMatchingHierarchy(f, deepestSelection);
+                        if (this.deepestSelection) {
+                          isPass = this.isRecordMatchingHierarchy(f, this.deepestSelection);
                         } else {
                           // RANGE FILTER on map pins
                           if (this.selectedRange && this.selectedRange !== 'all') {
@@ -2093,23 +2296,28 @@ changeTimeframe(newTimeframe: string) {
                              
                              // Hierarchy Filtering for Patrols (Dashboard Parity)
                              const filteredPList = rawPList.filter((p: any) => {
-                                const pBeat = (p.beat_name || p.site_name || p.location || '').toLowerCase();
-                                const bObj = this.allBeats.find(b => b.name.toLowerCase() === pBeat);
-                                const pRange = (p.range_name || p.range || (bObj ? bObj.parentName : '')).toLowerCase();
-                                
-                                let rangePass = true;
-                                if (this.selectedRange && this.selectedRange !== 'all') {
-                                   const fRange = this.selectedRange.toLowerCase();
-                                   rangePass = pRange.includes(fRange) || fRange.includes(pRange);
-                                }
-                                
-                                let beatPass = true;
-                                if (this.selectedBeat && this.selectedBeat !== 'all') {
-                                   const fBeat = this.selectedBeat.toLowerCase();
-                                   beatPass = pBeat.includes(fBeat) || fBeat.includes(pBeat);
-                                }
-                                
-                                return rangePass && beatPass;
+                                 const pBeat = (p.beat_name || p.site_name || p.location || '').toLowerCase();
+                                 const bObj = this.allBeats.find(b => b.name.toLowerCase() === pBeat);
+                                 const pRange = (p.range_name || p.range || (bObj ? bObj.parentName : '')).toLowerCase();
+                                 
+                                 // V2 Hierarchy Filtering Aligned with Reports
+                                 if (this.deepestSelection) {
+                                    return this.isRecordMatchingHierarchy(p, this.deepestSelection);
+                                 }
+
+                                 let rangePass = true;
+                                 if (this.selectedRange && this.selectedRange !== 'all') {
+                                    const fRange = this.selectedRange.toLowerCase();
+                                    rangePass = pRange.includes(fRange) || fRange.includes(pRange);
+                                 }
+                                 
+                                 let beatPass = true;
+                                 if (this.selectedBeat && this.selectedBeat !== 'all') {
+                                    const fBeat = this.selectedBeat.toLowerCase();
+                                    beatPass = pBeat.includes(fBeat) || fBeat.includes(pBeat);
+                                 }
+                                 
+                                 return rangePass && beatPass;
                              });
 
                              this.patrolCount = filteredPList.length;

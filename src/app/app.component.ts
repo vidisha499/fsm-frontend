@@ -407,9 +407,14 @@ export class AppComponent implements OnInit {
   initializeApp() {
     const token = localStorage.getItem('api_token');
     const role = localStorage.getItem('user_role');
+    const isRestrictedAdmin = localStorage.getItem('is_restricted_admin') === 'true';
+
     if (token) {
-      if (role === '1' || role === '2' || role === '7') this.navCtrl.navigateRoot('/admin');
-      else this.navCtrl.navigateRoot('/home');
+      if (role === '1' || role === '2' || role === '7' || isRestrictedAdmin) {
+        this.navCtrl.navigateRoot('/admin');
+      } else {
+        this.navCtrl.navigateRoot('/home');
+      }
     }
 
     this.platform.ready().then(() => {
@@ -443,7 +448,8 @@ export class AppComponent implements OnInit {
     else if (path === 'home') {
       this.currentPage = 'home';
       const roleId = localStorage.getItem('user_role');
-      if (roleId === '1' || roleId === '2' || roleId === '7') this.navCtrl.navigateRoot('/admin');
+      const isRestrictedAdmin = localStorage.getItem('is_restricted_admin') === 'true';
+      if (roleId === '1' || roleId === '2' || roleId === '7' || isRestrictedAdmin) this.navCtrl.navigateRoot('/admin');
       else this.navCtrl.navigateRoot('/home');
     } else {
       this.currentPage = 'home';

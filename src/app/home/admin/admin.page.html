@@ -85,6 +85,7 @@
               *ngIf="shouldShowLayer(i)"
               class="fselect"
               [(ngModel)]="hierarchySelections[i]"
+              [disabled]="isRestrictedAdmin && i <= restrictedLayerIndex"
               (change)="onLayerChange(i)"
             >
               <option [value]="null">Select {{ layer.name }}</option>

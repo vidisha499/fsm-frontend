@@ -1,0 +1,109 @@
+<ion-header class="ion-no-border">
+  <div class="header-section">
+    <div class="header-overlay"></div>
+    <div class="nav-row">
+      <button class="back-btn" (click)="goBack()">
+        <ion-icon name="arrow-back-outline"></ion-icon>
+      </button>
+      <div class="title-stack">
+        <h1>Assign</h1>
+        <p>EMPLOYEES</p>
+      </div>
+    </div>
+  </div>
+</ion-header>
+
+<ion-content class="assign-content">
+  <div class="form-container">
+    
+    <!-- DYNAMIC HIERARCHY DROPDOWNS -->
+    <div class="input-group" *ngFor="let layer of layers; let i = index">
+      <label>{{ layer.name | uppercase }}</label>
+      <div class="pill-input">
+        <ion-icon [name]="i === 0 ? 'business-outline' : 'location-outline'" class="start-icon"></ion-icon>
+        <select [(ngModel)]="hierarchySelections[i]" (change)="onLayerChange(i)">
+          <option [value]="null">Select {{ layer.name }}</option>
+          <option *ngFor="let ent of layerEntities[layer.id]" [value]="ent.id">{{ ent.name }}</option>
+        </select>
+        <ion-icon name="caret-down-outline" class="end-icon"></ion-icon>
+      </div>
+    </div>
+
+    <!-- SHIFT -->
+    <div class="input-group">
+      <label>SHIFT</label>
+      <div class="pill-input">
+        <ion-icon name="time-outline" class="start-icon"></ion-icon>
+        <select [(ngModel)]="selectedShift">
+          <option value="General Shift">General Shift</option>
+          <option value="Morning Shift">Morning Shift</option>
+          <option value="Evening Shift">Evening Shift</option>
+          <option value="Night Shift">Night Shift</option>
+        </select>
+        <ion-icon name="caret-down-outline" class="end-icon"></ion-icon>
+      </div>
+    </div>
+
+    <!-- ROLE -->
+    <div class="input-group">
+      <label>ROLE</label>
+      <div class="pill-input">
+        <ion-icon name="shield-outline" class="start-icon"></ion-icon>
+        <select [(ngModel)]="selectedCustomRoleId">
+          <option [value]="null">Select Role</option>
+          <option *ngFor="let role of customRoles" [value]="role.id">{{ role.name }}</option>
+        </select>
+        <ion-icon name="caret-down-outline" class="end-icon"></ion-icon>
+      </div>
+    </div>
+
+    <!-- EMPLOYEES -->
+    <div class="input-group">
+      <label>EMPLOYEES</label>
+      <div class="pill-input disabled-look">
+        <ion-icon name="person-outline" class="start-icon"></ion-icon>
+        <input type="text" [value]="officerName" readonly />
+      </div>
+    </div>
+
+    <!-- DATES -->
+    <div class="date-row">
+      <div class="input-group half">
+        <label>START DATE</label>
+        <div class="pill-input">
+          <ion-icon name="calendar-outline" class="start-icon"></ion-icon>
+          <input type="date" [(ngModel)]="startDate" />
+        </div>
+      </div>
+      <div class="input-group half">
+        <label>END DATE</label>
+        <div class="pill-input">
+          <ion-icon name="calendar-outline" class="start-icon"></ion-icon>
+          <input type="date" [(ngModel)]="endDate" />
+        </div>
+      </div>
+    </div>
+
+    <!-- WEEK OFF -->
+    <div class="input-group">
+      <label>WEEK OFF</label>
+      <div class="days-scroll">
+        <div class="day-chip" *ngFor="let day of weekDays" 
+             [class.selected]="selectedDays.includes(day)" 
+             (click)="toggleDay(day)">
+          <ion-icon [name]="selectedDays.includes(day) ? 'checkbox' : 'square-outline'"></ion-icon>
+          <span>{{ day }}</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</ion-content>
+
+<ion-footer class="ion-no-border">
+  <div class="footer-container">
+    <button class="assign-btn" (click)="saveAssignment()">
+      Assign
+    </button>
+  </div>
+</ion-footer>
