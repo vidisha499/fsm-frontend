@@ -241,20 +241,18 @@ export class AddUserPage implements OnInit {
     
     if (!this.shouldShowHierarchy()) return;
 
-    if (this.userData.roleId === '10') {
-      // Dynamic Role -> Load V2 Entities for the first layer
-      if (this.layers && this.layers.length > 0) {
-        const firstLayer = this.layers[0];
-        this.dataService.listV2Entities(firstLayer.id, null).subscribe({
-          next: (entRes: any) => {
-            const nodes = entRes?.data || entRes || [];
-            this.layerEntities[firstLayer.id] = Array.isArray(nodes) ? nodes : [];
-            this.cdr.detectChanges();
-          }
-        });
-      }
+    if (this.layers && this.layers.length > 0) {
+      // Dynamic Company -> Load V2 Entities for the first layer
+      const firstLayer = this.layers[0];
+      this.dataService.listV2Entities(firstLayer.id, null).subscribe({
+        next: (entRes: any) => {
+          const nodes = entRes?.data || entRes || [];
+          this.layerEntities[firstLayer.id] = Array.isArray(nodes) ? nodes : [];
+          this.cdr.detectChanges();
+        }
+      });
     } else {
-      // Static Role -> Load Legacy Hierarchy
+      // Legacy Company -> Load Legacy Hierarchy
       this.loadOldHierarchy();
     }
   }
@@ -642,13 +640,12 @@ export class AddUserPage implements OnInit {
     }
 
     // --- DUPLICATE MOBILE CHECK ---
+    let loader: any;
     try {
-      const loader = await this.loadingCtrl.create({ message: 'Checking if user exists...' });
+      loader = await this.loadingCtrl.create({ message: 'Checking if user exists...' });
       await loader.present();
 
       const existingUsers: any = await this.dataService.getUsersByCompany(this.userData.companyId).toPromise();
-      loader.dismiss();
-
       const users = existingUsers?.data || existingUsers || [];
       const duplicate = users.find((u: any) => {
         const uMobile = String(u.mobile || u.phone || u.contact || '').trim();
@@ -662,6 +659,10 @@ export class AddUserPage implements OnInit {
       }
     } catch (err) {
       console.warn('⚠️ Could not verify duplicate, proceeding with registration...', err);
+    } finally {
+      if (loader) {
+        loader.dismiss();
+      }
     }
 
     this.isSaving = true;
@@ -779,9 +780,10 @@ export class AddUserPage implements OnInit {
         this.isSaving = false;
         console.log("📥 [V2 REGISTER RESPONSE]:", res);
         
-        const isSuccess = res?.status?.toLowerCase() === 'success' ||
-                          res?.message?.toLowerCase().includes('success') ||
-                          res?.code === 200;
+        const isSuccess = (res?.status?.toLowerCase() === 'success' ||
+                           res?.message?.toLowerCase().includes('success') ||
+                           res?.code === 200) &&
+                          res?.status?.toLowerCase() !== 'failure';
         
         if (isSuccess) {
           const newUserId = res?.data?.id || res?.id;

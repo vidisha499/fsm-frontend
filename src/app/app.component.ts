@@ -157,7 +157,7 @@ export class AppComponent implements OnInit {
       if (!Array.isArray(perms)) return false;
       return perms.some((p: any) => {
         const pStr = String(p.module_key || p.name || p.module || p || '').toLowerCase();
-        return pStr.includes('org') || pStr.includes('organization') || pStr.includes('role') || pStr.includes('hierarchy');
+        return pStr === 'organization.view' || pStr === 'role management.view' || pStr === 'dynamic hierarchy.view';
       });
     } catch (e) {
       return false;

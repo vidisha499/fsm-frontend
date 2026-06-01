@@ -600,8 +600,10 @@ export class OrgManagementPage implements OnInit {
     };
 
     // Include ID if present (essential for update)
-    if (this.roleModalData.id) {
-      payload.id = Number(this.roleModalData.id);
+    if (this.roleModalData.id || this.roleModalData.role_id) {
+      const targetId = Number(this.roleModalData.id || this.roleModalData.role_id);
+      payload.id = targetId;
+      payload.role_id = targetId;
     }
 
     const obs = this.isUpdateMode 
@@ -609,21 +611,32 @@ export class OrgManagementPage implements OnInit {
       : this.dataService.storeV2Role(payload);
 
     obs.subscribe({
-      next: () => {
-        loader.dismiss();
-        this.showToast(this.isUpdateMode ? 'Role updated successfully!' : 'Role created successfully!', 'success');
-        this.isRoleModalOpen = false;
-        
-        // 🔥 FORCE IMMEDIATE SYNC
-        this.dataService.permissionsUpdated$.next();
-        this.dataService.refreshPermissions();
-        
-        this.loadCustomRoles();
+      next: (res: any) => {
+        // Backend might return 200 OK but with JSON status "FAILURE"
+        if (res && (res.status === 'FAILURE' || res.status === 'error')) {
+          loader.dismiss();
+          this.showToast(res.message || 'Failed to update role', 'danger');
+        } else {
+          loader.dismiss();
+          this.showToast(this.isUpdateMode ? 'Role updated successfully!' : 'Role created successfully!', 'success');
+          this.isRoleModalOpen = false;
+          
+          // 🔥 FORCE IMMEDIATE SYNC
+          this.dataService.permissionsUpdated$.next();
+          this.dataService.refreshPermissions();
+          
+          this.loadCustomRoles();
+        }
       },
       error: (err) => {
         loader.dismiss();
         console.error('Role save failed', err);
-        this.showToast('Failed to save role', 'danger');
+        // If HTTP 404 or other error
+        if (err && err.error && err.error.message) {
+           this.showToast(err.error.message, 'danger');
+        } else {
+           this.showToast('Failed to save role', 'danger');
+        }
       }
     });
   }

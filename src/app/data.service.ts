@@ -802,17 +802,35 @@ export class DataService {
   refreshPermissions() {
     console.log("🛡️ [DataService] Triggering Permission Refresh...");
     const roleId = localStorage.getItem('user_role');
+    const companyId = localStorage.getItem('company_id') || '1';
     if (!roleId) return;
 
     this.getRoleIdList().subscribe({
-      next: (roles: any) => {
-        const rList = Array.isArray(roles) ? roles : roles?.data || [];
-        const myRole = rList.find((r: any) => String(r.id) === String(roleId));
-        if (myRole && myRole.permissions) {
-          console.log("✅ [DataService] New permissions fetched:", myRole.permissions);
-          localStorage.setItem('user_permissions', JSON.stringify(myRole.permissions));
-          this.permissionsUpdated$.next(); // Notify templates
-        }
+      next: (oldRoles: any) => {
+        const oldList = Array.isArray(oldRoles) ? oldRoles : oldRoles?.data || [];
+        
+        this.listV2Roles(companyId).subscribe({
+          next: (v2Roles: any) => {
+            const v2List = Array.isArray(v2Roles) ? v2Roles : v2Roles?.data || [];
+            const rList = [...oldList, ...v2List];
+            
+            // Look for matching role
+            const myRole = rList.find((r: any) => String(r.id) === String(roleId) || String(r.role_id) === String(roleId));
+            if (myRole && myRole.permissions) {
+              console.log("✅ [DataService] New permissions fetched:", myRole.permissions);
+              localStorage.setItem('user_permissions', typeof myRole.permissions === 'string' ? myRole.permissions : JSON.stringify(myRole.permissions));
+              this.permissionsUpdated$.next(); // Notify templates
+            }
+          },
+          error: (err) => {
+            // Fallback to old list
+            const myRole = oldList.find((r: any) => String(r.id) === String(roleId));
+            if (myRole && myRole.permissions) {
+              localStorage.setItem('user_permissions', typeof myRole.permissions === 'string' ? myRole.permissions : JSON.stringify(myRole.permissions));
+              this.permissionsUpdated$.next();
+            }
+          }
+        });
       },
       error: (err) => console.error("❌ [DataService] Permission refresh failed", err)
     });
