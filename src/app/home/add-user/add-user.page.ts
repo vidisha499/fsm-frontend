@@ -154,20 +154,8 @@ export class AddUserPage implements OnInit {
 
             console.log("🎯 V2 Processed Layers:", this.layers);
 
-            // 3. Load Initial Entities for all layers
-            if (this.layers.length > 0) {
-              this.layers.forEach(layer => {
-                this.dataService.listV2Entities(layer.id, null).subscribe({
-                  next: (entRes: any) => {
-                    const nodes = entRes?.data || entRes || [];
-                    this.layerEntities[layer.id] = Array.isArray(nodes) ? nodes : [];
-                    console.log(`🎯 Loaded V2 entities for Layer ${layer.name} (${layer.id}):`, this.layerEntities[layer.id].length);
-                    this.cdr.detectChanges();
-                  }
-                });
-              });
-            }
-
+            // Do NOT load entities automatically on init.
+            // Entities are loaded in refreshHierarchyForRole() when a role is selected.
             this.stopHereFlags = new Array(this.layers.length).fill(true);
             loader.dismiss();
           } else {
@@ -242,6 +230,35 @@ export class AddUserPage implements OnInit {
     });
   }
 
+  refreshHierarchyForRole() {
+    // Clear all existing entities and selections
+    if (this.layers) {
+      this.hierarchySelections = new Array(this.layers.length).fill(null);
+      this.layerEntities = {};
+      this.stopHereFlags = new Array(this.layers.length).fill(true);
+    }
+    this.selectedAssignments = [];
+    
+    if (!this.shouldShowHierarchy()) return;
+
+    if (this.userData.roleId === '10') {
+      // Dynamic Role -> Load V2 Entities for the first layer
+      if (this.layers && this.layers.length > 0) {
+        const firstLayer = this.layers[0];
+        this.dataService.listV2Entities(firstLayer.id, null).subscribe({
+          next: (entRes: any) => {
+            const nodes = entRes?.data || entRes || [];
+            this.layerEntities[firstLayer.id] = Array.isArray(nodes) ? nodes : [];
+            this.cdr.detectChanges();
+          }
+        });
+      }
+    } else {
+      // Static Role -> Load Legacy Hierarchy
+      this.loadOldHierarchy();
+    }
+  }
+
   onLayerChange(layerIndex: number) {
     const selectedEntityId = this.hierarchySelections[layerIndex];
     
@@ -251,19 +268,30 @@ export class AddUserPage implements OnInit {
       this.layerEntities[this.layers[i].id] = [];
     }
 
-    // 2. Load next layer entities from V2 API
-    if (selectedEntityId && layerIndex + 1 < this.layers.length) {
-      const nextLayer = this.layers[layerIndex + 1];
-      
-      this.dataService.listV2Entities(nextLayer.id, selectedEntityId).subscribe({
-        next: (res: any) => {
-          const nodes = res?.data || res || [];
-          this.layerEntities[nextLayer.id] = Array.isArray(nodes) ? nodes : [];
-          console.log(`🎯 V2: Populated ${this.layerEntities[nextLayer.id].length} entities for Level ${nextLayer.id}`);
+    if (this.userData.roleId === '10') {
+      // 2. Load next layer entities from V2 API
+      if (selectedEntityId && layerIndex + 1 < this.layers.length) {
+        const nextLayer = this.layers[layerIndex + 1];
+        
+        this.dataService.listV2Entities(nextLayer.id, selectedEntityId).subscribe({
+          next: (res: any) => {
+            const nodes = res?.data || res || [];
+            this.layerEntities[nextLayer.id] = Array.isArray(nodes) ? nodes : [];
+            console.log(`🎯 V2: Populated ${this.layerEntities[nextLayer.id].length} entities for Level ${nextLayer.id}`);
+            this.cdr.detectChanges();
+          },
+          error: (err) => console.error("❌ [V2] Failed to load entities:", err)
+        });
+      }
+    } else {
+      // Legacy Mode: filter local beats
+      if (selectedEntityId && layerIndex + 1 < this.layers.length) {
+        const nextLayer = this.layers[layerIndex + 1];
+        if (this.allOldBeats && this.allOldBeats.length > 0) {
+          this.layerEntities[nextLayer.id] = this.allOldBeats.filter(b => b.parentName === selectedEntityId);
           this.cdr.detectChanges();
-        },
-        error: (err) => console.error("❌ [V2] Failed to load entities:", err)
-      });
+        }
+      }
     }
   }
 
@@ -284,7 +312,11 @@ export class AddUserPage implements OnInit {
     }
 
     // Load permissions for selected role
-    if (val && val !== '10') this.loadRolePermissions(val);
+    if (val && val !== '10') {
+      this.loadRolePermissions(val);
+    }
+    
+    this.refreshHierarchyForRole();
     this.cdr.detectChanges();
   }
 
@@ -306,6 +338,7 @@ export class AddUserPage implements OnInit {
         this.loadRolePermissions(val);
       }
     }
+    this.refreshHierarchyForRole();
     this.cdr.detectChanges();
   }
 

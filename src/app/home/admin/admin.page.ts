@@ -582,7 +582,7 @@ export class AdminPage implements OnInit, AfterViewInit {
   // --- Production Filter Data Logic (V2 Hierarchy Cascade + Fallback to legacy) ---
   loadHierarchy(force: boolean = false) {
     const companyId = localStorage.getItem('company_id') || localStorage.getItem('user_company_id') || '1';
-    
+
     if (force || !this.layers || this.layers.length === 0) {
       console.log('📡 [Hierarchy] Dashboard Syncing V2 Hierarchy layers...');
       this.dataService.listV2Layers().subscribe({
@@ -623,6 +623,13 @@ export class AdminPage implements OnInit, AfterViewInit {
               this.dataService.listV2Entities(firstLayer.id, null, false, companyId).subscribe({
                 next: (entRes: any) => {
                   const nodes = entRes?.data || entRes || [];
+                  if (nodes.length === 0) {
+                    console.warn("⚠️ No V2 entities found for the first layer. Falling back to legacy...");
+                    this.layers = [];
+                    this.loadOldHierarchy();
+                    return;
+                  }
+                  
                   this.layerEntities[firstLayer.id] = Array.isArray(nodes) ? nodes : [];
                   
                   const isRestrictedAdmin = localStorage.getItem('is_restricted_admin') === 'true';

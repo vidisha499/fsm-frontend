@@ -171,6 +171,7 @@ export class ReportsPage implements OnInit {
 
   loadHierarchy() {
     const companyId = localStorage.getItem('company_id') || '1';
+    
     console.log('📡 [Reports] Syncing V2 Hierarchy layers for Company:', companyId);
 
     this.dataService.listV2Layers().subscribe({
@@ -196,6 +197,12 @@ export class ReportsPage implements OnInit {
             this.dataService.listV2Entities(firstLayer.id, null).subscribe({
               next: (entRes: any) => {
                 const nodes = entRes?.data || entRes || [];
+                if (nodes.length === 0) {
+                  console.warn("⚠️ [Reports] No V2 entities found for the first layer. Falling back to legacy...");
+                  this.layers = [];
+                  this.loadOldHierarchy();
+                  return;
+                }
                 this.layerEntities[firstLayer.id] = Array.isArray(nodes) ? nodes : [];
                 this.cdr.detectChanges();
               }
