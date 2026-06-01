@@ -3504,7 +3504,7 @@ handleApiResponse(res: any) {
     // Derive the overall incident trend from the 30-day trend arrays
     const totalLength = 30;
     
-    // Use last 30 days labels (MM-DD)
+    // Labels (MM-DD)
     const labels = Array.from({length: totalLength}, (_, i) => {
        const d = new Date(); d.setDate(d.getDate() - (29 - i));
        return `${d.getMonth() + 1}/${d.getDate()}`;
@@ -3523,20 +3523,20 @@ handleApiResponse(res: any) {
     this.lastTrendLabels = labels;
     this.lastTrendValues = values;
 
-    // Calculate generic Momentum (MoM) based on last two points
+    // Calculate generic Momentum (DoD) based on last two points
     if (values.length >= 2) {
       const current = values[values.length - 1];
       const prev = values[values.length - 2];
       if (prev > 0) {
         const mom = Math.round(((current - prev) / prev) * 100);
-        this.momStatus = `${Math.abs(mom)}% MoM`;
+        this.momStatus = `${Math.abs(mom)}% DoD`;
         this.isGoodTrend = mom <= 0; // Negative means fewer incidents, which is good
       } else {
-        this.momStatus = `0% MoM`;
+        this.momStatus = `0% DoD`;
         this.isGoodTrend = true;
       }
     } else {
-      this.momStatus = `0% MoM`;
+      this.momStatus = `0% DoD`;
       this.isGoodTrend = true;
     }
 
@@ -3587,7 +3587,7 @@ handleApiResponse(res: any) {
         plugins: { ...this.CDAX.plugins, legend: { display: false } },
         scales: {
           x: {
-            display: true,
+            display: false,
             grid: { display: false },
             border: { display: false },
             ticks: { color: '#94a3b8', font: { size: 8 }, autoSkip: true, maxTicksLimit: 10 },
