@@ -155,6 +155,10 @@ export class UserListPage implements OnInit {
     }
     */
 
+    const rawData = localStorage.getItem('user_data');
+    const userData = rawData ? JSON.parse(rawData) : null;
+    const currentUserId = String(userData?.id || userData?.user_id || localStorage.getItem('user_id') || '').trim();
+
     // --- INTEGRATING BEST NEW V2 USER LIST API: listV2Users ---
     this.dataService.listV2Users().pipe(
       catchError(() => of([]))
@@ -175,17 +179,21 @@ export class UserListPage implements OnInit {
           const roleId = u.role_id || u.role || (u.role ? u.role.id : '');
           const resolvedRoleName = u.role_name || this.getRoleName(roleId);
           
+          const labels = this.dataService.getUserHierarchyLabels(u);
+          const resolvedSiteName = u.site_name || labels.range || labels.beat || '';
+
           return {
             ...u,
             id: id,
             name: u.name || u.user_name || u.full_name || 'User',
             role_id: roleId,
             role_name: resolvedRoleName,
+            site_name: resolvedSiteName,
             photo: this.getPhotoUrl(u.profile_pic || u.image || u.photo || ''),
             attendance_status: status,
             hasAttended: status === 'present' || status === 'attended' || status === 'online' || u.hasAttended === true || u.is_attended === 1
           };
-        });
+        }).filter((u: any) => String(u.id) !== currentUserId);
 
         this.applyCategoryFilter();
         this.isLoading = false;
@@ -204,7 +212,7 @@ export class UserListPage implements OnInit {
       if (term === 'unassigned') {
         return !u.site_name || u.site_name === 'General Range' || u.site_name === '';
       } else if (term === 'forest_guard') {
-        return (u.role_name || '').toLowerCase().includes('guard') || (u.role_name || '').toLowerCase().includes('manager');
+        return (u.role_name || '').toLowerCase().includes('guard') || (u.role_name || '').toLowerCase().includes('manager') || (u.role_name || '').toLowerCase().includes('forester');
       } else if (term === 'acf') {
         return (u.role_name || '').toLowerCase().includes('acf') || (u.role_name || '').toLowerCase().includes('admin');
       } else if (term === 'ranger') {
@@ -240,10 +248,11 @@ export class UserListPage implements OnInit {
     switch (id) {
       case 1: return 'Super Admin';
       case 2: return 'Admin';
-      case 3: return 'Manager';
-      case 4: return 'Forest Guard';
+      case 3: return 'Forest Guard';
+      case 4: return 'Forester';
       case 5: return 'Forester';
       case 6: return 'Range Officer';
+      case 7: return 'Admin';
       default: return 'Staff';
     }
   }

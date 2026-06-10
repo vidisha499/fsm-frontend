@@ -21,6 +21,7 @@ export class AttendancePage implements OnInit, OnDestroy {
   // Leaflet variables
   map!: L.Map;
   marker!: L.Marker;
+  private geofencePolygon: L.Polygon | null = null;
   private locationIcon = L.divIcon({
     className: 'user-location-marker',
     html: '<div class="blue-dot"></div>',
@@ -156,6 +157,7 @@ export class AttendancePage implements OnInit, OnDestroy {
         this.beats = JSON.parse(cached);
         if (this.beats.length > 0 && !this.selectedBeat) {
           this.selectedBeat = this.beats[0];
+          setTimeout(() => this.drawSelectedGeofence(), 500);
         }
       } catch (e) { console.error("Cache parse error", e); }
     }
@@ -168,20 +170,73 @@ export class AttendancePage implements OnInit, OnDestroy {
 
     this.dataService.getGeofences(payload).subscribe({
       next: (res: any) => {
-        if (res && res.data && Array.isArray(res.data)) {
-          this.beats = res.data;
+        if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
+          // Filter to only show Beats/Geos (excluding Ranges/Divisions)
+          this.beats = res.data.filter((beat: any) => {
+            const layer = Number(beat.layer_id || beat.layerId || 0);
+            if (layer > 0 && layer <= 3) {
+              return false;
+            }
+            const nameLower = String(beat.name || beat.beat_name || '').toLowerCase();
+            if ((nameLower.includes('range') || nameLower.includes('division')) && !nameLower.includes('beat') && !nameLower.includes('geo')) {
+              return false;
+            }
+            return true;
+          });
           
-          // 3. Update cache
           localStorage.setItem('cached_beats', JSON.stringify(this.beats));
-
-          // Auto-select first beat if nothing selected yet
           if (this.beats.length > 0 && !this.selectedBeat) {
             this.selectedBeat = this.beats[0];
           }
+          this.drawSelectedGeofence();
+        } else {
+          // Fallback to hierarchy-entities API if getGeofences is empty
+          this.fetchBeatsFromHierarchy();
         }
       },
       error: (err) => {
-        console.error("Error fetching fresh geofences:", err);
+        console.error("Error fetching fresh geofences, trying hierarchy fallback:", err);
+        this.fetchBeatsFromHierarchy();
+      }
+    });
+  }
+
+  fetchBeatsFromHierarchy() {
+    this.dataService.getBeatBoundaries().subscribe({
+      next: (res: any) => {
+        const data = res?.data || res || [];
+        if (Array.isArray(data) && data.length > 0) {
+          // Filter to only show Beats and Geos (excluding Ranges and Divisions)
+          const filteredData = data.filter((beat: any) => {
+            const layer = Number(beat.layer_id || beat.layerId || 0);
+            if (layer > 0 && layer <= 3) {
+              return false; // Skip Division/Range layers
+            }
+            const nameLower = String(beat.name || beat.beat_name || '').toLowerCase();
+            // Filter out items that contain "range" or "division" in their name (unless it contains beat or geo)
+            if ((nameLower.includes('range') || nameLower.includes('division')) && !nameLower.includes('beat') && !nameLower.includes('geo')) {
+              return false;
+            }
+            return true;
+          });
+
+          this.beats = filteredData.map((beat: any) => ({
+            ...beat,
+            id: beat.id || beat.beat_id,
+            name: beat.name || beat.beat_name
+          }));
+          
+          localStorage.setItem('cached_beats', JSON.stringify(this.beats));
+          if (this.beats.length > 0 && !this.selectedBeat) {
+            this.selectedBeat = this.beats[0];
+          } else if (this.beats.length === 0) {
+            this.selectedBeat = null;
+          }
+          this.drawSelectedGeofence();
+        }
+      },
+      error: (err) => {
+        console.error("Error fetching beat boundaries for attendance:", err);
       }
     });
   }
@@ -189,6 +244,87 @@ export class AttendancePage implements OnInit, OnDestroy {
   onBeatChange(event: any) {
     const selectedId = event.detail.value;
     this.selectedBeat = this.beats.find(b => b.id == selectedId);
+    this.drawSelectedGeofence();
+  }
+
+  // Helper to parse beat boundary coordinates
+  parseBeatCoordinates(boundaryCoordinates: any): [number, number][] {
+    if (!boundaryCoordinates) return [];
+    try {
+      let coords = boundaryCoordinates;
+      if (typeof coords === 'string') {
+        coords = JSON.parse(coords);
+      }
+      if (!Array.isArray(coords)) return [];
+
+      let latlngs: [number, number][] = [];
+      if (coords.length > 0 && Array.isArray(coords[0])) {
+        latlngs = coords.map(c => {
+          if (Number(c[0]) > 60) {
+            return [Number(c[1]), Number(c[0])]; // Convert [lng, lat] to [lat, lng]
+          }
+          return [Number(c[0]), Number(c[1])]; // Already [lat, lng]
+        });
+      } else if (coords.length > 0 && typeof coords[0] === 'object') {
+        latlngs = coords.map(c => [
+          Number(c.lat || c.latitude || 0),
+          Number(c.lng || c.longitude || 0)
+        ]);
+      }
+      return latlngs.filter(pt => !isNaN(pt[0]) && !isNaN(pt[1]) && (pt[0] !== 0 || pt[1] !== 0));
+    } catch (e) {
+      console.error("Error parsing boundary coordinates:", e);
+      return [];
+    }
+  }
+
+  // Ray-Casting (Jordan Curve) Algorithm
+  isPointInPolygon(point: [number, number], polygon: [number, number][]): boolean {
+    const x = point[0]; // Latitude
+    const y = point[1]; // Longitude
+    
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      const xi = polygon[i][0], yi = polygon[i][1];
+      const xj = polygon[j][0], yj = polygon[j][1];
+      
+      const intersect = ((yi > y) !== (yj > y))
+          && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  }
+
+  // Visual helper to draw selected geofence boundary on the map
+  drawSelectedGeofence() {
+    if (!this.map || !this.selectedBeat) return;
+    
+    if (this.geofencePolygon) {
+      this.map.removeLayer(this.geofencePolygon);
+      this.geofencePolygon = null;
+    }
+    
+    const boundaryPoints = this.parseBeatCoordinates(this.selectedBeat.boundary_coordinates);
+    if (boundaryPoints.length > 0) {
+      try {
+        const leafletLatLngs = boundaryPoints.map(pt => L.latLng(pt[0], pt[1]));
+        this.geofencePolygon = L.polygon(leafletLatLngs, {
+          color: '#10b981',
+          fillColor: '#10b981',
+          fillOpacity: 0.15,
+          weight: 2
+        }).addTo(this.map);
+        
+        // Adjust map bounds to show both the user's location and the geofence
+        const bounds = L.latLngBounds([
+          L.latLng(this.currentLat, this.currentLng),
+          ...leafletLatLngs
+        ]);
+        this.map.fitBounds(bounds.pad(0.15));
+      } catch (e) {
+        console.error("Error drawing geofence on map:", e);
+      }
+    }
   }
 
   hasOffline(): boolean {
@@ -260,6 +396,7 @@ async initLeafletMap() {
     this.map.setView(newPoint, 18);
     
     this.updateAddress(this.currentLat, this.currentLng);
+    this.drawSelectedGeofence();
     this.startLiveTracking();
 
   } catch (e) {
@@ -400,6 +537,25 @@ async submitAttendance() {
     this.presentToast(msg, 'warning');
     this.resetSlider();
     return;
+  }
+
+  // 2. Beat selection validation
+  if (!this.selectedBeat) {
+    this.presentToast("Please select a Beat/Geofence first.", "warning");
+    this.resetSlider();
+    return;
+  }
+
+  // 3. Geofence Boundary validation
+  const boundaryPoints = this.parseBeatCoordinates(this.selectedBeat.boundary_coordinates);
+  if (boundaryPoints.length > 0) {
+    const isInside = this.isPointInPolygon([this.currentLat, this.currentLng], boundaryPoints);
+    if (!isInside) {
+      this.presentToast("Aap select kiye gaye Geofence/Beat boundary ke bahar hain!", "danger");
+      this.resetSlider();
+      this.isSubmitting = false;
+      return;
+    }
   }
 
   // 2. Fetch IDs from LocalStorage (Using both direct keys and user_data object for safety)

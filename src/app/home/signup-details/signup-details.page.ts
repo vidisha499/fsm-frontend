@@ -39,6 +39,8 @@ export class SignupDetailsPage implements OnInit {
   layerEntities: { [key: string]: any[] } = {};
   hierarchySelections: any[] = [];
   assignedPath: any[] = [];
+  selectedAssignments: any[] = [];
+  maxLayerIndexToShow: number = 999;
 
   constructor(
     private route: ActivatedRoute,
@@ -83,6 +85,47 @@ export class SignupDetailsPage implements OnInit {
           this.layers = rawLayers.sort((a: any, b: any) => Number(a.rank) - Number(b.rank));
           this.hierarchySelections = new Array(this.layers.length).fill(null);
           
+          // Initialize selected assignments from dynamic_entities (pre-assigned nodes)
+          if (data.dynamic_entities && Array.isArray(data.dynamic_entities)) {
+            this.selectedAssignments = data.dynamic_entities.map((e: any) => {
+              const matchedLayer = this.layers.find((l: any) => String(l.id) === String(e.layer_id));
+              return {
+                id: e.id,
+                name: e.name,
+                layerId: e.layer_id,
+                layerName: matchedLayer ? matchedLayer.name : (e.layer?.name || 'Entity')
+              };
+            });
+          } else if (data.dynamic_entity) {
+            const e = data.dynamic_entity;
+            const matchedLayer = this.layers.find((l: any) => String(l.id) === String(e.layer_id));
+            this.selectedAssignments = [{
+              id: e.id,
+              name: e.name,
+              layerId: e.layer_id,
+              layerName: matchedLayer ? matchedLayer.name : (e.layer?.name || 'Entity')
+            }];
+          } else {
+            this.selectedAssignments = [];
+          }
+          console.log("📍 [SIGNUP] Initialized Pre-assigned Selected Assignments:", this.selectedAssignments);
+
+          // Compute max layer index to show (to restrict rendering Beat/Geofence if only Range is assigned)
+          this.maxLayerIndexToShow = this.layers.length - 1; // Default: show all
+          if (this.selectedAssignments && this.selectedAssignments.length > 0) {
+            let maxIdx = -1;
+            this.selectedAssignments.forEach(item => {
+              const idx = this.layers.findIndex((l: any) => String(l.id) === String(item.layerId));
+              if (idx > maxIdx) {
+                maxIdx = idx;
+              }
+            });
+            if (maxIdx !== -1) {
+              this.maxLayerIndexToShow = maxIdx;
+            }
+          }
+          console.log("📍 [SIGNUP] Max layer index to show:", this.maxLayerIndexToShow);
+
           this.loadMergedHierarchy(0, null);
         }
       }
@@ -91,6 +134,7 @@ export class SignupDetailsPage implements OnInit {
 
   loadMergedHierarchy(index: number, parentId: any) {
     if (index >= this.layers.length) return;
+    if (index > this.maxLayerIndexToShow) return;
     const layer = this.layers[index];
     const companyId = this.verifiedData.company_id || 64;
 
@@ -124,24 +168,43 @@ export class SignupDetailsPage implements OnInit {
         }
       });
 
-      // Step 3: MASTER MERGE - Check against verifyUser assignedPath
-      const assignedNode = this.assignedPath.find(n => String(n.layer_id) === String(layer.id));
-      if (assignedNode) {
-        const idStr = String(assignedNode.id);
+      // Step 3: MASTER MERGE - Check against selectedAssignments or verifyUser assignedPath
+      const matchedSelected = this.selectedAssignments.find(ent => String(ent.layerId) === String(layer.id));
+      if (matchedSelected) {
+        const idStr = String(matchedSelected.id);
         if (mergedMap.has(idStr)) {
-          console.log(`   ✅ ID MATCH FOUND (VerifyUser + APIs): ${idStr} (${assignedNode.name})`);
-          mergedMap.set(idStr, { ...mergedMap.get(idStr), ...assignedNode, _matched: true });
+          console.log(`   ✅ MATCHED SELECTED FOUND (VerifyUser + APIs): ${idStr} (${matchedSelected.name})`);
+          mergedMap.set(idStr, { ...mergedMap.get(idStr), _matched: true });
         } else {
-          console.log(`   📍 Assigned ID ${idStr} (${assignedNode.name}) missing from APIs, forced entry.`);
-          mergedMap.set(idStr, { ...assignedNode, _source: 'VerifyUser', _forced: true });
+          console.log(`   📍 Selected ID ${idStr} (${matchedSelected.name}) missing from APIs, forced entry.`);
+          mergedMap.set(idStr, { id: matchedSelected.id, name: matchedSelected.name, layer_id: matchedSelected.layerId, _source: 'VerifyUser', _forced: true });
         }
-        
+
         // AUTO-SELECT the matched/forced node
-        this.hierarchySelections[index] = assignedNode.id;
-        console.log(`   🎯 Selected: ${assignedNode.name} (ID: ${idStr})`);
+        this.hierarchySelections[index] = matchedSelected.id;
+        console.log(`   🎯 Selected: ${matchedSelected.name} (ID: ${idStr})`);
         
         // Recursive load next level
-        this.loadMergedHierarchy(index + 1, assignedNode.id);
+        this.loadMergedHierarchy(index + 1, matchedSelected.id);
+      } else {
+        const assignedNode = this.assignedPath.find(n => String(n.layer_id) === String(layer.id));
+        if (assignedNode) {
+          const idStr = String(assignedNode.id);
+          if (mergedMap.has(idStr)) {
+            console.log(`   ✅ ID MATCH FOUND (VerifyUser + APIs): ${idStr} (${assignedNode.name})`);
+            mergedMap.set(idStr, { ...mergedMap.get(idStr), ...assignedNode, _matched: true });
+          } else {
+            console.log(`   📍 Assigned ID ${idStr} (${assignedNode.name}) missing from APIs, forced entry.`);
+            mergedMap.set(idStr, { ...assignedNode, _source: 'VerifyUser', _forced: true });
+          }
+          
+          // AUTO-SELECT the matched/forced node
+          this.hierarchySelections[index] = assignedNode.id;
+          console.log(`   🎯 Selected: ${assignedNode.name} (ID: ${idStr})`);
+          
+          // Recursive load next level
+          this.loadMergedHierarchy(index + 1, assignedNode.id);
+        }
       }
 
       let finalOptions = Array.from(mergedMap.values());
@@ -165,6 +228,61 @@ export class SignupDetailsPage implements OnInit {
     if (selectedId && index + 1 < this.layers.length) {
       this.loadMergedHierarchy(index + 1, selectedId);
     }
+  }
+
+  getDeepestSelectedEntity(): any {
+    if (!this.layers || this.layers.length === 0) return null;
+    for (let i = this.layers.length - 1; i >= 0; i--) {
+      const entId = this.hierarchySelections[i];
+      if (entId && entId !== 'null' && entId !== null) {
+        const ent = this.layerEntities[this.layers[i].id]?.find(e => String(e.id) === String(entId));
+        if (ent) {
+          return {
+            id: entId,
+            name: ent.name,
+            layerName: this.layers[i].name
+          };
+        }
+      }
+    }
+    return null;
+  }
+
+  addSelectedAssignment() {
+    const selected = this.getDeepestSelectedEntity();
+    if (!selected) {
+      this.presentToast('Please select a range or beat first', 'warning');
+      return;
+    }
+    
+    const exists = this.selectedAssignments.some(item => String(item.id) === String(selected.id));
+    if (exists) {
+      this.presentToast('This assignment is already added', 'warning');
+      return;
+    }
+
+    this.selectedAssignments.push(selected);
+    this.presentToast(`Added: ${selected.name} (${selected.layerName})`, 'success');
+
+    for (let i = this.layers.length - 1; i >= 0; i--) {
+      if (this.hierarchySelections[i] && this.hierarchySelections[i] !== 'null') {
+        this.hierarchySelections[i] = null;
+        break;
+      }
+    }
+    this.cdr.detectChanges();
+  }
+
+  removeSelectedAssignment(index: number) {
+    this.selectedAssignments.splice(index, 1);
+    this.cdr.detectChanges();
+  }
+
+  isAssignmentSelected(entId: any): boolean {
+    if (!this.selectedAssignments || this.selectedAssignments.length === 0) {
+      return false;
+    }
+    return this.selectedAssignments.some(selected => String(selected.id) === String(entId));
   }
 
   togglePassword(field: string) {
@@ -209,16 +327,97 @@ export class SignupDetailsPage implements OnInit {
     const loader = await this.loadingCtrl.create({ message: 'Creating Profile...', spinner: 'crescent' });
     await loader.present();
 
-    let deepestEntityId: any = null;
-    let deepestEntityName = '';
+    // Gather all entity IDs from selectedAssignments
+    const assignedEntityIds: string[] = [];
+    if (this.selectedAssignments && this.selectedAssignments.length > 0) {
+      this.selectedAssignments.forEach(item => {
+        assignedEntityIds.push(String(item.id));
+      });
+    }
+
+    // Also include any selection currently in hierarchySelections dropdowns if not already added
+    let deepestDropdownEntityId: any = null;
+    let deepestDropdownEntityName = '';
     for (let i = this.hierarchySelections.length - 1; i >= 0; i--) {
-      if (this.hierarchySelections[i]) {
-        deepestEntityId = this.hierarchySelections[i];
+      if (this.hierarchySelections[i] && this.hierarchySelections[i] !== 'null') {
+        deepestDropdownEntityId = this.hierarchySelections[i];
         const layerId = this.layers[i].id;
-        const ent = this.layerEntities[layerId]?.find(e => String(e.id) === String(deepestEntityId));
-        deepestEntityName = ent?.name || '';
+        const ent = this.layerEntities[layerId]?.find(e => String(e.id) === String(deepestDropdownEntityId));
+        deepestDropdownEntityName = ent?.name || '';
         break;
       }
+    }
+
+    if (deepestDropdownEntityId) {
+      const alreadyAdded = assignedEntityIds.some(id => String(id) === String(deepestDropdownEntityId));
+      if (!alreadyAdded) {
+        assignedEntityIds.push(String(deepestDropdownEntityId));
+      }
+    }
+
+    // The deepest entity (used for user profile)
+    let deepestEntityId: any = null;
+    let deepestEntityName = '';
+    if (assignedEntityIds.length > 0) {
+      deepestEntityId = assignedEntityIds[assignedEntityIds.length - 1];
+      
+      // Try to find the name of the deepest entity
+      if (deepestEntityId === String(deepestDropdownEntityId)) {
+        deepestEntityName = deepestDropdownEntityName;
+      } else {
+        const found = this.selectedAssignments.find(item => String(item.id) === String(deepestEntityId));
+        if (found) {
+          deepestEntityName = found.name;
+        } else {
+          for (let layer of this.layers) {
+            const ent = this.layerEntities[layer.id]?.find(e => String(e.id) === String(deepestEntityId));
+            if (ent) {
+              deepestEntityName = ent.name || '';
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // Collect all assigned entity names
+    let assignedNames: string[] = [];
+    if (this.selectedAssignments && this.selectedAssignments.length > 0) {
+      assignedNames = this.selectedAssignments.map(item => item.name);
+    } else {
+      assignedEntityIds.forEach(id => {
+        let found = false;
+        for (let layer of this.layers) {
+          const ent = this.layerEntities[layer.id]?.find(e => String(e.id) === String(id));
+          if (ent) {
+            assignedNames.push(ent.name);
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          assignedNames.push(String(id));
+        }
+      });
+    }
+    const combinedSiteName = assignedNames.length > 0 ? assignedNames.join(', ') : (deepestEntityName || this.verifiedData.site_name || '');
+
+    // Double-stringify permissions to prevent Laravel Array to string conversion DB exception
+    let doubleStringifiedPermissions: string;
+    try {
+      const rawPermissions = this.verifiedData.permissions || [];
+      if (typeof rawPermissions === 'string') {
+        const parsed = JSON.parse(rawPermissions);
+        if (typeof parsed === 'string') {
+          doubleStringifiedPermissions = rawPermissions;
+        } else {
+          doubleStringifiedPermissions = JSON.stringify(rawPermissions);
+        }
+      } else {
+        doubleStringifiedPermissions = JSON.stringify(JSON.stringify(rawPermissions));
+      }
+    } catch (e) {
+      doubleStringifiedPermissions = JSON.stringify(JSON.stringify(this.verifiedData.permissions || []));
     }
 
     const payload: any = {
@@ -233,16 +432,19 @@ export class SignupDetailsPage implements OnInit {
       role_id: String(this.verifiedData.role_id || 3),
       custom_role_id: String(this.verifiedData.custom_role_id || this.verifiedData.role_id || 3), 
       dynamic_role_id: String(this.verifiedData.custom_role_id || this.verifiedData.role_id || 3),
-      permissions: this.verifiedData.permissions || "[]", 
+      permissions: doubleStringifiedPermissions, 
       company_id: String(this.verifiedData.company_id || '64'),
       company_name: this.verifiedData.company_name || '', 
-      entity_id: deepestEntityId,
+      entity_id: assignedEntityIds,
+      // entity_ids: assignedEntityIds,
       site_id: deepestEntityId, 
-      site_name: deepestEntityName,
+      site_name: combinedSiteName,
       designation: this.getRoleName(this.verifiedData.role_id) || this.verifiedData.designation || this.verifiedData.role_name || deepestEntityName || 'Officer', 
       attendance_type: 'multiple', 
       shift_name: this.shift || 'General Shift',
+      shift: this.shift || 'General Shift',
       weekly_off: this.weeklyOff || 'Sunday',
+      weekoff: this.weeklyOff || 'Sunday',
       date_range: moment().format("YYYY-MM-DD") + " to " + moment().add(1, 'year').format("YYYY-MM-DD"),
       emp_id: "FSM-" + Math.floor(100000+Math.random()*900000),
       photo: this.profileImage
@@ -256,20 +458,37 @@ export class SignupDetailsPage implements OnInit {
         const newUserId = res?.data?.id || res?.id;
         
         // 🚀 After user is created, LINK them to Hierarchy and Role
-        if (newUserId) {
+        if (newUserId && Array.isArray(payload.entity_id) && payload.entity_id.length > 0) {
+          payload.entity_id.forEach((assignedId: string) => {
+            const assignmentPayload = {
+              user_id: newUserId,
+              role_id: payload.role_id,
+              custom_role_id: payload.custom_role_id,
+              entity_id: assignedId,
+              company_id: payload.company_id,
+              permissions: doubleStringifiedPermissions,
+              role_name: payload.designation
+            };
+
+            this.dataService.saveV2Assignment(assignmentPayload).subscribe({
+              next: (assignRes: any) => console.log("🔗 [SIGNUP] V2 Assignment Linked (multi):", assignRes),
+              error: (assignErr: any) => console.error("❌ [SIGNUP] V2 Assignment Failed (multi):", assignErr)
+            });
+          });
+        } else if (newUserId) {
           const assignmentPayload = {
             user_id: newUserId,
             role_id: payload.role_id,
             custom_role_id: payload.custom_role_id,
-            entity_id: payload.entity_id,
+            entity_id: payload.site_id,
             company_id: payload.company_id,
-            permissions: payload.permissions,
+            permissions: doubleStringifiedPermissions,
             role_name: payload.designation
           };
 
-           this.dataService.saveV2Assignment(assignmentPayload).subscribe({
-            next: (assignRes: any) => console.log("🔗 [SIGNUP] V2 Assignment Linked Successfully:", assignRes),
-            error: (assignErr: any) => console.error("❌ [SIGNUP] V2 Assignment Failed:", assignErr)
+          this.dataService.saveV2Assignment(assignmentPayload).subscribe({
+            next: (assignRes: any) => console.log("🔗 [SIGNUP] V2 Assignment Linked (fallback):", assignRes),
+            error: (assignErr: any) => console.error("❌ [SIGNUP] V2 Assignment Failed (fallback):", assignErr)
           });
         }
 

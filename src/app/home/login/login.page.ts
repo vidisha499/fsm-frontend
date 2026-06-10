@@ -211,8 +211,8 @@ async login() {
       if (res.status === "SUCCESS" && res.data) {
         const userData = res.data;
         
-        // Role ID ko number mein convert karlo (Aapka Role ID 3 hai)
-        const userRole = parseInt(res.role_id);
+        // Role ID ko number mein convert karlo
+        const userRole = parseInt(res.role_id || userData.role_id || (res.data && res.data.role_id) || '3');
 
         const userInfo = {
           ...userData,  // Preserve ALL server fields (including dynamic_assignment)
@@ -330,14 +330,20 @@ async login() {
             const assignments = assignRes?.data || assignRes || [];
             const list = Array.isArray(assignments) ? assignments : [assignments];
             let assignedLayerId: any = null;
-            let assignedEntityId: any = null;
+            let assignedEntityIds: string[] = [];
             
-            if (list.length > 0) {
-              const a = list[0];
+            list.forEach((a: any) => {
               const entity = a.entity || a.assigned_entity || a.beat || {};
-              assignedLayerId = entity.layer_id || entity.layerId || a.layer_id || entity.type_id;
-              assignedEntityId = entity.id || entity.entity_id || a.entity_id;
-            }
+              const entId = entity.id || entity.entity_id || a.entity_id;
+              if (entId) {
+                assignedEntityIds.push(String(entId));
+              }
+              if (!assignedLayerId) {
+                assignedLayerId = entity.layer_id || entity.layerId || a.layer_id || entity.type_id;
+              }
+            });
+
+            const assignedEntityIdStr = assignedEntityIds.join(',');
 
             // To know if they are assigned to Range (index 0) or Beat (index 1), fetch layers
             this.dataService.listV2Layers().subscribe({
@@ -347,6 +353,7 @@ async login() {
                 
                 console.log("🛡️ [DEBUG ROUTING] assignedLayerId:", assignedLayerId);
                 console.log("🛡️ [DEBUG ROUTING] fetched layers count:", layers.length);
+                console.log("🛡️ [DEBUG ROUTING] assignedEntityIdStr:", assignedEntityIdStr);
 
                 if (assignedLayerId && layers.length > 0) {
                   const rangeLayerId = layers[0]?.id;
@@ -361,16 +368,18 @@ async login() {
 
                 console.log("🛡️ [DEBUG ROUTING] isRestrictedAdmin evaluated to:", isRestrictedAdmin);
 
-                if (userRole === 1 || userRole === 2 || userRole === 7 || isRestrictedAdmin) {
-                  if (isRestrictedAdmin) {
-                    localStorage.setItem('is_restricted_admin', 'true');
-                    localStorage.setItem('admin_layer_id', String(assignedLayerId));
-                    if (assignedEntityId) localStorage.setItem('admin_entity_id', String(assignedEntityId));
-                  } else {
-                    localStorage.removeItem('is_restricted_admin');
-                    localStorage.removeItem('admin_layer_id');
-                    localStorage.removeItem('admin_entity_id');
-                  }
+                const isRestricted = (userRole !== 3 && userRole !== 1 && userRole !== 2 && userRole !== 7);
+                if (isRestricted) {
+                  localStorage.setItem('is_restricted_admin', 'true');
+                  if (assignedLayerId) localStorage.setItem('admin_layer_id', String(assignedLayerId));
+                  if (assignedEntityIdStr) localStorage.setItem('admin_entity_id', assignedEntityIdStr);
+                } else {
+                  localStorage.removeItem('is_restricted_admin');
+                  localStorage.removeItem('admin_layer_id');
+                  localStorage.removeItem('admin_entity_id');
+                }
+
+                if (userRole && String(userRole) !== '3') {
                   this.navCtrl.navigateRoot('/admin');
                 } else {
                   this.navCtrl.navigateRoot('/home');
@@ -379,7 +388,7 @@ async login() {
               error: () => {
                 // Fallback
                 console.warn("🛡️ [DEBUG ROUTING] listV2Layers API failed!");
-                if (userRole === 1 || userRole === 2 || userRole === 7) this.navCtrl.navigateRoot('/admin');
+                if (userRole && String(userRole) !== '3') this.navCtrl.navigateRoot('/admin');
                 else this.navCtrl.navigateRoot('/home');
               }
             });
@@ -387,7 +396,7 @@ async login() {
           error: () => {
             console.warn("🛡️ [DEBUG ROUTING] getUserAssignments API failed!");
             // Fallback if assignment API fails
-            if (userRole === 1 || userRole === 2 || userRole === 7) { 
+            if (userRole && String(userRole) !== '3') { 
               this.navCtrl.navigateRoot('/admin');
             } else {
               this.navCtrl.navigateRoot('/home');

@@ -1099,10 +1099,12 @@ isRecordMatchingHierarchy(r: any, deepestSelection: any): boolean {
   if (!deepestSelection) return true;
   
   const { entityId, name } = deepestSelection;
-  if (!name) return true;
+  if (!entityId) return true;
+  
+  const allowedIds = String(entityId).split(',').map(id => id.trim());
   
   const rSiteId = String(r.site_id || r.siteId || r.beat_id || r.entity_id || r.range_id || r.id || '');
-  if (rSiteId && rSiteId === String(entityId)) return true;
+  if (rSiteId && allowedIds.includes(rSiteId)) return true;
   
   if (rSiteId) {
     let currentId = rSiteId;
@@ -1118,7 +1120,7 @@ isRecordMatchingHierarchy(r: any, deepestSelection: any): boolean {
         }
       }
       if (foundParentId) {
-        if (foundParentId === String(entityId)) return true;
+        if (allowedIds.includes(foundParentId)) return true;
         currentId = foundParentId;
       } else {
         break;
@@ -1132,17 +1134,25 @@ isRecordMatchingHierarchy(r: any, deepestSelection: any): boolean {
     r.client_name, r.name, r.beat
   ];
   
-  const matchName = name.toLowerCase();
-  for (const f of fieldsToSearch) {
-    if (f && String(f).toLowerCase().includes(matchName)) return true;
+  if (name && name !== 'Assigned Location') {
+    const namesList = name.split(',').map((n: string) => n.trim().toLowerCase());
+    for (const f of fieldsToSearch) {
+      if (f) {
+        const fLower = String(f).toLowerCase();
+        if (namesList.some((n: string) => fLower.includes(n))) {
+          return true;
+        }
+      }
+    }
   }
   
-  if (this.allHierarchyBeats && this.allHierarchyBeats.length > 0) {
+  if (name && name !== 'Assigned Location' && this.allHierarchyBeats && this.allHierarchyBeats.length > 0) {
     const rBeat = (r.beat_name || r.site_name || r.location || '').toLowerCase();
     const bObj = this.allHierarchyBeats.find(b => b.name.toLowerCase() === rBeat);
     const resolvedRange = (r.range_name || r.range || (bObj ? bObj.parentName : '')).toLowerCase();
     
-    if (resolvedRange && (resolvedRange.includes(matchName) || matchName.includes(resolvedRange))) {
+    const namesList = name.split(',').map((n: string) => n.trim().toLowerCase());
+    if (resolvedRange && namesList.some((n: string) => resolvedRange.includes(n) || n.includes(resolvedRange))) {
        return true;
     }
   }

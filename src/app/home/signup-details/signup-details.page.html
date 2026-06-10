@@ -86,16 +86,40 @@
           </div>
 
           <!-- Dynamic Hierarchy Dropdowns (Editable but Pre-filled) -->
-          <div class="input-pill" *ngFor="let layer of layers; let i = index">
-            <label>{{ layer.name | uppercase }}*</label>
-            <div class="pill-content">
-              <i class="fas fa-sitemap"></i>
-              <select [(ngModel)]="hierarchySelections[i]" (change)="onLayerChange(i)" style="border: none; background: transparent; width: 100%; font-weight: 700; color: var(--dark-slate); outline: none; font-size: 14px;">
-                <option [value]="null">Select {{ layer.name }}</option>
-                <option *ngFor="let ent of layerEntities[layer.id]" [value]="ent.id">
-                  {{ ent.name }}
-                </option>
-              </select>
+          <ng-container *ngFor="let layer of layers; let i = index">
+            <div class="input-pill" *ngIf="i <= maxLayerIndexToShow">
+              <label>{{ layer.name | uppercase }}*</label>
+              <div class="pill-content">
+                <i class="fas fa-sitemap"></i>
+                <select [(ngModel)]="hierarchySelections[i]" (change)="onLayerChange(i)" style="border: none; background: transparent; width: 100%; font-weight: 700; color: var(--dark-slate); outline: none; font-size: 14px;">
+                  <option [value]="null">Select {{ layer.name }}</option>
+                  <option *ngFor="let ent of layerEntities[layer.id]" [value]="ent.id" [disabled]="isAssignmentSelected(ent.id)">
+                    {{ ent.name }}
+                  </option>
+                </select>
+              </div>
+            </div>
+          </ng-container>
+
+          <!-- ➕ Add to Assignments List Button -->
+          <button class="add-assignment-btn" (click)="addSelectedAssignment()" *ngIf="getDeepestSelectedEntity()" type="button">
+            <i class="fas fa-plus-circle"></i>
+            <span>Add to Assignments List</span>
+          </button>
+
+          <!-- 📋 Selected Assignments List -->
+          <div class="assignments-list" *ngIf="selectedAssignments && selectedAssignments.length > 0">
+            <label class="assignments-list-label">
+              <i class="fas fa-clipboard-list"></i> Assigned Entities ({{ selectedAssignments.length }})
+            </label>
+            <div class="assignment-chip" *ngFor="let item of selectedAssignments; let idx = index">
+              <div class="chip-info">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>{{ item.name }} <small>({{ item.layerName }})</small></span>
+              </div>
+              <button class="chip-remove" (click)="removeSelectedAssignment(idx)" type="button">
+                <i class="fas fa-times"></i>
+              </button>
             </div>
           </div>
         </ng-container>

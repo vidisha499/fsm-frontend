@@ -344,6 +344,12 @@ export class AddUserPage implements OnInit {
     // Always initialize empty map first so edit grid works
     this.setPermissions([]);
 
+    // 🛡️ Admin (7), Forester (2), and Super Admin (1) should have ALL permissions enabled by default.
+    if (['1', '2', '7'].includes(String(roleId))) {
+      this.buildPermissionsArray();
+      return;
+    }
+
     // Check in-memory roles for existing permissions
     const allRoles = [...this.staticRoles, ...this.dynamicRoles];
     const role = allRoles.find(r => String(r.id) === String(roleId));
@@ -441,8 +447,8 @@ export class AddUserPage implements OnInit {
       return false;
     }
 
-    // Only Super Admin (1) and specialized global roles (7) are truly global.
-    const globalRoles = [1, 7];
+    // Only Super Admin (1) is truly global. Admin (7) can be assigned to multiple Ranges/Beats.
+    const globalRoles = [1];
     return !globalRoles.includes(Number(this.userData.roleId));
   }
 
@@ -738,6 +744,28 @@ export class AddUserPage implements OnInit {
     }
     // ------------------- End of entity ID gathering -------------------
 
+    // Collect all assigned entity names
+    let assignedNames: string[] = [];
+    if (this.selectedAssignments.length > 0) {
+      assignedNames = this.selectedAssignments.map(item => item.name);
+    } else {
+      assignedEntityIds.forEach(id => {
+        let found = false;
+        for (let layer of this.layers) {
+          const ent = this.layerEntities[layer.id]?.find(e => String(e.id) === String(id));
+          if (ent) {
+            assignedNames.push(ent.name);
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          assignedNames.push(String(id));
+        }
+      });
+    }
+    const combinedSiteName = assignedNames.length > 0 ? assignedNames.join(', ') : (deepestEntityName || 'Officer');
+
     // Build payload for user registration
     const resolvedCustomRoleId = this.userData.dynamicRoleId || this.userData.roleId;
     
@@ -748,6 +776,24 @@ export class AddUserPage implements OnInit {
       if (selectedRole) dynamicRoleName = selectedRole.displayName;
     }
     
+    // Double-stringify permissions to prevent Laravel Array to string conversion DB exception
+    let doubleStringifiedPermissions: string;
+    try {
+      const rawPermissions = this.rolePermissions || [];
+      if (typeof rawPermissions === 'string') {
+        const parsed = JSON.parse(rawPermissions);
+        if (typeof parsed === 'string') {
+          doubleStringifiedPermissions = rawPermissions;
+        } else {
+          doubleStringifiedPermissions = JSON.stringify(rawPermissions);
+        }
+      } else {
+        doubleStringifiedPermissions = JSON.stringify(JSON.stringify(rawPermissions));
+      }
+    } catch (e) {
+      doubleStringifiedPermissions = JSON.stringify(JSON.stringify(this.rolePermissions || []));
+    }
+
     const payload: any = {
       name: `${this.userData.firstName} ${this.userData.lastName}`.trim(),
       firstName: this.userData.firstName,
@@ -758,22 +804,23 @@ export class AddUserPage implements OnInit {
       role_id: String(this.userData.roleId),
       company_id: String(this.userData.companyId),
       company_name: localStorage.getItem('company_name') || '',
-      entity_id: deepestEntityId,
+      entity_id: assignedEntityIds.map(id => String(id)),
+      entity_ids: assignedEntityIds.map(id => String(id)),
       site_id: deepestEntityId,
       siteId: deepestEntityId, 
-      site_name: deepestEntityName || 'Officer',
+      site_name: combinedSiteName,
       attendance_type: 'multiple',
       custom_role_id: String(this.userData.dynamicRoleId || this.userData.roleId),
       dynamic_role_id: String(this.userData.dynamicRoleId || this.userData.roleId), 
       designation: dynamicRoleName,
       emp_id: `FSM-${Date.now().toString().slice(-6)}`,
-      permissions: JSON.stringify(this.rolePermissions) 
+      permissions: doubleStringifiedPermissions 
     };
     
     console.log("🚀 V2 Registering User (addRegistration):", payload);
     
     // Revert to Stringify since the DB column expects a string
-    const finalPayload = { ...payload, permissions: JSON.stringify(this.rolePermissions) };
+    const finalPayload = { ...payload, permissions: doubleStringifiedPermissions };
     
     this.dataService.addRegistration(finalPayload).subscribe({
       next: async (res: any) => {
@@ -799,7 +846,7 @@ export class AddUserPage implements OnInit {
                 custom_role_id: payload.custom_role_id,
                 entity_id: assignedId,
                 company_id: payload.company_id,
-                permissions: payload.permissions,
+                permissions: doubleStringifiedPermissions,
                 role_name: dynamicRoleName
               };
               this.dataService.saveV2Assignment(assignmentPayload).subscribe({
@@ -831,9 +878,11 @@ export class AddUserPage implements OnInit {
           this.dataService.saveV2Assignment({
             assigned_user_id: Number(newUserId),
             entity_id: Number(deepestEntityId),
-            custom_role_id: Number(resolvedCustomRoleId)
+            custom_role_id: Number(resolvedCustomRoleId),
+            permissions: doubleStringifiedPermissions,
+            role_name: dynamicRoleName
           }).subscribe({
-            next: (r: any) => console.log(`✅ [ASSIGN] Done:`, r),
+            next: (r: any) => console.log(``+`✅ [ASSIGN] Done:`, r),
             error: (e: any) => console.warn(`⚠️ [ASSIGN] Failed:`, e)
           });
         }

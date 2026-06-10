@@ -414,10 +414,11 @@ export class OfficersPage implements OnInit {
     switch (id) {
       case 1: return 'Super Admin';
       case 2: return 'Admin';
-      case 3: return 'Manager';
-      case 4: return 'Forest Guard';
+      case 3: return 'Forest Guard';
+      case 4: return 'Forester';
       case 5: return 'Forester';
       case 6: return 'Range Officer';
+      case 7: return 'Admin';
       default: return 'Staff';
     }
   }

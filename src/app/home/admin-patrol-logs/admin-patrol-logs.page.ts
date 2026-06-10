@@ -194,8 +194,8 @@ export class AdminPatrolLogsPage implements OnInit {
           const fRange = this.selectedRange.toLowerCase();
           const fBeat  = this.selectedBeat.toLowerCase();
           
-          const matchesRange = this.selectedRange === 'all' || rRange.includes(fRange) || fRange.includes(rRange);
-          const matchesBeat  = this.selectedBeat === 'all' || rBeat.includes(fBeat) || fBeat.includes(rBeat);
+           const matchesRange = this.selectedRange === 'all' || this.dataService.isNameMatching(rRange, this.selectedRange);
+           const matchesBeat  = this.selectedBeat === 'all' || this.dataService.isNameMatching(rBeat, this.selectedBeat);
 
           // 🏃‍♂️ 3. Patrol Type & Method Filters
           const logType = (log.patrol_type || log.type || '').toLowerCase();

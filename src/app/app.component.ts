@@ -394,10 +394,14 @@ export class AppComponent implements OnInit {
           }
           
           if (Array.isArray(perms)) {
-            localStorage.setItem('user_permissions', JSON.stringify(perms));
-            console.log("🔄 [FALLBACK SYNC] Parsed & Saved Permissions Array:", perms.length);
-            this.dataService.permissionsUpdated$.next();
-            this.cdr.detectChanges();
+            const currentPerms = localStorage.getItem('user_permissions');
+            const newPermsStr = JSON.stringify(perms);
+            if (currentPerms !== newPermsStr) {
+              localStorage.setItem('user_permissions', newPermsStr);
+              console.log("🔄 [FALLBACK SYNC] Parsed & Saved Permissions Array:", perms.length);
+              this.dataService.permissionsUpdated$.next();
+              this.cdr.detectChanges();
+            }
           }
         }
       }
@@ -407,10 +411,9 @@ export class AppComponent implements OnInit {
   initializeApp() {
     const token = localStorage.getItem('api_token');
     const role = localStorage.getItem('user_role');
-    const isRestrictedAdmin = localStorage.getItem('is_restricted_admin') === 'true';
 
     if (token) {
-      if (role === '1' || role === '2' || role === '7' || isRestrictedAdmin) {
+      if (role && String(role) !== '3') {
         this.navCtrl.navigateRoot('/admin');
       } else {
         this.navCtrl.navigateRoot('/home');
@@ -448,8 +451,7 @@ export class AppComponent implements OnInit {
     else if (path === 'home') {
       this.currentPage = 'home';
       const roleId = localStorage.getItem('user_role');
-      const isRestrictedAdmin = localStorage.getItem('is_restricted_admin') === 'true';
-      if (roleId === '1' || roleId === '2' || roleId === '7' || isRestrictedAdmin) this.navCtrl.navigateRoot('/admin');
+      if (roleId && String(roleId) !== '3') this.navCtrl.navigateRoot('/admin');
       else this.navCtrl.navigateRoot('/home');
     } else {
       this.currentPage = 'home';

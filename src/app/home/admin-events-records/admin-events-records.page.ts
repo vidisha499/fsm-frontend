@@ -213,18 +213,14 @@ export class AdminEventsRecordsPage implements OnInit {
           }
 
           // Legacy range/beat filters
-          const rRange = String(r.displayRange || '').toLowerCase();
-          const rBeat = String(r.displayBeat || '').toLowerCase();
-          const filterRange = this.selectedRange.toLowerCase();
-          const filterBeat = this.selectedBeat.toLowerCase();
+          const rRange = String(r.displayRange || '');
+          const rBeat = String(r.displayBeat || '');
           const matchesRange =
             this.selectedRange === 'all' ||
-            rRange.includes(filterRange) ||
-            filterRange.includes(rRange);
+            this.dataService.isNameMatching(rRange, this.selectedRange);
           const matchesBeat =
             this.selectedBeat === 'all' ||
-            rBeat.includes(filterBeat) ||
-            filterBeat.includes(rBeat);
+            this.dataService.isNameMatching(rBeat, this.selectedBeat);
           return matchesRange && matchesBeat;
         });
         this.isLoading = false;

@@ -146,6 +146,8 @@ export class OfficerDetailsPage implements OnInit {
     }).subscribe({
       next: (res: any) => {
         const site = res.data || res;
+        console.log("📊 [OFFICER DETAILS] Raw Legacy Site response from DB:", site);
+        console.log("🔍 [OFFICER DETAILS] Legacy Site response keys:", Object.keys(site));
         if (site && (site.site_name || site.name)) {
           this.assignedSite = {
             name: site.site_name || site.name || 'N/A',
@@ -153,7 +155,8 @@ export class OfficerDetailsPage implements OnInit {
             date_to: site.date_to || site.end_date || '',
             shift: site.shift_name || site.shift || 'General Shift',
             shift_time_from: site.shift_time_from || site.start_time || '12:00 am',
-            shift_time_to: site.shift_time_to || site.end_time || '11:57 pm'
+            shift_time_to: site.shift_time_to || site.end_time || '11:57 pm',
+            weekoff: site.weekoff || site.weekly_off || 'None'
           };
           this.officer.site_name = this.assignedSite.name;
           this.cdr.detectChanges();
@@ -176,7 +179,14 @@ export class OfficerDetailsPage implements OnInit {
         const list = Array.isArray(assignments) ? assignments : [assignments];
         if (list.length > 0) {
           const a = list[0]; // Take first/primary assignment
+          console.log("📊 [OFFICER DETAILS] Raw V2 Assignment response from DB:", a);
+          console.log("🔍 [OFFICER DETAILS] V2 Assignment response keys:", Object.keys(a));
           const entity = a.entity || a.assigned_entity || a.beat || {};
+          console.log("🔍 [OFFICER DETAILS] Entity keys:", Object.keys(entity));
+          if (entity.pivot) {
+            console.log("📊 [OFFICER DETAILS] Pivot data found:", entity.pivot);
+            console.log("🔍 [OFFICER DETAILS] Pivot keys:", Object.keys(entity.pivot));
+          }
           const entityName = entity.name || entity.beat_name || a.entity_name || a.site_name || a.beat_name || a.geo_name || a.name || `Entity #${a.entity_id || entity.id || 'N/A'}`;
           this.assignedSite = {
             name: entityName,
@@ -184,7 +194,8 @@ export class OfficerDetailsPage implements OnInit {
             date_to: a.end_date || a.date_to || '',
             shift: a.shift || a.shift_name || 'General Shift',
             shift_time_from: a.shift_time_from || '12:00 am',
-            shift_time_to: a.shift_time_to || '11:57 pm'
+            shift_time_to: a.shift_time_to || '11:57 pm',
+            weekoff: a.weekoff || a.weekly_off || 'None'
           };
           this.officer.site_name = entityName;
           this.cdr.detectChanges();
@@ -298,10 +309,11 @@ export class OfficerDetailsPage implements OnInit {
     switch (id) {
       case 1: return 'Super Admin';
       case 2: return 'Admin';
-      case 3: return 'Manager';
-      case 4: return 'Forest Guard';
+      case 3: return 'Forest Guard';
+      case 4: return 'Forester';
       case 5: return 'Forester';
       case 6: return 'Range Officer';
+      case 7: return 'Admin';
       default: return 'Staff Member';
     }
   }

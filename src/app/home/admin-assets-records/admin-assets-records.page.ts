@@ -135,8 +135,8 @@ export class AdminAssetsRecordsPage implements OnInit {
           const rRange = (a.range_name || a.range || (beatObj ? beatObj.parentName : 'General Range')).toLowerCase();
           const filterRange = this.selectedRange.toLowerCase();
           
-          const matchesRange = this.selectedRange === 'all' || rRange.includes(filterRange) || filterRange.includes(rRange);
-          const matchesBeat = this.selectedBeat === 'all' || rBeat.includes(filterBeat) || filterBeat.includes(rBeat);
+          const matchesRange = this.selectedRange === 'all' || this.dataService.isNameMatching(rRange, this.selectedRange);
+          const matchesBeat = this.selectedBeat === 'all' || this.dataService.isNameMatching(rBeat, this.selectedBeat);
 
           // 📦 3. Category Filter
           let matchesCategory = true;
