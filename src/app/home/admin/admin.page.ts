@@ -511,6 +511,7 @@ export class AdminPage implements OnInit, AfterViewInit {
 
     const savedId = localStorage.getItem('companyId'); 
   this.myCompanyId = savedId ? Number(savedId) : 0;
+    this.clearAllIntervals();
     this.loadActivePatrols();
 
     // Har 30 seconds mein update karein (Live Tracking feel ke liye)
@@ -518,25 +519,18 @@ export class AdminPage implements OnInit, AfterViewInit {
       this.loadActivePatrols();
     }, 30000);
 
-    this.startDataPoll();
-
-    if (this.dataInterval) {
-      clearInterval(this.dataInterval);
-      this.dataInterval = null;
-    }
-
     this.loadData();
     // Replaced loadAllKPIs with unified loadData
 
     // Naya fresh interval lagao based on settings
     const savedSync = localStorage.getItem('admin_sync_interval');
-    const intervalMs = savedSync ? parseInt(savedSync) * 60000 : 30000; // Default 30s if not set, else minutes to ms
+    const intervalMs = savedSync ? parseInt(savedSync) * 60000 : 60000; // Default 60s to prevent constant flickering
 
     this.dataInterval = setInterval(() => {
       if (this.activeTab === 'home' && !this.isFetching) {
         this.loadData(false); // Silent refresh
       }
-    }, 60000); // Optimized to 60 seconds to prevent constant flickering
+    }, intervalMs);
 
     this.loadTrendData();
     this.loadBeatCoverage();
@@ -545,6 +539,22 @@ export class AdminPage implements OnInit, AfterViewInit {
     setTimeout(() => {
       this.initHomeCharts();
     }, 300); // Reduced delay for faster visual feedback
+  }
+
+  ionViewWillLeave() {
+    this.clearAllIntervals();
+  }
+
+  clearAllIntervals() {
+    if (this.dataInterval) {
+      clearInterval(this.dataInterval);
+      clearTimeout(this.dataInterval);
+      this.dataInterval = null;
+    }
+    if (this.patrolInterval) {
+      clearInterval(this.patrolInterval);
+      this.patrolInterval = null;
+    }
   }
 
   loadBeatCoverage() {
@@ -1083,6 +1093,29 @@ export class AdminPage implements OnInit, AfterViewInit {
     }
     
     return false;
+  }
+
+  getAllDescendantEntityIds(startIds: string[]): string[] {
+    const result = new Set<string>(startIds);
+    const queue = [...startIds];
+    
+    while (queue.length > 0) {
+      const currentParentId = queue.shift()!;
+      for (const layerId of Object.keys(this.layerEntities)) {
+        const entities = this.layerEntities[Number(layerId)] || [];
+        for (const ent of entities) {
+          const pId = ent.parent_id !== undefined && ent.parent_id !== null ? String(ent.parent_id) : (ent.parentId !== undefined && ent.parentId !== null ? String(ent.parentId) : '');
+          if (pId === currentParentId) {
+            const childId = String(ent.id);
+            if (!result.has(childId)) {
+              result.add(childId);
+              queue.push(childId);
+            }
+          }
+        }
+      }
+    }
+    return Array.from(result);
   }
 
   onRangeFilterChange() {
@@ -1735,6 +1768,25 @@ changeTimeframe(newTimeframe: string) {
                 }
               }
             }
+            // Compute all allowed descendant IDs for detail pages
+            let activeEntityIds: string[] = [];
+            if (this.deepestSelection) {
+              activeEntityIds = String(this.deepestSelection.entityId).split(',').map(id => id.trim()).filter(Boolean);
+            } else if (localStorage.getItem('is_restricted_admin') === 'true') {
+              const adminEntityId = localStorage.getItem('admin_entity_id');
+              if (adminEntityId) {
+                activeEntityIds = adminEntityId.split(',').map(id => id.trim()).filter(Boolean);
+              }
+            }
+
+            if (activeEntityIds.length > 0) {
+              const allDescendantIds = this.getAllDescendantEntityIds(activeEntityIds);
+              localStorage.setItem('global_allowed_entity_ids', JSON.stringify(allDescendantIds));
+              console.log("🔍 [Admin Dashboard] Saved Descendant IDs:", allDescendantIds);
+            } else {
+              localStorage.removeItem('global_allowed_entity_ids');
+            }
+
             // 🌐 Persist V2 hierarchy filter to localStorage for detail pages
             if (this.deepestSelection) {
               console.log("🔍 [Admin Dashboard] Active V2 Deepest Selection:", this.deepestSelection);

@@ -221,7 +221,8 @@ export class OfficersPage implements OnInit {
           });
         });
 
-        this.allOfficers = Array.from(officersMap.values());
+        const allOfficersRaw = Array.from(officersMap.values());
+        this.allOfficers = allOfficersRaw.filter((o: any) => this.isRecordMatchingAllowedIds(o));
         console.log('DEBUG [Officers]: Final Merged List size:', this.allOfficers.length);
 
         this.allOfficers.sort((a, b) => {
@@ -268,6 +269,11 @@ export class OfficersPage implements OnInit {
     const term = (this.searchText || '').toLowerCase().trim();
     
     this.filteredOfficers = this.allOfficers.filter(o => {
+      // Check V2 Allowed Entity IDs first (Restricted Admin / Dynamic User)
+      if (!this.isRecordMatchingAllowedIds(o)) {
+        return false;
+      }
+
       // 1. Text Search
       const matchesSearch = !term || 
         (o.name || '').toLowerCase().includes(term) ||
@@ -291,6 +297,42 @@ export class OfficersPage implements OnInit {
 
     this.totalCount = this.filteredOfficers.length;
     this.cdr.detectChanges();
+  }
+
+  isRecordMatchingAllowedIds(r: any): boolean {
+    const allowedIdsStr = localStorage.getItem('global_allowed_entity_ids');
+    if (!allowedIdsStr) return true;
+    
+    try {
+      const allowedIds = JSON.parse(allowedIdsStr);
+      if (!Array.isArray(allowedIds) || allowedIds.length === 0) return true;
+      
+      const isRanger = r.role_id === 4 || !!r.status || r.range_name !== undefined;
+      const rawSiteId = r.site_id || r.siteId || r.beat_id || r.entity_id || r.range_id || (isRanger ? '' : r.id) || '';
+      
+      let recordIds: string[] = [];
+      if (Array.isArray(rawSiteId)) {
+        recordIds = rawSiteId.map(id => String(id).trim());
+      } else if (rawSiteId) {
+        recordIds = String(rawSiteId).split(',').map(id => id.trim());
+      }
+      
+      if (recordIds.length > 0) {
+        return recordIds.some(id => allowedIds.includes(id));
+      }
+      
+      // Fallback: If record has no IDs, check by name matching as fallback
+      const rRange = String(r.displayRange || r.range_name || r.range || '').toLowerCase().trim();
+      const rBeat = String(r.displayBeat || r.beat_name || r.beat || r.site_name || '').toLowerCase().trim();
+      const deepestName = localStorage.getItem('global_deepest_filter_name') || '';
+      if (deepestName) {
+        const names = deepestName.split(',').map(n => n.trim().toLowerCase());
+        return names.some(n => rRange.includes(n) || rBeat.includes(n) || n.includes(rRange) || n.includes(rBeat));
+      }
+    } catch (e) {
+      console.error("Error parsing allowed entity IDs:", e);
+    }
+    return true;
   }
 
   loadHierarchy() {
