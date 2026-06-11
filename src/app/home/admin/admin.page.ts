@@ -554,7 +554,27 @@ export class AdminPage implements OnInit, AfterViewInit {
     this.hierarchyService.getCoverageStats(companyId).subscribe({
       next: (stats: any[]) => {
         if (stats && stats.length > 0) {
-          this.beatCoverage = stats;
+          let filteredStats = stats;
+          if (this.userRole !== '1') {
+            const allowedNames: string[] = [];
+            if (this.assignedRange) allowedNames.push(this.assignedRange.toLowerCase().trim());
+            const deepestName = localStorage.getItem('global_deepest_filter_name') || '';
+            if (deepestName) deepestName.split(',').forEach(n => allowedNames.push(n.toLowerCase().trim()));
+            const globalRange = localStorage.getItem('global_range_filter');
+            if (globalRange && globalRange !== 'all') allowedNames.push(globalRange.toLowerCase().trim());
+            if (this.allRanges && this.allRanges.length > 0) {
+              this.allRanges.forEach(r => allowedNames.push(r.toLowerCase().trim()));
+            }
+            
+            const uniqueAllowed = [...new Set(allowedNames)].filter(Boolean);
+            if (uniqueAllowed.length > 0) {
+              filteredStats = stats.filter(item => {
+                const label = (item.label || item.name || '').toLowerCase().trim();
+                return uniqueAllowed.some(allowed => label.includes(allowed) || allowed.includes(label));
+              });
+            }
+          }
+          this.beatCoverage = filteredStats;
           this.cdr.detectChanges();
         }
       },
@@ -582,7 +602,7 @@ export class AdminPage implements OnInit, AfterViewInit {
   // --- Production Filter Data Logic (V2 Hierarchy Cascade + Fallback to legacy) ---
   loadHierarchy(force: boolean = false) {
     const companyId = localStorage.getItem('company_id') || localStorage.getItem('user_company_id') || '1';
-    
+
     if (force || !this.layers || this.layers.length === 0) {
       console.log('📡 [Hierarchy] Dashboard Syncing V2 Hierarchy layers...');
       this.dataService.listV2Layers().subscribe({
@@ -605,15 +625,14 @@ export class AdminPage implements OnInit, AfterViewInit {
             }
 
             const isRestrictedAdmin = localStorage.getItem('is_restricted_admin') === 'true';
+            this.isRestrictedAdmin = isRestrictedAdmin;
             if (isRestrictedAdmin) {
               const adminLayerId = localStorage.getItem('admin_layer_id');
               const adminEntityId = localStorage.getItem('admin_entity_id');
               const idx = this.layers.findIndex((l: any) => String(l.id) === String(adminLayerId));
               if (idx !== -1 && adminEntityId) {
-                // Assign as string/original format to match Angular's ngModel binding correctly
-                this.hierarchySelections[idx] = adminEntityId;
-                // Temporarily store it so we can disable the dropdown in UI if needed
-                (this as any).restrictedLayerIndex = idx;
+                // Do NOT pre-populate hierarchySelections so user starts with "Select range"
+                this.restrictedLayerIndex = idx;
               }
             }
 
@@ -623,39 +642,28 @@ export class AdminPage implements OnInit, AfterViewInit {
               this.dataService.listV2Entities(firstLayer.id, null, false, companyId).subscribe({
                 next: (entRes: any) => {
                   const nodes = entRes?.data || entRes || [];
-                  this.layerEntities[firstLayer.id] = Array.isArray(nodes) ? nodes : [];
+                  if (nodes.length === 0) {
+                    console.warn("⚠️ No V2 entities found for the first layer. Falling back to legacy...");
+                    this.layers = [];
+                    this.loadOldHierarchy();
+                    return;
+                  }
                   
-                  const isRestrictedAdmin = localStorage.getItem('is_restricted_admin') === 'true';
+                  this.filterAndProcessRanges(nodes, companyId);
+                  
                   if (isRestrictedAdmin && this.restrictedLayerIndex !== -1 && this.hierarchySelections[this.restrictedLayerIndex]) {
                     setTimeout(() => {
                       this.onLayerChange(this.restrictedLayerIndex);
                     }, 50);
                   }
-
-                  this.cdr.detectChanges();
-                }
-              });
-            }
-
-            // --- 🔥 LOAD DYNAMIC RANGES FOR BEAT COVERAGE ---
-            let rangeLayer = this.layers.find(l => l.name.toLowerCase().includes('geo'));
-            if (!rangeLayer) {
-              rangeLayer = this.layers.find(l => l.name.toLowerCase().includes('range'));
-            }
-            if (rangeLayer) {
-              console.log("🎯 Found Dynamic Range Layer:", rangeLayer);
-              this.dataService.listV2Entities(rangeLayer.id, null, false, companyId).subscribe({
-                next: (entRes: any) => {
-                  const nodes = entRes?.data || entRes || [];
-                  if (Array.isArray(nodes)) {
-                    this.allRanges = nodes.map((e: any) => e.name || e.label).filter(Boolean);
-                    console.log("✅ Loaded Dynamic Ranges:", this.allRanges);
-                    this.updateBeatCoverage();
-                  }
+                },
+                error: (err) => {
+                  console.warn("⚠️ Failed to load first layer V2 entities:", err);
+                  this.layers = [];
+                  this.loadOldHierarchy();
                 }
               });
             } else {
-              console.warn("⚠️ No Dynamic Range Layer found, falling back to legacy...");
               this.loadOldHierarchy();
             }
 
@@ -671,24 +679,99 @@ export class AdminPage implements OnInit, AfterViewInit {
       });
     } else {
       // If layers are already loaded, just refresh the dynamic range entities
-      let rangeLayer = this.layers.find(l => l.name.toLowerCase().includes('geo'));
-      if (!rangeLayer) {
-        rangeLayer = this.layers.find(l => l.name.toLowerCase().includes('range'));
-      }
+      let rangeLayer = this.layers && this.layers.length > 0 ? this.layers[0] : null;
       if (rangeLayer) {
         this.dataService.listV2Entities(rangeLayer.id, null, false, companyId).subscribe({
           next: (entRes: any) => {
             const nodes = entRes?.data || entRes || [];
-            if (Array.isArray(nodes)) {
-              this.allRanges = nodes.map((e: any) => e.name || e.label).filter(Boolean);
-              this.updateBeatCoverage();
-            }
+            this.filterAndProcessRanges(nodes, companyId);
           }
         });
       } else {
         this.loadOldHierarchy();
       }
     }
+  }
+
+  filterAndProcessRanges(nodes: any[], companyId: any) {
+    let rawNodes = Array.isArray(nodes) ? nodes : [];
+    const firstLayer = this.layers && this.layers.length > 0 ? this.layers[0] : null;
+    const secondLayer = this.layers && this.layers.length > 1 ? this.layers[1] : null;
+    const isRestrictedAdmin = localStorage.getItem('is_restricted_admin') === 'true';
+
+    if (this.userRole !== '1') {
+      if (isRestrictedAdmin) {
+        const adminLayerId = localStorage.getItem('admin_layer_id');
+        const adminEntityId = localStorage.getItem('admin_entity_id');
+        const firstLayerId = firstLayer?.id;
+        const secondLayerId = secondLayer?.id;
+
+        if (firstLayerId && String(firstLayerId) === String(adminLayerId) && adminEntityId) {
+          const allowedIds = adminEntityId.split(',').map(id => id.trim()).filter(Boolean);
+          rawNodes = rawNodes.filter(n => allowedIds.includes(String(n.id)));
+          
+          const matchedNames = rawNodes.map(n => n.name || n.label || '').filter(Boolean);
+          if (matchedNames.length > 0) {
+            this.assignedRange = matchedNames.join(', ');
+            localStorage.setItem('global_deepest_filter_name', this.assignedRange);
+            this.deepestSelection = { entityId: adminEntityId, name: this.assignedRange };
+            this.loadData(true);
+          }
+        } else if (secondLayerId && String(secondLayerId) === String(adminLayerId) && adminEntityId) {
+          const allowedBeatIds = adminEntityId.split(',').map(id => id.trim()).filter(Boolean);
+          
+          this.dataService.listV2Entities(secondLayerId, null, false, companyId).subscribe({
+            next: (beatRes: any) => {
+              const beatNodes = beatRes?.data || beatRes || [];
+              if (Array.isArray(beatNodes)) {
+                const parentIds = beatNodes
+                  .filter((b: any) => allowedBeatIds.includes(String(b.id)))
+                  .map((b: any) => {
+                    const pId = b.parent_id !== undefined && b.parent_id !== null ? b.parent_id : b.parentId;
+                    return pId ? String(pId) : null;
+                  })
+                  .filter(Boolean);
+                
+                const uniqueParentIds = [...new Set(parentIds)];
+                rawNodes = rawNodes.filter(n => uniqueParentIds.includes(String(n.id)));
+                
+                if (firstLayer) {
+                  this.layerEntities[firstLayer.id] = rawNodes;
+                }
+                this.allRanges = rawNodes.map((n: any) => n.name || n.label).filter(Boolean);
+                
+                const matchedNames = rawNodes.map(n => n.name || n.label || '').filter(Boolean);
+                if (matchedNames.length > 0) {
+                  this.assignedRange = matchedNames.join(', ');
+                  localStorage.setItem('global_deepest_filter_name', this.assignedRange);
+                  this.deepestSelection = { entityId: adminEntityId, name: this.assignedRange };
+                  this.loadData(true);
+                }
+                
+                this.updateBeatCoverage();
+                this.cdr.detectChanges();
+              }
+            }
+          });
+          return; // Return early, async subscription handles the rest
+        }
+      } else {
+        if (this.assignedRange) {
+          const allowedName = this.assignedRange.toLowerCase().trim();
+          rawNodes = rawNodes.filter(n => {
+            const name = (n.name || n.label || '').toLowerCase().trim();
+            return name.includes(allowedName) || allowedName.includes(name);
+          });
+        }
+      }
+    }
+
+    if (firstLayer) {
+      this.layerEntities[firstLayer.id] = rawNodes;
+    }
+    this.allRanges = rawNodes.map((n: any) => n.name || n.label).filter(Boolean);
+    this.updateBeatCoverage();
+    this.cdr.detectChanges();
   }
 
   loadOldHierarchy() {
@@ -762,7 +845,14 @@ export class AdminPage implements OnInit, AfterViewInit {
 
   // Set the final data for legacy fallback
   private finalizeHierarchy(rangeSet: Set<string>, beatArray: any[]) {
-    this.allRanges = Array.from(rangeSet).sort();
+    let ranges = Array.from(rangeSet).sort();
+    if (this.userRole !== '1') {
+      if (this.assignedRange) {
+        const allowedName = this.assignedRange.toLowerCase().trim();
+        ranges = ranges.filter(r => r.toLowerCase().includes(allowedName) || allowedName.includes(r.toLowerCase()));
+      }
+    }
+    this.allRanges = ranges;
     this.allBeats = beatArray;
     
     if (this.selectedRange === 'all') {
@@ -789,6 +879,32 @@ export class AdminPage implements OnInit, AfterViewInit {
 
     // Filter out duplicate or empty values
     rangesToDisplay = Array.from(new Set(rangesToDisplay.map(r => r.trim()).filter(Boolean)));
+
+    // Filter by assigned range if the user is not Super Admin (role '1')
+    if (this.userRole !== '1') {
+      const allowedNames: string[] = [];
+      if (this.assignedRange) {
+        allowedNames.push(this.assignedRange.toLowerCase().trim());
+      }
+      const deepestName = localStorage.getItem('global_deepest_filter_name') || '';
+      if (deepestName) {
+        deepestName.split(',').forEach(n => allowedNames.push(n.toLowerCase().trim()));
+      }
+      const globalRange = localStorage.getItem('global_range_filter');
+      if (globalRange && globalRange !== 'all') {
+        allowedNames.push(globalRange.toLowerCase().trim());
+      }
+      if (this.allRanges && this.allRanges.length > 0) {
+        this.allRanges.forEach(r => allowedNames.push(r.toLowerCase().trim()));
+      }
+
+      const uniqueAllowed = [...new Set(allowedNames)].filter(Boolean);
+      if (uniqueAllowed.length > 0) {
+        rangesToDisplay = rangesToDisplay.filter(r => 
+          uniqueAllowed.some(allowed => r.toLowerCase().includes(allowed) || allowed.includes(r.toLowerCase()))
+        );
+      }
+    }
 
     rangesToDisplay.sort((a, b) => {
       const valA = this.latestRangeMap[a.toLowerCase()] || 0;
@@ -820,21 +936,61 @@ export class AdminPage implements OnInit, AfterViewInit {
     // 2. Load next layer entities from V2 API
     if (selectedEntityId && layerIndex + 1 < this.layers.length) {
       const nextLayer = this.layers[layerIndex + 1];
+      const parentIds = String(selectedEntityId).split(',').map(id => id.trim()).filter(Boolean);
       
-      this.dataService.listV2Entities(nextLayer.id, selectedEntityId).subscribe({
-        next: (res: any) => {
-          const nodes = res?.data || res || [];
-          this.layerEntities[nextLayer.id] = Array.isArray(nodes) ? nodes : [];
-          console.log(`🎯 [Hierarchy] Populated ${this.layerEntities[nextLayer.id].length} entities for Layer ID ${nextLayer.id}`);
-          
-          this.loadData(true); // reload dashboard content
-          this.cdr.detectChanges();
-        },
-        error: (err) => {
-          console.error("❌ [Hierarchy] Failed to load entities:", err);
-          this.loadData(true);
-        }
-      });
+      if (parentIds.length > 1) {
+        // Parallel fetch for each parent ID and merge
+        const observables = parentIds.map(pid => 
+          this.dataService.listV2Entities(nextLayer.id, pid).pipe(
+            catchError(() => of([]))
+          )
+        );
+        
+        forkJoin(observables).subscribe({
+          next: (results: any[]) => {
+            let mergedNodes: any[] = [];
+            results.forEach((res: any) => {
+              const nodes = res?.data || res || [];
+              if (Array.isArray(nodes)) {
+                mergedNodes = [...mergedNodes, ...nodes];
+              }
+            });
+            
+            // Unique nodes by ID
+            const uniqueMap = new Map();
+            mergedNodes.forEach(node => {
+              if (node && node.id) {
+                uniqueMap.set(String(node.id), node);
+              }
+            });
+            
+            this.layerEntities[nextLayer.id] = Array.from(uniqueMap.values());
+            console.log(`🎯 [Hierarchy] Merged ${this.layerEntities[nextLayer.id].length} entities for Layer ID ${nextLayer.id}`);
+            
+            this.loadData(true);
+            this.cdr.detectChanges();
+          },
+          error: (err) => {
+            console.error("❌ [Hierarchy] Parallel fetch failed:", err);
+            this.loadData(true);
+          }
+        });
+      } else {
+        this.dataService.listV2Entities(nextLayer.id, selectedEntityId).subscribe({
+          next: (res: any) => {
+            const nodes = res?.data || res || [];
+            this.layerEntities[nextLayer.id] = Array.isArray(nodes) ? nodes : [];
+            console.log(`🎯 [Hierarchy] Populated ${this.layerEntities[nextLayer.id].length} entities for Layer ID ${nextLayer.id}`);
+            
+            this.loadData(true); // reload dashboard content
+            this.cdr.detectChanges();
+          },
+          error: (err) => {
+            console.error("❌ [Hierarchy] Failed to load entities:", err);
+            this.loadData(true);
+          }
+        });
+      }
     } else {
       this.loadData(true);
     }
@@ -849,58 +1005,79 @@ export class AdminPage implements OnInit, AfterViewInit {
     if (!deepestSelection) return true;
     
     const { entityId, name } = deepestSelection;
-    if (!name) return true;
+    if (!entityId) return true;
     
-    // 1. Match by ID (direct match)
-    const rSiteId = String(r.site_id || r.siteId || r.beat_id || r.entity_id || r.range_id || r.id || '');
-    if (rSiteId && rSiteId === String(entityId)) return true;
+    const allowedIds = String(entityId).split(',').map(id => id.trim()).filter(Boolean);
     
-    // 2. Trace V2 hierarchy parents recursively
-    if (rSiteId) {
-      let currentId = rSiteId;
-      let visited = new Set<string>();
-      while (currentId && !visited.has(currentId)) {
-        visited.add(currentId);
-        let foundParentId: string | null = null;
-        for (const layerId of Object.keys(this.layerEntities)) {
-          const ent = this.layerEntities[Number(layerId)]?.find(e => String(e.id) === String(currentId));
-          if (ent) {
-            foundParentId = ent.parent_id ? String(ent.parent_id) : null;
+    // Extract candidate IDs from the record (site_id, beat_id, entity_id, range_id)
+    const isRanger = r.role_id === 4 || !!r.status || r.range_name !== undefined;
+    const rawSiteId = r.site_id || r.siteId || r.beat_id || r.entity_id || r.range_id || (isRanger ? '' : r.id) || '';
+    
+    let recordIds: string[] = [];
+    if (Array.isArray(rawSiteId)) {
+      recordIds = rawSiteId.map(id => String(id).trim());
+    } else if (rawSiteId) {
+      recordIds = String(rawSiteId).split(',').map(id => id.trim());
+    }
+    
+    if (recordIds.length > 0) {
+      // 1. Direct Match: Check if any record ID is allowed
+      if (recordIds.some(id => allowedIds.includes(id))) return true;
+      
+      // 2. Trace V2 hierarchy parents recursively for each record ID
+      for (let startId of recordIds) {
+        let currentId = startId;
+        let visited = new Set<string>();
+        while (currentId && !visited.has(currentId)) {
+          visited.add(currentId);
+          let foundParentId: string | null = null;
+          for (const layerId of Object.keys(this.layerEntities)) {
+            const ent = this.layerEntities[Number(layerId)]?.find(e => String(e.id) === String(currentId));
+            if (ent) {
+              const pId = ent.parent_id !== undefined && ent.parent_id !== null ? ent.parent_id : ent.parentId;
+              foundParentId = pId !== undefined && pId !== null ? String(pId) : null;
+              break;
+            }
+          }
+          if (foundParentId) {
+            if (allowedIds.includes(foundParentId)) {
+              return true;
+            }
+            currentId = foundParentId;
+          } else {
             break;
           }
-        }
-        if (foundParentId) {
-          if (foundParentId === String(entityId)) {
-            return true;
-          }
-          currentId = foundParentId;
-        } else {
-          break;
         }
       }
     }
 
     // 3. Fallback: Robust name string match
-    const fieldsToSearch = [
-      r.beat_name, r.site_name, r.location, r.location_name,
-      r.range_name, r.range, r.region, r.division_name, r.division,
-      r.client_name, r.name, r.beat
-    ];
-    
-    const matchName = name.toLowerCase();
-    for (const f of fieldsToSearch) {
-      if (f && String(f).toLowerCase().includes(matchName)) {
-        return true;
+    if (name && name !== 'Assigned Location') {
+      const fieldsToSearch = [
+        r.beat_name, r.site_name, r.location, r.location_name,
+        r.range_name, r.range, r.region, r.division_name, r.division,
+        r.client_name, r.name, r.beat
+      ];
+      
+      const namesList = name.split(',').map((n: string) => n.trim().toLowerCase());
+      for (const f of fieldsToSearch) {
+        if (f) {
+          const fLower = String(f).toLowerCase();
+          if (namesList.some((n: string) => fLower.includes(n))) {
+            return true;
+          }
+        }
       }
     }
     
     // 4. Fallback: Trace through allBeats mapping if Range is the selection
-    if (this.allBeats && this.allBeats.length > 0) {
+    if (name && name !== 'Assigned Location' && this.allBeats && this.allBeats.length > 0) {
       const rBeat = (r.beat_name || r.site_name || r.location || '').toLowerCase();
       const bObj = this.allBeats.find(b => b.name.toLowerCase() === rBeat);
       const resolvedRange = (r.range_name || r.range || (bObj ? bObj.parentName : '')).toLowerCase();
       
-      if (resolvedRange && (resolvedRange.includes(matchName) || matchName.includes(resolvedRange))) {
+      const namesList = name.split(',').map((n: string) => n.trim().toLowerCase());
+      if (resolvedRange && namesList.some((n: string) => resolvedRange.includes(n) || n.includes(resolvedRange))) {
          return true;
       }
     }
@@ -964,10 +1141,23 @@ export class AdminPage implements OnInit, AfterViewInit {
     if (this.layers && this.layers.length > 0) {
       this.hierarchySelections = new Array(this.layers.length).fill(null);
       const firstLayer = this.layers[0];
-      this.dataService.listV2Entities(firstLayer.id, null).subscribe({
+      const companyId = localStorage.getItem('company_id') || localStorage.getItem('user_company_id') || '1';
+      this.dataService.listV2Entities(firstLayer.id, null, false, companyId).subscribe({
         next: (entRes: any) => {
           const nodes = entRes?.data || entRes || [];
-          this.layerEntities[firstLayer.id] = Array.isArray(nodes) ? nodes : [];
+          let rawNodes = Array.isArray(nodes) ? nodes : [];
+          
+          const isRestrictedAdmin = localStorage.getItem('is_restricted_admin') === 'true';
+          if (isRestrictedAdmin) {
+            const adminLayerId = localStorage.getItem('admin_layer_id');
+            const adminEntityId = localStorage.getItem('admin_entity_id');
+            if (String(firstLayer.id) === String(adminLayerId) && adminEntityId) {
+              const allowedIds = adminEntityId.split(',').map(id => id.trim()).filter(Boolean);
+              rawNodes = rawNodes.filter(n => allowedIds.includes(String(n.id)));
+            }
+          }
+          
+          this.layerEntities[firstLayer.id] = rawNodes;
           this.cdr.detectChanges();
         }
       });
@@ -1091,9 +1281,9 @@ export class AdminPage implements OnInit, AfterViewInit {
     const userRole = localStorage.getItem('user_role');
     const isRestrictedAdmin = localStorage.getItem('is_restricted_admin') === 'true';
     
-    // 🛡️ Security: Redirect to Home if not Superadmin (1), Admin (2), or Admin (7) or Restricted Admin
-    if (userRole !== '1' && userRole !== '2' && userRole !== '7' && !isRestrictedAdmin) {
-      console.warn("❌ FORCE_LOG: Access Denied! userRole:", userRole, "isRestrictedAdmin:", isRestrictedAdmin);
+    // 🛡️ Security: Redirect to Home if role is 3 (Guard/Employee)
+    if (userRole === '3') {
+      console.warn("❌ FORCE_LOG: Access Denied! userRole is 3 (Guard). Redirecting to home.");
       this.navCtrl.navigateRoot('/home');
       return;
     }
@@ -1431,12 +1621,26 @@ changeTimeframe(newTimeframe: string) {
         console.log("📊 Admin Dashboard Response (Stats):", apiResponse);
         const res = apiResponse.data ? apiResponse.data : apiResponse;
         
-        const stats = res.stats?.data || res.stats || {};
-        const summaryFire = Number(stats.fire_count || stats.fireEvents || 0);
-        this.incidentsCount = Number(stats.total_incidents || stats.total_events || 0);
-
-        // Only set these if they are currently 0 (Initial Load)
-        if (this.fireAlertsCount === 0) this.fireAlertsCount = summaryFire;
+        // Map V2 KPIs if present
+        const kpis = res.kpis;
+        if (kpis) {
+          if (kpis.onDuty !== undefined) this.onDutyCount = Number(kpis.onDuty);
+          if (kpis.patrolCount !== undefined) this.patrolCount = Number(kpis.patrolCount);
+          if (kpis.criminal !== undefined) this.criminalCount = Number(kpis.criminal);
+          if (kpis.events !== undefined) this.eventsCount = Number(kpis.events);
+          if (kpis.fire !== undefined) this.fireAlertsCount = Number(kpis.fire);
+          if (kpis.assets !== undefined) this.totalAssetsCount = Number(kpis.assets);
+          
+          this.incidentsCount = this.criminalCount + this.eventsCount + this.fireAlertsCount;
+        } else {
+          // Legacy stats fallback
+          const stats = res.stats?.data || res.stats || {};
+          const summaryFire = Number(stats.fire_count || stats.fireEvents || 0);
+          this.incidentsCount = Number(stats.total_incidents || stats.total_events || 0);
+          
+          // Only set these if they are currently 0 (Initial Load)
+          if (this.fireAlertsCount === 0) this.fireAlertsCount = summaryFire;
+        }
 
         // Populate Alerts for the Map
         const alertsList = res.alerts || res.sos || [];
@@ -1470,7 +1674,7 @@ changeTimeframe(newTimeframe: string) {
 
     if (adminLayerId && adminEntityId) {
       payload.layer_id = adminLayerId;
-      payload.entity_id = adminEntityId;
+      payload.entity_id = adminEntityId.split(',').map(id => id.trim()).filter(Boolean);
       payload.is_restricted = true;
     }
 
@@ -1513,9 +1717,19 @@ changeTimeframe(newTimeframe: string) {
                 if (this.hierarchySelections[i] && this.hierarchySelections[i] !== 'null') {
                   const selId = this.hierarchySelections[i];
                   const layerId = this.layers[i].id;
-                  const ent = this.layerEntities[layerId]?.find((e: any) => String(e.id) === String(selId));
-                  if (ent) {
-                    this.deepestSelection = { entityId: selId, name: ent.name || ent.label || '' };
+                  
+                  const ids = String(selId).split(',');
+                  const names: string[] = [];
+                  ids.forEach(id => {
+                    const ent = this.layerEntities[layerId]?.find((e: any) => String(e.id) === String(id.trim()));
+                    if (ent) names.push(ent.name || ent.label || '');
+                  });
+
+                  if (names.length > 0) {
+                    this.deepestSelection = { entityId: selId, name: names.join(', ') };
+                    break;
+                  } else {
+                    this.deepestSelection = { entityId: selId, name: 'Assigned Location' };
                     break;
                   }
                 }
@@ -1606,7 +1820,7 @@ changeTimeframe(newTimeframe: string) {
             const getTS = (d: any) => {
               if (!d) return 0;
               if (typeof d === 'string' && d.includes('-')) {
-                const parts = d.split(' ')[0].split('-');
+                const parts = d.split('T')[0].split(' ')[0].split('-');
                 if (parts[0].length === 2 && parts[2].length === 4) {
                   return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime();
                 }
@@ -1649,17 +1863,13 @@ changeTimeframe(newTimeframe: string) {
                     // Range filter (Inclusive)
                     let rangePass = true;
                     if (this.selectedRange && this.selectedRange !== 'all') {
-                       const aRange = (a.range_name || a.range || '').toLowerCase();
-                       const filterRange = this.selectedRange.toLowerCase();
-                       rangePass = aRange.includes(filterRange) || filterRange.includes(aRange);
+                       rangePass = this.dataService.isNameMatching(a.range_name || a.range, this.selectedRange);
                     }
 
                     // Beat filter (Inclusive)
                     let beatPass = true;
                     if (this.selectedBeat && this.selectedBeat !== 'all') {
-                       const aBeat = (a.beat_name || a.beat || '').toLowerCase();
-                       const filterBeat = this.selectedBeat.toLowerCase();
-                       beatPass = aBeat.includes(filterBeat) || filterBeat.includes(aBeat);
+                       beatPass = this.dataService.isNameMatching(a.beat_name || a.beat, this.selectedBeat);
                     }
                     hierarchyPass = rangePass && beatPass;
                   }
@@ -1812,14 +2022,12 @@ changeTimeframe(newTimeframe: string) {
                    } else {
                       // RANGE FILTER (Inclusive Matching)
                       if (this.selectedRange && this.selectedRange !== 'all') {
-                         const filterRange = this.selectedRange.toLowerCase();
-                         if (!rRange.includes(filterRange) && !filterRange.includes(rRange)) isPass = false;
+                         if (!this.dataService.isNameMatching(rRange, this.selectedRange)) isPass = false;
                       }
 
                       // BEAT FILTER (Inclusive Matching)
                       if (isPass && this.selectedBeat && this.selectedBeat !== 'all') {
-                         const filterBeat = this.selectedBeat.toLowerCase();
-                         if (!rBeat.includes(filterBeat) && !filterBeat.includes(rBeat)) isPass = false;
+                         if (!this.dataService.isNameMatching(rBeat, this.selectedBeat)) isPass = false;
                       }
                    }
 
@@ -1952,14 +2160,14 @@ changeTimeframe(newTimeframe: string) {
                         } else {
                           // RANGE FILTER on map pins
                           if (this.selectedRange && this.selectedRange !== 'all') {
-                            const fRange = (f.range_name || f.range || f.region || '').toLowerCase();
-                            if (!fRange.includes(this.selectedRange.toLowerCase())) isPass = false;
+                            const fRange = f.range_name || f.range || f.region || '';
+                            if (!this.dataService.isNameMatching(fRange, this.selectedRange)) isPass = false;
                           }
 
                           // BEAT FILTER on map pins
                           if (isPass && this.selectedBeat && this.selectedBeat !== 'all') {
-                            const fBeat = (f.beat_name || f.beat || '').toLowerCase();
-                            if (!fBeat.includes(this.selectedBeat.toLowerCase())) isPass = false;
+                            const fBeat = f.beat_name || f.beat || '';
+                            if (!this.dataService.isNameMatching(fBeat, this.selectedBeat)) isPass = false;
                           }
                         }
                       }
@@ -2150,8 +2358,19 @@ changeTimeframe(newTimeframe: string) {
                               if (isToday && isApproved) {
                                  const uId = record.guard_id || record.guardId || record.user_id || record.userId || record.staff_id || record.ranger_id || record.added_by || record.created_by;
                                  if (uId) {
-                                   activeIds.add(uId.toString());
-                                   return true;
+                                   const rawUser = staffList.find((u: any) => String(u.id || u.user_id || u.staff_id || u.ranger_id || '') === String(uId));
+                                   if (rawUser) {
+                                     const tempRanger = {
+                                       role_id: 4,
+                                       site_id: rawUser.site_id || rawUser.siteId || rawUser.entity_id || rawUser.entity_ids || '',
+                                       entity_id: rawUser.entity_id || rawUser.entity_ids || rawUser.site_id || rawUser.siteId || '',
+                                       range_name: rawUser.range_name || rawUser.beat_name || 'Forest Division'
+                                     };
+                                     if (!this.deepestSelection || this.isRecordMatchingHierarchy(tempRanger, this.deepestSelection)) {
+                                       activeIds.add(uId.toString());
+                                       return true;
+                                     }
+                                   }
                                  }
                               }
                               return false;
@@ -2161,13 +2380,8 @@ changeTimeframe(newTimeframe: string) {
                            reqArray.forEach(processRecord);
                            onsiteArray.forEach(processRecord);
 
-                           // 🔥 Aggressive Count Recovery
-                           const filteredCount = activeIds.size;
-                           const pendingCount = reqArray.length;
-                           const onsiteCount = onsiteArray.length;
-
                            // Ensure unique count: Only count one attendance per officer per day
-                           this.onDutyCount = filteredCount;
+                           this.onDutyCount = activeIds.size;
                            this.allRangers = staffList.length || this.allRangers || 0;
                            this.inactiveCount = Math.max(0, this.allRangers - this.onDutyCount);
 
@@ -2205,7 +2419,18 @@ changeTimeframe(newTimeframe: string) {
                                if (isApproved) {
                                  const uId = record.guard_id || record.guardId || record.user_id || record.userId || record.staff_id || record.ranger_id || record.added_by || record.created_by;
                                  if (uId) {
-                                   dutyTrendMap[dateYMD].add(uId.toString());
+                                   const rawUser = staffList.find((u: any) => String(u.id || u.user_id || u.staff_id || u.ranger_id || '') === String(uId));
+                                   if (rawUser) {
+                                     const tempRanger = {
+                                       role_id: 4,
+                                       site_id: rawUser.site_id || rawUser.siteId || rawUser.entity_id || rawUser.entity_ids || '',
+                                       entity_id: rawUser.entity_id || rawUser.entity_ids || rawUser.site_id || rawUser.siteId || '',
+                                       range_name: rawUser.range_name || rawUser.beat_name || 'Forest Division'
+                                     };
+                                     if (!this.deepestSelection || this.isRecordMatchingHierarchy(tempRanger, this.deepestSelection)) {
+                                       dutyTrendMap[dateYMD].add(uId.toString());
+                                     }
+                                   }
                                  }
                                 }
                              }
@@ -2226,12 +2451,19 @@ changeTimeframe(newTimeframe: string) {
                                     name: u.name || u.full_name || 'Staff',
                                     status: isWorking ? 1 : 0, 
                                     role_id: 4,
-                                    range_name: u.range_name || u.beat_name || 'Forest Division'
+                                    range_name: u.range_name || u.beat_name || 'Forest Division',
+                                    site_id: u.site_id || u.siteId || u.entity_id || u.entity_ids || '',
+                                    entity_id: u.entity_id || u.entity_ids || u.site_id || u.siteId || ''
                                 };
                              });
                              
                              this.rangers.sort((a,b) => b.status - a.status);
-                             this.filteredRangers = [...this.rangers];
+                             this.filteredRangers = this.rangers.filter(u => this.isRecordMatchingHierarchy(u, this.deepestSelection));
+
+                             // Recalculate stats based on filtered list
+                             this.onDutyCount = this.filteredRangers.filter(r => r.status === 1).length;
+                             this.allRangers = this.filteredRangers.length;
+                             this.inactiveCount = Math.max(0, this.allRangers - this.onDutyCount);
                           }
 
                           // Trigger attendance chart initialization as fallback if not in res

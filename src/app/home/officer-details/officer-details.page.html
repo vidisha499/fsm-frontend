@@ -133,6 +133,10 @@
             <span class="m-lbl">Shift Time</span>
             <span class="m-val">{{ assignedSite?.shift_time_from || '12:00 am' }} - {{ assignedSite?.shift_time_to || '11:57 pm' }}</span>
           </div>
+          <div class="meta-item" *ngIf="assignedSite?.weekoff">
+            <span class="m-lbl">Week Off</span>
+            <span class="m-val">{{ assignedSite.weekoff }}</span>
+          </div>
         </div>
       </div>
     </div>

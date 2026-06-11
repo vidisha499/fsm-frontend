@@ -83,6 +83,12 @@ endDate: string = '';    // Ye missing tha
   // Ye dono variables missing the:
   selectedTimeframe: string = 'today'; 
 
+  // V2 Hierarchy State
+  layers: any[] = [];
+  hierarchySelections: any[] = [];
+  layerEntities: { [key: number]: any[] } = {};
+  deepestSelection: any = null;
+
   // private api: ApiService
 
   private chartInstances: Map<string, Chart> = new Map();
@@ -905,8 +911,9 @@ private mkChart(id: string, config: any) {
     
     // Parse date (Handles YYYY-MM-DD, DD-MM-YYYY, DD/MM/YYYY)
     let d: Date;
-    if (dateStr.includes('-')) {
-      const parts = dateStr.split(' ')[0].split('-');
+    const clean = dateStr.split('T')[0].split(' ')[0];
+    if (clean.includes('-')) {
+      const parts = clean.split('-');
       if (parts[0].length === 4) d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
       else d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
     } else if (dateStr.includes('/')) {
@@ -989,7 +996,171 @@ onFilterChange() {
   this.fetchRealAssetData();
 }
 
-loadHierarchyData() {
+loadHierarchyData(force: boolean = false) {
+  const companyId = localStorage.getItem('company_id') || '1';
+
+  if (force || !this.layers || this.layers.length === 0) {
+    this.dataService.listV2Layers().subscribe({
+      next: (layerRes: any) => {
+        const rawLayers = layerRes?.data || layerRes || [];
+        
+        if (rawLayers.length > 0) {
+          this.layers = rawLayers
+            .sort((a: any, b: any) => (Number(a.rank || a.id)) - (Number(b.rank || b.id)))
+            .map((l: any) => ({
+              id: Number(l.id),
+              name: l.name || l.layer_name || l.label
+            }));
+
+          // Initialize hierarchy selections array
+          if (!this.hierarchySelections || this.hierarchySelections.length !== this.layers.length) {
+            this.hierarchySelections = new Array(this.layers.length).fill(null);
+          }
+
+          // Load initial entities for the first layer
+          if (this.layers.length > 0) {
+            const firstLayer = this.layers[0];
+            this.dataService.listV2Entities(firstLayer.id, null, false, companyId).subscribe({
+              next: (entRes: any) => {
+                const nodes = entRes?.data || entRes || [];
+                if (nodes.length === 0) {
+                  this.layers = [];
+                  this.loadOldHierarchyData();
+                  return;
+                }
+                
+                this.layerEntities[firstLayer.id] = Array.isArray(nodes) ? nodes : [];
+                this.cdr.detectChanges();
+              }
+            });
+          }
+        } else {
+          this.loadOldHierarchyData();
+        }
+      },
+      error: () => {
+        this.loadOldHierarchyData();
+      }
+    });
+  }
+}
+
+shouldShowLayer(index: number): boolean {
+  if (index === 0) return true;
+  return this.hierarchySelections[index - 1] !== null && this.hierarchySelections[index - 1] !== undefined;
+}
+
+onLayerChange(changedIndex: number) {
+  const selectedEntityId = this.hierarchySelections[changedIndex];
+  // 1. Clear all subsequent selections
+  for (let i = changedIndex + 1; i < this.layers.length; i++) {
+    this.hierarchySelections[i] = null;
+    this.layerEntities[this.layers[i].id] = [];
+  }
+
+  this.updateDeepestSelection();
+  
+  // 2. Fetch children for the next layer
+  if (selectedEntityId && changedIndex + 1 < this.layers.length) {
+    const nextLayer = this.layers[changedIndex + 1];
+    const companyId = localStorage.getItem('company_id') || '1';
+    
+    this.dataService.listV2Entities(nextLayer.id, selectedEntityId, false, companyId).subscribe({
+      next: (entRes: any) => {
+        const nodes = entRes?.data || entRes || [];
+        this.layerEntities[nextLayer.id] = Array.isArray(nodes) ? nodes : [];
+        this.cdr.detectChanges();
+      }
+    });
+  }
+  
+  // 3. Trigger Data Update
+  this.onFilterChange();
+}
+
+updateDeepestSelection() {
+  this.deepestSelection = null;
+  for (let i = this.hierarchySelections.length - 1; i >= 0; i--) {
+    if (this.hierarchySelections[i]) {
+      const entityId = this.hierarchySelections[i];
+      const layerId = this.layers[i].id;
+      const entity = this.layerEntities[layerId]?.find((e: any) => String(e.id) === String(entityId));
+      this.deepestSelection = {
+        layerId: layerId,
+        entityId: entityId,
+        layerName: this.layers[i].name,
+        name: entity ? entity.name : ''
+      };
+      break; 
+    }
+  }
+}
+
+isRecordMatchingHierarchy(r: any, deepestSelection: any): boolean {
+  if (!deepestSelection) return true;
+  
+  const { entityId, name } = deepestSelection;
+  if (!entityId) return true;
+  
+  const allowedIds = String(entityId).split(',').map(id => id.trim());
+  
+  const rSiteId = String(r.site_id || r.siteId || r.beat_id || r.entity_id || r.range_id || r.id || '');
+  if (rSiteId && allowedIds.includes(rSiteId)) return true;
+  
+  if (rSiteId) {
+    let currentId = rSiteId;
+    let visited = new Set<string>();
+    while (currentId && !visited.has(currentId)) {
+      visited.add(currentId);
+      let foundParentId: string | null = null;
+      for (const layerId of Object.keys(this.layerEntities)) {
+        const ent = this.layerEntities[Number(layerId)]?.find((e: any) => String(e.id) === String(currentId));
+        if (ent) {
+          foundParentId = ent.parent_id ? String(ent.parent_id) : null;
+          break;
+        }
+      }
+      if (foundParentId) {
+        if (allowedIds.includes(foundParentId)) return true;
+        currentId = foundParentId;
+      } else {
+        break;
+      }
+    }
+  }
+
+  const fieldsToSearch = [
+    r.beat_name, r.site_name, r.location, r.location_name,
+    r.range_name, r.range, r.region, r.division_name, r.division,
+    r.client_name, r.name, r.beat
+  ];
+  
+  if (name && name !== 'Assigned Location') {
+    const namesList = name.split(',').map((n: string) => n.trim().toLowerCase());
+    for (const f of fieldsToSearch) {
+      if (f) {
+        const fLower = String(f).toLowerCase();
+        if (namesList.some((n: string) => fLower.includes(n))) {
+          return true;
+        }
+      }
+    }
+  }
+  
+  if (name && name !== 'Assigned Location' && this.allHierarchyBeats && this.allHierarchyBeats.length > 0) {
+    const rBeat = (r.beat_name || r.site_name || r.location || '').toLowerCase();
+    const bObj = this.allHierarchyBeats.find(b => b.name.toLowerCase() === rBeat);
+    const resolvedRange = (r.range_name || r.range || (bObj ? bObj.parentName : '')).toLowerCase();
+    
+    const namesList = name.split(',').map((n: string) => n.trim().toLowerCase());
+    if (resolvedRange && namesList.some((n: string) => resolvedRange.includes(n) || n.includes(resolvedRange))) {
+       return true;
+    }
+  }
+  return false;
+}
+
+loadOldHierarchyData() {
   const companyId = localStorage.getItem('company_id') || '1';
   
   // Use a combination of getHierarchies (Structural) and getSites (Assigned)
@@ -1222,19 +1393,24 @@ async updateUIData() {
               const rDateStr = r.date || r.created_at || r.date_time || '';
               const rRaw = JSON.stringify(r).toLowerCase();
 
-              if (this.selectedRange !== 'all') {
-                 const rRange = (r.range_name || r.range || '').toLowerCase();
-                 if (!rRange.includes(this.selectedRange.toLowerCase())) return;
-              }
+              // Hierarchy Filtering
+              if (this.deepestSelection) {
+                 if (!this.isRecordMatchingHierarchy(r, this.deepestSelection)) return;
+              } else {
+                if (this.selectedRange !== 'all') {
+                   const rRange = (r.range_name || r.range || '').toLowerCase();
+                   if (!rRange.includes(this.selectedRange.toLowerCase())) return;
+                }
 
-              // BEAT FILTER
-              if (this.selectedBeat && this.selectedBeat !== 'all') {
-                const rBeat = (r.beat_name || r.beat || '').toLowerCase();
-                if (!rBeat.includes(this.selectedBeat.toLowerCase())) return;
+                // BEAT FILTER
+                if (this.selectedBeat && this.selectedBeat !== 'all') {
+                  const rBeat = (r.beat_name || r.beat || '').toLowerCase();
+                  if (!rBeat.includes(this.selectedBeat.toLowerCase())) return;
+                }
               }
 
               let dateYMD = '';
-              const cleanDate = (rDateStr || '').split(' ')[0];
+              const cleanDate = (rDateStr || '').split('T')[0].split(' ')[0];
               if (cleanDate.includes('-')) {
                 const parts = cleanDate.split('-');
                 if (parts[0].length === 4) dateYMD = `${parts[0]}-${parts[1]}-${parts[2]}`; 

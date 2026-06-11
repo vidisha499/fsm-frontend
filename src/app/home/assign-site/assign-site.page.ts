@@ -302,11 +302,45 @@ export class AssignSitePage implements OnInit {
 
     const entityId = this.deepestSelection;
 
-    // Match exact payload format from add-user.page.ts that works
+    // Map selected shift to times
+    let shiftTimeFrom = '12:00 am';
+    let shiftTimeTo = '11:57 pm';
+    if (this.selectedShift === 'Morning Shift') {
+      shiftTimeFrom = '06:00 am';
+      shiftTimeTo = '02:00 pm';
+    } else if (this.selectedShift === 'Evening Shift' || this.selectedShift === 'Afternoon Shift') {
+      shiftTimeFrom = '02:00 pm';
+      shiftTimeTo = '10:00 pm';
+    } else if (this.selectedShift === 'Night Shift') {
+      shiftTimeFrom = '10:00 pm';
+      shiftTimeTo = '06:00 am';
+    }
+
     const payload: any = {
       assigned_user_id: Number(this.officer.id || this.officer.user_id),
+      user_id: Number(this.officer.id || this.officer.user_id),
       entity_id: Number(entityId),
-      custom_role_id: Number(this.selectedCustomRoleId)
+      custom_role_id: Number(this.selectedCustomRoleId),
+      
+      // Dates
+      start_date: this.startDate,
+      date_from: this.startDate,
+      end_date: this.endDate,
+      date_to: this.endDate,
+      
+      // Shift
+      shift: this.selectedShift,
+      shift_name: this.selectedShift,
+      shift_time_from: shiftTimeFrom,
+      shift_time_to: shiftTimeTo,
+      start_time: shiftTimeFrom,
+      end_time: shiftTimeTo,
+      
+      // Weekoff
+      weekoff: this.selectedDays.join(','),
+      weekly_off: this.selectedDays.join(','),
+      days: this.selectedDays,
+      weekoff_day: this.selectedDays.join(',')
     };
 
     console.log('📦 Assignment payload:', payload);

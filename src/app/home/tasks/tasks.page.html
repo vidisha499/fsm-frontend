@@ -86,10 +86,10 @@
           </div>
 
           <div class="row-actions">
-            <button class="action-btn check" *ngIf="task.status !== 'completed'" (click)="updateTaskStatus(task, 'completed'); $event.stopPropagation()">
+            <button class="action-btn check" *ngIf="task.status !== 'completed' && hasPermission('Tasks.update')" (click)="updateTaskStatus(task, 'completed'); $event.stopPropagation()">
               <ion-icon name="checkmark-done-outline"></ion-icon>
             </button>
-            <button class="action-btn delete" (click)="deleteTask(task.id); $event.stopPropagation()">
+            <button class="action-btn delete" *ngIf="hasPermission('Tasks.delete')" (click)="deleteTask(task.id); $event.stopPropagation()">
               <ion-icon name="trash-outline"></ion-icon>
             </button>
           </div>
@@ -116,7 +116,7 @@
     </div>
 
     <!-- Floating Action Button -->
-    <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab vertical="bottom" horizontal="end" slot="fixed" *ngIf="hasPermission('Tasks.add')">
       <ion-fab-button class="premium-fab" (click)="openAddTask()">
         <ion-icon name="add"></ion-icon>
       </ion-fab-button>

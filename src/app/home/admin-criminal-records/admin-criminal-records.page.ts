@@ -141,12 +141,16 @@ export class AdminCriminalRecordsPage implements OnInit {
   applyFiltersToCache(from?: string, to?: string) {
     if (!this.allReportsCache) return;
 
+    console.log("🔍 [CRIMINAL RECORDS DEBUG] All reports from server:", this.allReportsCache);
+    console.log("🔍 [CRIMINAL RECORDS DEBUG] Filter From:", from, "To:", to);
+    console.log("🔍 [CRIMINAL RECORDS DEBUG] V2 Filter Name:", this.deepestFilterName);
+
     // Helper for robust date parsing
     const getTS = (d: any) => {
       if (!d) return 0;
       let ts = 0;
       if (typeof d === 'string') {
-        const clean = d.split(' ')[0].replace(/\//g, '-');
+        const clean = d.split('T')[0].split(' ')[0].replace(/\//g, '-');
         const parts = clean.split('-');
         if (parts.length === 3) {
            if (parts[0].length === 2 && parts[2].length === 4) {
@@ -174,11 +178,21 @@ export class AdminCriminalRecordsPage implements OnInit {
         const rDate = r.created_at || r.date || r.date_time || r.timestamp || '';
         if (!rDate) matchesDate = false;
         else {
-          // If from and to are same (Today filter), use robust string check
           const rTimestamp = getTS(rDate);
-          const fromTS = new Date(from).setHours(0, 0, 0, 0);
-          const toTS = new Date(to).setHours(23, 59, 59, 999);
-          matchesDate = rTimestamp >= fromTS && rTimestamp <= toTS;
+          
+          const today = new Date().toISOString().split('T')[0];
+          const nowL = new Date();
+          const todayYMD = `${nowL.getFullYear()}-${String(nowL.getMonth() + 1).padStart(2, '0')}-${String(nowL.getDate()).padStart(2, '0')}`;
+          const todayDMY = `${String(nowL.getDate()).padStart(2, '0')}-${String(nowL.getMonth() + 1).padStart(2, '0')}-${nowL.getFullYear()}`;
+          const rFullDate = rDate.toString();
+          
+          if (from === today && to === today) {
+            matchesDate = !!(rFullDate.includes(todayYMD) || rFullDate.includes(todayDMY) || rFullDate.includes(todayYMD.replace(/-/g, '/')) || rFullDate.includes(today) || rFullDate.includes(today.replace(/-/g, '/')));
+          } else {
+            const fromTS = new Date(from).setHours(0, 0, 0, 0);
+            const toTS = new Date(to).setHours(23, 59, 59, 999);
+            matchesDate = rTimestamp >= fromTS && rTimestamp <= toTS;
+          }
         }
       }
 
@@ -196,6 +210,8 @@ export class AdminCriminalRecordsPage implements OnInit {
     .sort((a, b) => getTS(b.created_at || b.date) - getTS(a.created_at || a.date))
     .map((r: any) => this.processPhotos(r));
 
+    console.log("🔍 [CRIMINAL RECORDS DEBUG] Filtered by type/date count:", filtered.length);
+
     const companyId = (() => {
       try {
         const u = JSON.parse(localStorage.getItem('user_data') || '{}');
@@ -207,27 +223,27 @@ export class AdminCriminalRecordsPage implements OnInit {
 
     this.dataService.enrichReportsWithReporterHierarchy(filtered, companyId).subscribe({
       next: (enriched) => {
+        console.log("🔍 [CRIMINAL RECORDS DEBUG] Enriched Reports:", enriched);
         this.submittedReports = enriched.filter((r: any) => {
           // V2 Dynamic Hierarchy Filter (takes priority)
           if (this.deepestFilterName) {
-            return this.isRecordMatchingHierarchyName(r);
+            const matches = this.isRecordMatchingHierarchyName(r);
+            console.log(`🔍 [CRIMINAL RECORDS DEBUG] Report ${r.id || r.report_id} matches hierarchy filter '${this.deepestFilterName}'?:`, matches);
+            return matches;
           }
 
           // Legacy range/beat filters
-          const rRange = String(r.displayRange || '').toLowerCase();
-          const rBeat = String(r.displayBeat || '').toLowerCase();
-          const filterRange = this.selectedRange.toLowerCase();
-          const filterBeat = this.selectedBeat.toLowerCase();
+          const rRange = String(r.displayRange || r.range_name || r.range || '');
+          const rBeat = String(r.displayBeat || r.beat_name || r.beat || r.site_name || '');
           const matchesRange =
             this.selectedRange === 'all' ||
-            rRange.includes(filterRange) ||
-            filterRange.includes(rRange);
+            this.dataService.isNameMatching(rRange, this.selectedRange);
           const matchesBeat =
             this.selectedBeat === 'all' ||
-            rBeat.includes(filterBeat) ||
-            filterBeat.includes(rBeat);
+            this.dataService.isNameMatching(rBeat, this.selectedBeat);
           return matchesRange && matchesBeat;
         });
+        console.log("🔍 [CRIMINAL RECORDS DEBUG] Final submittedReports count:", this.submittedReports.length);
         this.isLoading = false;
       },
       error: () => {
@@ -242,23 +258,30 @@ export class AdminCriminalRecordsPage implements OnInit {
    * Checks deepest selection name + full chain against all hierarchy-related fields.
    */
   isRecordMatchingHierarchyName(r: any): boolean {
+    const rBeat = String(r.beat_name || r.site_name || r.location || r.beat || r.displayBeat || '').toLowerCase().trim();
+    const beatObj = this.allBeats?.find(b => b.name.toLowerCase() === rBeat);
+    const rRange = String(r.range_name || r.range || r.displayRange || (beatObj ? beatObj.parentName : '')).toLowerCase().trim();
+
     const fieldsToSearch = [
       r.beat_name, r.site_name, r.location, r.location_name,
       r.range_name, r.range, r.region, r.division_name, r.division,
       r.client_name, r.name, r.beat,
-      r.displayRange, r.displayBeat
+      r.displayRange, r.displayBeat,
+      rBeat, rRange
     ];
 
-    // Check if deepest selection name matches any field
-    const matchName = this.deepestFilterName.toLowerCase();
+    if (!this.deepestFilterName) return true;
+    const namesList = this.deepestFilterName.split(',').map((n: string) => n.trim().toLowerCase());
     for (const f of fieldsToSearch) {
-      if (f && String(f).toLowerCase().includes(matchName)) {
-        return true;
+      if (f) {
+        const fLower = String(f).toLowerCase();
+        if (namesList.some((n: string) => fLower.includes(n) || n.includes(fLower))) {
+          return true;
+        }
       }
     }
 
-    // Also check full chain for ancestor matching
-    if (this.hierarchyChain.length > 0) {
+    if (this.hierarchyChain && this.hierarchyChain.length > 0) {
       const deepest = this.hierarchyChain[this.hierarchyChain.length - 1]?.toLowerCase() || '';
       if (deepest) {
         for (const f of fieldsToSearch) {

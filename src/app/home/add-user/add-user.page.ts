@@ -162,20 +162,8 @@ export class AddUserPage implements OnInit {
 
             console.log("🎯 V2 Processed Layers:", this.layers);
 
-            // 3. Load Initial Entities for all layers
-            if (this.layers.length > 0) {
-              this.layers.forEach(layer => {
-                this.dataService.listV2Entities(layer.id, null).subscribe({
-                  next: (entRes: any) => {
-                    const nodes = entRes?.data || entRes || [];
-                    this.layerEntities[layer.id] = Array.isArray(nodes) ? nodes : [];
-                    console.log(`🎯 Loaded V2 entities for Layer ${layer.name} (${layer.id}):`, this.layerEntities[layer.id].length);
-                    this.cdr.detectChanges();
-                  }
-                });
-              });
-            }
-
+            // Do NOT load entities automatically on init.
+            // Entities are loaded in refreshHierarchyForRole() when a role is selected.
             this.stopHereFlags = new Array(this.layers.length).fill(true);
             loader.dismiss();
           } else {
@@ -250,6 +238,33 @@ export class AddUserPage implements OnInit {
     });
   }
 
+  refreshHierarchyForRole() {
+    // Clear all existing entities and selections
+    if (this.layers) {
+      this.hierarchySelections = new Array(this.layers.length).fill(null);
+      this.layerEntities = {};
+      this.stopHereFlags = new Array(this.layers.length).fill(true);
+    }
+    this.selectedAssignments = [];
+    
+    if (!this.shouldShowHierarchy()) return;
+
+    if (this.layers && this.layers.length > 0) {
+      // Dynamic Company -> Load V2 Entities for the first layer
+      const firstLayer = this.layers[0];
+      this.dataService.listV2Entities(firstLayer.id, null).subscribe({
+        next: (entRes: any) => {
+          const nodes = entRes?.data || entRes || [];
+          this.layerEntities[firstLayer.id] = Array.isArray(nodes) ? nodes : [];
+          this.cdr.detectChanges();
+        }
+      });
+    } else {
+      // Legacy Company -> Load Legacy Hierarchy
+      this.loadOldHierarchy();
+    }
+  }
+
   onLayerChange(layerIndex: number) {
     const selectedEntityId = this.hierarchySelections[layerIndex];
     
@@ -259,19 +274,30 @@ export class AddUserPage implements OnInit {
       this.layerEntities[this.layers[i].id] = [];
     }
 
-    // 2. Load next layer entities from V2 API
-    if (selectedEntityId && layerIndex + 1 < this.layers.length) {
-      const nextLayer = this.layers[layerIndex + 1];
-      
-      this.dataService.listV2Entities(nextLayer.id, selectedEntityId).subscribe({
-        next: (res: any) => {
-          const nodes = res?.data || res || [];
-          this.layerEntities[nextLayer.id] = Array.isArray(nodes) ? nodes : [];
-          console.log(`🎯 V2: Populated ${this.layerEntities[nextLayer.id].length} entities for Level ${nextLayer.id}`);
+    if (this.userData.roleId === '10') {
+      // 2. Load next layer entities from V2 API
+      if (selectedEntityId && layerIndex + 1 < this.layers.length) {
+        const nextLayer = this.layers[layerIndex + 1];
+        
+        this.dataService.listV2Entities(nextLayer.id, selectedEntityId).subscribe({
+          next: (res: any) => {
+            const nodes = res?.data || res || [];
+            this.layerEntities[nextLayer.id] = Array.isArray(nodes) ? nodes : [];
+            console.log(`🎯 V2: Populated ${this.layerEntities[nextLayer.id].length} entities for Level ${nextLayer.id}`);
+            this.cdr.detectChanges();
+          },
+          error: (err) => console.error("❌ [V2] Failed to load entities:", err)
+        });
+      }
+    } else {
+      // Legacy Mode: filter local beats
+      if (selectedEntityId && layerIndex + 1 < this.layers.length) {
+        const nextLayer = this.layers[layerIndex + 1];
+        if (this.allOldBeats && this.allOldBeats.length > 0) {
+          this.layerEntities[nextLayer.id] = this.allOldBeats.filter(b => b.parentName === selectedEntityId);
           this.cdr.detectChanges();
-        },
-        error: (err) => console.error("❌ [V2] Failed to load entities:", err)
-      });
+        }
+      }
     }
   }
 
@@ -292,7 +318,11 @@ export class AddUserPage implements OnInit {
     }
 
     // Load permissions for selected role
-    if (val && val !== '10') this.loadRolePermissions(val);
+    if (val && val !== '10') {
+      this.loadRolePermissions(val);
+    }
+    
+    this.refreshHierarchyForRole();
     this.cdr.detectChanges();
   }
 
@@ -314,12 +344,19 @@ export class AddUserPage implements OnInit {
         this.loadRolePermissions(val);
       }
     }
+    this.refreshHierarchyForRole();
     this.cdr.detectChanges();
   }
 
   loadRolePermissions(roleId: any) {
     // Always initialize empty map first so edit grid works
     this.setPermissions([]);
+
+    // 🛡️ Admin (7), Forester (2), and Super Admin (1) should have ALL permissions enabled by default.
+    if (['1', '2', '7'].includes(String(roleId))) {
+      this.buildPermissionsArray();
+      return;
+    }
 
     // Check in-memory roles for existing permissions
     const allRoles = [...this.staticRoles, ...this.dynamicRoles];
@@ -418,8 +455,8 @@ export class AddUserPage implements OnInit {
       return false;
     }
 
-    // Only Super Admin (1) and specialized global roles (7) are truly global.
-    const globalRoles = [1, 7];
+    // Only Super Admin (1) is truly global. Admin (7) can be assigned to multiple Ranges/Beats.
+    const globalRoles = [1];
     return !globalRoles.includes(Number(this.userData.roleId));
   }
 
@@ -617,13 +654,12 @@ export class AddUserPage implements OnInit {
     }
 
     // --- DUPLICATE MOBILE CHECK ---
+    let loader: any;
     try {
-      const loader = await this.loadingCtrl.create({ message: 'Checking if user exists...' });
+      loader = await this.loadingCtrl.create({ message: 'Checking if user exists...' });
       await loader.present();
 
       const existingUsers: any = await this.dataService.getUsersByCompany(this.userData.companyId).toPromise();
-      loader.dismiss();
-
       const users = existingUsers?.data || existingUsers || [];
       const duplicate = users.find((u: any) => {
         const uMobile = String(u.mobile || u.phone || u.contact || '').trim();
@@ -637,6 +673,10 @@ export class AddUserPage implements OnInit {
       }
     } catch (err) {
       console.warn('⚠️ Could not verify duplicate, proceeding with registration...', err);
+    } finally {
+      if (loader) {
+        loader.dismiss();
+      }
     }
 
     this.isSaving = true;
@@ -712,6 +752,28 @@ export class AddUserPage implements OnInit {
     }
     // ------------------- End of entity ID gathering -------------------
 
+    // Collect all assigned entity names
+    let assignedNames: string[] = [];
+    if (this.selectedAssignments.length > 0) {
+      assignedNames = this.selectedAssignments.map(item => item.name);
+    } else {
+      assignedEntityIds.forEach(id => {
+        let found = false;
+        for (let layer of this.layers) {
+          const ent = this.layerEntities[layer.id]?.find(e => String(e.id) === String(id));
+          if (ent) {
+            assignedNames.push(ent.name);
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          assignedNames.push(String(id));
+        }
+      });
+    }
+    const combinedSiteName = assignedNames.length > 0 ? assignedNames.join(', ') : (deepestEntityName || 'Officer');
+
     // Build payload for user registration
     const resolvedCustomRoleId = this.userData.dynamicRoleId || this.userData.roleId;
     
@@ -722,6 +784,24 @@ export class AddUserPage implements OnInit {
       if (selectedRole) dynamicRoleName = selectedRole.displayName;
     }
     
+    // Double-stringify permissions to prevent Laravel Array to string conversion DB exception
+    let doubleStringifiedPermissions: string;
+    try {
+      const rawPermissions = this.rolePermissions || [];
+      if (typeof rawPermissions === 'string') {
+        const parsed = JSON.parse(rawPermissions);
+        if (typeof parsed === 'string') {
+          doubleStringifiedPermissions = rawPermissions;
+        } else {
+          doubleStringifiedPermissions = JSON.stringify(rawPermissions);
+        }
+      } else {
+        doubleStringifiedPermissions = JSON.stringify(JSON.stringify(rawPermissions));
+      }
+    } catch (e) {
+      doubleStringifiedPermissions = JSON.stringify(JSON.stringify(this.rolePermissions || []));
+    }
+
     const payload: any = {
       name: `${this.userData.firstName} ${this.userData.lastName}`.trim(),
       firstName: this.userData.firstName,
@@ -732,31 +812,33 @@ export class AddUserPage implements OnInit {
       role_id: String(this.userData.roleId),
       company_id: String(this.userData.companyId),
       company_name: localStorage.getItem('company_name') || '',
-      entity_id: deepestEntityId,
+      entity_id: assignedEntityIds.map(id => String(id)),
+      entity_ids: assignedEntityIds.map(id => String(id)),
       site_id: deepestEntityId,
       siteId: deepestEntityId, 
-      site_name: deepestEntityName || 'Officer',
+      site_name: combinedSiteName,
       attendance_type: 'multiple',
       custom_role_id: String(this.userData.dynamicRoleId || this.userData.roleId),
       dynamic_role_id: String(this.userData.dynamicRoleId || this.userData.roleId), 
       designation: dynamicRoleName,
       emp_id: `FSM-${Date.now().toString().slice(-6)}`,
-      permissions: JSON.stringify(this.rolePermissions) 
+      permissions: doubleStringifiedPermissions 
     };
     
     console.log("🚀 V2 Registering User (addRegistration):", payload);
     
     // Revert to Stringify since the DB column expects a string
-    const finalPayload = { ...payload, permissions: JSON.stringify(this.rolePermissions) };
+    const finalPayload = { ...payload, permissions: doubleStringifiedPermissions };
     
     this.dataService.addRegistration(finalPayload).subscribe({
       next: async (res: any) => {
         this.isSaving = false;
         console.log("📥 [V2 REGISTER RESPONSE]:", res);
         
-        const isSuccess = res?.status?.toLowerCase() === 'success' ||
-                          res?.message?.toLowerCase().includes('success') ||
-                          res?.code === 200;
+        const isSuccess = (res?.status?.toLowerCase() === 'success' ||
+                           res?.message?.toLowerCase().includes('success') ||
+                           res?.code === 200) &&
+                          res?.status?.toLowerCase() !== 'failure';
         
         if (isSuccess) {
           const newUserId = res?.data?.id || res?.id;
@@ -772,7 +854,7 @@ export class AddUserPage implements OnInit {
                 custom_role_id: payload.custom_role_id,
                 entity_id: assignedId,
                 company_id: payload.company_id,
-                permissions: payload.permissions,
+                permissions: doubleStringifiedPermissions,
                 role_name: dynamicRoleName
               };
               this.dataService.saveV2Assignment(assignmentPayload).subscribe({
@@ -804,9 +886,11 @@ export class AddUserPage implements OnInit {
           this.dataService.saveV2Assignment({
             assigned_user_id: Number(newUserId),
             entity_id: Number(deepestEntityId),
-            custom_role_id: Number(resolvedCustomRoleId)
+            custom_role_id: Number(resolvedCustomRoleId),
+            permissions: doubleStringifiedPermissions,
+            role_name: dynamicRoleName
           }).subscribe({
-            next: (r: any) => console.log(`✅ [ASSIGN] Done:`, r),
+            next: (r: any) => console.log(``+`✅ [ASSIGN] Done:`, r),
             error: (e: any) => console.warn(`⚠️ [ASSIGN] Failed:`, e)
           });
         }

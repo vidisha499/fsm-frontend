@@ -217,15 +217,49 @@ export class DataService {
     const normalized = String(beatName).toLowerCase().trim();
     return this.getHierarchyForFilters(companyId).pipe(
       map(h => {
-        const match = h.beats.find(b => {
+        // 1. Try Exact Match first (highly reliable)
+        let match = h.beats.find(b => {
           const n = String(b.name || '').toLowerCase().trim();
-          return (
-            n === normalized ||
-            n.includes(normalized) ||
-            normalized.includes(n) ||
-            n.replace(/^beat\s+/i, '') === normalized.replace(/^beat\s+/i, '')
-          );
+          return n === normalized || n.replace(/^beat\s+/i, '') === normalized.replace(/^beat\s+/i, '');
         });
+
+        // 2. Try clean boundary match if no exact match is found
+        if (!match) {
+          match = h.beats.find(b => {
+            const n = String(b.name || '').toLowerCase().trim();
+            const cleanN = n.replace(/^beat\s+/i, '');
+            const cleanNorm = normalized.replace(/^beat\s+/i, '');
+            
+            if (cleanN === cleanNorm) return true;
+
+            const matchIndex = cleanN.indexOf(cleanNorm);
+            if (matchIndex !== -1) {
+              const charAfter = cleanN.charAt(matchIndex + cleanNorm.length);
+              const charBefore = matchIndex > 0 ? cleanN.charAt(matchIndex - 1) : '';
+              
+              // Ensure we are not matching parts of larger numbers (e.g. "geo 2" matching "geo 20")
+              const isDigitAfter = /\d/.test(charAfter);
+              const isDigitBefore = /\d/.test(charBefore);
+              if (!isDigitAfter && !isDigitBefore) {
+                return true;
+              }
+            }
+
+            const reverseMatchIndex = cleanNorm.indexOf(cleanN);
+            if (reverseMatchIndex !== -1) {
+              const charAfter = cleanNorm.charAt(reverseMatchIndex + cleanN.length);
+              const charBefore = reverseMatchIndex > 0 ? cleanNorm.charAt(reverseMatchIndex - 1) : '';
+              const isDigitAfter = /\d/.test(charAfter);
+              const isDigitBefore = /\d/.test(charBefore);
+              if (!isDigitAfter && !isDigitBefore) {
+                return true;
+              }
+            }
+            
+            return false;
+          });
+        }
+
         return match?.parentName || '';
       }),
       catchError(() => of(''))
@@ -322,9 +356,11 @@ export class DataService {
 
     const allAssignedIds = [...new Set([...entityIds, ...parentIds])];
     if (allAssignedIds.length > 0) {
-      localStorage.setItem('assigned_entity_ids', JSON.stringify(allAssignedIds));
-      console.log("📂 [V2 MULTI-ASSIGNMENT] Saved Assigned Entity IDs:", allAssignedIds);
+      localStorage.setItem('direct_assigned_entity_ids', JSON.stringify(allAssignedIds));
+      console.log("📂 [V2 MULTI-ASSIGNMENT] Saved Direct Assigned Entity IDs:", allAssignedIds);
+      this.syncExpandedAssignedEntities(allAssignedIds);
     } else {
+      localStorage.removeItem('direct_assigned_entity_ids');
       localStorage.removeItem('assigned_entity_ids');
     }
 
@@ -367,6 +403,95 @@ export class DataService {
       ''
     ).trim();
     return { range, beat, entityId, parentId };
+  }
+
+  syncExpandedAssignedEntities(assignedIds: string[]) {
+    if (!assignedIds || assignedIds.length === 0) return;
+    
+    const companyId = localStorage.getItem('company_id') || '';
+    this.listOrgEntities('all', companyId).subscribe({
+      next: (res: any) => {
+        const entities = res?.data ?? res;
+        const list = Array.isArray(entities) ? entities : [];
+        if (!list.length) return;
+
+        // Build parent-to-children mapping
+        const parentToChildren = new Map<string, string[]>();
+        list.forEach((e: any) => {
+          const eId = String(e.id || '').trim();
+          const pId = String(e.parent_id ?? e.parentId ?? (e.parent ? e.parent.id : '') ?? '').trim();
+          if (eId && pId && pId !== '0') {
+            if (!parentToChildren.has(pId)) {
+              parentToChildren.set(pId, []);
+            }
+            parentToChildren.get(pId)!.push(eId);
+          }
+        });
+
+        // Run BFS/DFS to find all descendants
+        const expandedSet = new Set<string>(assignedIds.map(id => String(id).trim()));
+        const queue = assignedIds.map(id => String(id).trim());
+        while (queue.length > 0) {
+          const current = queue.shift()!;
+          const children = parentToChildren.get(current);
+          if (children) {
+            children.forEach(child => {
+              if (!expandedSet.has(child)) {
+                expandedSet.add(child);
+                queue.push(child);
+              }
+            });
+          }
+        }
+
+        const expandedList = Array.from(expandedSet);
+        const currentStored = localStorage.getItem('assigned_entity_ids');
+        const nextStored = JSON.stringify(expandedList);
+        if (currentStored !== nextStored) {
+          localStorage.setItem('assigned_entity_ids', nextStored);
+          console.log("📂 [V2 MULTI-ASSIGNMENT] Expanded and Saved Assigned Entity IDs:", expandedList);
+          // Notify components that permissions / assignments are synced
+          this.permissionsUpdated$.next();
+        } else {
+          console.log("📂 [V2 MULTI-ASSIGNMENT] Expanded Assigned Entity IDs are unchanged. Skipping sync notification.");
+        }
+      },
+      error: (err) => {
+        console.error("❌ [V2 MULTI-ASSIGNMENT] Failed to expand assigned entities:", err);
+      }
+    });
+  }
+
+  isNameMatching(n1: any, n2: any): boolean {
+    if (n1 === undefined || n1 === null || n2 === undefined || n2 === null) return false;
+    const s1 = String(n1).toLowerCase().trim().replace(/^beat\s+/i, '');
+    const s2 = String(n2).toLowerCase().trim().replace(/^beat\s+/i, '');
+    if (!s1 || !s2) return false;
+    if (s1 === s2) return true;
+
+    // Boundary check for partial matching (so "geo 2" doesn't match "geo 20")
+    const matchIndex = s1.indexOf(s2);
+    if (matchIndex !== -1) {
+      const charAfter = s1.charAt(matchIndex + s2.length);
+      const charBefore = matchIndex > 0 ? s1.charAt(matchIndex - 1) : '';
+      const isDigitAfter = /\d/.test(charAfter);
+      const isDigitBefore = /\d/.test(charBefore);
+      if (!isDigitAfter && !isDigitBefore) {
+        return true;
+      }
+    }
+
+    const reverseMatchIndex = s2.indexOf(s1);
+    if (reverseMatchIndex !== -1) {
+      const charAfter = s2.charAt(reverseMatchIndex + s1.length);
+      const charBefore = reverseMatchIndex > 0 ? s2.charAt(reverseMatchIndex - 1) : '';
+      const isDigitAfter = /\d/.test(charAfter);
+      const isDigitBefore = /\d/.test(charBefore);
+      if (!isDigitAfter && !isDigitBefore) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Exposes strict region filtering based on V2 Multi-Assignments */
@@ -432,31 +557,72 @@ export class DataService {
     trustedBeat?: string,
     entityMeta?: { entityId?: string; parentId?: string }
   ): Observable<{ range: string; beat: string }> {
-    if (labels.range) {
-      return of(labels);
+    const entityId = entityMeta?.entityId || '';
+    
+    if (!entityId || !companyId) {
+      const beatForLookup = trustedBeat || labels.beat;
+      if (!beatForLookup) {
+        return of(labels);
+      }
+      return this.resolveRangeNameForBeat(beatForLookup, String(companyId)).pipe(
+        map(parentRange => ({
+          range: parentRange || labels.range,
+          beat: labels.beat
+        })),
+        catchError(() => of(labels))
+      );
     }
 
-    const entityId = entityMeta?.entityId || '';
-    const parentId = entityMeta?.parentId || '';
-    const resolveFromOrg =
-      entityId || parentId
-        ? this.resolveRangeFromOrgEntity(entityId, parentId, companyId)
-        : of('');
+    return this.loadOrgEntities(String(companyId)).pipe(
+      map(entities => {
+        let resolvedRange = labels.range;
+        let resolvedBeat = labels.beat;
 
-    return resolveFromOrg.pipe(
-      switchMap(rangeFromOrg => {
-        if (rangeFromOrg) {
-          return of({ range: rangeFromOrg, beat: labels.beat });
+        const entity = entities.find((e: any) => String(e.id) === String(entityId));
+        if (entity) {
+          const eName = String(entity.name || entity.label || '').trim();
+          const pid = entity.parent_id ?? entity.parentId;
+          const parent = pid ? entities.find((p: any) => String(p.id) === String(pid)) : null;
+          
+          if (parent) {
+            const pName = String(parent.name || parent.label || '').trim();
+            const ppid = parent.parent_id ?? parent.parentId;
+            
+            // If parent has a parent, or parent name doesn't contain 'division', parent is range and entity is beat
+            if (ppid || !pName.toLowerCase().includes('division')) {
+              resolvedRange = pName;
+              resolvedBeat = eName;
+            } else {
+              // Parent is division, so entity itself is the range
+              resolvedRange = eName;
+              if (!resolvedBeat || this.isInvalidBeatLabel(resolvedBeat)) {
+                resolvedBeat = '';
+              }
+            }
+          } else {
+            // No parent, treat entity itself as range
+            resolvedRange = eName;
+          }
         }
+
+        if ((!resolvedBeat || this.isInvalidBeatLabel(resolvedBeat)) && trustedBeat && !this.isInvalidBeatLabel(trustedBeat)) {
+          resolvedBeat = trustedBeat;
+        }
+
+        return {
+          range: resolvedRange && !this.isInvalidRangeLabel(resolvedRange) ? resolvedRange : labels.range,
+          beat: resolvedBeat && !this.isInvalidBeatLabel(resolvedBeat) ? resolvedBeat : labels.beat
+        };
+      }),
+      catchError(() => {
         const beatForLookup = trustedBeat || labels.beat;
-        if (!beatForLookup || !companyId) {
-          return of(labels);
-        }
+        if (!beatForLookup) return of(labels);
         return this.resolveRangeNameForBeat(beatForLookup, String(companyId)).pipe(
           map(parentRange => ({
             range: parentRange || labels.range,
             beat: labels.beat
-          }))
+          })),
+          catchError(() => of(labels))
         );
       })
     );
@@ -626,8 +792,8 @@ export class DataService {
     let displayRange: string;
     let displayBeat: string;
     if (isDynamic) {
-      displayRange = hasAssignRange ? assignRange : 'Not assigned';
-      displayBeat = hasAssignBeat ? assignBeat : 'Not assigned';
+      displayRange = hasAssignRange ? assignRange : reportRange || 'Not assigned';
+      displayBeat = hasAssignBeat ? assignBeat : reportBeat || 'Not assigned';
     } else {
       displayRange = hasAssignRange ? assignRange : reportRange || '—';
       displayBeat = hasAssignBeat ? assignBeat : reportBeat || '—';
@@ -802,17 +968,35 @@ export class DataService {
   refreshPermissions() {
     console.log("🛡️ [DataService] Triggering Permission Refresh...");
     const roleId = localStorage.getItem('user_role');
+    const companyId = localStorage.getItem('company_id') || '1';
     if (!roleId) return;
 
     this.getRoleIdList().subscribe({
-      next: (roles: any) => {
-        const rList = Array.isArray(roles) ? roles : roles?.data || [];
-        const myRole = rList.find((r: any) => String(r.id) === String(roleId));
-        if (myRole && myRole.permissions) {
-          console.log("✅ [DataService] New permissions fetched:", myRole.permissions);
-          localStorage.setItem('user_permissions', JSON.stringify(myRole.permissions));
-          this.permissionsUpdated$.next(); // Notify templates
-        }
+      next: (oldRoles: any) => {
+        const oldList = Array.isArray(oldRoles) ? oldRoles : oldRoles?.data || [];
+        
+        this.listV2Roles(companyId).subscribe({
+          next: (v2Roles: any) => {
+            const v2List = Array.isArray(v2Roles) ? v2Roles : v2Roles?.data || [];
+            const rList = [...oldList, ...v2List];
+            
+            // Look for matching role
+            const myRole = rList.find((r: any) => String(r.id) === String(roleId) || String(r.role_id) === String(roleId));
+            if (myRole && myRole.permissions) {
+              console.log("✅ [DataService] New permissions fetched:", myRole.permissions);
+              localStorage.setItem('user_permissions', typeof myRole.permissions === 'string' ? myRole.permissions : JSON.stringify(myRole.permissions));
+              this.permissionsUpdated$.next(); // Notify templates
+            }
+          },
+          error: (err) => {
+            // Fallback to old list
+            const myRole = oldList.find((r: any) => String(r.id) === String(roleId));
+            if (myRole && myRole.permissions) {
+              localStorage.setItem('user_permissions', typeof myRole.permissions === 'string' ? myRole.permissions : JSON.stringify(myRole.permissions));
+              this.permissionsUpdated$.next();
+            }
+          }
+        });
       },
       error: (err) => console.error("❌ [DataService] Permission refresh failed", err)
     });
@@ -1902,14 +2086,35 @@ export class DataService {
       next: (res: any) => {
         const entities = res?.data || res || [];
         if (Array.isArray(entities)) {
-          entities.forEach((e: any) => {
-            if (String(e.layer_id) === '3') {
-              if (e.name) rangeSet.add(e.name);
-            } else if (String(e.layer_id) === '4' || String(e.layer_id) === '5') {
-              const parent = entities.find((p: any) => String(p.id) === String(e.parent_id));
-              beatArray.push({ name: e.name, parentName: parent?.name || 'General Range' });
-            }
-          });
+          const validEntities = entities.filter(e => e && e.layer_id !== undefined && e.layer_id !== null);
+          const layerIds = Array.from(new Set(
+            validEntities.map(e => Number(e.layer_id))
+          )).sort((a, b) => a - b);
+
+          if (layerIds.length > 0) {
+            const rangeLayerId = layerIds[0];
+            entities.forEach((e: any) => {
+              const eLayerId = Number(e.layer_id);
+              if (eLayerId === rangeLayerId) {
+                if (e.name) rangeSet.add(e.name);
+              } else if (layerIds.slice(1).includes(eLayerId)) {
+                const parentId = e.parent_id ?? e.parentId ?? e.parent?.id;
+                const parent = entities.find((p: any) => String(p.id) === String(parentId));
+                beatArray.push({ name: e.name, parentName: parent?.name || 'General Range' });
+              }
+            });
+          } else {
+            // Fallback for legacy static layer checks
+            entities.forEach((e: any) => {
+              if (String(e.layer_id) === '3') {
+                if (e.name) rangeSet.add(e.name);
+              } else if (String(e.layer_id) === '4' || String(e.layer_id) === '5') {
+                const parentId = e.parent_id ?? e.parentId ?? e.parent?.id;
+                const parent = entities.find((p: any) => String(p.id) === String(parentId));
+                beatArray.push({ name: e.name, parentName: parent?.name || 'General Range' });
+              }
+            });
+          }
         }
         observer.next({ ranges: Array.from(rangeSet).sort(), beats: beatArray });
         observer.complete();

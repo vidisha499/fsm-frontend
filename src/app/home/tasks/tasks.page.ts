@@ -182,6 +182,27 @@ export class TasksPage implements OnInit {
     this.isModalOpen = false;
   }
 
+  hasPermission(permStr: string): boolean {
+    const roleId = localStorage.getItem('user_role');
+    if (roleId === '1' || roleId === '2') return true; // Admin/Super Admin
+
+    const permsStr = localStorage.getItem('user_permissions');
+    if (!permsStr) return false;
+    try {
+      let perms = JSON.parse(permsStr);
+      if (typeof perms === 'string') {
+        try { perms = JSON.parse(perms); } catch (e) { perms = []; }
+      }
+      if (!Array.isArray(perms)) return false;
+      return perms.some((p: any) => {
+        const pStr = String(p.module_key || p.name || p.module || p || '').toLowerCase();
+        return pStr === permStr.toLowerCase();
+      });
+    } catch (e) {
+      return false;
+    }
+  }
+
   // Swipe Logic
   public swipeWidth: number = 0;
   public isSwiped: boolean = false;
