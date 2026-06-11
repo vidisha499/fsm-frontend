@@ -144,25 +144,20 @@
                <input type="date" [(ngModel)]="filterTo" [max]="maxDate">
             </div>
           </div>
-
-          <div class="date-row">
-            <span class="label">GUARD NAME</span>
-            <input type="text" [(ngModel)]="filterGuard" placeholder="Search by name" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: white; padding: 6px 12px; border-radius: 8px; font-size: 14px; outline: none; text-align: end; width: 180px;">
-          </div>
-
+ 
           <div class="date-row">
             <span class="label">CATEGORY</span>
-            <select [(ngModel)]="filterCategory" (change)="onCategoryChange()" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: white; padding: 6px 12px; border-radius: 8px; font-size: 14px; outline: none; text-align: end; text-align-last: end; width: 180px;">
-              <option value="all" style="background: #0f172a; color: white;">All Categories</option>
-              <option value="criminal" style="background: #0f172a; color: white;">Criminal Activity</option>
-              <option value="events" style="background: #0f172a; color: white;">Events & Monitoring</option>
+            <select [(ngModel)]="filterCategory" (change)="onCategoryChange()" style="background: #f1f5f9; border: none; color: #0f172a; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 13px; outline: none; text-align: end; text-align-last: end; width: 180px;">
+              <option value="all">All Categories</option>
+              <option value="criminal">Criminal Activity</option>
+              <option value="events">Events & Monitoring</option>
             </select>
           </div>
-
+ 
           <div class="date-row" *ngIf="filterCategory !== 'all'">
             <span class="label">TYPE</span>
-            <select [(ngModel)]="filterType" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: white; padding: 6px 12px; border-radius: 8px; font-size: 14px; outline: none; text-align: end; text-align-last: end; width: 180px;">
-              <option *ngFor="let opt of getAvailableTypes()" [value]="opt.value" style="background: #0f172a; color: white;">{{ opt.label }}</option>
+            <select [(ngModel)]="filterType" style="background: #f1f5f9; border: none; color: #0f172a; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 13px; outline: none; text-align: end; text-align-last: end; width: 180px;">
+              <option *ngFor="let opt of getAvailableTypes()" [value]="opt.value">{{ opt.label }}</option>
             </select>
           </div>
         </div>

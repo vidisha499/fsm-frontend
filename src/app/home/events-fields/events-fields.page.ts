@@ -21,6 +21,7 @@ export class EventsFieldsPage implements OnInit {
   currentCategory: string = 'General';
   dynamicFields: any[] = [];
   capturedPhotos: string[] = [];
+  fieldPhotosMap: { [label: string]: string[] } = {};
   selectedZoomImage: string | null = null;
   currentZoom: number = 1; // 🔍 Zoom level state
   isConfigLoaded: boolean = false; // 🛡️ Prevent redundant re-loads
@@ -283,6 +284,15 @@ fieldsConfig: any = {
     });
   }
 
+  clearSelectValue(field: any) {
+    this.reportData[field.label] = null;
+    if (this.reportData[field.label + '_other']) {
+      this.reportData[field.label + '_other'] = '';
+    }
+    this.checkFormValidity();
+    this.cdr.detectChanges();
+  }
+
   updateCheckboxValue(label: string, option: string, event: any) {
     if (!this.reportData[label]) {
       this.reportData[label] = [];
@@ -495,12 +505,21 @@ async fetchLocation() {
     });
   }
 
-  async selectImageSource() {
-    this.takePhoto(CameraSource.Camera);
+  getFieldPhotos(field: any): string[] {
+    const label = field?.label || 'default';
+    if (!this.fieldPhotosMap[label]) {
+      this.fieldPhotosMap[label] = [];
+    }
+    return this.fieldPhotosMap[label];
   }
 
-  async takePhoto(source: CameraSource) {
-    if (this.capturedPhotos.length >= 5) {
+  async selectImageSource(field?: any) {
+    this.takePhoto(CameraSource.Camera, field);
+  }
+
+  async takePhoto(source: CameraSource, field?: any) {
+    const photos = this.getFieldPhotos(field);
+    if (photos.length >= 5) {
       const toast = await this.toastCtrl.create({ message: 'Maximum 5 photos allowed!', duration: 2000, color: 'warning' });
       await toast.present();
       return;
@@ -508,7 +527,7 @@ async fetchLocation() {
 
     try {
       const image = await Camera.getPhoto({
-        quality: 60, // Reduced quality slightly for stability
+        quality: 60,
         allowEditing: false,
         resultType: CameraResultType.Base64,
         source: source
@@ -516,7 +535,18 @@ async fetchLocation() {
       if (image.base64String) {
         const photoUrl = `data:image/jpeg;base64,${image.base64String}`;
         const compressedUrl = await this.compressBase64Image(photoUrl);
-        this.capturedPhotos.push(compressedUrl);
+        photos.push(compressedUrl);
+        
+        // Ensure compatibility by mirroring to legacy capturedPhotos array
+        if (!this.capturedPhotos.includes(compressedUrl)) {
+          this.capturedPhotos.push(compressedUrl);
+        }
+
+        // Set value in reportData so validator and payload construction see it
+        if (field && field.label) {
+          this.reportData[field.label] = photos;
+        }
+
         this.checkFormValidity();
         this.cdr.detectChanges();
       }
@@ -525,8 +555,19 @@ async fetchLocation() {
     }
   }
 
-  removePhoto(index: number) {
-    this.capturedPhotos.splice(index, 1);
+  removePhoto(index: number, field?: any) {
+    const photos = this.getFieldPhotos(field);
+    const removedPhoto = photos[index];
+    photos.splice(index, 1);
+    
+    // Remove from legacy array
+    if (removedPhoto) {
+      this.capturedPhotos = this.capturedPhotos.filter(p => p !== removedPhoto);
+    }
+
+    if (field && field.label) {
+      this.reportData[field.label] = photos;
+    }
     this.checkFormValidity();
     this.cdr.detectChanges();
   }
@@ -552,7 +593,7 @@ async fetchLocation() {
 
       const userValue = this.reportData[field.label];
       if (field.type === 'file') {
-        if (this.capturedPhotos.length === 0) {
+        if (this.getFieldPhotos(field).length === 0) {
           isValid = false;
           break;
         }
@@ -723,7 +764,24 @@ async fetchLocation() {
       cleanPatrolId = sessionString;
     }
 
-    const photoArrayStr = JSON.stringify(this.capturedPhotos.map(p => ({ photo: p })));
+    const allPhotos: string[] = [];
+    this.dynamicFields.forEach(field => {
+      if (field.type === 'file') {
+        const photos = this.getFieldPhotos(field);
+        photos.forEach(p => {
+          if (!allPhotos.includes(p)) {
+            allPhotos.push(p);
+          }
+        });
+      }
+    });
+    this.capturedPhotos.forEach(p => {
+      if (!allPhotos.includes(p)) {
+        allPhotos.push(p);
+      }
+    });
+
+    const photoArrayStr = JSON.stringify(allPhotos.map(p => ({ photo: p })));
 
     // --- ENTITY ID RESOLUTION ---
     // V2 API uses entity_id. Try to get it from:

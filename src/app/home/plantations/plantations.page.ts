@@ -45,7 +45,18 @@ export class PlantationsPage implements OnInit {
 
     this.dataService.getPlantations().subscribe({
       next: (res: any) => {
-        this.plantations = res?.data || [];
+        const raw = res?.data || [];
+        // Normalize API fields to what the template expects
+        this.plantations = raw.map((p: any) => ({
+          ...p,
+          // Site name: API returns 'name' field
+          siteName: p.name || p.site_name || p.siteName || '',
+          // Area: API returns 'area' field (may be null), fallback to plant_count info
+          totalArea: (p.area !== null && p.area !== undefined) ? p.area : null,
+          plant_count: p.plant_count || 0,
+          // Code: API returns 'code' field
+          plantation_code: p.code || p.plantation_code || ''
+        }));
         this.filteredPlantations = [...this.plantations];
         this.loading = false;
         loader.dismiss();
@@ -60,9 +71,9 @@ export class PlantationsPage implements OnInit {
 
   onSearch(event: any) {
     const query = (event.target.value || '').toLowerCase();
-    this.filteredPlantations = this.plantations.filter(p => 
-      (p.siteName || '').toLowerCase().includes(query) || 
-      (p.soilType || '').toLowerCase().includes(query)
+    this.filteredPlantations = this.plantations.filter(p =>
+      (p.siteName || p.site_name || p.name || '').toLowerCase().includes(query) ||
+      (p.soilType || p.soil_type || '').toLowerCase().includes(query)
     );
   }
 

@@ -132,6 +132,17 @@ export class PatrolLogsPage implements OnInit {
 
   // --- Filtering Logic ---
   public filteredLogs: any[] = [];
+  // --- PAGINATION ---
+  public displayedLogs: any[] = [];       // Only what's rendered in DOM
+  private pageSize: number = 20;          // Records per page
+  private currentPage: number = 0;        // Current loaded page
+  public allLogsLoaded: boolean = false;  // Infinite scroll sentinel
+  private searchDebounceTimer: any = null;
+
+  // TrackBy for performance - prevents full re-render
+  trackByLog(index: number, log: any): any {
+    return log.id || log.sessionId || log.draftId || index;
+  }
 
   applyAdvancedFilters() {
     let logs = [...this.patrolLogs];
@@ -206,6 +217,35 @@ export class PatrolLogsPage implements OnInit {
     }
 
     this.filteredLogs = logs;
+    // Reset pagination on every filter change
+    this.currentPage = 0;
+    this.displayedLogs = [];
+    this.allLogsLoaded = false;
+    this.loadMoreLogs();
+  }
+
+  /** Load next page of records into the DOM */
+  loadMoreLogs(infiniteScrollEvent?: any) {
+    const start = this.currentPage * this.pageSize;
+    const end = start + this.pageSize;
+    const nextBatch = this.filteredLogs.slice(start, end);
+    this.displayedLogs = [...this.displayedLogs, ...nextBatch];
+    this.currentPage++;
+    if (this.displayedLogs.length >= this.filteredLogs.length) {
+      this.allLogsLoaded = true;
+    }
+    if (infiniteScrollEvent) {
+      infiniteScrollEvent.target.complete();
+    }
+    this.cdr.detectChanges();
+  }
+
+  /** Debounced search — wait 300ms before filtering to avoid lag */
+  onSearchInput() {
+    clearTimeout(this.searchDebounceTimer);
+    this.searchDebounceTimer = setTimeout(() => {
+      this.applyAdvancedFilters();
+    }, 300);
   }
   
   ngOnDestroy() {

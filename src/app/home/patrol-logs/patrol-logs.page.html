@@ -33,7 +33,7 @@
       <!-- Row 1: Search -->
       <div class="search-box-row">
         <ion-icon name="search-outline"></ion-icon>
-        <input type="text" [(ngModel)]="searchTerm" (input)="applyAdvancedFilters()" [placeholder]="'FILTERS.SEARCH_PLACEHOLDER' | translate">
+        <input type="text" [(ngModel)]="searchTerm" (input)="onSearchInput()" [placeholder]="'FILTERS.SEARCH_PLACEHOLDER' | translate">
       </div>
 
       <!-- Row 2: Horizontal Selectors -->
@@ -90,8 +90,13 @@
         <span>Sync Pending Patrols</span>
       </button>
     </div>
-    <div *ngIf="filteredLogs && filteredLogs.length > 0; else noLogsTemplate" style="display: flex; flex-direction: column; gap: 12px;">
-      <div class="log-entry-card" *ngFor="let log of filteredLogs" (click)="viewDetails(log)">
+    <!-- Record count indicator -->
+    <div class="results-count-bar" *ngIf="filteredLogs.length > 0">
+      <span>Showing {{ displayedLogs.length }} of {{ filteredLogs.length }} records</span>
+    </div>
+
+    <div *ngIf="displayedLogs && displayedLogs.length > 0; else noLogsTemplate" style="display: flex; flex-direction: column; gap: 12px;">
+      <div class="log-entry-card" *ngFor="let log of displayedLogs; trackBy: trackByLog" (click)="viewDetails(log)">
         <div style="display: flex; align-items: center; gap: 15px;">
           <div class="icon-thumb">
             <i [class]="log.patrolName?.toLowerCase().includes('foot') ? 'fas fa-hiking' : 
@@ -121,6 +126,14 @@
         </div>
       </div>
     </div>
+
+    <!-- Infinite Scroll: Load more when user reaches bottom -->
+    <ion-infinite-scroll threshold="200px" (ionInfinite)="loadMoreLogs($event)" [disabled]="allLogsLoaded">
+      <ion-infinite-scroll-content
+        loadingSpinner="crescent"
+        loadingText="Loading more...">
+      </ion-infinite-scroll-content>
+    </ion-infinite-scroll>
 
     <ng-template #noLogsTemplate>
       <div class="empty-state">
@@ -202,11 +215,6 @@
 
       <div class="filter-body">
         <div class="date-row">
-          <span class="label">GUARD NAME</span>
-          <input type="text" [(ngModel)]="filterGuard" placeholder="Search by name" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: white; padding: 6px 12px; border-radius: 8px; font-size: 14px; outline: none; text-align: end; width: 150px;">
-        </div>
-
-        <div class="date-row">
           <span class="label">FROM</span>
           <div class="date-pill">
              <input type="date" [(ngModel)]="filterFrom" [max]="maxDate">
@@ -222,23 +230,23 @@
 
         <div class="date-row">
           <span class="label">TYPE</span>
-          <select [(ngModel)]="filterPatrolType" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: white; padding: 6px 12px; border-radius: 8px; font-size: 14px; outline: none; text-align: end; text-align-last: end; width: 150px;">
-            <option value="all" style="background: #0f172a; color: white;">All Types</option>
-            <option value="ROUTINE" style="background: #0f172a; color: white;">Routine</option>
-            <option value="SPECIAL" style="background: #0f172a; color: white;">Special</option>
-            <option value="BEAT INSPECTION" style="background: #0f172a; color: white;">Beat Inspection</option>
-            <option value="JOINT" style="background: #0f172a; color: white;">Joint</option>
-            <option value="OTHER" style="background: #0f172a; color: white;">Other</option>
+          <select [(ngModel)]="filterPatrolType" style="background: #f1f5f9; border: none; color: #0f172a; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 13px; outline: none; text-align: end; text-align-last: end; width: 150px;">
+            <option value="all">All Types</option>
+            <option value="ROUTINE">Routine</option>
+            <option value="SPECIAL">Special</option>
+            <option value="BEAT INSPECTION">Beat Inspection</option>
+            <option value="JOINT">Joint</option>
+            <option value="OTHER">Other</option>
           </select>
         </div>
 
         <div class="date-row">
           <span class="label">METHOD</span>
-          <select [(ngModel)]="filterPatrolMethod" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: white; padding: 6px 12px; border-radius: 8px; font-size: 14px; outline: none; text-align: end; text-align-last: end; width: 150px;">
-            <option value="all" style="background: #0f172a; color: white;">All Methods</option>
-            <option value="VEHICLE" style="background: #0f172a; color: white;">Vehicle</option>
-            <option value="BICYCLE" style="background: #0f172a; color: white;">Bicycle</option>
-            <option value="ON FOOT" style="background: #0f172a; color: white;">On Foot</option>
+          <select [(ngModel)]="filterPatrolMethod" style="background: #f1f5f9; border: none; color: #0f172a; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 13px; outline: none; text-align: end; text-align-last: end; width: 150px;">
+            <option value="all">All Methods</option>
+            <option value="VEHICLE">Vehicle</option>
+            <option value="BICYCLE">Bicycle</option>
+            <option value="ON FOOT">On Foot</option>
           </select>
         </div>
       </div>

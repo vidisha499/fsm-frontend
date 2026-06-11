@@ -53,12 +53,13 @@
         <!-- Meta Info -->
         <div class="meta-info">
           <div class="title-row">
-            <h4>{{ p.siteName || p.name || ('PLANTATIONS.UNNAMED_SITE' | translate) }}</h4>
+            <h4>{{ p.siteName || p.plantation_code || ('PLANTATIONS.UNNAMED_SITE' | translate) }}</h4>
             <div class="code-badge" *ngIf="p.plantation_code || p.code">{{ p.plantation_code || p.code }}</div>
           </div>
           
           <div class="stats-row">
-            <span class="area-text">{{ p.totalArea || p.area || 0 }} {{ 'PLANTATIONS.HECTARES' | translate }}</span>
+            <span class="area-text" *ngIf="p.totalArea !== null && p.totalArea !== undefined && p.totalArea !== 0">{{ p.totalArea }} {{ 'PLANTATIONS.HECTARES' | translate }}</span>
+            <span class="area-text" *ngIf="!p.totalArea || p.totalArea === 0 || p.totalArea === null">{{ p.plant_count || 0 }} Plants</span>
             <div class="dot-separator"></div>
             <span class="phase-text" [class.completed-text]="p.isFinished">{{ p.isFinished ? ('PLANTATIONS.COMPLETED' | translate) : ('PLANTATIONS.IDENTIFICATION' | translate) }}</span>
             <div class="status-indicator-badge pending" *ngIf="p.status !== 'Approved' && p.status !== 'APPROVED' && p.status !== 'APPROVE' && p.status !== 1 && p.status !== '1' && p.status !== 'Rejected' && p.status !== 'REJECTED' && p.status !== 'REJECT' && !p.is_approved && p.is_approved !== 1 && p.is_approved !== '1'">{{ 'PLANTATIONS.STATUS_PENDING' | translate }}</div>

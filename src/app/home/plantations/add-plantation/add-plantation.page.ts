@@ -261,7 +261,19 @@ export class AddPlantationPage implements OnInit, AfterViewInit, OnDestroy {
     });
     await loader.present();
 
-    this.dataService.createPlantation(this.formData).subscribe({
+    // Map frontend camelCase fields to backend snake_case field names
+    const payload = {
+      ...this.formData,
+      name: this.formData.siteName || '',
+      area: this.formData.totalArea || 0,
+      soil_type: this.formData.soilType || '',
+      plant_species: this.formData.species || '',
+      plantation_start_date: this.formData.startDate || '',
+      plantation_end_date: this.formData.endDate || '',
+      is_fencing_done: this.formData.isFencingDone || false,
+    };
+
+    this.dataService.createPlantation(payload).subscribe({
       next: async (res: any) => {
         loader.dismiss();
         if (this.currentStep === 1) {

@@ -724,41 +724,40 @@ setAnaCat(id: string) {
 
   this.destroyCharts();
 
-  // --- YE SECTION ADD KARO (Surgical Strike) ---
+  // --- ASSETS TAB HANDLER ---
   if (id === 'assets') {
+    // ✅ STEP 1: Show default sub-categories IMMEDIATELY (no API wait)
+    this.buildAssetSubs([
+      { id: 1, name: 'Vehicles (Jeeps/Bikes)' },
+      { id: 2, name: 'Communication (Walkie Talkies)' },
+      { id: 3, name: 'Field Tools (Drones/Cameras)' },
+      { id: 4, name: 'Office Assets' },
+    ]);
+
+    // ✅ STEP 2: Try API for real categories, replace defaults if found
     const companyId = localStorage.getItem('company_id') || 1;
     this.dataService.getCategories(companyId).subscribe((res: any) => {
-      // Robust extraction of categories array
+      console.log('📦 getCategories raw response:', JSON.stringify(res).substring(0, 200));
       const catList = Array.isArray(res) ? res : (res?.data || res?.categories || []);
-      
-      this.ANA_CONFIG.assets.subs = catList.map((cat: any, idx: number) => {
-        const originalName = cat.name || 'Unknown';
-        const key = 'ANALYTICS.' + originalName.toUpperCase().replace(/\s/g, '_');
-        const translatedName = this.translate.instant(key);
-        const finalLabel = translatedName === key ? originalName : translatedName;
-        const statusText = this.translate.instant('ANALYTICS.STATUS');
+      console.log('📦 catList length:', catList.length);
 
-        return {
-          id: cat.name ? cat.name.toLowerCase().replace(/\s/g, '_') : 'cat_' + idx,
-          originalName: originalName, // Store for re-translation
-          label: finalLabel,
-          emoji: "🛡️", 
-          icon: cat.icon_name || 'shield-checkmark-outline',
-          color: PALETTE[idx % PALETTE.length] || COLORS.p, // Assign color from palette
-          val: 0,
-          charts: [{ 
-            id: "ch-" + (cat.id || idx), 
-            title: finalLabel + " " + (statusText === 'ANALYTICS.STATUS' ? 'Status' : statusText), 
-            render: (chartId: string, ch: any) => {
-              const current = this.displayProgList.find(s => s.originalName === originalName || s.label === cat.name);
-              return this.renderGenericChart(chartId, finalLabel, current?.val || 0, ch);
-            }
-          }]
-        };
-      });
-      this.activeSubId = this.ANA_CONFIG.assets.subs[0]?.id;
-      this.fetchRealAssetData(); // Force immediate count sync for top cards
-      this.updateUIData(); // Sync other dashboard counts
+      if (catList.length > 0) {
+        // Real categories available — replace defaults
+        this.buildAssetSubs(catList);
+      } else {
+        // API returned empty — derive from actual assets
+        const compId = Number(localStorage.getItem('company_id') || '1');
+        this.dataService.getAssets(compId).subscribe((assetRes: any) => {
+          const assets = Array.isArray(assetRes) ? assetRes : (assetRes?.data || []);
+          const catSet = new Set<string>();
+          assets.forEach((a: any) => { if (a.category) catSet.add(a.category); });
+          const derivedCats = Array.from(catSet).map((name, idx) => ({ id: idx + 1, name }));
+          console.log('📦 Derived categories from assets:', derivedCats);
+          if (derivedCats.length > 0) this.buildAssetSubs(derivedCats);
+        });
+      }
+      // Always refresh real counts
+      this.fetchRealAssetData();
     });
   } else {
     // Baaki tabs (Criminal, Fire) ke liye wahi purana logic
@@ -775,6 +774,43 @@ setAnaCat(id: string) {
   }
   // --------------------------------------------
   
+  this.cdr.detectChanges();
+}
+
+/** Helper: Build asset sub-categories and update displayProgList immediately */
+buildAssetSubs(catList: any[]) {
+  const statusText = this.translate.instant('ANALYTICS.STATUS');
+  this.ANA_CONFIG.assets.subs = catList.map((cat: any, idx: number) => {
+    const originalName = cat.name || 'Unknown';
+    const key = 'ANALYTICS.' + originalName.toUpperCase().replace(/\s/g, '_');
+    const translatedName = this.translate.instant(key);
+    const finalLabel = translatedName === key ? originalName : translatedName;
+    return {
+      id: cat.name ? cat.name.toLowerCase().replace(/\s/g, '_') : 'cat_' + idx,
+      originalName,
+      label: finalLabel,
+      emoji: '🛡️',
+      icon: cat.icon_name || 'shield-checkmark-outline',
+      color: PALETTE[idx % PALETTE.length] || COLORS.p,
+      val: 0,
+      pct: 0,
+      charts: [{
+        id: 'ch-' + (cat.id || idx),
+        title: finalLabel + ' ' + (statusText === 'ANALYTICS.STATUS' ? 'Status' : statusText),
+        render: (chartId: string, ch: any) => {
+          const current = this.displayProgList.find((s: any) => s.originalName === originalName || s.label === cat.name);
+          return this.renderGenericChart(chartId, finalLabel, current?.val || 0, ch);
+        }
+      }]
+    };
+  });
+
+  this.displayProgList = this.ANA_CONFIG.assets.subs.map((s: any) => ({ ...s }));
+  this.currentCatSubsCount = this.displayProgList.length;
+  if (!this.activeSubId || !this.displayProgList.find((s: any) => s.id === this.activeSubId)) {
+    this.activeSubId = this.displayProgList[0]?.id;
+  }
+  this.currentSubCharts = this.displayProgList.find((s: any) => s.id === this.activeSubId)?.charts || this.displayProgList[0]?.charts || [];
   this.cdr.detectChanges();
 }
 

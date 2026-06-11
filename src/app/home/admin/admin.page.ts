@@ -3193,6 +3193,10 @@ handleApiResponse(res: any) {
     return g;
   }
   private mkChart(id: string, config: ChartConfiguration | any) {
+    const existing = Chart.getChart(id);
+    if (existing) {
+      existing.destroy();
+    }
     if (this._charts[id]) {
       this._charts[id].destroy();
       delete this._charts[id]; // Memory se poora hatao
@@ -3394,6 +3398,11 @@ handleApiResponse(res: any) {
   private renderAttChart(realData: number[]) {
     const el = document.getElementById('c-att') as HTMLCanvasElement;
     if (!el) return;
+
+    const existingAtt = Chart.getChart('c-att');
+    if (existingAtt) {
+      existingAtt.destroy();
+    }
 
     if (this.attChart) {
       this.attChart.destroy();
@@ -3789,6 +3798,10 @@ handleApiResponse(res: any) {
     }
     this.lastTrendState = newDataStr;
     this.isStatsLoading = false; // Data is ready to render
+
+    if (existingChart) {
+      existingChart.destroy();
+    }
 
     if (this._charts['c-trend']) {
       this._charts['c-trend'].destroy();

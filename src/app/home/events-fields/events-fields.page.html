@@ -40,7 +40,7 @@
           </ion-item>
 
           <ion-item lines="none" class="custom-input" *ngIf="field.type === 'select'">
-            <ion-select [placeholder]="field.placeholder" [(ngModel)]="reportData[field.label]" (ionChange)="checkFormValidity()" interface="action-sheet" mode="md">
+            <ion-select [placeholder]="field.placeholder" [(ngModel)]="reportData[field.label]" (ionChange)="checkFormValidity()" (ionCancel)="clearSelectValue(field)" interface="action-sheet" mode="md">
               <ion-select-option *ngFor="let opt of field.options" [value]="opt">
                 {{ opt }}
               </ion-select-option>
@@ -95,18 +95,18 @@
 
           <!-- Photo Section (Multi-photo) -->
           <div class="photo-section" *ngIf="field.type === 'file'">
-            <div class="photos-grid" *ngIf="capturedPhotos.length > 0">
-              <div class="photo-item animate-scale" *ngFor="let photo of capturedPhotos; let i = index">
+            <div class="photos-grid" *ngIf="getFieldPhotos(field).length > 0">
+              <div class="photo-item animate-scale" *ngFor="let photo of getFieldPhotos(field); let i = index">
                 <img [src]="photo" (click)="openZoom(photo); $event.stopPropagation()" />
-                <div class="remove-btn" (click)="removePhoto(i); $event.stopPropagation()">
+                <div class="remove-btn" (click)="removePhoto(i, field); $event.stopPropagation()">
                   <ion-icon name="close-circle"></ion-icon>
                 </div>
               </div>
             </div>
             
-            <div class="upload-placeholder" (click)="selectImageSource(); $event.stopPropagation()" *ngIf="capturedPhotos.length < 5">
+            <div class="upload-placeholder" (click)="selectImageSource(field); $event.stopPropagation()" *ngIf="getFieldPhotos(field).length < 5">
               <ion-icon name="camera-outline"></ion-icon>
-              <span>Add Photo ({{ capturedPhotos.length }}/5)</span>
+              <span>Add Photo ({{ getFieldPhotos(field).length }}/5)</span>
             </div>
           </div>
         </div>
