@@ -669,6 +669,7 @@ export class AdminPage implements OnInit, AfterViewInit {
                   }
                   
                   this.filterAndProcessRanges(nodes, companyId);
+                  this.preLoadSubsequentLayers(companyId);
                   
                   if (isRestrictedAdmin && this.restrictedLayerIndex !== -1 && this.hierarchySelections[this.restrictedLayerIndex]) {
                     setTimeout(() => {
@@ -704,11 +705,44 @@ export class AdminPage implements OnInit, AfterViewInit {
           next: (entRes: any) => {
             const nodes = entRes?.data || entRes || [];
             this.filterAndProcessRanges(nodes, companyId);
+            this.preLoadSubsequentLayers(companyId);
           }
         });
       } else {
         this.loadOldHierarchy();
       }
+    }
+  }
+
+  preLoadSubsequentLayers(companyId: any) {
+    if (!this.layers || this.layers.length <= 1) return;
+    for (let i = 1; i < this.layers.length; i++) {
+      const layer = this.layers[i];
+      this.dataService.listV2Entities(layer.id, null, false, companyId).subscribe({
+        next: (entRes2: any) => {
+          const layerNodes = entRes2?.data || entRes2 || [];
+          this.layerEntities[layer.id] = Array.isArray(layerNodes) ? layerNodes : [];
+          console.log(`🎯 [Admin] Pre-loaded V2 Layer ID ${layer.id} entities:`, this.layerEntities[layer.id].length);
+          
+          // Recalculate descendant IDs once subsequent layers are loaded
+          const isRestrictedAdmin = localStorage.getItem('is_restricted_admin') === 'true';
+          let activeEntityIds: string[] = [];
+          if (this.deepestSelection) {
+            activeEntityIds = String(this.deepestSelection.entityId).split(',').map(id => id.trim()).filter(Boolean);
+          } else if (isRestrictedAdmin) {
+            const adminEntityId = localStorage.getItem('admin_entity_id');
+            if (adminEntityId) {
+              activeEntityIds = adminEntityId.split(',').map(id => id.trim()).filter(Boolean);
+            }
+          }
+          if (activeEntityIds.length > 0) {
+            const allDescendantIds = this.getAllDescendantEntityIds(activeEntityIds);
+            localStorage.setItem('global_allowed_entity_ids', JSON.stringify(allDescendantIds));
+            console.log("🔍 [Admin Dashboard] Re-saved Descendant IDs (post-load):", allDescendantIds);
+          }
+          this.cdr.detectChanges();
+        }
+      });
     }
   }
 
