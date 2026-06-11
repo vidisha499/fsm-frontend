@@ -554,7 +554,27 @@ export class AdminPage implements OnInit, AfterViewInit {
     this.hierarchyService.getCoverageStats(companyId).subscribe({
       next: (stats: any[]) => {
         if (stats && stats.length > 0) {
-          this.beatCoverage = stats;
+          let filteredStats = stats;
+          if (this.userRole !== '1') {
+            const allowedNames: string[] = [];
+            if (this.assignedRange) allowedNames.push(this.assignedRange.toLowerCase().trim());
+            const deepestName = localStorage.getItem('global_deepest_filter_name') || '';
+            if (deepestName) deepestName.split(',').forEach(n => allowedNames.push(n.toLowerCase().trim()));
+            const globalRange = localStorage.getItem('global_range_filter');
+            if (globalRange && globalRange !== 'all') allowedNames.push(globalRange.toLowerCase().trim());
+            if (this.allRanges && this.allRanges.length > 0) {
+              this.allRanges.forEach(r => allowedNames.push(r.toLowerCase().trim()));
+            }
+            
+            const uniqueAllowed = [...new Set(allowedNames)].filter(Boolean);
+            if (uniqueAllowed.length > 0) {
+              filteredStats = stats.filter(item => {
+                const label = (item.label || item.name || '').toLowerCase().trim();
+                return uniqueAllowed.some(allowed => label.includes(allowed) || allowed.includes(label));
+              });
+            }
+          }
+          this.beatCoverage = filteredStats;
           this.cdr.detectChanges();
         }
       },
@@ -605,15 +625,14 @@ export class AdminPage implements OnInit, AfterViewInit {
             }
 
             const isRestrictedAdmin = localStorage.getItem('is_restricted_admin') === 'true';
+            this.isRestrictedAdmin = isRestrictedAdmin;
             if (isRestrictedAdmin) {
               const adminLayerId = localStorage.getItem('admin_layer_id');
               const adminEntityId = localStorage.getItem('admin_entity_id');
               const idx = this.layers.findIndex((l: any) => String(l.id) === String(adminLayerId));
               if (idx !== -1 && adminEntityId) {
-                // Assign as string/original format to match Angular's ngModel binding correctly
-                this.hierarchySelections[idx] = adminEntityId;
-                // Temporarily store it so we can disable the dropdown in UI if needed
-                (this as any).restrictedLayerIndex = idx;
+                // Do NOT pre-populate hierarchySelections so user starts with "Select range"
+                this.restrictedLayerIndex = idx;
               }
             }
 
@@ -630,71 +649,21 @@ export class AdminPage implements OnInit, AfterViewInit {
                     return;
                   }
                   
-                  let rawNodes = Array.isArray(nodes) ? nodes : [];
-                  
-                  const isRestrictedAdmin = localStorage.getItem('is_restricted_admin') === 'true';
-                  if (isRestrictedAdmin) {
-                    const adminLayerId = localStorage.getItem('admin_layer_id');
-                    const adminEntityId = localStorage.getItem('admin_entity_id');
-                    const firstLayerId = this.layers[0].id;
-                    
-                    if (String(firstLayerId) === String(adminLayerId) && adminEntityId) {
-                      const allowedIds = adminEntityId.split(',').map(id => id.trim()).filter(Boolean);
-                      rawNodes = rawNodes.filter(n => allowedIds.includes(String(n.id)));
-                    }
-                  }
-                  
-                  this.layerEntities[firstLayer.id] = rawNodes;
+                  this.filterAndProcessRanges(nodes, companyId);
                   
                   if (isRestrictedAdmin && this.restrictedLayerIndex !== -1 && this.hierarchySelections[this.restrictedLayerIndex]) {
                     setTimeout(() => {
                       this.onLayerChange(this.restrictedLayerIndex);
                     }, 50);
                   }
-
-                  this.cdr.detectChanges();
-                }
-              });
-            }
-
-            // --- 🔥 LOAD DYNAMIC RANGES FOR BEAT COVERAGE ---
-            let rangeLayer = this.layers && this.layers.length > 0 ? this.layers[0] : null;
-            if (rangeLayer) {
-              console.log("🎯 Found Dynamic Range Layer:", rangeLayer);
-              this.dataService.listV2Entities(rangeLayer.id, null, false, companyId).subscribe({
-                next: (entRes: any) => {
-                  const nodes = entRes?.data || entRes || [];
-                  if (Array.isArray(nodes)) {
-                    this.allRanges = nodes.map((e: any) => e.name || e.label).filter(Boolean);
-                    console.log("✅ Loaded Dynamic Ranges:", this.allRanges);
-                    
-                    // Resolve real assigned range names for restricted admin
-                    const isRestrictedAdmin = localStorage.getItem('is_restricted_admin') === 'true';
-                    if (isRestrictedAdmin) {
-                      const adminEntityId = localStorage.getItem('admin_entity_id');
-                      if (adminEntityId) {
-                        const allowedIds = adminEntityId.split(',').map(id => id.trim()).filter(Boolean);
-                        const matchedNames: string[] = [];
-                        nodes.forEach((n: any) => {
-                          if (allowedIds.includes(String(n.id))) {
-                            matchedNames.push(n.name || n.label || '');
-                          }
-                        });
-                        if (matchedNames.length > 0) {
-                          this.deepestSelection = { entityId: adminEntityId, name: matchedNames.join(', ') };
-                          console.log("🔍 [Admin Dashboard] Resolved Deepest Selection Name from Master List:", this.deepestSelection);
-                          localStorage.setItem('global_deepest_filter_name', this.deepestSelection.name || '');
-                          this.loadData(true); // Re-trigger loadData with resolved name for name-based matching
-                        }
-                      }
-                    }
-                    
-                    this.updateBeatCoverage();
-                  }
+                },
+                error: (err) => {
+                  console.warn("⚠️ Failed to load first layer V2 entities:", err);
+                  this.layers = [];
+                  this.loadOldHierarchy();
                 }
               });
             } else {
-              console.warn("⚠️ No Dynamic Range Layer found, falling back to legacy...");
               this.loadOldHierarchy();
             }
 
@@ -715,16 +684,94 @@ export class AdminPage implements OnInit, AfterViewInit {
         this.dataService.listV2Entities(rangeLayer.id, null, false, companyId).subscribe({
           next: (entRes: any) => {
             const nodes = entRes?.data || entRes || [];
-            if (Array.isArray(nodes)) {
-              this.allRanges = nodes.map((e: any) => e.name || e.label).filter(Boolean);
-              this.updateBeatCoverage();
-            }
+            this.filterAndProcessRanges(nodes, companyId);
           }
         });
       } else {
         this.loadOldHierarchy();
       }
     }
+  }
+
+  filterAndProcessRanges(nodes: any[], companyId: any) {
+    let rawNodes = Array.isArray(nodes) ? nodes : [];
+    const firstLayer = this.layers && this.layers.length > 0 ? this.layers[0] : null;
+    const secondLayer = this.layers && this.layers.length > 1 ? this.layers[1] : null;
+    const isRestrictedAdmin = localStorage.getItem('is_restricted_admin') === 'true';
+
+    if (this.userRole !== '1') {
+      if (isRestrictedAdmin) {
+        const adminLayerId = localStorage.getItem('admin_layer_id');
+        const adminEntityId = localStorage.getItem('admin_entity_id');
+        const firstLayerId = firstLayer?.id;
+        const secondLayerId = secondLayer?.id;
+
+        if (firstLayerId && String(firstLayerId) === String(adminLayerId) && adminEntityId) {
+          const allowedIds = adminEntityId.split(',').map(id => id.trim()).filter(Boolean);
+          rawNodes = rawNodes.filter(n => allowedIds.includes(String(n.id)));
+          
+          const matchedNames = rawNodes.map(n => n.name || n.label || '').filter(Boolean);
+          if (matchedNames.length > 0) {
+            this.assignedRange = matchedNames.join(', ');
+            localStorage.setItem('global_deepest_filter_name', this.assignedRange);
+            this.deepestSelection = { entityId: adminEntityId, name: this.assignedRange };
+            this.loadData(true);
+          }
+        } else if (secondLayerId && String(secondLayerId) === String(adminLayerId) && adminEntityId) {
+          const allowedBeatIds = adminEntityId.split(',').map(id => id.trim()).filter(Boolean);
+          
+          this.dataService.listV2Entities(secondLayerId, null, false, companyId).subscribe({
+            next: (beatRes: any) => {
+              const beatNodes = beatRes?.data || beatRes || [];
+              if (Array.isArray(beatNodes)) {
+                const parentIds = beatNodes
+                  .filter((b: any) => allowedBeatIds.includes(String(b.id)))
+                  .map((b: any) => {
+                    const pId = b.parent_id !== undefined && b.parent_id !== null ? b.parent_id : b.parentId;
+                    return pId ? String(pId) : null;
+                  })
+                  .filter(Boolean);
+                
+                const uniqueParentIds = [...new Set(parentIds)];
+                rawNodes = rawNodes.filter(n => uniqueParentIds.includes(String(n.id)));
+                
+                if (firstLayer) {
+                  this.layerEntities[firstLayer.id] = rawNodes;
+                }
+                this.allRanges = rawNodes.map((n: any) => n.name || n.label).filter(Boolean);
+                
+                const matchedNames = rawNodes.map(n => n.name || n.label || '').filter(Boolean);
+                if (matchedNames.length > 0) {
+                  this.assignedRange = matchedNames.join(', ');
+                  localStorage.setItem('global_deepest_filter_name', this.assignedRange);
+                  this.deepestSelection = { entityId: adminEntityId, name: this.assignedRange };
+                  this.loadData(true);
+                }
+                
+                this.updateBeatCoverage();
+                this.cdr.detectChanges();
+              }
+            }
+          });
+          return; // Return early, async subscription handles the rest
+        }
+      } else {
+        if (this.assignedRange) {
+          const allowedName = this.assignedRange.toLowerCase().trim();
+          rawNodes = rawNodes.filter(n => {
+            const name = (n.name || n.label || '').toLowerCase().trim();
+            return name.includes(allowedName) || allowedName.includes(name);
+          });
+        }
+      }
+    }
+
+    if (firstLayer) {
+      this.layerEntities[firstLayer.id] = rawNodes;
+    }
+    this.allRanges = rawNodes.map((n: any) => n.name || n.label).filter(Boolean);
+    this.updateBeatCoverage();
+    this.cdr.detectChanges();
   }
 
   loadOldHierarchy() {
@@ -798,7 +845,14 @@ export class AdminPage implements OnInit, AfterViewInit {
 
   // Set the final data for legacy fallback
   private finalizeHierarchy(rangeSet: Set<string>, beatArray: any[]) {
-    this.allRanges = Array.from(rangeSet).sort();
+    let ranges = Array.from(rangeSet).sort();
+    if (this.userRole !== '1') {
+      if (this.assignedRange) {
+        const allowedName = this.assignedRange.toLowerCase().trim();
+        ranges = ranges.filter(r => r.toLowerCase().includes(allowedName) || allowedName.includes(r.toLowerCase()));
+      }
+    }
+    this.allRanges = ranges;
     this.allBeats = beatArray;
     
     if (this.selectedRange === 'all') {
@@ -825,6 +879,32 @@ export class AdminPage implements OnInit, AfterViewInit {
 
     // Filter out duplicate or empty values
     rangesToDisplay = Array.from(new Set(rangesToDisplay.map(r => r.trim()).filter(Boolean)));
+
+    // Filter by assigned range if the user is not Super Admin (role '1')
+    if (this.userRole !== '1') {
+      const allowedNames: string[] = [];
+      if (this.assignedRange) {
+        allowedNames.push(this.assignedRange.toLowerCase().trim());
+      }
+      const deepestName = localStorage.getItem('global_deepest_filter_name') || '';
+      if (deepestName) {
+        deepestName.split(',').forEach(n => allowedNames.push(n.toLowerCase().trim()));
+      }
+      const globalRange = localStorage.getItem('global_range_filter');
+      if (globalRange && globalRange !== 'all') {
+        allowedNames.push(globalRange.toLowerCase().trim());
+      }
+      if (this.allRanges && this.allRanges.length > 0) {
+        this.allRanges.forEach(r => allowedNames.push(r.toLowerCase().trim()));
+      }
+
+      const uniqueAllowed = [...new Set(allowedNames)].filter(Boolean);
+      if (uniqueAllowed.length > 0) {
+        rangesToDisplay = rangesToDisplay.filter(r => 
+          uniqueAllowed.some(allowed => r.toLowerCase().includes(allowed) || allowed.includes(r.toLowerCase()))
+        );
+      }
+    }
 
     rangesToDisplay.sort((a, b) => {
       const valA = this.latestRangeMap[a.toLowerCase()] || 0;
@@ -1061,10 +1141,23 @@ export class AdminPage implements OnInit, AfterViewInit {
     if (this.layers && this.layers.length > 0) {
       this.hierarchySelections = new Array(this.layers.length).fill(null);
       const firstLayer = this.layers[0];
-      this.dataService.listV2Entities(firstLayer.id, null).subscribe({
+      const companyId = localStorage.getItem('company_id') || localStorage.getItem('user_company_id') || '1';
+      this.dataService.listV2Entities(firstLayer.id, null, false, companyId).subscribe({
         next: (entRes: any) => {
           const nodes = entRes?.data || entRes || [];
-          this.layerEntities[firstLayer.id] = Array.isArray(nodes) ? nodes : [];
+          let rawNodes = Array.isArray(nodes) ? nodes : [];
+          
+          const isRestrictedAdmin = localStorage.getItem('is_restricted_admin') === 'true';
+          if (isRestrictedAdmin) {
+            const adminLayerId = localStorage.getItem('admin_layer_id');
+            const adminEntityId = localStorage.getItem('admin_entity_id');
+            if (String(firstLayer.id) === String(adminLayerId) && adminEntityId) {
+              const allowedIds = adminEntityId.split(',').map(id => id.trim()).filter(Boolean);
+              rawNodes = rawNodes.filter(n => allowedIds.includes(String(n.id)));
+            }
+          }
+          
+          this.layerEntities[firstLayer.id] = rawNodes;
           this.cdr.detectChanges();
         }
       });
