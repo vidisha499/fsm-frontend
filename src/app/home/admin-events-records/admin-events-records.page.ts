@@ -270,8 +270,9 @@ export class AdminEventsRecordsPage implements OnInit {
       }
       
       // Fallback: If record has no IDs, check by name matching as fallback
-      const rRange = String(r.displayRange || r.range_name || r.range || '').toLowerCase().trim();
       const rBeat = String(r.displayBeat || r.beat_name || r.beat || r.site_name || '').toLowerCase().trim();
+      const beatObj = this.allBeats?.find((b: any) => b.name.toLowerCase() === rBeat);
+      const rRange = String(r.displayRange && r.displayRange !== 'Forest Range' ? r.displayRange : (r.range_name || r.range || (beatObj ? beatObj.parentName : ''))).toLowerCase().trim();
       const deepestName = localStorage.getItem('global_deepest_filter_name') || '';
       if (deepestName) {
         const names = deepestName.split(',').map(n => n.trim().toLowerCase());

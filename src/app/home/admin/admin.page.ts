@@ -613,6 +613,15 @@ export class AdminPage implements OnInit, AfterViewInit {
   loadHierarchy(force: boolean = false) {
     const companyId = localStorage.getItem('company_id') || localStorage.getItem('user_company_id') || '1';
 
+    // Always sync allBeats from getHierarchyForFilters for robust name-based fallback matching
+    this.dataService.getHierarchyForFilters(companyId.toString()).subscribe({
+      next: (h) => {
+        if (h && h.beats) {
+          this.allBeats = h.beats;
+        }
+      }
+    });
+
     if (force || !this.layers || this.layers.length === 0) {
       console.log('📡 [Hierarchy] Dashboard Syncing V2 Hierarchy layers...');
       this.dataService.listV2Layers().subscribe({
@@ -1063,17 +1072,22 @@ export class AdminPage implements OnInit, AfterViewInit {
 
     // 3. Fallback: Robust name string match
     if (name && name !== 'Assigned Location') {
+      const rBeat = String(r.beat_name || r.site_name || r.location || r.beat || '').toLowerCase();
+      const bObj = this.allBeats?.find(b => b.name.toLowerCase() === rBeat);
+      const rRange = String(r.range_name || r.range || (bObj ? bObj.parentName : '')).toLowerCase();
+
       const fieldsToSearch = [
         r.beat_name, r.site_name, r.location, r.location_name,
         r.range_name, r.range, r.region, r.division_name, r.division,
-        r.client_name, r.name, r.beat
+        r.client_name, r.name, r.beat,
+        rBeat, rRange
       ];
       
       const namesList = name.split(',').map((n: string) => n.trim().toLowerCase());
       for (const f of fieldsToSearch) {
         if (f) {
           const fLower = String(f).toLowerCase();
-          if (namesList.some((n: string) => fLower.includes(n))) {
+          if (namesList.some((n: string) => fLower.includes(n) || n.includes(fLower))) {
             return true;
           }
         }
