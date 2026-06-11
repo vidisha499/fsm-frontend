@@ -28,6 +28,8 @@ export class AdminAssetsRecordsPage implements OnInit {
   public displayBeats: string[] = [];
   public selectedRange: string = 'all';
   public selectedBeat: string = 'all';
+  public deepestFilterName: string = '';
+  public hierarchyChain: string[] = [];
 
   goodCount: number = 0;
   badCount: number = 0;
@@ -63,6 +65,14 @@ export class AdminAssetsRecordsPage implements OnInit {
     this.selectedRange = localStorage.getItem('global_range_filter') || 'all';
     this.selectedBeat = localStorage.getItem('global_beat_filter') || 'all';
 
+    // Read V2 dynamic hierarchy filter from admin dashboard
+    this.deepestFilterName = localStorage.getItem('global_deepest_filter_name') || '';
+    try {
+      this.hierarchyChain = JSON.parse(localStorage.getItem('global_hierarchy_chain') || '[]');
+    } catch (e) {
+      this.hierarchyChain = [];
+    }
+
     this.loadHierarchy();
     this.refreshData();
   }
@@ -86,7 +96,7 @@ export class AdminAssetsRecordsPage implements OnInit {
       if (!d) return 0;
       let ts = 0;
       if (typeof d === 'string') {
-        const clean = d.split(' ')[0].replace(/\//g, '-');
+        const clean = d.split('T')[0].split(' ')[0].replace(/\//g, '-');
         const parts = clean.split('-');
         if (parts.length === 3) {
            if (parts[0].length === 2 && parts[2].length === 4) {
@@ -112,6 +122,7 @@ export class AdminAssetsRecordsPage implements OnInit {
         const now = new Date();
         const todayYMD = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         const todayDMY = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`;
+        const today = now.toISOString().split('T')[0];
 
         this.assetList = raw.filter((a: any) => {
           // 1. Date Filter
@@ -119,24 +130,33 @@ export class AdminAssetsRecordsPage implements OnInit {
           const aDate = a.created_at || a.date_time || a.date || '';
           
           if (from && to) {
-            const rTimestamp = getTS(aDate);
-            const fromTS = new Date(from).setHours(0, 0, 0, 0);
-            const toTS = new Date(to).setHours(23, 59, 59, 999);
-            matchesDate = rTimestamp >= fromTS && rTimestamp <= toTS;
+            if (from === today && to === today) {
+              const rFullDate = aDate.toString();
+              matchesDate = !!(rFullDate.includes(todayYMD) || rFullDate.includes(todayDMY) || rFullDate.includes(todayYMD.replace(/-/g, '/')) || rFullDate.includes(today) || rFullDate.includes(today.replace(/-/g, '/')));
+            } else {
+              const rTimestamp = getTS(aDate);
+              const fromTS = new Date(from).setHours(0, 0, 0, 0);
+              const toTS = new Date(to).setHours(23, 59, 59, 999);
+              matchesDate = rTimestamp >= fromTS && rTimestamp <= toTS;
+            }
           } else {
             // Default to today (Robust Check)
-            matchesDate = !!(aDate && (aDate.includes(todayYMD) || aDate.includes(todayDMY) || aDate.includes(todayYMD.replace(/-/g, '/'))));
+            matchesDate = !!(aDate && (aDate.includes(todayYMD) || aDate.includes(todayDMY) || aDate.includes(todayYMD.replace(/-/g, '/')) || aDate.includes(today)));
           }
 
           // 2. Hierarchy Filter (Bidirectional Inclusive)
-          const rBeat = (a.beat_name || a.site_name || a.location || '').toLowerCase();
-          const filterBeat = this.selectedBeat.toLowerCase();
-          const beatObj = this.allBeats.find(b => b.name.toLowerCase() === rBeat);
-          const rRange = (a.range_name || a.range || (beatObj ? beatObj.parentName : 'General Range')).toLowerCase();
-          const filterRange = this.selectedRange.toLowerCase();
-          
-          const matchesRange = this.selectedRange === 'all' || this.dataService.isNameMatching(rRange, this.selectedRange);
-          const matchesBeat = this.selectedBeat === 'all' || this.dataService.isNameMatching(rBeat, this.selectedBeat);
+          let matchesHierarchy = true;
+          if (this.deepestFilterName) {
+            matchesHierarchy = this.isRecordMatchingHierarchyName(a);
+          } else {
+            const rBeat = (a.beat_name || a.site_name || a.location || '').toLowerCase();
+            const beatObj = this.allBeats.find(b => b.name.toLowerCase() === rBeat);
+            const rRange = (a.range_name || a.range || (beatObj ? beatObj.parentName : 'General Range')).toLowerCase();
+            
+            const matchesRange = this.selectedRange === 'all' || this.dataService.isNameMatching(rRange, this.selectedRange);
+            const matchesBeat = this.selectedBeat === 'all' || this.dataService.isNameMatching(rBeat, this.selectedBeat);
+            matchesHierarchy = matchesRange && matchesBeat;
+          }
 
           // 📦 3. Category Filter
           let matchesCategory = true;
@@ -175,7 +195,7 @@ export class AdminAssetsRecordsPage implements OnInit {
             matchesGuard = reporter.includes(query);
           }
 
-          return matchesDate && matchesRange && matchesBeat && matchesCategory && matchesCondition && matchesSearch && matchesGuard;
+          return matchesDate && matchesHierarchy && matchesCategory && matchesCondition && matchesSearch && matchesGuard;
         });
 
         this.computeCounts();
@@ -186,6 +206,43 @@ export class AdminAssetsRecordsPage implements OnInit {
         this.isLoading = false;
       }
     });
+  }
+
+  isRecordMatchingHierarchyName(a: any): boolean {
+    const rBeat = String(a.beat_name || a.site_name || a.location || a.beat || '').toLowerCase().trim();
+    const beatObj = this.allBeats?.find(b => b.name.toLowerCase() === rBeat);
+    const rRange = String(a.range_name || a.range || (beatObj ? beatObj.parentName : '')).toLowerCase().trim();
+
+    const fieldsToSearch = [
+      a.beat_name, a.site_name, a.location, a.location_name,
+      a.range_name, a.range, a.region, a.division_name, a.division,
+      a.client_name, a.name, a.beat,
+      rBeat, rRange
+    ];
+
+    if (!this.deepestFilterName) return true;
+    const namesList = this.deepestFilterName.split(',').map((n: string) => n.trim().toLowerCase());
+    for (const f of fieldsToSearch) {
+      if (f) {
+        const fLower = String(f).toLowerCase();
+        if (namesList.some((n: string) => fLower.includes(n) || n.includes(fLower))) {
+          return true;
+        }
+      }
+    }
+
+    if (this.hierarchyChain && this.hierarchyChain.length > 0) {
+      const deepest = this.hierarchyChain[this.hierarchyChain.length - 1]?.toLowerCase() || '';
+      if (deepest) {
+        for (const f of fieldsToSearch) {
+          if (f && String(f).toLowerCase().includes(deepest)) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
   }
 
   computeCounts() {

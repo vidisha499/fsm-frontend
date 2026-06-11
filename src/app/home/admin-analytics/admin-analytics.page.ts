@@ -911,8 +911,9 @@ private mkChart(id: string, config: any) {
     
     // Parse date (Handles YYYY-MM-DD, DD-MM-YYYY, DD/MM/YYYY)
     let d: Date;
-    if (dateStr.includes('-')) {
-      const parts = dateStr.split(' ')[0].split('-');
+    const clean = dateStr.split('T')[0].split(' ')[0];
+    if (clean.includes('-')) {
+      const parts = clean.split('-');
       if (parts[0].length === 4) d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
       else d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
     } else if (dateStr.includes('/')) {
@@ -1409,7 +1410,7 @@ async updateUIData() {
               }
 
               let dateYMD = '';
-              const cleanDate = (rDateStr || '').split(' ')[0];
+              const cleanDate = (rDateStr || '').split('T')[0].split(' ')[0];
               if (cleanDate.includes('-')) {
                 const parts = cleanDate.split('-');
                 if (parts[0].length === 4) dateYMD = `${parts[0]}-${parts[1]}-${parts[2]}`; 

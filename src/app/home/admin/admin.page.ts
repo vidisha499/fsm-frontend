@@ -667,6 +667,28 @@ export class AdminPage implements OnInit, AfterViewInit {
                   if (Array.isArray(nodes)) {
                     this.allRanges = nodes.map((e: any) => e.name || e.label).filter(Boolean);
                     console.log("✅ Loaded Dynamic Ranges:", this.allRanges);
+                    
+                    // Resolve real assigned range names for restricted admin
+                    const isRestrictedAdmin = localStorage.getItem('is_restricted_admin') === 'true';
+                    if (isRestrictedAdmin) {
+                      const adminEntityId = localStorage.getItem('admin_entity_id');
+                      if (adminEntityId) {
+                        const allowedIds = adminEntityId.split(',').map(id => id.trim()).filter(Boolean);
+                        const matchedNames: string[] = [];
+                        nodes.forEach((n: any) => {
+                          if (allowedIds.includes(String(n.id))) {
+                            matchedNames.push(n.name || n.label || '');
+                          }
+                        });
+                        if (matchedNames.length > 0) {
+                          this.deepestSelection = { entityId: adminEntityId, name: matchedNames.join(', ') };
+                          console.log("🔍 [Admin Dashboard] Resolved Deepest Selection Name from Master List:", this.deepestSelection);
+                          localStorage.setItem('global_deepest_filter_name', this.deepestSelection.name || '');
+                          this.loadData(true); // Re-trigger loadData with resolved name for name-based matching
+                        }
+                      }
+                    }
+                    
                     this.updateBeatCoverage();
                   }
                 }
@@ -1506,12 +1528,26 @@ changeTimeframe(newTimeframe: string) {
         console.log("📊 Admin Dashboard Response (Stats):", apiResponse);
         const res = apiResponse.data ? apiResponse.data : apiResponse;
         
-        const stats = res.stats?.data || res.stats || {};
-        const summaryFire = Number(stats.fire_count || stats.fireEvents || 0);
-        this.incidentsCount = Number(stats.total_incidents || stats.total_events || 0);
-
-        // Only set these if they are currently 0 (Initial Load)
-        if (this.fireAlertsCount === 0) this.fireAlertsCount = summaryFire;
+        // Map V2 KPIs if present
+        const kpis = res.kpis;
+        if (kpis) {
+          if (kpis.onDuty !== undefined) this.onDutyCount = Number(kpis.onDuty);
+          if (kpis.patrolCount !== undefined) this.patrolCount = Number(kpis.patrolCount);
+          if (kpis.criminal !== undefined) this.criminalCount = Number(kpis.criminal);
+          if (kpis.events !== undefined) this.eventsCount = Number(kpis.events);
+          if (kpis.fire !== undefined) this.fireAlertsCount = Number(kpis.fire);
+          if (kpis.assets !== undefined) this.totalAssetsCount = Number(kpis.assets);
+          
+          this.incidentsCount = this.criminalCount + this.eventsCount + this.fireAlertsCount;
+        } else {
+          // Legacy stats fallback
+          const stats = res.stats?.data || res.stats || {};
+          const summaryFire = Number(stats.fire_count || stats.fireEvents || 0);
+          this.incidentsCount = Number(stats.total_incidents || stats.total_events || 0);
+          
+          // Only set these if they are currently 0 (Initial Load)
+          if (this.fireAlertsCount === 0) this.fireAlertsCount = summaryFire;
+        }
 
         // Populate Alerts for the Map
         const alertsList = res.alerts || res.sos || [];
@@ -1691,7 +1727,7 @@ changeTimeframe(newTimeframe: string) {
             const getTS = (d: any) => {
               if (!d) return 0;
               if (typeof d === 'string' && d.includes('-')) {
-                const parts = d.split(' ')[0].split('-');
+                const parts = d.split('T')[0].split(' ')[0].split('-');
                 if (parts[0].length === 2 && parts[2].length === 4) {
                   return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime();
                 }

@@ -31,6 +31,8 @@ export class AdminPatrolLogsPage implements OnInit {
   public userRole: string = '3';
   public assignedRange: string = '';
   public assignedBeat: string = '';
+  public deepestFilterName: string = '';
+  public hierarchyChain: string[] = [];
 
   constructor(
     private navCtrl: NavController,
@@ -77,6 +79,14 @@ export class AdminPatrolLogsPage implements OnInit {
     } else {
       this.selectedRange = localStorage.getItem('global_range_filter') || 'all';
       this.selectedBeat = localStorage.getItem('global_beat_filter') || 'all';
+    }
+
+    // Read V2 dynamic hierarchy filter from admin dashboard
+    this.deepestFilterName = localStorage.getItem('global_deepest_filter_name') || '';
+    try {
+      this.hierarchyChain = JSON.parse(localStorage.getItem('global_hierarchy_chain') || '[]');
+    } catch (e) {
+      this.hierarchyChain = [];
     }
 
     const today = new Date().toISOString().split('T')[0];
@@ -152,7 +162,7 @@ export class AdminPatrolLogsPage implements OnInit {
           let ts = new Date(d).getTime();
           // If suspicious or NaN, try manual swap
           if (!ts || isNaN(ts) || ts < 1577836800000) {
-             const clean = d.toString().split(' ')[0].replace(/\//g, '-');
+             const clean = d.toString().split('T')[0].split(' ')[0].replace(/\//g, '-');
              const p = clean.split('-');
              if (p.length === 3) {
                 if (p[0].length === 2 && p[2].length === 4) ts = new Date(`${p[2]}-${p[1]}-${p[0]}`).getTime();
@@ -167,35 +177,54 @@ export class AdminPatrolLogsPage implements OnInit {
         console.log(`🔍 [PatrolFilter] Filtering logs from ${activeFrom} to ${activeTo}`);
 
         // Client-side Filtering (Date & Hierarchy)
-        const filtered = rawLogs.filter((log: any) => {
+        const mappedLogs = rawLogs.map((log: any) => this.processPatrolLog(log));
+        const filtered = mappedLogs.filter((log: any) => {
           const rDate = log.created_at || log.start_time || log.date || '';
           if (!rDate) return false;
 
           const rTimestamp = getTS(rDate);
-          const d = new Date(rTimestamp);
-          const rLocalDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
-          // 📅 1. Date Filter (Strict Local Day Match)
+          
+          // 📅 1. Date Filter (Strict Today check aligned with Dashboard)
+          let matchesDate = true;
           if (activeFrom && activeTo) {
-            if (activeFrom === activeTo) {
-              if (rLocalDate !== activeFrom) return false;
+            const today = new Date().toISOString().split('T')[0];
+            const nowL = new Date();
+            const todayYMD = `${nowL.getFullYear()}-${String(nowL.getMonth() + 1).padStart(2, '0')}-${String(nowL.getDate()).padStart(2, '0')}`;
+            const todayDMY = `${String(nowL.getDate()).padStart(2, '0')}-${String(nowL.getMonth() + 1).padStart(2, '0')}-${nowL.getFullYear()}`;
+            const rFullDate = rDate.toString();
+
+            if (activeFrom === today && activeTo === today) {
+              matchesDate = !!(rFullDate.includes(todayYMD) || rFullDate.includes(todayDMY) || rFullDate.includes(todayYMD.replace(/-/g, '/')) || rFullDate.includes(today) || rFullDate.includes(today.replace(/-/g, '/')));
             } else {
-              const fromTS = new Date(activeFrom).setHours(0, 0, 0, 0);
-              const toTS = new Date(activeTo).setHours(23, 59, 59, 999);
-              if (rTimestamp < fromTS || rTimestamp > toTS) return false;
+              const d = new Date(rTimestamp);
+              const rLocalDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+              if (activeFrom === activeTo) {
+                matchesDate = rLocalDate === activeFrom;
+              } else {
+                const fromTS = new Date(activeFrom).setHours(0, 0, 0, 0);
+                const toTS = new Date(activeTo).setHours(23, 59, 59, 999);
+                matchesDate = rTimestamp >= fromTS && rTimestamp <= toTS;
+              }
             }
           }
 
+          if (!matchesDate) return false;
+
           // 🌲 2. Hierarchy Filter (Range & Beat)
-          const rBeat = (log.beat_name || log.site_name || log.location || '').toLowerCase();
-          const beatObj = this.allBeats.find(b => b.name.toLowerCase() === rBeat);
-          const rRange = (log.range_name || log.range || (beatObj ? beatObj.parentName : '')).toLowerCase();
-          
-          const fRange = this.selectedRange.toLowerCase();
-          const fBeat  = this.selectedBeat.toLowerCase();
-          
-           const matchesRange = this.selectedRange === 'all' || this.dataService.isNameMatching(rRange, this.selectedRange);
-           const matchesBeat  = this.selectedBeat === 'all' || this.dataService.isNameMatching(rBeat, this.selectedBeat);
+          let matchesHierarchy = true;
+          if (this.deepestFilterName) {
+            matchesHierarchy = this.isRecordMatchingHierarchyName(log);
+          } else {
+            const rBeat = (log.beat_name || log.site_name || log.location || log.beat || log.displayBeat || '').toLowerCase();
+            const beatObj = this.allBeats.find(b => b.name.toLowerCase() === rBeat);
+            const rRange = (log.range_name || log.range || log.displayRange || (beatObj ? beatObj.parentName : '')).toLowerCase();
+            
+            const matchesRange = this.selectedRange === 'all' || this.dataService.isNameMatching(rRange, this.selectedRange);
+            const matchesBeat  = this.selectedBeat === 'all' || this.dataService.isNameMatching(rBeat, this.selectedBeat);
+            matchesHierarchy = matchesRange && matchesBeat;
+          }
+
+          if (!matchesHierarchy) return false;
 
           // 🏃‍♂️ 3. Patrol Type & Method Filters
           const logType = (log.patrol_type || log.type || '').toLowerCase();
@@ -225,12 +254,11 @@ export class AdminPatrolLogsPage implements OnInit {
             matchesGuard = name.includes(query) || resolvedName.includes(query);
           }
 
-          return matchesRange && matchesBeat && matchesPatrolType && matchesPatrolMethod && matchesGuard;
+          return matchesPatrolType && matchesPatrolMethod && matchesGuard;
         });
 
         this.patrolLogs = filtered
-          .sort((a: any, b: any) => getTS(b.created_at || b.start_time) - getTS(a.created_at || a.start_time))
-          .map((log: any) => this.processPatrolLog(log));
+          .sort((a: any, b: any) => getTS(b.created_at || b.start_time) - getTS(a.created_at || a.start_time));
         
         this.isLoading = false;
       },
@@ -239,6 +267,44 @@ export class AdminPatrolLogsPage implements OnInit {
         this.isLoading = false;
       }
     });
+  }
+
+  isRecordMatchingHierarchyName(log: any): boolean {
+    const rBeat = String(log.beat_name || log.site_name || log.location || log.beat || log.displayBeat || '').toLowerCase().trim();
+    const beatObj = this.allBeats?.find(b => b.name.toLowerCase() === rBeat);
+    const rRange = String(log.range_name || log.range || log.displayRange || (beatObj ? beatObj.parentName : '')).toLowerCase().trim();
+
+    const fieldsToSearch = [
+      log.beat_name, log.site_name, log.location, log.location_name,
+      log.range_name, log.range, log.region, log.division_name, log.division,
+      log.client_name, log.name, log.beat,
+      log.displayRange, log.displayBeat,
+      rBeat, rRange
+    ];
+
+    if (!this.deepestFilterName) return true;
+    const namesList = this.deepestFilterName.split(',').map((n: string) => n.trim().toLowerCase());
+    for (const f of fieldsToSearch) {
+      if (f) {
+        const fLower = String(f).toLowerCase();
+        if (namesList.some((n: string) => fLower.includes(n) || n.includes(fLower))) {
+          return true;
+        }
+      }
+    }
+
+    if (this.hierarchyChain && this.hierarchyChain.length > 0) {
+      const deepest = this.hierarchyChain[this.hierarchyChain.length - 1]?.toLowerCase() || '';
+      if (deepest) {
+        for (const f of fieldsToSearch) {
+          if (f && String(f).toLowerCase().includes(deepest)) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
   }
 
   processPatrolLog(log: any) {

@@ -558,26 +558,71 @@ export class DataService {
     entityMeta?: { entityId?: string; parentId?: string }
   ): Observable<{ range: string; beat: string }> {
     const entityId = entityMeta?.entityId || '';
-    const parentId = entityMeta?.parentId || '';
-    const resolveFromOrg =
-      entityId || parentId
-        ? this.resolveRangeFromOrgEntity(entityId, parentId, companyId)
-        : of('');
+    
+    if (!entityId || !companyId) {
+      const beatForLookup = trustedBeat || labels.beat;
+      if (!beatForLookup) {
+        return of(labels);
+      }
+      return this.resolveRangeNameForBeat(beatForLookup, String(companyId)).pipe(
+        map(parentRange => ({
+          range: parentRange || labels.range,
+          beat: labels.beat
+        })),
+        catchError(() => of(labels))
+      );
+    }
 
-    return resolveFromOrg.pipe(
-      switchMap(rangeFromOrg => {
-        if (rangeFromOrg) {
-          return of({ range: rangeFromOrg, beat: labels.beat });
+    return this.loadOrgEntities(String(companyId)).pipe(
+      map(entities => {
+        let resolvedRange = labels.range;
+        let resolvedBeat = labels.beat;
+
+        const entity = entities.find((e: any) => String(e.id) === String(entityId));
+        if (entity) {
+          const eName = String(entity.name || entity.label || '').trim();
+          const pid = entity.parent_id ?? entity.parentId;
+          const parent = pid ? entities.find((p: any) => String(p.id) === String(pid)) : null;
+          
+          if (parent) {
+            const pName = String(parent.name || parent.label || '').trim();
+            const ppid = parent.parent_id ?? parent.parentId;
+            
+            // If parent has a parent, or parent name doesn't contain 'division', parent is range and entity is beat
+            if (ppid || !pName.toLowerCase().includes('division')) {
+              resolvedRange = pName;
+              resolvedBeat = eName;
+            } else {
+              // Parent is division, so entity itself is the range
+              resolvedRange = eName;
+              if (!resolvedBeat || this.isInvalidBeatLabel(resolvedBeat)) {
+                resolvedBeat = '';
+              }
+            }
+          } else {
+            // No parent, treat entity itself as range
+            resolvedRange = eName;
+          }
         }
+
+        if ((!resolvedBeat || this.isInvalidBeatLabel(resolvedBeat)) && trustedBeat && !this.isInvalidBeatLabel(trustedBeat)) {
+          resolvedBeat = trustedBeat;
+        }
+
+        return {
+          range: resolvedRange && !this.isInvalidRangeLabel(resolvedRange) ? resolvedRange : labels.range,
+          beat: resolvedBeat && !this.isInvalidBeatLabel(resolvedBeat) ? resolvedBeat : labels.beat
+        };
+      }),
+      catchError(() => {
         const beatForLookup = trustedBeat || labels.beat;
-        if (!beatForLookup || !companyId) {
-          return of(labels);
-        }
+        if (!beatForLookup) return of(labels);
         return this.resolveRangeNameForBeat(beatForLookup, String(companyId)).pipe(
           map(parentRange => ({
             range: parentRange || labels.range,
             beat: labels.beat
-          }))
+          })),
+          catchError(() => of(labels))
         );
       })
     );
@@ -747,8 +792,8 @@ export class DataService {
     let displayRange: string;
     let displayBeat: string;
     if (isDynamic) {
-      displayRange = hasAssignRange ? assignRange : 'Not assigned';
-      displayBeat = hasAssignBeat ? assignBeat : 'Not assigned';
+      displayRange = hasAssignRange ? assignRange : reportRange || 'Not assigned';
+      displayBeat = hasAssignBeat ? assignBeat : reportBeat || 'Not assigned';
     } else {
       displayRange = hasAssignRange ? assignRange : reportRange || '—';
       displayBeat = hasAssignBeat ? assignBeat : reportBeat || '—';
