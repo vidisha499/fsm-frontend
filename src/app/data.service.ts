@@ -710,7 +710,13 @@ export class DataService {
                   : '';
 
             return this.finishHierarchyLabels(merged, cId, trustedBeat, entityMeta).pipe(
-              map((labels) => ({ ...labels, reporterName, isDynamic }))
+              map((labels) => ({ 
+                ...labels, 
+                reporterName, 
+                isDynamic, 
+                entityId: entityMeta?.entityId || '', 
+                parentId: entityMeta?.parentId || '' 
+              }))
             );
           })
         );
@@ -729,10 +735,16 @@ export class DataService {
               parentId: assignments.parentId
             };
             return this.finishHierarchyLabels(merged, cId, trustedBeat, entityMeta).pipe(
-              map((labels) => ({ ...labels, reporterName: '', isDynamic: false }))
+              map((labels) => ({ 
+                ...labels, 
+                reporterName: '', 
+                isDynamic: false, 
+                entityId: entityMeta?.entityId || '', 
+                parentId: entityMeta?.parentId || '' 
+              }))
             );
           }),
-          catchError(() => of({ range: '', beat: '', reporterName: '', isDynamic: false }))
+          catchError(() => of({ range: '', beat: '', reporterName: '', isDynamic: false, entityId: '', parentId: '' }))
         )
       )
     );
@@ -769,7 +781,7 @@ export class DataService {
 
   private attachReportDisplayHierarchy(
     report: any,
-    info: { range: string; beat: string; reporterName?: string; isDynamic?: boolean }
+    info: { range: string; beat: string; reporterName?: string; isDynamic?: boolean; entityId?: string; parentId?: string }
   ) {
     const reporter =
       info.reporterName ||
@@ -804,7 +816,9 @@ export class DataService {
       displayRange,
       displayBeat,
       displayReporter: reporter,
-      reporterIsDynamic: isDynamic
+      reporterIsDynamic: isDynamic,
+      reporter_entity_id: info.entityId || '',
+      reporter_parent_id: info.parentId || ''
     };
   }
 

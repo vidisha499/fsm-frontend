@@ -610,7 +610,7 @@ export class AdminPage implements OnInit, AfterViewInit {
   }
 
   // --- Production Filter Data Logic (V2 Hierarchy Cascade + Fallback to legacy) ---
-  loadHierarchy(force: boolean = false) {
+  loadHierarchy(force: boolean = false, skipReloadData: boolean = false) {
     const companyId = localStorage.getItem('company_id') || localStorage.getItem('user_company_id') || '1';
 
     // Always sync allBeats from getHierarchyForFilters for robust name-based fallback matching
@@ -668,7 +668,7 @@ export class AdminPage implements OnInit, AfterViewInit {
                     return;
                   }
                   
-                  this.filterAndProcessRanges(nodes, companyId);
+                  this.filterAndProcessRanges(nodes, companyId, skipReloadData);
                   this.preLoadSubsequentLayers(companyId);
                   
                   if (isRestrictedAdmin && this.restrictedLayerIndex !== -1 && this.hierarchySelections[this.restrictedLayerIndex]) {
@@ -704,7 +704,7 @@ export class AdminPage implements OnInit, AfterViewInit {
         this.dataService.listV2Entities(rangeLayer.id, null, false, companyId).subscribe({
           next: (entRes: any) => {
             const nodes = entRes?.data || entRes || [];
-            this.filterAndProcessRanges(nodes, companyId);
+            this.filterAndProcessRanges(nodes, companyId, skipReloadData);
             this.preLoadSubsequentLayers(companyId);
           }
         });
@@ -746,7 +746,7 @@ export class AdminPage implements OnInit, AfterViewInit {
     }
   }
 
-  filterAndProcessRanges(nodes: any[], companyId: any) {
+  filterAndProcessRanges(nodes: any[], companyId: any, skipReloadData: boolean = false) {
     let rawNodes = Array.isArray(nodes) ? nodes : [];
     const firstLayer = this.layers && this.layers.length > 0 ? this.layers[0] : null;
     const secondLayer = this.layers && this.layers.length > 1 ? this.layers[1] : null;
@@ -768,7 +768,9 @@ export class AdminPage implements OnInit, AfterViewInit {
             this.assignedRange = matchedNames.join(', ');
             localStorage.setItem('global_deepest_filter_name', this.assignedRange);
             this.deepestSelection = { entityId: adminEntityId, name: this.assignedRange };
-            this.loadData(true);
+            if (!skipReloadData) {
+              this.loadData(true);
+            }
           }
         } else if (secondLayerId && String(secondLayerId) === String(adminLayerId) && adminEntityId) {
           const allowedBeatIds = adminEntityId.split(',').map(id => id.trim()).filter(Boolean);
@@ -798,7 +800,9 @@ export class AdminPage implements OnInit, AfterViewInit {
                   this.assignedRange = matchedNames.join(', ');
                   localStorage.setItem('global_deepest_filter_name', this.assignedRange);
                   this.deepestSelection = { entityId: adminEntityId, name: this.assignedRange };
-                  this.loadData(true);
+                  if (!skipReloadData) {
+                    this.loadData(true);
+                  }
                 }
                 
                 this.updateBeatCoverage();
@@ -1668,7 +1672,7 @@ changeTimeframe(newTimeframe: string) {
     }
 
     // Refresh hierarchy data (Ranges/Beats) on every load
-    this.loadHierarchy();
+    this.loadHierarchy(false, true);
     
     // 🌐 Restore & Sync State
     const savedFilter = localStorage.getItem('global_date_filter') || 'today';

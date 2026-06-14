@@ -284,8 +284,7 @@ export class AdminFireRecordsPage implements OnInit {
       const allowedIds = JSON.parse(allowedIdsStr);
       if (!Array.isArray(allowedIds) || allowedIds.length === 0) return true;
       
-      const isRanger = r.role_id === 4 || !!r.status || r.range_name !== undefined;
-      const rawSiteId = r.site_id || r.siteId || r.beat_id || r.entity_id || r.range_id || (isRanger ? '' : r.id) || '';
+      const rawSiteId = r.reporter_entity_id || r.reporter_parent_id || r.site_id || r.siteId || r.beat_id || r.entity_id || r.range_id || '';
       
       let recordIds: string[] = [];
       if (Array.isArray(rawSiteId)) {
@@ -295,10 +294,11 @@ export class AdminFireRecordsPage implements OnInit {
       }
       
       if (recordIds.length > 0) {
-        return recordIds.some(id => allowedIds.includes(id));
+        const matchesId = recordIds.some(id => allowedIds.includes(id));
+        if (matchesId) return true;
       }
       
-      // Fallback: If record has no IDs, check by name matching as fallback
+      // Fallback: If record has no IDs or ID matching failed, check by name matching as fallback
       const rBeat = String(r.displayBeat || r.beat_name || r.beat || r.site_name || '').toLowerCase().trim();
       const beatObj = this.allBeats?.find((b: any) => b.name.toLowerCase() === rBeat);
       const rRange = String(r.displayRange && r.displayRange !== 'Forest Range' ? r.displayRange : (r.range_name || r.range || (beatObj ? beatObj.parentName : ''))).toLowerCase().trim();

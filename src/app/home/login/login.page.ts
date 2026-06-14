@@ -438,7 +438,7 @@ async login() {
 
                 console.log("🛡️ [DEBUG ROUTING] isRestrictedAdmin evaluated to:", isRestrictedAdmin);
 
-                const isRestricted = (userRole !== 3 && userRole !== 1 && userRole !== 2 && userRole !== 7);
+                const isRestricted = isRestrictedAdmin || (userRole !== 3 && userRole !== 1 && userRole !== 2 && userRole !== 7);
                 if (isRestricted) {
                   localStorage.setItem('is_restricted_admin', 'true');
                   if (assignedLayerId) localStorage.setItem('admin_layer_id', String(assignedLayerId));
