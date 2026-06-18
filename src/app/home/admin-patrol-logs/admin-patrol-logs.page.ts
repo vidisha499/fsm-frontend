@@ -176,96 +176,101 @@ export class AdminPatrolLogsPage implements OnInit {
         const activeTo = to || this.filterTo;
         console.log(`🔍 [PatrolFilter] Filtering logs from ${activeFrom} to ${activeTo}`);
 
-        // Client-side Filtering (Date & Hierarchy)
-        const mappedLogs = rawLogs.map((log: any) => this.processPatrolLog(log));
-        const filtered = mappedLogs.filter((log: any) => {
-          // Check V2 Allowed Entity IDs first (Restricted Admin / Dynamic User)
-          if (!this.isRecordMatchingAllowedIds(log)) {
-            return false;
-          }
+        this.dataService.enrichReportsWithReporterHierarchy(rawLogs, companyId).subscribe({
+          next: (enrichedLogs) => {
+            const mappedLogs = enrichedLogs.map((log: any) => this.processPatrolLog(log));
+            const filtered = mappedLogs.filter((log: any) => {
+              // Check V2 Allowed Entity IDs first (Restricted Admin / Dynamic User)
+              if (!this.isRecordMatchingAllowedIds(log)) {
+                return false;
+              }
 
-          const rDate = log.created_at || log.start_time || log.date || '';
-          if (!rDate) return false;
+              const rDate = log.created_at || log.start_time || log.date || '';
+              if (!rDate) return false;
 
-          const rTimestamp = getTS(rDate);
-          
-          // 📅 1. Date Filter (Strict Today check aligned with Dashboard)
-          let matchesDate = true;
-          if (activeFrom && activeTo) {
-            const today = new Date().toISOString().split('T')[0];
-            const nowL = new Date();
-            const todayYMD = `${nowL.getFullYear()}-${String(nowL.getMonth() + 1).padStart(2, '0')}-${String(nowL.getDate()).padStart(2, '0')}`;
-            const todayDMY = `${String(nowL.getDate()).padStart(2, '0')}-${String(nowL.getMonth() + 1).padStart(2, '0')}-${nowL.getFullYear()}`;
-            const rFullDate = rDate.toString();
+              const rTimestamp = getTS(rDate);
+              
+              // 📅 1. Date Filter (Strict Today check aligned with Dashboard)
+              let matchesDate = true;
+              if (activeFrom && activeTo) {
+                const today = new Date().toISOString().split('T')[0];
+                const nowL = new Date();
+                const todayYMD = `${nowL.getFullYear()}-${String(nowL.getMonth() + 1).padStart(2, '0')}-${String(nowL.getDate()).padStart(2, '0')}`;
+                const todayDMY = `${String(nowL.getDate()).padStart(2, '0')}-${String(nowL.getMonth() + 1).padStart(2, '0')}-${nowL.getFullYear()}`;
+                const rFullDate = rDate.toString();
 
-            if (activeFrom === today && activeTo === today) {
-              matchesDate = !!(rFullDate.includes(todayYMD) || rFullDate.includes(todayDMY) || rFullDate.includes(todayYMD.replace(/-/g, '/')) || rFullDate.includes(today) || rFullDate.includes(today.replace(/-/g, '/')));
-            } else {
-              const d = new Date(rTimestamp);
-              const rLocalDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-              if (activeFrom === activeTo) {
-                matchesDate = rLocalDate === activeFrom;
+                if (activeFrom === today && activeTo === today) {
+                  matchesDate = !!(rFullDate.includes(todayYMD) || rFullDate.includes(todayDMY) || rFullDate.includes(todayYMD.replace(/-/g, '/')) || rFullDate.includes(today) || rFullDate.includes(today.replace(/-/g, '/')));
+                } else {
+                  const d = new Date(rTimestamp);
+                  const rLocalDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                  if (activeFrom === activeTo) {
+                    matchesDate = rLocalDate === activeFrom;
+                  } else {
+                    const fromTS = new Date(activeFrom).setHours(0, 0, 0, 0);
+                    const toTS = new Date(activeTo).setHours(23, 59, 59, 999);
+                    matchesDate = rTimestamp >= fromTS && rTimestamp <= toTS;
+                  }
+                }
+              }
+
+              if (!matchesDate) return false;
+
+              // 🌲 2. Hierarchy Filter (Range & Beat)
+              let matchesHierarchy = true;
+              if (this.deepestFilterName) {
+                matchesHierarchy = this.isRecordMatchingHierarchyName(log);
               } else {
-                const fromTS = new Date(activeFrom).setHours(0, 0, 0, 0);
-                const toTS = new Date(activeTo).setHours(23, 59, 59, 999);
-                matchesDate = rTimestamp >= fromTS && rTimestamp <= toTS;
+                const rBeat = (log.beat_name || log.site_name || log.location || log.beat || log.displayBeat || '').toLowerCase();
+                const beatObj = this.allBeats.find(b => b.name.toLowerCase() === rBeat);
+                const rRange = (log.range_name || log.range || log.displayRange || (beatObj ? beatObj.parentName : '')).toLowerCase();
+                
+                const matchesRange = this.selectedRange === 'all' || this.dataService.isNameMatching(rRange, this.selectedRange);
+                const matchesBeat  = this.selectedBeat === 'all' || this.dataService.isNameMatching(rBeat, this.selectedBeat);
+                matchesHierarchy = matchesRange && matchesBeat;
               }
-            }
-          }
 
-          if (!matchesDate) return false;
+              if (!matchesHierarchy) return false;
 
-          // 🌲 2. Hierarchy Filter (Range & Beat)
-          let matchesHierarchy = true;
-          if (this.deepestFilterName) {
-            matchesHierarchy = this.isRecordMatchingHierarchyName(log);
-          } else {
-            const rBeat = (log.beat_name || log.site_name || log.location || log.beat || log.displayBeat || '').toLowerCase();
-            const beatObj = this.allBeats.find(b => b.name.toLowerCase() === rBeat);
-            const rRange = (log.range_name || log.range || log.displayRange || (beatObj ? beatObj.parentName : '')).toLowerCase();
-            
-            const matchesRange = this.selectedRange === 'all' || this.dataService.isNameMatching(rRange, this.selectedRange);
-            const matchesBeat  = this.selectedBeat === 'all' || this.dataService.isNameMatching(rBeat, this.selectedBeat);
-            matchesHierarchy = matchesRange && matchesBeat;
-          }
+              // 🏃‍♂️ 3. Patrol Type & Method Filters
+              const logType = (log.patrol_type || log.type || '').toLowerCase();
+              const logMethod = (log.patrol_method || log.method || '').toLowerCase();
+              
+              const matchesPatrolType = this.selectedPatrolType === 'all' || logType.includes(this.selectedPatrolType.toLowerCase());
+              const matchesPatrolMethod = this.selectedPatrolMethod === 'all' || logMethod.includes(this.selectedPatrolMethod.toLowerCase());
 
-          if (!matchesHierarchy) return false;
-
-          // 🏃‍♂️ 3. Patrol Type & Method Filters
-          const logType = (log.patrol_type || log.type || '').toLowerCase();
-          const logMethod = (log.patrol_method || log.method || '').toLowerCase();
-          
-          const matchesPatrolType = this.selectedPatrolType === 'all' || logType.includes(this.selectedPatrolType.toLowerCase());
-          const matchesPatrolMethod = this.selectedPatrolMethod === 'all' || logMethod.includes(this.selectedPatrolMethod.toLowerCase());
-
-          // 👤 4. Guard Name Filter
-          let matchesGuard = true;
-          if (this.filterGuard) {
-            const query = this.filterGuard.trim().toLowerCase();
-            const uId = log.user_id || log.ranger_id || log.staff_id || log.guard_id || log.created_by;
-            
-            // Search in directly attached names
-            const name = (log.user_name || log.ranger_name || log.full_name || log.guard_name || log.officer_name || '').toLowerCase();
-            
-            // Search in resolved rangers list
-            let resolvedName = '';
-            if (uId && this.rangers.length > 0) {
-              const found = this.rangers.find(r => (r.id || r.user_id || r.staff_id) == uId);
-              if (found) {
-                resolvedName = (found.name || found.full_name || found.user_name || found.ranger_name || '').toLowerCase();
+              // 👤 4. Guard Name Filter
+              let matchesGuard = true;
+              if (this.filterGuard) {
+                const query = this.filterGuard.trim().toLowerCase();
+                const uId = log.user_id || log.ranger_id || log.staff_id || log.guard_id || log.created_by;
+                
+                const name = (log.user_name || log.ranger_name || log.full_name || log.guard_name || log.officer_name || '').toLowerCase();
+                
+                let resolvedName = '';
+                if (uId && this.rangers.length > 0) {
+                  const found = this.rangers.find(r => (r.id || r.user_id || r.staff_id) == uId);
+                  if (found) {
+                    resolvedName = (found.name || found.full_name || found.user_name || found.ranger_name || '').toLowerCase();
+                  }
+                }
+                
+                matchesGuard = name.includes(query) || resolvedName.includes(query);
               }
-            }
-            
-            matchesGuard = name.includes(query) || resolvedName.includes(query);
-          }
 
-          return matchesPatrolType && matchesPatrolMethod && matchesGuard;
+              return matchesPatrolType && matchesPatrolMethod && matchesGuard;
+            });
+
+            this.patrolLogs = filtered
+              .sort((a: any, b: any) => getTS(b.created_at || b.start_time) - getTS(a.created_at || a.start_time));
+            
+            this.isLoading = false;
+          },
+          error: (err) => {
+            console.error('Failed to enrich patrol logs', err);
+            this.isLoading = false;
+          }
         });
-
-        this.patrolLogs = filtered
-          .sort((a: any, b: any) => getTS(b.created_at || b.start_time) - getTS(a.created_at || a.start_time));
-        
-        this.isLoading = false;
       },
       error: (err) => {
         console.error('Failed to fetch patrol logs', err);
@@ -282,7 +287,7 @@ export class AdminPatrolLogsPage implements OnInit {
       const allowedIds = JSON.parse(allowedIdsStr);
       if (!Array.isArray(allowedIds) || allowedIds.length === 0) return true;
       
-      const rawSiteId = r.reporter_entity_id || r.reporter_parent_id || r.site_id || r.siteId || r.beat_id || r.entity_id || r.range_id || '';
+      const rawSiteId = r.reporter_entity_id || r.reporter_parent_id || '';
       
       let recordIds: string[] = [];
       if (Array.isArray(rawSiteId)) {
@@ -351,8 +356,9 @@ export class AdminPatrolLogsPage implements OnInit {
 
   processPatrolLog(log: any) {
     // 1. Resolve Name and Beat
-    let name = log.user_name || log.ranger_name || log.full_name || log.guard_name || log.officer_name;
-    let beatName = log.beat_name || log.site_name || log.location || log.beat;
+    let name = log.displayReporter || log.reporterName || log.user_name || log.ranger_name || log.full_name || log.guard_name || log.officer_name;
+    let beatName = log.displayBeat || log.beat_name || log.site_name || log.location || log.beat;
+    let rangeName = log.displayRange || log.range_name || 'Forest Range';
     
     const uId = log.user_id || log.ranger_id || log.staff_id || log.guard_id || log.created_by;
 
@@ -414,7 +420,7 @@ export class AdminPatrolLogsPage implements OnInit {
       ...log,
       displayName: name || 'Unknown Officer',
       displayBeat: beatName || 'Unknown Beat',
-      displayRange: log.range_name || 'Forest Range',
+      displayRange: rangeName,
       displayPhoto: thumb,
       displayStatus: status,
       formattedDate: this.formatDate(log.start_time || log.created_at)

@@ -284,7 +284,7 @@ export class AdminFireRecordsPage implements OnInit {
       const allowedIds = JSON.parse(allowedIdsStr);
       if (!Array.isArray(allowedIds) || allowedIds.length === 0) return true;
       
-      const rawSiteId = r.reporter_entity_id || r.reporter_parent_id || r.site_id || r.siteId || r.beat_id || r.entity_id || r.range_id || '';
+      const rawSiteId = r.reporter_entity_id || r.reporter_parent_id || '';
       
       let recordIds: string[] = [];
       if (Array.isArray(rawSiteId)) {

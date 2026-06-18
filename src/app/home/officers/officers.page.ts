@@ -307,11 +307,11 @@ export class OfficersPage implements OnInit {
       const allowedIds = JSON.parse(allowedIdsStr);
       if (!Array.isArray(allowedIds) || allowedIds.length === 0) return true;
       
-      const rawSiteId = r.reporter_entity_id || r.reporter_parent_id || r.site_id || r.siteId || r.beat_id || r.entity_id || r.range_id || '';
+      const rawSiteId = r.entity_id || r.entityId || '';
       
       let recordIds: string[] = [];
       if (Array.isArray(rawSiteId)) {
-        recordIds = rawSiteId.map(id => String(id).trim());
+        rawSiteId.forEach(id => { if (id) recordIds.push(String(id).trim()); });
       } else if (rawSiteId) {
         recordIds = String(rawSiteId).split(',').map(id => id.trim());
       }
