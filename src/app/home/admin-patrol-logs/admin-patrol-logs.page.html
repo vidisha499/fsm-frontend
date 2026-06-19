@@ -38,7 +38,16 @@
         <b>[Diagnostics Info]</b><br/>
         Allowed IDs: {{ debugAllowedIds }}<br/>
         Deepest Filter Name: {{ debugDeepestFilterName }}<br/>
-        Total Loaded Beats: {{ debugAllBeatsLength }}
+        Total Loaded Beats: {{ debugAllBeatsLength }}<br/>
+        Raw Logs Count: {{ debugRawLogsCount }}<br/>
+        Enriched Logs Count: {{ debugEnrichedLogsCount }}<br/>
+        Filtered Logs Count: {{ debugFilteredLogsCount }}<br/>
+        Date Filter Range: {{ debugDateRange }}<br/>
+        First Log Date: {{ debugFirstLogDate }}<br/>
+        First Log Range/Beat: {{ debugFirstLogRange }} / {{ debugFirstLogBeat }}<br/>
+        First Log Allowed?: {{ debugFirstLogAllowed }}<br/>
+        First Log MatchesHierarchy?: {{ debugFirstLogMatchesHierarchy }}<br/>
+        First Log MatchesDate?: {{ debugFirstLogMatchesDate }}
       </div>
       <div class="list-section">
         <div class="report-card animate__animated animate__fadeInUp" *ngFor="let log of patrolLogs" (click)="viewDetails(log)">
