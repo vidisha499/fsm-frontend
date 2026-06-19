@@ -25,12 +25,6 @@
             <span class="lbl">TOTAL PATROLS</span>
           </div>
         </div>
-        <div style="background: rgba(0,0,0,0.5); color: #ffff00; font-size: 11px; padding: 10px; border-radius: 8px; margin: 10px 15px; border: 1px dashed #ffff00; z-index: 10; position: relative;">
-          <b>[Antigravity Debug]</b><br/>
-          Allowed IDs: {{ debugAllowedIds }}<br/>
-          Deepest Filter Name: {{ debugDeepestFilterName }}<br/>
-          Total Loaded Beats: {{ debugAllBeatsLength }}
-        </div>
       </div>
     </div>
     
@@ -40,6 +34,12 @@
     </div>
 
     <div class="main-container" *ngIf="!isLoading">
+      <div style="background: #1e293b; color: #facc15; font-size: 12px; padding: 12px; border-radius: 8px; margin: 15px; border: 1px dashed #facc15;">
+        <b>[Diagnostics Info]</b><br/>
+        Allowed IDs: {{ debugAllowedIds }}<br/>
+        Deepest Filter Name: {{ debugDeepestFilterName }}<br/>
+        Total Loaded Beats: {{ debugAllBeatsLength }}
+      </div>
       <div class="list-section">
         <div class="report-card animate__animated animate__fadeInUp" *ngFor="let log of patrolLogs" (click)="viewDetails(log)">
           <div class="card-thumb">
