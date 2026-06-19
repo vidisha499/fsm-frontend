@@ -236,9 +236,17 @@ export class AdminAssetsRecordsPage implements OnInit {
       }
       
       // Fallback: If record has no IDs or ID matching failed, check by name matching as fallback
-      const rBeat = String(r.displayBeat || r.beat_name || r.beat || r.site_name || '').toLowerCase().trim();
-      const beatObj = this.allBeats?.find((b: any) => b.name.toLowerCase() === rBeat);
-      const rRange = String(r.displayRange && r.displayRange !== 'Forest Range' ? r.displayRange : (r.range_name || r.range || (beatObj ? beatObj.parentName : ''))).toLowerCase().trim();
+      const cleanLabel = (val: any) => {
+        if (!val) return '';
+        const s = String(val).trim().toLowerCase();
+        if (s === 'not assigned' || s === '—' || s === '-' || s === 'null' || s === 'undefined' || s === 'forest range') return '';
+        return s;
+      };
+      
+      const rBeat = (cleanLabel(r.beat_name) || cleanLabel(r.site_name) || cleanLabel(r.beat) || cleanLabel(r.displayBeat) || '').trim();
+      const beatObj = rBeat ? this.allBeats?.find((b: any) => b.name.toLowerCase() === rBeat) : null;
+      const rRange = (cleanLabel(r.range_name) || cleanLabel(r.range) || cleanLabel(r.displayRange) || (beatObj ? beatObj.parentName : '')).trim();
+      
       const deepestName = localStorage.getItem('global_deepest_filter_name') || '';
       if (deepestName) {
         const names = deepestName.split(',').map(n => n.trim().toLowerCase());
@@ -315,6 +323,7 @@ export class AdminAssetsRecordsPage implements OnInit {
         this.allRanges = h.ranges;
         this.allBeats = h.beats;
         this.updateVisibleBeats();
+        this.refreshData();
       },
       error: (err) => console.error('❌ Hierarchy fetch failed:', err)
     });

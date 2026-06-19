@@ -634,7 +634,11 @@ export class DataService {
   ): Observable<any> {
     return this.getUserDetails(userId, companyId).pipe(
       catchError(() =>
-        this.getProfileById(userId).pipe(catchError(() => of(null)))
+        this.getV2UserDetails(userId).pipe(
+          catchError(() =>
+            this.getProfileById(userId).pipe(catchError(() => of(null)))
+          )
+        )
       )
     );
   }
