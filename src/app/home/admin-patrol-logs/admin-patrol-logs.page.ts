@@ -33,6 +33,9 @@ export class AdminPatrolLogsPage implements OnInit {
   public assignedBeat: string = '';
   public deepestFilterName: string = '';
   public hierarchyChain: string[] = [];
+  public debugAllowedIds: string = '';
+  public debugDeepestFilterName: string = '';
+  public debugAllBeatsLength: number = 0;
 
   constructor(
     private navCtrl: NavController,
@@ -42,6 +45,8 @@ export class AdminPatrolLogsPage implements OnInit {
   ) {}
 
   ngOnInit() {
+    this.debugAllowedIds = localStorage.getItem('global_allowed_entity_ids') || 'null';
+    this.debugDeepestFilterName = localStorage.getItem('global_deepest_filter_name') || 'null';
     this.userRole = localStorage.getItem('user_role') || '3';
     
     // 🌐 Read Global Filter from Admin Dashboard
@@ -469,6 +474,7 @@ export class AdminPatrolLogsPage implements OnInit {
         next: (h) => {
           this.allRanges = h.ranges;
           this.allBeats = h.beats;
+          this.debugAllBeatsLength = h.beats?.length || 0;
           this.updateVisibleBeats();
           resolve();
         },
