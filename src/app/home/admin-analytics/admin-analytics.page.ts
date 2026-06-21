@@ -1132,6 +1132,58 @@ updateDeepestSelection() {
   }
 }
 
+  isRecordMatchingAllowedIds(r: any): boolean {
+    const allowedIdsStr = localStorage.getItem('global_allowed_entity_ids');
+    if (!allowedIdsStr) return true;
+    
+    try {
+      const allowedIds = JSON.parse(allowedIdsStr);
+      if (!Array.isArray(allowedIds) || allowedIds.length === 0) return true;
+      
+      const rawSiteId = r.reporter_entity_id || r.reporter_parent_id || r.site_id || r.siteId || r.beat_id || r.beatId || r.entity_id || r.entityId || r.range_id || r.rangeId || '';
+      
+      let recordIds: string[] = [];
+      if (Array.isArray(rawSiteId)) {
+        recordIds = rawSiteId.map(id => String(id).trim());
+      } else if (rawSiteId) {
+        recordIds = String(rawSiteId).split(',').map(id => id.trim());
+      }
+      
+      if (recordIds.length > 0) {
+        const matchesId = recordIds.some(id => allowedIds.includes(id));
+        if (matchesId) return true;
+      }
+      
+      // Fallback: check by name matching
+      const cleanLabel = (val: any) => {
+        if (!val) return '';
+        const s = String(val).trim().toLowerCase();
+        if (s === 'not assigned' || s === '—' || s === '-' || s === 'null' || s === 'undefined' || s === 'forest range') return '';
+        return s;
+      };
+      
+      const rBeat = (cleanLabel(r.beat_name) || cleanLabel(r.site_name) || cleanLabel(r.beat) || cleanLabel(r.displayBeat) || '').trim();
+      const beatObj = rBeat ? this.allHierarchyBeats?.find((b: any) => b.name.toLowerCase() === rBeat) : null;
+      const rRange = (cleanLabel(r.range_name) || cleanLabel(r.range) || cleanLabel(r.displayRange) || (beatObj ? beatObj.parentName : '')).trim();
+      
+      const deepestName = localStorage.getItem('global_deepest_filter_name') || '';
+      if (deepestName) {
+        const allowedNames = deepestName.split(',').map(n => n.trim().toLowerCase());
+        const fieldsToSearch = [rBeat, rRange, cleanLabel(r.location), cleanLabel(r.location_name)];
+        for (const f of fieldsToSearch) {
+          if (f && allowedNames.some(n => f.includes(n) || n.includes(f))) {
+            return true;
+          }
+        }
+      }
+      
+      return false;
+    } catch (e) {
+      console.error("Error in isRecordMatchingAllowedIds:", e);
+      return true;
+    }
+  }
+
 isRecordMatchingHierarchy(r: any, deepestSelection: any): boolean {
   if (!deepestSelection) return true;
   
@@ -1418,6 +1470,7 @@ async updateUIData() {
 
           if (list.length > 0) {
             list.forEach((r: any) => {
+              if (!this.isRecordMatchingAllowedIds(r)) return;
               // 🧪 CRITICAL SYNC: report_data is stored as JSON string in DB. Must parse for extraction.
               let rData = r.report_data || {};
               if (typeof rData === 'string' && rData.startsWith('{')) {
@@ -1674,7 +1727,8 @@ async updateUIData() {
             let apiData = res.data ? (res.data[s.id] || res.data[s.id.toLowerCase()]) : (res[s.id] || res[s.id.toLowerCase()]);
             const manualVal = this.manualSubCounts[s.id] || 0;
             const apiVal = (typeof apiData === 'number') ? apiData : (apiData?.val || 0);
-            const countVal = Math.max(apiVal, manualVal);
+            const isRestricted = localStorage.getItem('is_restricted_admin') === 'true';
+            const countVal = isRestricted ? manualVal : Math.max(apiVal, manualVal);
 
             // Inject manual charts for this sub
             injectManual(s);
@@ -2039,6 +2093,7 @@ fetchRealAssetData() {
       const statusData: { [key: string]: { [key: string]: number } } = {};
 
       list.forEach((a: any) => {
+        if (!this.isRecordMatchingAllowedIds(a)) return;
         const cat = (a.category || '').toLowerCase().trim();
         const rawStatus = (a.status || a.condition || '').toLowerCase().trim().replace(/_/g, ' ');
         const aDate = a.created_at || a.date || a.updated_at || '';
@@ -2066,7 +2121,7 @@ fetchRealAssetData() {
       // 1. Update Global Header Stats (Filtered by Today/Timeframe)
       const filteredList = list.filter((a: any) => {
         const aDate = a.created_at || a.date || '';
-        return this.isDateInTimeframe(aDate, this.activeDateFilter);
+        return this.isDateInTimeframe(aDate, this.activeDateFilter) && this.isRecordMatchingAllowedIds(a);
       });
 
       this.realNurseryCount = filteredList.filter((a: any) => (a.category || '').toLowerCase().includes('nursery')).length;

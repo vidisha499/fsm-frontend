@@ -1923,13 +1923,30 @@ changeTimeframe(newTimeframe: string) {
             // Helper for robust date parsing (Shared for Assets and Reports)
             const getTS = (d: any) => {
               if (!d) return 0;
-              if (typeof d === 'string' && d.includes('-')) {
-                const parts = d.split('T')[0].split(' ')[0].split('-');
-                if (parts[0].length === 2 && parts[2].length === 4) {
-                  return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime();
+              if (typeof d === 'string') {
+                const clean = d.split('T')[0].split(' ')[0].trim();
+                if (clean.includes('-')) {
+                  const parts = clean.split('-');
+                  if (parts.length === 3) {
+                    if (parts[0].length === 4) {
+                      return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])).getTime();
+                    } else if (parts[2].length === 4) {
+                      return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0])).getTime();
+                    }
+                  }
+                } else if (clean.includes('/')) {
+                  const parts = clean.split('/');
+                  if (parts.length === 3) {
+                    if (parts[2].length === 4) {
+                      return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0])).getTime();
+                    } else if (parts[0].length === 4) {
+                      return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])).getTime();
+                    }
+                  }
                 }
               }
-              return new Date(d).getTime();
+              const parsed = new Date(d).getTime();
+              return isNaN(parsed) ? 0 : parsed;
             };
 
             // --- A. PROCESS ASSETS ---
@@ -2011,11 +2028,19 @@ changeTimeframe(newTimeframe: string) {
               assetList.forEach((a: any) => {
                  const aDate = a.created_at || a.date_time || a.date || '';
                  let dateYMD = '';
-                 if (aDate && aDate.includes('-')) {
-                     const parts = aDate.split('T')[0].split(' ')[0].split('-');
+                 if (aDate) {
+                   const cleanDate = aDate.split('T')[0].split(' ')[0].trim();
+                   if (cleanDate.includes('-')) {
+                     const parts = cleanDate.split('-');
                      if (parts.length === 3) {
                        dateYMD = parts[0].length === 4 ? `${parts[0]}-${parts[1]}-${parts[2]}` : `${parts[2]}-${parts[1]}-${parts[0]}`;
                      }
+                   } else if (cleanDate.includes('/')) {
+                     const parts = cleanDate.split('/');
+                     if (parts.length === 3) {
+                       dateYMD = parts[2].length === 4 ? `${parts[2]}-${parts[1]}-${parts[0]}` : `${parts[0]}-${parts[1]}-${parts[2]}`;
+                     }
+                   }
                  }
                  if (dateYMD) {
                      assetsTrendMap[dateYMD] = (assetsTrendMap[dateYMD] || 0) + 1;
@@ -2076,8 +2101,9 @@ changeTimeframe(newTimeframe: string) {
 
                    // Record for trend mapping (Last 30 Days logic)
                    let dateYMD = '';
-                   if (rFullDate && rFullDate.includes('-')) {
-                     const parts = rFullDate.split(' ')[0].split('-');
+                    const cleanDate = rFullDate ? rFullDate.split('T')[0].split(' ')[0].trim() : '';
+                    if (cleanDate && (cleanDate.includes('-') || cleanDate.includes('/'))) {
+                     const parts = cleanDate.includes('-') ? cleanDate.split('-') : cleanDate.split('/');
                      dateYMD = parts[0].length === 4 ? `${parts[0]}-${parts[1]}-${parts[2]}` : `${parts[2]}-${parts[1]}-${parts[0]}`;
                    }
                    
