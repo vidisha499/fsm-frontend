@@ -740,6 +740,13 @@ export class AdminPage implements OnInit, AfterViewInit {
             localStorage.setItem('global_allowed_entity_ids', JSON.stringify(allDescendantIds));
             console.log("🔍 [Admin Dashboard] Re-saved Descendant IDs (post-load):", allDescendantIds);
           }
+
+          // Trigger reports reload only once all layers are preloaded
+          const allLoaded = this.layers.every(l => !!this.layerEntities[l.id] && this.layerEntities[l.id].length > 0);
+          if (allLoaded) {
+             console.log("🎯 [Admin Dashboard] All hierarchy layers loaded, triggering data fetch.");
+             this.loadData(true);
+          }
           this.cdr.detectChanges();
         }
       });
