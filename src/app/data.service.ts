@@ -1810,8 +1810,36 @@ export class DataService {
   }
   deleteAsset(id: string | number): Observable<any> { return this.http.post(`${this.baseApiUrl}/asset/${id}/delete`, {}); }
   getAssets(companyId: number): Observable<any> { 
-    const formData = new FormData();
     const token = localStorage.getItem('api_token') || '';
+    const isV2 = localStorage.getItem('global_allowed_entity_ids') || 
+                 localStorage.getItem('admin_layer_id') || 
+                 localStorage.getItem('is_restricted_admin') === 'true';
+
+    if (isV2) {
+      const userId = localStorage.getItem('user_id') || localStorage.getItem('ranger_id');
+      const payload: any = { 
+        api_token: token,
+        company_id: companyId,
+        cid: companyId,
+        user_id: userId,
+        guard_id: userId,
+        ranger_id: userId
+      };
+
+      const allowedIdsStr = localStorage.getItem('global_allowed_entity_ids');
+      const adminLayerId = localStorage.getItem('admin_layer_id');
+      if (allowedIdsStr && adminLayerId) {
+        try {
+          payload.layer_id = adminLayerId;
+          payload.entity_id = JSON.parse(allowedIdsStr);
+          payload.is_restricted = true;
+        } catch (e) {}
+      }
+
+      return this.http.post(`${this.baseApiUrl}/v2/assets/list`, payload);
+    }
+
+    const formData = new FormData();
     formData.append('api_token', token);
     formData.append('company_id', companyId.toString());
     
@@ -1979,6 +2007,51 @@ export class DataService {
   private globalForestReportsCache: any = null;
 
   getForestReports(paramsOrCategory?: any, forceRefresh: boolean = false) { 
+    const isV2 = localStorage.getItem('global_allowed_entity_ids') || 
+                 localStorage.getItem('admin_layer_id') || 
+                 localStorage.getItem('is_restricted_admin') === 'true';
+
+    if (isV2) {
+      if (forceRefresh) {
+        this.globalForestReportsCache = null;
+      }
+
+      if (this.globalForestReportsCache && !paramsOrCategory) {
+        return of(this.globalForestReportsCache);
+      }
+
+      const token = localStorage.getItem('api_token') || '';
+      const companyId = localStorage.getItem('company_id');
+      const userId = localStorage.getItem('user_id') || localStorage.getItem('ranger_id');
+      
+      const payload: any = { 
+        api_token: token,
+        company_id: companyId,
+        user_id: userId
+      };
+
+      // Apply V2 hierarchy filter
+      const allowedIdsStr = localStorage.getItem('global_allowed_entity_ids');
+      const adminLayerId = localStorage.getItem('admin_layer_id');
+      if (allowedIdsStr && adminLayerId) {
+        try {
+          payload.layer_id = adminLayerId;
+          payload.entity_id = JSON.parse(allowedIdsStr);
+          payload.is_restricted = true;
+        } catch (e) {}
+      }
+
+      return this.http.post(`${this.baseApiUrl}/v2/forest-reports/list`, payload).pipe(
+        map((res: any) => {
+          const list = res?.data || res?.reports || res || [];
+          if (!paramsOrCategory) {
+            this.globalForestReportsCache = list;
+          }
+          return list;
+        })
+      );
+    }
+
     let url = `${this.baseApiUrl}/forest-reports`;
     
     if (forceRefresh) {

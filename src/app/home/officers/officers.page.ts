@@ -287,10 +287,14 @@ export class OfficersPage implements OnInit {
       const officerBeatObj = this.allBeats.find((b: any) => b.name.toLowerCase() === siteBeat);
       const officerRange = officerBeatObj ? officerBeatObj.parentName : 'General Range';
 
-      const matchesRange = this.selectedRange === 'all' || officerRange === this.selectedRange;
+      const matchesRange = localStorage.getItem('global_allowed_entity_ids')
+        ? true
+        : (this.selectedRange === 'all' || officerRange === this.selectedRange);
 
       // 3. Beat Filter
-      const matchesBeat = this.selectedBeat === 'all' || siteBeat === this.selectedBeat.toLowerCase();
+      const matchesBeat = localStorage.getItem('global_allowed_entity_ids')
+        ? true
+        : (this.selectedBeat === 'all' || siteBeat === this.selectedBeat.toLowerCase());
 
       return matchesSearch && matchesRange && matchesBeat;
     });
@@ -307,7 +311,7 @@ export class OfficersPage implements OnInit {
       const allowedIds = JSON.parse(allowedIdsStr);
       if (!Array.isArray(allowedIds) || allowedIds.length === 0) return true;
       
-      const rawSiteId = r.entity_id || r.entityId || '';
+      const rawSiteId = r.reporter_entity_id || r.reporter_parent_id || r.site_id || r.siteId || r.beat_id || r.beatId || r.entity_id || r.entityId || r.range_id || r.rangeId || '';
       
       let recordIds: string[] = [];
       if (Array.isArray(rawSiteId)) {

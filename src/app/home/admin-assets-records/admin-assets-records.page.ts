@@ -151,7 +151,9 @@ export class AdminAssetsRecordsPage implements OnInit {
 
           // 2. Hierarchy Filter (Bidirectional Inclusive)
           let matchesHierarchy = true;
-          if (this.deepestFilterName) {
+          if (localStorage.getItem('global_allowed_entity_ids')) {
+            matchesHierarchy = true;
+          } else if (this.deepestFilterName) {
             matchesHierarchy = this.isRecordMatchingHierarchyName(a);
           } else {
             const rBeat = (a.beat_name || a.site_name || a.location || '').toLowerCase();
@@ -221,7 +223,7 @@ export class AdminAssetsRecordsPage implements OnInit {
       const allowedIds = JSON.parse(allowedIdsStr);
       if (!Array.isArray(allowedIds) || allowedIds.length === 0) return true;
       
-      const rawSiteId = r.reporter_entity_id || r.reporter_parent_id || '';
+      const rawSiteId = r.reporter_entity_id || r.reporter_parent_id || r.site_id || r.siteId || r.beat_id || r.beatId || r.entity_id || r.entityId || r.range_id || r.rangeId || '';
       
       let recordIds: string[] = [];
       if (Array.isArray(rawSiteId)) {

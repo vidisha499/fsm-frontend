@@ -33,20 +33,6 @@ export class AdminPatrolLogsPage implements OnInit {
   public assignedBeat: string = '';
   public deepestFilterName: string = '';
   public hierarchyChain: string[] = [];
-  public debugAllowedIds: string = '';
-  public debugDeepestFilterName: string = '';
-  public debugAllBeatsLength: number = 0;
-  
-  public debugRawLogsCount: number = 0;
-  public debugEnrichedLogsCount: number = 0;
-  public debugFilteredLogsCount: number = 0;
-  public debugDateRange: string = '';
-  public debugFirstLogDate: string = '';
-  public debugFirstLogRange: string = '';
-  public debugFirstLogBeat: string = '';
-  public debugFirstLogAllowed: string = 'N/A';
-  public debugFirstLogMatchesHierarchy: string = 'N/A';
-  public debugFirstLogMatchesDate: string = 'N/A';
 
   constructor(
     private navCtrl: NavController,
@@ -56,8 +42,6 @@ export class AdminPatrolLogsPage implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.debugAllowedIds = localStorage.getItem('global_allowed_entity_ids') || 'null';
-    this.debugDeepestFilterName = localStorage.getItem('global_deepest_filter_name') || 'null';
     this.userRole = localStorage.getItem('user_role') || '3';
     
     // 🌐 Read Global Filter from Admin Dashboard
@@ -196,45 +180,6 @@ export class AdminPatrolLogsPage implements OnInit {
           next: (enrichedLogs) => {
             const mappedLogs = enrichedLogs.map((log: any) => this.processPatrolLog(log));
             
-            this.debugRawLogsCount = rawLogs?.length || 0;
-            this.debugEnrichedLogsCount = enrichedLogs?.length || 0;
-            this.debugDateRange = `${activeFrom} to ${activeTo}`;
-            
-            if (mappedLogs.length > 0) {
-              const firstLog = mappedLogs[0];
-              this.debugFirstLogDate = firstLog.created_at || firstLog.start_time || firstLog.date || 'none';
-              this.debugFirstLogRange = firstLog.displayRange || firstLog.range_name || 'none';
-              this.debugFirstLogBeat = firstLog.displayBeat || firstLog.beat_name || 'none';
-              this.debugFirstLogAllowed = String(this.isRecordMatchingAllowedIds(firstLog));
-              this.debugFirstLogMatchesHierarchy = String(this.deepestFilterName ? this.isRecordMatchingHierarchyName(firstLog) : 'N/A');
-              
-              const rDate = this.debugFirstLogDate;
-              let isDateMatch = false;
-              if (rDate && activeFrom && activeTo) {
-                const rTimestamp = getTS(rDate);
-                const today = new Date().toISOString().split('T')[0];
-                const nowL = new Date();
-                const todayYMD = `${nowL.getFullYear()}-${String(nowL.getMonth() + 1).padStart(2, '0')}-${String(nowL.getDate()).padStart(2, '0')}`;
-                const todayDMY = `${String(nowL.getDate()).padStart(2, '0')}-${String(nowL.getMonth() + 1).padStart(2, '0')}-${nowL.getFullYear()}`;
-                const rFullDate = rDate.toString();
-
-                if (activeFrom === today && activeTo === today) {
-                  isDateMatch = !!(rFullDate.includes(todayYMD) || rFullDate.includes(todayDMY) || rFullDate.includes(todayYMD.replace(/-/g, '/')) || rFullDate.includes(today) || rFullDate.includes(today.replace(/-/g, '/')));
-                } else {
-                  const d = new Date(rTimestamp);
-                  const rLocalDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                  if (activeFrom === activeTo) {
-                    isDateMatch = rLocalDate === activeFrom;
-                  } else {
-                    const fromTS = new Date(activeFrom).setHours(0, 0, 0, 0);
-                    const toTS = new Date(activeTo).setHours(23, 59, 59, 999);
-                    isDateMatch = rTimestamp >= fromTS && rTimestamp <= toTS;
-                  }
-                }
-              }
-              this.debugFirstLogMatchesDate = String(isDateMatch);
-            }
-
             const filtered = mappedLogs.filter((log: any) => {
               // Check V2 Allowed Entity IDs first (Restricted Admin / Dynamic User)
               if (!this.isRecordMatchingAllowedIds(log)) {
@@ -274,7 +219,9 @@ export class AdminPatrolLogsPage implements OnInit {
 
               // 🌲 2. Hierarchy Filter (Range & Beat)
               let matchesHierarchy = true;
-              if (this.deepestFilterName) {
+              if (localStorage.getItem('global_allowed_entity_ids')) {
+                matchesHierarchy = true;
+              } else if (this.deepestFilterName) {
                 matchesHierarchy = this.isRecordMatchingHierarchyName(log);
               } else {
                 const rBeat = (log.beat_name || log.site_name || log.location || log.beat || log.displayBeat || '').toLowerCase();
@@ -320,7 +267,6 @@ export class AdminPatrolLogsPage implements OnInit {
             this.patrolLogs = filtered
               .sort((a: any, b: any) => getTS(b.created_at || b.start_time) - getTS(a.created_at || a.start_time));
             
-            this.debugFilteredLogsCount = this.patrolLogs.length;
             this.isLoading = false;
             this.cdr.detectChanges();
           },
@@ -345,7 +291,7 @@ export class AdminPatrolLogsPage implements OnInit {
       const allowedIds = JSON.parse(allowedIdsStr);
       if (!Array.isArray(allowedIds) || allowedIds.length === 0) return true;
       
-      const rawSiteId = r.reporter_entity_id || r.reporter_parent_id || '';
+      const rawSiteId = r.reporter_entity_id || r.reporter_parent_id || r.site_id || r.siteId || r.beat_id || r.beatId || r.entity_id || r.entityId || r.range_id || r.rangeId || '';
       
       let recordIds: string[] = [];
       if (Array.isArray(rawSiteId)) {
@@ -527,7 +473,6 @@ export class AdminPatrolLogsPage implements OnInit {
         next: (h) => {
           this.allRanges = h.ranges;
           this.allBeats = h.beats;
-          this.debugAllBeatsLength = h.beats?.length || 0;
           this.updateVisibleBeats();
           resolve();
         },

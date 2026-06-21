@@ -222,6 +222,10 @@ export class AdminEventsRecordsPage implements OnInit {
             return false;
           }
 
+          if (localStorage.getItem('global_allowed_entity_ids')) {
+            return true;
+          }
+
           // V2 Dynamic Hierarchy Filter (takes priority)
           if (this.deepestFilterName) {
             return this.isRecordMatchingHierarchyName(r);
@@ -255,7 +259,7 @@ export class AdminEventsRecordsPage implements OnInit {
       const allowedIds = JSON.parse(allowedIdsStr);
       if (!Array.isArray(allowedIds) || allowedIds.length === 0) return true;
       
-      const rawSiteId = r.reporter_entity_id || r.reporter_parent_id || '';
+      const rawSiteId = r.reporter_entity_id || r.reporter_parent_id || r.site_id || r.siteId || r.beat_id || r.beatId || r.entity_id || r.entityId || r.range_id || r.rangeId || '';
       
       let recordIds: string[] = [];
       if (Array.isArray(rawSiteId)) {
