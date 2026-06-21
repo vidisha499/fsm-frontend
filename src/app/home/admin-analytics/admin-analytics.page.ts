@@ -1255,7 +1255,7 @@ isRecordMatchingHierarchy(r: any, deepestSelection: any): boolean {
   
   const allowedIds = String(entityId).split(',').map(id => id.trim());
   
-  const rSiteId = String(r.site_id || r.siteId || r.beat_id || r.entity_id || r.range_id || r.id || '');
+  const rSiteId = String(r.reporter_entity_id || r.reporter_parent_id || r.site_id || r.siteId || r.beat_id || r.beatId || r.entity_id || r.entityId || r.range_id || r.rangeId || r.id || '');
   if (rSiteId && allowedIds.includes(rSiteId)) return true;
   
   if (rSiteId) {
@@ -1561,16 +1561,20 @@ async updateUIData() {
                 }
               }
 
-              let dateYMD = '';
+                            let dateYMD = '';
               const cleanDate = (rDateStr || '').split('T')[0].split(' ')[0];
               if (cleanDate.includes('-')) {
                 const parts = cleanDate.split('-');
-                if (parts[0].length === 4) dateYMD = `${parts[0]}-${parts[1]}-${parts[2]}`; 
-                else if (parts[2].length === 4) dateYMD = `${parts[2]}-${parts[1]}-${parts[0]}`; 
+                const year = parts[0].length === 4 ? parts[0] : parts[2];
+                const month = String(parts[0].length === 4 ? parts[1] : parts[1]).padStart(2, '0');
+                const day = String(parts[0].length === 4 ? parts[2] : parts[0]).padStart(2, '0');
+                dateYMD = `${year}-${month}-${day}`; 
               } else if (cleanDate.includes('/')) {
                 const parts = cleanDate.split('/');
-                if (parts[2].length === 4) dateYMD = `${parts[2]}-${parts[1]}-${parts[0]}`; 
-                else if (parts[0].length === 4) dateYMD = `${parts[0]}-${parts[1]}-${parts[2]}`; 
+                const year = parts[2].length === 4 ? parts[2] : parts[0];
+                const month = String(parts[2].length === 4 ? parts[1] : parts[1]).padStart(2, '0');
+                const day = String(parts[2].length === 4 ? parts[0] : parts[2]).padStart(2, '0');
+                dateYMD = `${year}-${month}-${day}`; 
               }
 
               if (cat.includes('crim')) cCount++;
@@ -1592,8 +1596,9 @@ async updateUIData() {
               
               if (subId && dateYMD.length === 10) {
                 const d = new Date(dateYMD);
-                const thirtyDaysAgo = new Date();
-                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                const refDate = (this.activeDateFilter === 'custom' && this.endDate) ? new Date(this.endDate) : new Date();
+                const thirtyDaysAgo = new Date(refDate);
+                thirtyDaysAgo.setDate(refDate.getDate() - 30);
                 if (d >= thirtyDaysAgo) {
                    if (!mTrendData[subId]) mTrendData[subId] = {};
                    mTrendData[subId][dateYMD] = (mTrendData[subId][dateYMD] || 0) + 1;
@@ -1744,10 +1749,11 @@ async updateUIData() {
                       const trend30 = [];
                       const labels30 = [];
                       const flatValues = [];
-                      const today = new Date();
-                      for (let i = 29; i >= 0; i--) {
-                        const d = new Date();
-                        d.setDate(today.getDate() - i);
+                      const refDate = (this.activeDateFilter === 'custom' && this.endDate) ? new Date(this.endDate) : new Date();
+                       const today = new Date(refDate);
+                       for (let i = 29; i >= 0; i--) {
+                         const d = new Date(today);
+                         d.setDate(today.getDate() - i);
                         const key = d.toISOString().split('T')[0];
                         const label = this.formatTrendDate(key);
                         const val = mTrend[key] || 0;
@@ -2048,30 +2054,39 @@ setAnaSub(id: string) {
                    chartId.includes('-p2') || chartId.includes('-m2') ||
                    chartId.includes('-jf2') || chartId.includes('-co2') ||
                    chartId.includes('-an3')) {
+            const isRestricted = localStorage.getItem('is_restricted_admin') === 'true';
             let mRangeArr = Object.keys(manualRange).map(k => ({ label: k, value: manualRange[k] }));
             
-            // For Illegal Felling and Timber Transport, ensure the standard three ranges are always represented
+            // For Illegal Felling and Timber Transport, ensure the represented ranges match allowed ones
             if (id === 'felling' || id === 'transport') {
-              const targetRanges = ['R2 Test', 'R1 Kankher Test', 'General'];
+              const targetRanges = (this.ranges && this.ranges.length > 0) ? this.ranges : ['R2 Test', 'R1 Kankher Test', 'General'];
               const finalArr = targetRanges.map(name => ({
                 label: name,
                 value: manualRange[name] || 0
               }));
               
-              // Add any other ranges found in data
+              // Add any other ranges found in data (only if not restricted)
               Object.keys(manualRange).forEach(k => {
-                if (!targetRanges.includes(k)) {
+                if (!targetRanges.includes(k) && !isRestricted) {
                   finalArr.push({ label: k, value: manualRange[k] });
                 }
               });
               mRangeArr = finalArr;
             }
 
+            if (isRestricted && this.ranges && this.ranges.length > 0) {
+              mRangeArr = mRangeArr.filter(item => this.ranges.includes(item.label));
+            }
+
             // Favor manual real-time range distribution for felling and transport
             if ((id === 'felling' || id === 'transport') && mRangeArr.length > 0) {
               ch.dynamicData = mRangeArr;
             } else {
-              ch.dynamicData = rawData.range_distribution && rawData.range_distribution.length ? rawData.range_distribution : mRangeArr;
+              let rDist = rawData.range_distribution && rawData.range_distribution.length ? rawData.range_distribution : mRangeArr;
+              if (isRestricted && this.ranges && this.ranges.length > 0) {
+                rDist = rDist.filter((item: any) => this.ranges.includes(item.label || item.name));
+              }
+              ch.dynamicData = rDist;
             }
           }
           else if (chartId === 'ev-an1') {

@@ -2054,13 +2054,14 @@ changeTimeframe(newTimeframe: string) {
                  }
               });
 
-              const last30 = Array.from({length: 30}, (_, i) => {
-                 const d = new Date();
-                 d.setDate(d.getDate() - (29 - i));
-                 const m = String(d.getMonth() + 1).padStart(2, '0');
-                 const day = String(d.getDate()).padStart(2, '0');
-                 return `${d.getFullYear()}-${m}-${day}`;
-              });
+              const refDate = dates.to ? new Date(dates.to) : new Date();
+               const last30 = Array.from({length: 30}, (_, i) => {
+                  const d = new Date(refDate);
+                  d.setDate(refDate.getDate() - (29 - i));
+                  const m = String(d.getMonth() + 1).padStart(2, '0');
+                  const day = String(d.getDate()).padStart(2, '0');
+                  return `${d.getFullYear()}-${m}-${day}`;
+               });
               this.assetsTrendData = last30.map(d => assetsTrendMap[d] || 0);
             }
 
@@ -2212,9 +2213,10 @@ changeTimeframe(newTimeframe: string) {
                    }
                 });
 
+                const refDate = dates.to ? new Date(dates.to) : new Date();
                 const last30 = Array.from({length: 30}, (_, i) => {
-                   const d = new Date();
-                   d.setDate(d.getDate() - (29 - i));
+                   const d = new Date(refDate);
+                   d.setDate(refDate.getDate() - (29 - i));
                    const m = String(d.getMonth() + 1).padStart(2, '0');
                    const day = String(d.getDate()).padStart(2, '0');
                    return `${d.getFullYear()}-${m}-${day}`;
@@ -3883,8 +3885,10 @@ handleApiResponse(res: any) {
     const totalLength = 30;
     
     // Labels (MM-DD)
+    const dates = this.getFilterDates();
+    const refDate = dates.to ? new Date(dates.to) : new Date();
     const labels = Array.from({length: totalLength}, (_, i) => {
-       const d = new Date(); d.setDate(d.getDate() - (29 - i));
+       const d = new Date(refDate); d.setDate(refDate.getDate() - (29 - i));
        return `${d.getMonth() + 1}/${d.getDate()}`;
     });
     
